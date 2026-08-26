@@ -694,6 +694,8 @@
     "autocomplete_search_server": "Meklēt serverī",
     "autocomplete_searching": "Meklē...",
     "toolbar": {
+      "font_size": "Fonta izmērs",
+      "font_size_default": "Noklusējums",
       "bold": "Treknraksts",
       "italic": "Kursīvs",
       "underline": "Pasvītrots",

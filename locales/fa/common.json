@@ -694,6 +694,8 @@
     "autocomplete_search_server": "جستجو در سرور",
     "autocomplete_searching": "در حال جستجو...",
     "toolbar": {
+      "font_size": "اندازه فونت",
+      "font_size_default": "پیش‌فرض",
       "bold": "پررنگ",
       "italic": "کج",
       "underline": "زیرخط‌دار",

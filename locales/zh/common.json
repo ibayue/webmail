@@ -694,6 +694,8 @@
     "autocomplete_search_server": "在服务器上搜索",
     "autocomplete_searching": "搜索中...",
     "toolbar": {
+      "font_size": "字号",
+      "font_size_default": "默认",
       "bold": "加粗",
       "italic": "斜体",
       "underline": "下划线",

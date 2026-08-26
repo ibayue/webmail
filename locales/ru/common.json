@@ -694,6 +694,8 @@
     "autocomplete_search_server": "Искать на сервере",
     "autocomplete_searching": "Поиск...",
     "toolbar": {
+      "font_size": "Размер шрифта",
+      "font_size_default": "По умолчанию",
       "bold": "Жирный",
       "italic": "Курсив",
       "underline": "Подчёркнутый",

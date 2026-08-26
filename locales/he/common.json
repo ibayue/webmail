@@ -659,6 +659,8 @@
     "autocomplete_search_server": "חיפוש בשרת",
     "autocomplete_searching": "מחפש...",
     "toolbar": {
+      "font_size": "גודל גופן",
+      "font_size_default": "ברירת מחדל",
       "bold": "מודגש",
       "italic": "נטוי",
       "underline": "קו תחתון",

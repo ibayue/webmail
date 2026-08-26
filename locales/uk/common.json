@@ -694,6 +694,8 @@
     "autocomplete_search_server": "Шукати на сервері",
     "autocomplete_searching": "Пошук...",
     "toolbar": {
+      "font_size": "Розмір шрифту",
+      "font_size_default": "За замовчуванням",
       "bold": "Жирний",
       "italic": "Курсив",
       "underline": "Підкреслений",

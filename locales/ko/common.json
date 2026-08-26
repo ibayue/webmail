@@ -694,6 +694,8 @@
     "autocomplete_search_server": "서버에서 검색",
     "autocomplete_searching": "검색 중...",
     "toolbar": {
+      "font_size": "글자 크기",
+      "font_size_default": "기본값",
       "bold": "굵게",
       "italic": "기울임꼴",
       "underline": "밑줄",

@@ -694,6 +694,8 @@
     "autocomplete_search_server": "البحث في الخادم",
     "autocomplete_searching": "جارٍ البحث...",
     "toolbar": {
+      "font_size": "حجم الخط",
+      "font_size_default": "افتراضي",
       "bold": "غامق",
       "italic": "مائل",
       "underline": "تسطير",

@@ -694,6 +694,8 @@
     "autocomplete_search_server": "Серверээс хайх",
     "autocomplete_searching": "Хайж байна...",
     "toolbar": {
+      "font_size": "Фонтын хэмжээ",
+      "font_size_default": "Үндсэн",
       "bold": "Болд",
       "italic": "Налуу",
       "underline": "Доогуур зураас",
