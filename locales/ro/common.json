@@ -694,6 +694,8 @@
     "autocomplete_search_server": "Caută pe server",
     "autocomplete_searching": "Se caută...",
     "toolbar": {
+      "font_size": "Dimensiune font",
+      "font_size_default": "Implicit",
       "bold": "Aldin",
       "italic": "Cursiv",
       "underline": "Subliniat",

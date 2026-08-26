@@ -694,6 +694,8 @@
     "autocomplete_search_server": "サーバーを検索",
     "autocomplete_searching": "検索中...",
     "toolbar": {
+      "font_size": "文字サイズ",
+      "font_size_default": "デフォルト",
       "bold": "太字",
       "italic": "斜体",
       "underline": "下線",

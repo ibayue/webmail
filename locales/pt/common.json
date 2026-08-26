@@ -694,6 +694,8 @@
     "autocomplete_search_server": "Pesquisar no servidor",
     "autocomplete_searching": "Pesquisando...",
     "toolbar": {
+      "font_size": "Tamanho da fonte",
+      "font_size_default": "Padrão",
       "bold": "Negrito",
       "italic": "Itálico",
       "underline": "Sublinhado",

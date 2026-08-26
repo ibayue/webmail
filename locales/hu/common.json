@@ -694,6 +694,8 @@
     "autocomplete_search_server": "Keresés a kiszolgálón",
     "autocomplete_searching": "Keresés...",
     "toolbar": {
+      "font_size": "Betűméret",
+      "font_size_default": "Alapértelmezett",
       "bold": "Félkövér",
       "italic": "Dőlt",
       "underline": "Aláhúzott",

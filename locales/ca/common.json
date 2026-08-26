@@ -694,6 +694,8 @@
     "autocomplete_search_server": "Cerca al servidor",
     "autocomplete_searching": "Cercant...",
     "toolbar": {
+      "font_size": "Mida de la lletra",
+      "font_size_default": "Per defecte",
       "bold": "Negreta",
       "italic": "Cursiva",
       "underline": "Subratllat",

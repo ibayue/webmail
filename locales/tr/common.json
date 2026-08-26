@@ -694,6 +694,8 @@
     "autocomplete_search_server": "Sunucuda ara",
     "autocomplete_searching": "Aranıyor...",
     "toolbar": {
+      "font_size": "Yazı boyutu",
+      "font_size_default": "Varsayılan",
       "bold": "Kalın",
       "italic": "İtalik",
       "underline": "Altı çizili",

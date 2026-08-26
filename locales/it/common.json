@@ -694,6 +694,8 @@
     "autocomplete_search_server": "Cerca nel server",
     "autocomplete_searching": "Ricerca in corso...",
     "toolbar": {
+      "font_size": "Dimensione carattere",
+      "font_size_default": "Predefinita",
       "bold": "Grassetto",
       "italic": "Corsivo",
       "underline": "Sottolineato",

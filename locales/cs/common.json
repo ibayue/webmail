@@ -694,6 +694,8 @@
     "autocomplete_search_server": "Hledat na serveru",
     "autocomplete_searching": "Hledání...",
     "toolbar": {
+      "font_size": "Velikost písma",
+      "font_size_default": "Výchozí",
       "bold": "Tučné",
       "italic": "Kurzíva",
       "underline": "Podtržené",

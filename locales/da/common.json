@@ -694,6 +694,8 @@
     "autocomplete_search_server": "Søg på serveren",
     "autocomplete_searching": "Søger...",
     "toolbar": {
+      "font_size": "Skriftstørrelse",
+      "font_size_default": "Standard",
       "bold": "Fed",
       "italic": "Kursiv",
       "underline": "Understreget",
