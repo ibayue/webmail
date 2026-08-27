@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { isPublicHttpUrl } from '@/lib/security/url-guard';
+import { getStalwartCredentials } from '@/lib/stalwart/credentials';
+import { DisallowedUrlError, fetchPublicUrl, type PublicFetchResponse } from '@/lib/security/url-guard';
 
 const MAX_RESPONSE_SIZE = 10 * 1024 * 1024; // 10MB
 const FETCH_TIMEOUT_MS = 15000;
@@ -24,7 +25,22 @@ function extractBasicAuth(rawUrl: string): { cleanUrl: string; authHeader: strin
   return { cleanUrl: parsed.toString(), authHeader };
 }
 
+/**
+ * POST /api/fetch-ical
+ *
+ * Server-side proxy for iCalendar subscription URLs (the browser cannot fetch
+ * them directly because of CORS). Only logged-in users may use it, and every
+ * hop - including redirect targets - goes through `fetchPublicUrl`, which
+ * validates the resolved address inside the socket lookup so a rebinding DNS
+ * server cannot steer the connection at an internal host
+ * (GHSA-24w9-8r42-8jwm).
+ */
 export async function POST(request: NextRequest) {
+  const creds = await getStalwartCredentials(request);
+  if (!creds) {
+    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+  }
+
   let body: { url?: string };
   try {
     body = await request.json();
@@ -45,25 +61,16 @@ export async function POST(request: NextRequest) {
 
   const { cleanUrl, authHeader } = extracted;
 
-  if (!(await isPublicHttpUrl(cleanUrl))) {
-    return NextResponse.json({ error: 'Invalid or disallowed URL' }, { status: 400 });
-  }
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
 
   try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
-
     const MAX_REDIRECTS = 5;
     let currentUrl = cleanUrl;
     const originalOrigin = new URL(cleanUrl).origin;
-    let response: Response | undefined;
+    let response: PublicFetchResponse | undefined;
 
     for (let i = 0; i <= MAX_REDIRECTS; i++) {
-      if (!(await isPublicHttpUrl(currentUrl))) {
-        clearTimeout(timeout);
-        return NextResponse.json({ error: 'Redirect to disallowed URL' }, { status: 400 });
-      }
-
       const headers: Record<string, string> = {
         'Accept': 'text/calendar, application/ics, text/plain, */*',
         'User-Agent': 'JMAP-Webmail/1.0 Calendar-Fetcher',
@@ -72,16 +79,24 @@ export async function POST(request: NextRequest) {
         headers['Authorization'] = authHeader;
       }
 
-      response = await fetch(currentUrl, {
-        signal: controller.signal,
-        headers,
-        redirect: 'manual',
-      });
+      try {
+        response = await fetchPublicUrl(currentUrl, {
+          signal: controller.signal,
+          headers,
+        });
+      } catch (error) {
+        if (error instanceof DisallowedUrlError) {
+          return NextResponse.json(
+            { error: i === 0 ? 'Invalid or disallowed URL' : 'Redirect to disallowed URL' },
+            { status: 400 },
+          );
+        }
+        throw error;
+      }
 
       if (response.status >= 300 && response.status < 400) {
         const location = response.headers.get('location');
         if (!location) {
-          clearTimeout(timeout);
           return NextResponse.json({ error: 'Redirect without Location header' }, { status: 502 });
         }
         currentUrl = new URL(location, currentUrl).toString();
@@ -89,8 +104,6 @@ export async function POST(request: NextRequest) {
       }
       break;
     }
-
-    clearTimeout(timeout);
 
     if (!response || !response.ok) {
       return NextResponse.json(
@@ -121,5 +134,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Request timed out' }, { status: 504 });
     }
     return NextResponse.json({ error: 'Failed to fetch calendar' }, { status: 502 });
+  } finally {
+    clearTimeout(timeout);
   }
 }

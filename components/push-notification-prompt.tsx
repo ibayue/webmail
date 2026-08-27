@@ -11,6 +11,7 @@ import {
   enableWebPush,
   isWebPushEnabled,
   isWebPushSupported,
+  resyncWebPush,
 } from "@/lib/web-push";
 import { resolveActiveRelayUrl } from "@/lib/push-relays";
 import {
@@ -108,6 +109,21 @@ export function PushNotificationPrompt() {
       );
     };
   }, []);
+
+  // Accounts that already have push on get their registration touched up in
+  // the background once per page load: expiry refreshed and the server-side
+  // delivery filter installed or repaired (older registrations predate it and
+  // would keep waking the device for spam). Deliberately independent of the
+  // prompt gating below - dismissing the onboarding prompt must not leave a
+  // live registration stale.
+  useEffect(() => {
+    if (!policyLoaded || !isAuthenticated || !client || !accountId || isDemoMode) return;
+    void resyncWebPush({
+      client,
+      relayBaseUrl,
+      accountLabel: username ?? undefined,
+    });
+  }, [accountId, client, isAuthenticated, isDemoMode, policyLoaded, relayBaseUrl, username]);
 
   useEffect(() => {
     let cancelled = false;

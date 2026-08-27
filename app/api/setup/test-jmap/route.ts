@@ -6,6 +6,39 @@ export const dynamic = 'force-dynamic';
 
 const JMAP_ENDPOINTS = ['/.well-known/jmap', '/jmap/session', '/jmap'];
 const FETCH_TIMEOUT_MS = 5000;
+const MAX_REDIRECTS = 3;
+
+/**
+ * Follow redirects by hand and only towards the same host (path / trailing
+ * slash fixes) or an https upgrade of it. The wizard's server is allowed to
+ * be private (it usually is - docker-internal Stalwart), but a probe URL must
+ * not be steerable at some *other* internal host via a redirect chain.
+ */
+async function probe(url: string, method: 'GET' | 'HEAD'): Promise<Response> {
+  let current = new URL(url);
+  for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+    let res: Response;
+    try {
+      res = await fetch(current, { method, redirect: 'manual', signal: controller.signal });
+    } finally {
+      clearTimeout(timer);
+    }
+    if (res.status < 300 || res.status >= 400) return res;
+    const location = res.headers.get('location');
+    if (!location) return res;
+    const next = new URL(location, current);
+    const sameHost = next.host === current.host && next.protocol === current.protocol;
+    const httpsUpgrade = next.protocol === 'https:' && next.hostname === current.hostname;
+    if (!sameHost && !httpsUpgrade) {
+      throw new Error(`Redirected to a different host (${next.host})`);
+    }
+    await res.body?.cancel().catch(() => {});
+    current = next;
+  }
+  throw new Error('Too many redirects');
+}
 
 /**
  * POST /api/setup/test-jmap - server-side probe of a JMAP server. Mirrors
@@ -50,14 +83,7 @@ export async function POST(request: NextRequest) {
   for (const endpoint of JMAP_ENDPOINTS) {
     const target = base + endpoint;
     try {
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
-      const res = await fetch(target, {
-        method: 'GET',
-        redirect: 'follow',
-        signal: controller.signal,
-      });
-      clearTimeout(timer);
+      const res = await probe(target, 'GET');
 
       if (!res.ok) continue;
       const text = await res.text();
@@ -76,14 +102,7 @@ export async function POST(request: NextRequest) {
 
   // No JMAP session found. Was the server even reachable?
   try {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
-    const res = await fetch(base, {
-      method: 'HEAD',
-      redirect: 'follow',
-      signal: controller.signal,
-    });
-    clearTimeout(timer);
+    const res = await probe(base, 'HEAD');
     return NextResponse.json({
       status: 'reachable_no_jmap',
       httpStatus: res.status,

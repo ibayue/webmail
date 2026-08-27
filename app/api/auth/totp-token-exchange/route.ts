@@ -5,7 +5,7 @@ import { refreshTokenCookieName, refreshTokenServerCookieName } from '@/lib/oaut
 import { getCookieOptions } from '@/lib/oauth/cookie-config';
 import { readFileEnv } from '@/lib/read-file-env';
 import { configManager } from '@/lib/admin/config-manager';
-import { isPublicHttpUrl } from '@/lib/security/url-guard';
+import { DisallowedUrlError, fetchPublicUrl, isPublicHttpUrl } from '@/lib/security/url-guard';
 import { recordLogin } from '@/lib/telemetry/login-tracker';
 import { parseJmapServers, findServerByUrl, findServerById } from '@/lib/admin/jmap-servers';
 import { MAX_ACCOUNT_SLOTS } from '@/lib/account-utils';
@@ -51,8 +51,15 @@ async function attemptLogin(
   redirectUri: string,
   slot: number,
   serverId: string | null,
+  upstreamTrusted: boolean,
 ): Promise<NextResponse> {
   const base = trimUrl(upstreamUrl);
+  // A user-supplied endpoint (allowCustomJmapEndpoint) must connect through
+  // the rebinding-safe fetch; admin-configured servers may live on private
+  // addresses and use the plain one.
+  const upstreamFetch: typeof fetch = upstreamTrusted
+    ? fetch
+    : ((input, init) => fetchPublicUrl(String(input), init as Parameters<typeof fetchPublicUrl>[1]) as unknown as Promise<Response>);
 
   // Per-server OAuth credentials override the global ones when the requested
   // server entry has its own oauth block configured.
@@ -76,7 +83,7 @@ async function attemptLogin(
   // Step 1: structured login with a separate MFA token.
   let login: LoginResult;
   try {
-    const loginResponse = await fetch(`${base}/api/auth`, {
+    const loginResponse = await upstreamFetch(`${base}/api/auth`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -104,6 +111,10 @@ async function attemptLogin(
 
     login = await loginResponse.json();
   } catch (err) {
+    if (err instanceof DisallowedUrlError) {
+      logger.warn('TOTP login: rejected non-public server URL at connect time');
+      return NextResponse.json({ error: 'invalid_server_url' }, { status: 400 });
+    }
     logger.warn('TOTP login: /api/auth request failed', { error: err instanceof Error ? err.message : String(err) });
     return NextResponse.json({ error: 'login_unreachable' }, { status: 502 });
   }
@@ -136,7 +147,7 @@ async function attemptLogin(
 
   let tokens: { access_token?: string; expires_in?: number; refresh_token?: string };
   try {
-    const tokenResponse = await fetch(`${base}/auth/token`, {
+    const tokenResponse = await upstreamFetch(`${base}/auth/token`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: tokenParams.toString(),
@@ -150,6 +161,10 @@ async function attemptLogin(
 
     tokens = await tokenResponse.json();
   } catch (err) {
+    if (err instanceof DisallowedUrlError) {
+      logger.warn('TOTP login: rejected non-public server URL at connect time');
+      return NextResponse.json({ error: 'invalid_server_url' }, { status: 400 });
+    }
     logger.warn('TOTP login: token endpoint failed', { error: err instanceof Error ? err.message : String(err) });
     return NextResponse.json({ error: 'token_exchange_failed' }, { status: 502 });
   }
@@ -195,6 +210,7 @@ export async function POST(request: NextRequest) {
     const serverList = parseJmapServers(configManager.get<unknown>('jmapServers', []));
 
     let upstreamUrl: string;
+    let upstreamTrusted = true;
     let resolvedServerId: string | null = null;
     const requestedEntry = findServerById(serverList, requestedServerId);
     const matchedEntry = requestedEntry || findServerByUrl(serverList, serverUrl);
@@ -210,6 +226,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'invalid_server_url' }, { status: 400 });
       }
       upstreamUrl = serverUrl;
+      upstreamTrusted = false;
     } else {
       return NextResponse.json({ error: 'jmap_server_not_configured' }, { status: 500 });
     }
@@ -223,7 +240,7 @@ export async function POST(request: NextRequest) {
         ? bodyRedirectUri
         : trimUrl(upstreamUrl);
 
-    return await attemptLogin(upstreamUrl, username, password, totpCode, redirectUri, slot, resolvedServerId);
+    return await attemptLogin(upstreamUrl, username, password, totpCode, redirectUri, slot, resolvedServerId, upstreamTrusted);
   } catch (error) {
     logger.error('TOTP login error', { error: error instanceof Error ? error.message : 'Unknown error' });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

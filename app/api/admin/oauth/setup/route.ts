@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { randomBytes } from 'node:crypto';
 import { requireAdminAuth, getClientIP } from '@/lib/admin/session';
-import { getStalwartCredentials } from '@/lib/stalwart/credentials';
+import { getStalwartCredentials, type StalwartCredentials } from '@/lib/stalwart/credentials';
+import { fetchJmapServer } from '@/lib/stalwart/server-fetch';
 import { configManager } from '@/lib/admin/config-manager';
 import { auditLog } from '@/lib/admin/audit';
 import { logger } from '@/lib/logger';
@@ -20,26 +21,31 @@ interface JmapMethodResponse {
   methodResponses?: Array<[string, Record<string, unknown>, string]>;
 }
 
-async function fetchWithTimeout(url: string, init: Parameters<typeof fetch>[1]): Promise<Response> {
+type ServerCreds = Pick<StalwartCredentials, 'serverUrl' | 'authHeader' | 'trusted'>;
+
+async function fetchWithTimeout(
+  url: string,
+  init: Parameters<typeof fetch>[1],
+  trusted: boolean,
+): Promise<Response> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), JMAP_TIMEOUT_MS);
   try {
-    return await fetch(url, { ...init, signal: controller.signal });
+    return await fetchJmapServer(url, { ...init, signal: controller.signal }, trusted);
   } finally {
     clearTimeout(timer);
   }
 }
 
 async function jmapCall(
-  serverUrl: string,
-  authHeader: string,
+  creds: ServerCreds,
   body: JmapMethodCall,
 ): Promise<JmapMethodResponse> {
-  const res = await fetchWithTimeout(`${serverUrl}/jmap/`, {
+  const res = await fetchWithTimeout(`${creds.serverUrl}/jmap/`, {
     method: 'POST',
-    headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' },
+    headers: { 'Authorization': creds.authHeader, 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
-  });
+  }, creds.trusted);
   if (!res.ok) {
     const text = await res.text().catch(() => '');
     throw new Error(`JMAP HTTP ${res.status} ${text.slice(0, 200)}`);
@@ -47,14 +53,11 @@ async function jmapCall(
   return res.json() as Promise<JmapMethodResponse>;
 }
 
-async function getStalwartAccountId(
-  serverUrl: string,
-  authHeader: string,
-): Promise<string | null> {
-  const res = await fetchWithTimeout(`${serverUrl}/.well-known/jmap`, {
+async function getStalwartAccountId(creds: ServerCreds): Promise<string | null> {
+  const res = await fetchWithTimeout(`${creds.serverUrl}/.well-known/jmap`, {
     method: 'GET',
-    headers: { 'Authorization': authHeader },
-  });
+    headers: { 'Authorization': creds.authHeader },
+  }, creds.trusted);
   if (!res.ok) return null;
   const session = await res.json() as { primaryAccounts?: Record<string, string> };
   return session.primaryAccounts?.['urn:stalwart:jmap']
@@ -119,7 +122,7 @@ export async function POST(request: NextRequest) {
     }
     const oauthOnly = body.oauthOnly === true;
 
-    const accountId = await getStalwartAccountId(creds.serverUrl, creds.authHeader);
+    const accountId = await getStalwartAccountId(creds);
     if (!accountId) {
       return NextResponse.json(
         { error: 'Could not resolve Stalwart account from JMAP session.' },
@@ -127,7 +130,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const queryRes = await jmapCall(creds.serverUrl, creds.authHeader, {
+    const queryRes = await jmapCall(creds, {
       using: ['urn:ietf:params:jmap:core', 'urn:stalwart:jmap'],
       methodCalls: [[
         'x:OAuthClient/query',
@@ -179,7 +182,7 @@ export async function POST(request: NextRequest) {
       };
     }
 
-    const setRes = await jmapCall(creds.serverUrl, creds.authHeader, {
+    const setRes = await jmapCall(creds, {
       using: ['urn:ietf:params:jmap:core', 'urn:stalwart:jmap'],
       methodCalls: [['x:OAuthClient/set', setArgs, '0']],
     });

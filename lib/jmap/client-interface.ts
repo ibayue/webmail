@@ -1,4 +1,4 @@
-import type { Email, Mailbox, StateChange, AccountStates, Thread, Identity, EmailAddress, ContactCard, AddressBook, AddressBookRights, VacationResponse, Calendar, CreateCalendarOptions, CalendarRights, CalendarEvent, CalendarEventFilter, CalendarTask, FileNode, FileNodeRights, Principal, PushSubscription, ScheduledEmail, SendEmailResult, SharedAccount } from "./types";
+import type { Email, Mailbox, StateChange, AccountStates, Thread, Identity, EmailAddress, ContactCard, AddressBook, AddressBookRights, VacationResponse, Calendar, CreateCalendarOptions, CalendarRights, CalendarEvent, CalendarEventFilter, CalendarTask, FileNode, FileNodeRights, Principal, PushSubscription, EmailPushConfig, ScheduledEmail, SendEmailResult, SharedAccount } from "./types";
 import type { SieveScript, SieveCapabilities } from "./sieve-types";
 import type { SortLevel } from "@/lib/message-list-order";
 
@@ -93,9 +93,15 @@ export interface IJMAPClient {
     url: string;
     types: string[];
     expires?: string;
+    // Per-account delivery filter (draft-ietf-jmap-emailpush). Only sent when
+    // the server advertises urn:ietf:params:jmap:emailpush.
+    emailPush?: Record<string, EmailPushConfig>;
   }): Promise<string>;
   verifyPushSubscription(id: string, verificationCode: string): Promise<void>;
-  updatePushSubscription(id: string, patch: { expires?: string; types?: string[] }): Promise<boolean>;
+  updatePushSubscription(
+    id: string,
+    patch: { expires?: string; types?: string[]; emailPush?: Record<string, EmailPushConfig> | null },
+  ): Promise<boolean>;
   destroyPushSubscription(id: string): Promise<void>;
 
   // ── Quota ─────────────────────────────────────────────────────

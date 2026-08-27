@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   supported: true,
   enableWebPush: vi.fn(),
   isWebPushEnabled: vi.fn(),
+  resyncWebPush: vi.fn(),
   authState: {
     client: { getAccountId: () => "account-1" } as {
       getAccountId: () => string;
@@ -53,6 +54,7 @@ vi.mock("@/lib/web-push", () => ({
   enableWebPush: mocks.enableWebPush,
   isWebPushSupported: () => mocks.supported,
   isWebPushEnabled: mocks.isWebPushEnabled,
+  resyncWebPush: mocks.resyncWebPush,
 }));
 
 function setNotificationPermission(permission: NotificationPermission) {
@@ -92,6 +94,7 @@ describe("PushNotificationPrompt", () => {
     mocks.policyState.policy.pushRelayUrlLocked = false;
     mocks.enableWebPush.mockReset().mockResolvedValue({ subscriptionId: "sub-1" });
     mocks.isWebPushEnabled.mockReset().mockImplementation(async () => mocks.enabled);
+    mocks.resyncWebPush.mockReset().mockResolvedValue(false);
     setNotificationPermission("default");
   });
 
@@ -168,6 +171,29 @@ describe("PushNotificationPrompt", () => {
     await advancePromptDelay();
 
     expect(screen.queryByText("title")).not.toBeInTheDocument();
+  });
+
+  it("re-syncs an existing registration in the background on mount", async () => {
+    mocks.enabled = true;
+    render(<PushNotificationPrompt />);
+    await advancePromptDelay();
+
+    expect(mocks.resyncWebPush).toHaveBeenCalledTimes(1);
+    expect(mocks.resyncWebPush).toHaveBeenCalledWith(
+      expect.objectContaining({
+        relayBaseUrl: "https://notifications.relay.bulwarkmail.org",
+      }),
+    );
+    // Only the explicit Enable button may start the interactive flow.
+    expect(mocks.enableWebPush).not.toHaveBeenCalled();
+  });
+
+  it("does not touch push in demo mode", async () => {
+    mocks.authState.isDemoMode = true;
+    render(<PushNotificationPrompt />);
+    await advancePromptDelay();
+
+    expect(mocks.resyncWebPush).not.toHaveBeenCalled();
   });
 
   it("does not render when browser notifications are blocked", async () => {
