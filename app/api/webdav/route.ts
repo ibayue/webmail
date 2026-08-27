@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/logger';
 import { getStalwartCredentials } from '@/lib/stalwart/credentials';
+import { fetchJmapServer } from '@/lib/stalwart/server-fetch';
+import { DisallowedUrlError } from '@/lib/security/url-guard';
 
 const ALLOWED_METHODS = new Set(['PROPFIND', 'MKCOL', 'MKCALENDAR', 'GET', 'PUT', 'DELETE', 'MOVE', 'COPY']);
 
@@ -100,14 +102,16 @@ export async function POST(request: NextRequest) {
       body = request.body;
     }
 
-    const response = await fetch(targetUrl, {
+    // A user-chosen server (allowCustomJmapEndpoint) goes through the
+    // rebinding-safe fetch; see lib/stalwart/server-fetch.ts.
+    const response = await fetchJmapServer(targetUrl, {
       method,
       headers: upstreamHeaders,
       body,
       redirect: 'follow',
       // `duplex: 'half'` is required by undici when sending a streaming request body.
       ...(method === 'PUT' ? { duplex: 'half' } : {}),
-    } as Parameters<typeof fetch>[1] & { duplex?: 'half' });
+    }, creds.trusted);
 
     // For file downloads (GET), stream the response back
     if (method === 'GET') {
@@ -143,6 +147,10 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     if (error instanceof Error && error.message.startsWith('Invalid WebDAV path')) {
       return NextResponse.json({ error: error.message }, { status: 400 });
+    }
+    if (error instanceof DisallowedUrlError) {
+      logger.warn('WebDAV proxy refused non-public server address', { error: error.message });
+      return NextResponse.json({ error: 'JMAP server address is not allowed' }, { status: 502 });
     }
 
     logger.error('WebDAV proxy error', { error: error instanceof Error ? error.message : 'Unknown' });

@@ -1,5 +1,5 @@
 import { generateUUID } from '@/lib/utils';
-import type { Email, Mailbox, StateChange, AccountStates, Thread, Identity, EmailAddress, ContactCard, AddressBook, AddressBookRights, VacationResponse, Calendar, CalendarComponentType, CalendarRights, CalendarEvent, CalendarEventFilter, CalendarTask, CreateCalendarOptions, FileNode, FileNodeFilter, FileNodeRights, Principal, PushSubscription, EmailSubmission, ScheduledEmail, SendEmailResult, SharedAccount } from "./types";
+import type { Email, Mailbox, StateChange, AccountStates, Thread, Identity, EmailAddress, ContactCard, AddressBook, AddressBookRights, VacationResponse, Calendar, CalendarComponentType, CalendarRights, CalendarEvent, CalendarEventFilter, CalendarTask, CreateCalendarOptions, FileNode, FileNodeFilter, FileNodeRights, Principal, PushSubscription, EmailPushConfig, EmailSubmission, ScheduledEmail, SendEmailResult, SharedAccount } from "./types";
 import type { SieveScript, SieveCapabilities } from "./sieve-types";
 import type { IJMAPClient, KeywordDiscoveryResult, KeywordInfo, KeywordMigration } from "./client-interface";
 import { toWildcardQuery } from "./search-utils";
@@ -7939,10 +7939,33 @@ export class JMAPClient implements IJMAPClient {
   // Used by the PWA Web Push integration. The mobile app does the same dance
   // through its own JMAP client - keep these in sync.
 
+  // draft-ietf-jmap-emailpush: the session advertises this when
+  // PushSubscription accepts a per-account `emailPush` delivery filter.
+  // Stalwart >= 0.16.16. Older servers reject the capability in `using` and
+  // the `emailPush` property outright, so every push call gates on it.
+  static readonly EMAIL_PUSH_CAPABILITY = 'urn:ietf:params:jmap:emailpush';
+
+  hasEmailPushCapability(): boolean {
+    return this.hasCapability(JMAPClient.EMAIL_PUSH_CAPABILITY);
+  }
+
+  private pushUsing(withEmailPush: boolean): string[] {
+    return withEmailPush
+      ? ['urn:ietf:params:jmap:core', JMAPClient.EMAIL_PUSH_CAPABILITY]
+      : ['urn:ietf:params:jmap:core'];
+  }
+
   async listPushSubscriptions(): Promise<PushSubscription[]> {
+    const emailPush = this.hasEmailPushCapability();
+    // `emailPush` is not in the server's default property set, so ask for it
+    // explicitly - but only where the server knows the property at all.
+    const args: Record<string, unknown> = { ids: null };
+    if (emailPush) {
+      args.properties = ['id', 'deviceClientId', 'verificationCode', 'expires', 'types', 'emailPush'];
+    }
     const response = await this.request(
-      [['PushSubscription/get', { ids: null }, '0']],
-      ['urn:ietf:params:jmap:core'],
+      [['PushSubscription/get', args, '0']],
+      this.pushUsing(emailPush),
     );
     const [, body] = response.methodResponses[0] ?? [];
     return ((body as { list?: PushSubscription[] } | undefined)?.list) ?? [];
@@ -7953,6 +7976,7 @@ export class JMAPClient implements IJMAPClient {
     url: string;
     types: string[];
     expires?: string;
+    emailPush?: Record<string, EmailPushConfig>;
   }): Promise<string> {
     const created: Record<string, unknown> = {
       deviceClientId: params.deviceClientId,
@@ -7960,10 +7984,12 @@ export class JMAPClient implements IJMAPClient {
       types: params.types,
     };
     if (params.expires) created.expires = params.expires;
+    const withEmailPush = !!params.emailPush && this.hasEmailPushCapability();
+    if (withEmailPush) created.emailPush = params.emailPush;
 
     const response = await this.request(
       [['PushSubscription/set', { create: { new: created } }, '0']],
-      ['urn:ietf:params:jmap:core'],
+      this.pushUsing(withEmailPush),
     );
     const [, body] = response.methodResponses[0] ?? [];
     const result = (body as { created?: { new?: { id?: string } }; notCreated?: { new?: unknown } } | undefined);
@@ -7992,11 +8018,14 @@ export class JMAPClient implements IJMAPClient {
   // was already destroyed) - the caller treats that as a signal to recreate.
   async updatePushSubscription(
     id: string,
-    patch: { expires?: string; types?: string[] },
+    patch: { expires?: string; types?: string[]; emailPush?: Record<string, EmailPushConfig> | null },
   ): Promise<boolean> {
+    const withEmailPush = patch.emailPush !== undefined && this.hasEmailPushCapability();
+    const update: Record<string, unknown> = { ...patch };
+    if (!withEmailPush) delete update.emailPush;
     const response = await this.request(
-      [['PushSubscription/set', { update: { [id]: patch } }, '0']],
-      ['urn:ietf:params:jmap:core'],
+      [['PushSubscription/set', { update: { [id]: update } }, '0']],
+      this.pushUsing(withEmailPush),
     );
     const [, body] = response.methodResponses[0] ?? [];
     const r = body as { updated?: Record<string, unknown>; notUpdated?: Record<string, unknown> } | undefined;

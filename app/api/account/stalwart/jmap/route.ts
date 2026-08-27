@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/logger';
 import { getStalwartCredentials } from '@/lib/stalwart/credentials';
 import { JmapRedirectError, fetchJmapSession, postJmap, rebaseApiUrl } from '@/lib/stalwart/jmap-api';
+import { DisallowedUrlError } from '@/lib/security/url-guard';
 
 /**
  * POST /api/account/stalwart/jmap
@@ -24,17 +25,18 @@ export async function POST(request: NextRequest) {
 
     const body = await request.text();
 
+    const fetchOptions = { trusted: creds.trusted };
     const directUrl = `${creds.serverUrl}/jmap/`;
-    let response = await postJmap(directUrl, creds.authHeader, body);
+    let response = await postJmap(directUrl, creds.authHeader, body, fetchOptions);
 
     if (response.status === 404) {
       // `${serverUrl}/jmap/` is not the API endpoint on this deployment
       // (path prefix, non-Stalwart URL layout). Resolve the session's
       // advertised apiUrl on the same host and retry once.
-      const session = await fetchJmapSession(creds.serverUrl, creds.authHeader);
+      const session = await fetchJmapSession(creds.serverUrl, creds.authHeader, fetchOptions);
       const apiUrl = rebaseApiUrl(session, creds.serverUrl);
       if (apiUrl && apiUrl !== directUrl) {
-        response = await postJmap(apiUrl, creds.authHeader, body);
+        response = await postJmap(apiUrl, creds.authHeader, body, fetchOptions);
       }
     }
 
@@ -54,6 +56,10 @@ export async function POST(request: NextRequest) {
     if (error instanceof JmapRedirectError) {
       logger.error('Stalwart JMAP passthrough redirect error', { error: error.message });
       return NextResponse.json({ error: error.message }, { status: 502 });
+    }
+    if (error instanceof DisallowedUrlError) {
+      logger.warn('Stalwart JMAP passthrough refused non-public server address', { error: error.message });
+      return NextResponse.json({ error: 'JMAP server address is not allowed' }, { status: 502 });
     }
     // `fetch failed` from undici is too generic to debug — the real reason
     // (ENOTFOUND, ECONNREFUSED, self-signed TLS, …) lives on `error.cause`.

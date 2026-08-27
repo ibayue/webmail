@@ -838,6 +838,16 @@ export interface StateChange {
   };
 }
 
+// draft-ietf-jmap-emailpush EmailPushConfig: the server evaluates `filter`
+// against every newly delivered message and only pushes when it matches, so a
+// client can keep spam (Junk) out of its push channel server-side. Keyed by
+// account id on PushSubscription.emailPush.
+export interface EmailPushConfig {
+  filter: Record<string, unknown> | null;
+  properties: string[];
+  urgency?: 'very-low' | 'low' | 'normal' | 'high';
+}
+
 export interface PushSubscription {
   id: string;
   deviceClientId: string;
@@ -848,6 +858,10 @@ export interface PushSubscription {
   } | null;
   expires: string | null;
   types: string[] | null;
+  // Only present when the server advertises urn:ietf:params:jmap:emailpush
+  // and the property was requested; null when the subscription has no
+  // per-account delivery filter.
+  emailPush?: Record<string, EmailPushConfig> | null;
 }
 
 // For tracking last known states
