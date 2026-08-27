@@ -702,6 +702,8 @@
       "strikethrough": "Prečiarknuté",
       "text_color": "Farba textu",
       "remove_color": "Odstrániť farbu",
+      "background_color": "Farba pozadia",
+      "remove_background_color": "Odstrániť farbu pozadia",
       "heading_1": "Nadpis 1",
       "heading_2": "Nadpis 2",
       "bullet_list": "Odrážkový zoznam",

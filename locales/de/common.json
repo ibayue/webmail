@@ -702,6 +702,8 @@
       "strikethrough": "Durchgestrichen",
       "text_color": "Textfarbe",
       "remove_color": "Farbe entfernen",
+      "background_color": "Hintergrundfarbe",
+      "remove_background_color": "Hintergrundfarbe entfernen",
       "heading_1": "Überschrift 1",
       "heading_2": "Überschrift 2",
       "bullet_list": "Aufzählung",

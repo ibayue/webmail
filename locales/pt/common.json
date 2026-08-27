@@ -702,6 +702,8 @@
       "strikethrough": "Tachado",
       "text_color": "Cor do texto",
       "remove_color": "Remover cor",
+      "background_color": "Cor de fundo",
+      "remove_background_color": "Remover cor de fundo",
       "heading_1": "Título 1",
       "heading_2": "Título 2",
       "bullet_list": "Lista com marcadores",

@@ -702,6 +702,8 @@
       "strikethrough": "Pārsvītrots",
       "text_color": "Teksta krāsa",
       "remove_color": "Noņemt krāsu",
+      "background_color": "Fona krāsa",
+      "remove_background_color": "Noņemt fona krāsu",
       "heading_1": "Virsraksts 1",
       "heading_2": "Virsraksts 2",
       "bullet_list": "Aizzīmju saraksts",

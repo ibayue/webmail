@@ -702,6 +702,8 @@
       "strikethrough": "Áthúzott",
       "text_color": "Betűszín",
       "remove_color": "Szín eltávolítása",
+      "background_color": "Háttérszín",
+      "remove_background_color": "Háttérszín eltávolítása",
       "heading_1": "Címsor 1",
       "heading_2": "Címsor 2",
       "bullet_list": "Felsorolás",

@@ -702,6 +702,8 @@
       "strikethrough": "Üstü çizili",
       "text_color": "Metin rengi",
       "remove_color": "Rengi kaldır",
+      "background_color": "Arka plan rengi",
+      "remove_background_color": "Arka plan rengini kaldır",
       "heading_1": "Başlık 1",
       "heading_2": "Başlık 2",
       "bullet_list": "Madde işaretli liste",

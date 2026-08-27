@@ -702,6 +702,8 @@
       "strikethrough": "Үзсэн зураас",
       "text_color": "Текстийн өнгө",
       "remove_color": "Өнгийг арилгах",
+      "background_color": "Дэвсгэр өнгө",
+      "remove_background_color": "Дэвсгэр өнгийг арилгах",
       "heading_1": "Гарчиг 1",
       "heading_2": "Гарчиг 2",
       "bullet_list": "Сумын жагсаалт",

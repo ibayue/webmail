@@ -702,6 +702,8 @@
       "strikethrough": "Tăiat",
       "text_color": "Culoarea textului",
       "remove_color": "Elimină culoarea",
+      "background_color": "Culoarea fundalului",
+      "remove_background_color": "Elimină culoarea fundalului",
       "heading_1": "Titlu 1",
       "heading_2": "Titlu 2",
       "bullet_list": "Listă cu marcatori",

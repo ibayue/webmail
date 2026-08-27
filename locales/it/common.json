@@ -702,6 +702,8 @@
       "strikethrough": "Barrato",
       "text_color": "Colore del testo",
       "remove_color": "Rimuovi colore",
+      "background_color": "Colore di sfondo",
+      "remove_background_color": "Rimuovi colore di sfondo",
       "heading_1": "Titolo 1",
       "heading_2": "Titolo 2",
       "bullet_list": "Elenco puntato",
