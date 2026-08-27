@@ -702,6 +702,8 @@
       "strikethrough": "خط‌خورده",
       "text_color": "رنگ متن",
       "remove_color": "حذف رنگ",
+      "background_color": "رنگ پس‌زمینه",
+      "remove_background_color": "حذف رنگ پس‌زمینه",
       "heading_1": "سرفصل ۱",
       "heading_2": "سرفصل ۲",
       "bullet_list": "فهرست نشانه‌دار",

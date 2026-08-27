@@ -702,6 +702,8 @@
       "strikethrough": "取り消し線",
       "text_color": "文字色",
       "remove_color": "色を解除",
+      "background_color": "背景色",
+      "remove_background_color": "背景色を削除",
       "heading_1": "見出し1",
       "heading_2": "見出し2",
       "bullet_list": "箇条書き",

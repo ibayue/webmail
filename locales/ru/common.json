@@ -702,6 +702,8 @@
       "strikethrough": "Зачёркнутый",
       "text_color": "Цвет текста",
       "remove_color": "Убрать цвет",
+      "background_color": "Цвет фона",
+      "remove_background_color": "Убрать цвет фона",
       "heading_1": "Заголовок 1",
       "heading_2": "Заголовок 2",
       "bullet_list": "Маркированный список",

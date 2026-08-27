@@ -702,6 +702,8 @@
       "strikethrough": "يتوسطه خط",
       "text_color": "لون النص",
       "remove_color": "إزالة اللون",
+      "background_color": "لون الخلفية",
+      "remove_background_color": "إزالة لون الخلفية",
       "heading_1": "عنوان 1",
       "heading_2": "عنوان 2",
       "bullet_list": "قائمة نقطية",

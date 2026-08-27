@@ -702,6 +702,8 @@
       "strikethrough": "Barré",
       "text_color": "Couleur du texte",
       "remove_color": "Supprimer la couleur",
+      "background_color": "Couleur d'arrière-plan",
+      "remove_background_color": "Supprimer la couleur d'arrière-plan",
       "heading_1": "Titre 1",
       "heading_2": "Titre 2",
       "bullet_list": "Liste à puces",

@@ -667,6 +667,8 @@
       "strikethrough": "קו חוצה",
       "text_color": "צבע טקסט",
       "remove_color": "הסרת צבע",
+      "background_color": "צבע רקע",
+      "remove_background_color": "הסר צבע רקע",
       "heading_1": "כותרת 1",
       "heading_2": "כותרת 2",
       "bullet_list": "רשימת תבליטים",

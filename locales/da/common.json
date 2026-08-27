@@ -702,6 +702,8 @@
       "strikethrough": "Gennemstreget",
       "text_color": "Tekstfarve",
       "remove_color": "Fjern farve",
+      "background_color": "Baggrundsfarve",
+      "remove_background_color": "Fjern baggrundsfarve",
       "heading_1": "Overskrift 1",
       "heading_2": "Overskrift 2",
       "bullet_list": "Punktopstilling",

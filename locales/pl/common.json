@@ -702,6 +702,8 @@
       "strikethrough": "Przekreślenie",
       "text_color": "Kolor tekstu",
       "remove_color": "Usuń kolor",
+      "background_color": "Kolor tła",
+      "remove_background_color": "Usuń kolor tła",
       "heading_1": "Nagłówek 1",
       "heading_2": "Nagłówek 2",
       "bullet_list": "Lista punktowana",

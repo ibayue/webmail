@@ -702,6 +702,8 @@
       "strikethrough": "Ratllat",
       "text_color": "Color del text",
       "remove_color": "Elimina el color",
+      "background_color": "Color de fons",
+      "remove_background_color": "Elimina el color de fons",
       "heading_1": "Encapçalament 1",
       "heading_2": "Encapçalament 2",
       "bullet_list": "Llista de pics",

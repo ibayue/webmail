@@ -702,6 +702,8 @@
       "strikethrough": "删除线",
       "text_color": "文字颜色",
       "remove_color": "移除颜色",
+      "background_color": "背景颜色",
+      "remove_background_color": "移除背景颜色",
       "heading_1": "标题 1",
       "heading_2": "标题 2",
       "bullet_list": "项目符号列表",
