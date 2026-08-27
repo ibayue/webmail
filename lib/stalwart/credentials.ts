@@ -2,6 +2,7 @@ import { cookies } from 'next/headers';
 import { NextRequest } from 'next/server';
 import { sessionCookieName } from '@/lib/auth/session-cookie';
 import { readStalwartAuthContextFromStore } from '@/lib/stalwart/auth-context';
+import { isTrustedJmapServerUrl } from '@/lib/stalwart/server-fetch';
 import { MAX_ACCOUNT_SLOTS } from '@/lib/account-utils';
 
 export interface StalwartCredentials {
@@ -11,6 +12,13 @@ export interface StalwartCredentials {
   username: string;
   hasSessionCookie: boolean;
   slot: number;
+  /**
+   * Whether `serverUrl` matches an admin-configured server. A `false` here
+   * means the user picked the URL themselves (`allowCustomJmapEndpoint`), so
+   * server-side requests to it must use the rebinding-safe fetch - see
+   * `fetchJmapServer` in `@/lib/stalwart/server-fetch`.
+   */
+  trusted: boolean;
 }
 
 function parseSlot(raw: string | null): number | null {
@@ -35,12 +43,14 @@ export async function getStalwartCredentials(request: NextRequest): Promise<Stal
     const context = readStalwartAuthContextFromStore(cookieStore, slot);
     if (!context) continue;
 
+    const serverUrl = context.serverUrl.replace(/\/+$/, '');
     return {
-      serverUrl: context.serverUrl.replace(/\/+$/, ''),
+      serverUrl,
       authHeader: context.authHeader,
       username: context.username,
       hasSessionCookie: !!cookieStore.get(sessionCookieName(slot))?.value,
       slot,
+      trusted: await isTrustedJmapServerUrl(serverUrl),
     };
   }
 

@@ -249,7 +249,7 @@ webmail/
 - **Never commit secrets** - API keys, passwords, tokens, `.env*` files
 - **Sanitize user input** and email content
 - **Block external content** by default - privacy is the point
-- **Report vulnerabilities privately** to bulwark@rbm.systems, not via public issues
+- **Report vulnerabilities privately** to dev@bulwarkmail.org, not via public issues
 
 ## Questions?
 

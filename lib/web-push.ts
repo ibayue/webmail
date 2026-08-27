@@ -5,6 +5,7 @@
 // register endpoint we hit on the relay.
 
 import type { IJMAPClient } from '@/lib/jmap/client-interface';
+import type { EmailPushConfig, Mailbox } from '@/lib/jmap/types';
 import { DEFAULT_RELAY_BASE_URL } from '@/lib/push-relays';
 
 // Per-account keys: a single browser may be signed in to multiple accounts,
@@ -42,11 +43,90 @@ const SUBSCRIPTION_REFRESH_THRESHOLD_DAYS = 7;
 // In-app sync uses a separate StateChange channel and is unaffected.
 const PUSH_TYPES = ['EmailDelivery'] as const;
 
+// draft-ietf-jmap-emailpush (Stalwart >= 0.16.16). `EmailDelivery` alone
+// still fires for every ingested message - including spam the server files
+// straight into Junk - because the server can't know which folders a client
+// cares about. With `emailPush` the server evaluates a per-account filter
+// against each new message before pushing and stays silent on a miss, so
+// junk-filed mail never wakes the device. Older servers don't advertise the
+// capability and get the plain EmailDelivery subscription as before.
+export const EMAIL_PUSH_CAPABILITY = 'urn:ietf:params:jmap:emailpush';
+
+// Only ids: the relay stays content-blind and the SW dedupes on them.
+const EMAIL_PUSH_PROPERTIES = ['id', 'threadId'];
+
 function sameTypes(a: readonly string[] | null | undefined, b: readonly string[]): boolean {
   if (!a || a.length !== b.length) return false;
   const sortedA = [...a].sort();
   const sortedB = [...b].sort();
   return sortedA.every((t, i) => t === sortedB[i]);
+}
+
+export function serverSupportsEmailPush(client: IJMAPClient): boolean {
+  try {
+    return EMAIL_PUSH_CAPABILITY in (client.getCapabilities() ?? {});
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * The delivery filter we want on every account the subscription fans out to:
+ * skip anything the spam filter tagged `$junk` and anything that lives only in
+ * a Junk-role mailbox (Sieve `fileinto` doesn't set the keyword). The two are
+ * ANDed so a stale mailbox id - the user deleted and recreated Junk - degrades
+ * to keyword-only filtering rather than letting everything through.
+ */
+export async function buildEmailPushConfig(
+  client: IJMAPClient,
+): Promise<Record<string, EmailPushConfig>> {
+  const primary = client.getAccountId();
+  const junkByAccount = new Map<string, string[]>([[primary, []]]);
+  const mailboxes = await client.getAllMailboxes().catch(() => [] as Mailbox[]);
+  for (const m of mailboxes) {
+    const accountId = m.accountId || primary;
+    const junk = junkByAccount.get(accountId) ?? [];
+    // Shared-account mailboxes carry a client-side "<account>:<id>" id;
+    // the server only knows the original.
+    if (m.role === 'junk') junk.push(m.originalId ?? m.id);
+    junkByAccount.set(accountId, junk);
+  }
+
+  const config: Record<string, EmailPushConfig> = {};
+  for (const [accountId, junkIds] of junkByAccount) {
+    const conditions: Record<string, unknown>[] = [{ notKeyword: '$junk' }];
+    if (junkIds.length > 0) conditions.push({ inMailboxOtherThan: [...junkIds].sort() });
+    config[accountId] = {
+      // Always the operator form: that's how the server echoes it back, so a
+      // stored config compares equal to a freshly built one.
+      filter: { operator: 'AND', conditions },
+      properties: [...EMAIL_PUSH_PROPERTIES],
+      urgency: 'high',
+    };
+  }
+  return config;
+}
+
+function normalizeEmailPush(value: unknown): string {
+  const sortKeys = (v: unknown): unknown => {
+    if (Array.isArray(v)) return v.map(sortKeys);
+    if (v && typeof v === 'object') {
+      return Object.keys(v as Record<string, unknown>).sort().reduce<Record<string, unknown>>((acc, k) => {
+        acc[k] = sortKeys((v as Record<string, unknown>)[k]);
+        return acc;
+      }, {});
+    }
+    return v;
+  };
+  return JSON.stringify(sortKeys(value ?? null));
+}
+
+function sameEmailPush(
+  a: Record<string, EmailPushConfig> | null | undefined,
+  b: Record<string, EmailPushConfig>,
+): boolean {
+  if (!a) return false;
+  return normalizeEmailPush(a) === normalizeEmailPush(b);
 }
 
 export interface EnableWebPushParams {
@@ -277,19 +357,31 @@ async function pollVerificationCode(
 
 async function refreshSubscriptionExpires(
   client: IJMAPClient,
-  sub: { id: string; expires: string | null; types: string[] | null },
+  sub: {
+    id: string;
+    expires: string | null;
+    types: string[] | null;
+    emailPush?: Record<string, EmailPushConfig> | null;
+  },
+  // null when the server has no emailPush support - leave the property alone.
+  desiredEmailPush: Record<string, EmailPushConfig> | null,
 ): Promise<boolean> {
   const typesNeedUpdate = !sameTypes(sub.types, PUSH_TYPES);
-  if (!typesNeedUpdate && sub.expires) {
+  // Also re-sync the delivery filter: a subscription created before this
+  // client learned about emailPush has none, and the Junk mailbox id can
+  // change under us.
+  const emailPushNeedsUpdate = desiredEmailPush !== null && !sameEmailPush(sub.emailPush, desiredEmailPush);
+  if (!typesNeedUpdate && !emailPushNeedsUpdate && sub.expires) {
     const remainingMs = new Date(sub.expires).getTime() - Date.now();
     const thresholdMs = SUBSCRIPTION_REFRESH_THRESHOLD_DAYS * 24 * 60 * 60 * 1000;
     if (Number.isFinite(remainingMs) && remainingMs > thresholdMs) return true;
   }
   try {
-    const patch: { expires?: string; types?: string[] } = {
+    const patch: { expires?: string; types?: string[]; emailPush?: Record<string, EmailPushConfig> } = {
       expires: expiresFromNow(SUBSCRIPTION_EXPIRES_DAYS),
     };
     if (typesNeedUpdate) patch.types = [...PUSH_TYPES];
+    if (emailPushNeedsUpdate && desiredEmailPush) patch.emailPush = desiredEmailPush;
     return await client.updatePushSubscription(sub.id, patch);
   } catch {
     return false;
@@ -354,13 +446,16 @@ export async function enableWebPush(
   // `expires` carries stale permissions forward and only a new record picks up
   // revoked shared-mailbox access (#841).
   const existingSubs = await params.client.listPushSubscriptions().catch(() => []);
+  const emailPush = serverSupportsEmailPush(params.client)
+    ? await buildEmailPushConfig(params.client)
+    : null;
   const subIdKey = subscriptionIdKey(accountId);
   const storedServerId = localStorage.getItem(subIdKey);
   if (storedServerId) {
     const match = existingSubs.find((s) => s.id === storedServerId);
     if (match) {
       if (!params.forceRecreate) {
-        const refreshed = await refreshSubscriptionExpires(params.client, match);
+        const refreshed = await refreshSubscriptionExpires(params.client, match, emailPush);
         if (refreshed) return { subscriptionId: storedServerId };
       }
       await params.client.destroyPushSubscription(storedServerId).catch(() => undefined);
@@ -398,6 +493,7 @@ export async function enableWebPush(
     url: buildRelayUrl(relayBaseUrl, `/api/push/jmap/${encodeURIComponent(deviceClientId)}`),
     types: [...PUSH_TYPES],
     expires: expiresFromNow(SUBSCRIPTION_EXPIRES_DAYS),
+    ...(emailPush ? { emailPush } : {}),
   });
 
   const verificationCode = await pollVerificationCode(relayBaseUrl, deviceClientId);
@@ -549,4 +645,49 @@ export async function isWebPushEnabled(accountId: string): Promise<boolean> {
   if (!registration) return false;
   const sub = await registration.pushManager.getSubscription();
   return sub !== null && localStorage.getItem(subscriptionIdKey(accountId)) !== null;
+}
+
+// Accounts already re-synced during this page load. One pass per account is
+// plenty: the subscription only drifts between sessions (expiry, a client
+// update that changed what we subscribe to, a recreated Junk mailbox).
+const resyncedAccountIds = new Set<string>();
+
+export interface ResyncWebPushParams {
+  client: IJMAPClient;
+  relayBaseUrl?: string;
+  accountLabel?: string;
+}
+
+/**
+ * Bring an already-enabled push registration up to date without any user
+ * action: refresh its expiry and install/repair the delivery filter. Nothing
+ * here can prompt - it only runs when push is already on for the account -
+ * and every failure is swallowed because the app must not care whether the
+ * background touch-up worked. Returns true when a re-sync actually ran.
+ */
+export async function resyncWebPush(params: ResyncWebPushParams): Promise<boolean> {
+  let accountId: string;
+  try {
+    accountId = params.client.getAccountId();
+  } catch {
+    return false;
+  }
+  if (!accountId || resyncedAccountIds.has(accountId)) return false;
+  try {
+    if (!(await isWebPushEnabled(accountId))) return false;
+    resyncedAccountIds.add(accountId);
+    await enableWebPush({
+      client: params.client,
+      relayBaseUrl: params.relayBaseUrl,
+      accountLabel: params.accountLabel,
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// Test hook: forget which accounts were re-synced during this page load.
+export function resetWebPushResyncState(): void {
+  resyncedAccountIds.clear();
 }

@@ -17,6 +17,54 @@ const intlMiddleware = createIntlMiddleware(routing);
 // requests for API routes, Next internals and static assets.
 const PROXY_SKIP_PATTERN = /^\/(?:api|_next)(?:\/|$)|\.[^/]+$/;
 
+/**
+ * Hand the route every request header the client sent, plus `extra`.
+ *
+ * Next forwards ONLY the request headers listed in
+ * `x-middleware-override-headers` and deletes every other one. A bare
+ * NextResponse.next() carries no such list, so listing just x-nonce/x-pathname
+ * on it (as this proxy used to) stripped RSC, Next-Router-State-Tree,
+ * Next-Url, Cookie, Accept-Language, ... from every page request that skips
+ * the intl middleware: all locale-prefixed paths - i.e. every page of a
+ * NEXT_PUBLIC_LOCALE_PREFIX=always (Docker) build - plus /admin, /protocol,
+ * /setup and the plugin sandbox. Since Next 16.3 the server recomputes the
+ * `_rsc` cache-busting hash from those router headers
+ * (experimental.validateRSCRequestHeaders, on by default) and answers a
+ * mismatch with a 307 to the "expected" URL; the client re-requests, the
+ * headers are stripped again, and every navigation and link prefetch spun
+ * through a 307/200 loop for about a second - the old view stayed on screen
+ * for that long on each top-level switch and after login (#919).
+ *
+ * When the response already lists headers (the intl middleware's rewrite
+ * passes the full set), only `extra` is appended.
+ */
+function forwardRequestHeaders(
+  response: NextResponse,
+  request: NextRequest,
+  extra: Record<string, string>,
+): NextResponse {
+  // A redirect renders no route, so there is nothing to forward to.
+  if (response.headers.has("location")) return response;
+  const listed = new Set(
+    (response.headers.get("x-middleware-override-headers") ?? "")
+      .split(",")
+      .map((name) => name.trim())
+      .filter(Boolean),
+  );
+  if (listed.size === 0) {
+    for (const [name, value] of request.headers) {
+      listed.add(name);
+      response.headers.set(`x-middleware-request-${name}`, value);
+    }
+  }
+  for (const [name, value] of Object.entries(extra)) {
+    listed.add(name);
+    response.headers.set(`x-middleware-request-${name}`, value);
+  }
+  response.headers.set("x-middleware-override-headers", Array.from(listed).join(","));
+  return response;
+}
+
 function isSetupPath(pathname: string): boolean {
   return (
     pathname === "/setup" ||
@@ -173,16 +221,12 @@ export async function proxy(request: NextRequest) {
   }
   const response = intlResponse ?? NextResponse.next();
 
-  const existing = response.headers.get("x-middleware-override-headers");
   // Expose the nonce AND the request pathname to server components as request
   // headers. The root (main)/layout renders <html> ABOVE the [locale] segment,
   // so getLocale() can't resolve the active locale there and falls back to the
   // default - emitting <html lang="en"> on e.g. /de pages, which makes browsers
   // offer to "translate this page". The layout reads x-pathname to recover it.
-  const overrides = [existing, "x-nonce", "x-pathname"].filter(Boolean).join(",");
-  response.headers.set("x-middleware-override-headers", overrides);
-  response.headers.set("x-middleware-request-x-nonce", nonce);
-  response.headers.set("x-middleware-request-x-pathname", pathname);
+  forwardRequestHeaders(response, request, { "x-nonce": nonce, "x-pathname": pathname });
 
   response.headers.set("X-Content-Type-Options", "nosniff");
 

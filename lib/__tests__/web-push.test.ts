@@ -1,10 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { IJMAPClient } from '@/lib/jmap/client-interface';
-import type { PushSubscription as JmapPushSubscription } from '@/lib/jmap/types';
+import type { EmailPushConfig, PushSubscription as JmapPushSubscription } from '@/lib/jmap/types';
 import {
   disableWebPush,
   enableWebPush,
   listPushDevices,
+  resetWebPushResyncState,
+  resyncWebPush,
   revokePushDevice,
 } from '@/lib/web-push';
 
@@ -36,11 +38,56 @@ interface FakeClient extends Partial<IJMAPClient> {
   destroyed: string[];
 }
 
-function makeClient(subs: JmapPushSubscription[]): FakeClient & IJMAPClient {
+const EMAIL_PUSH_CAP = 'urn:ietf:params:jmap:emailpush';
+const JUNK_ID = 'mb-junk';
+const SHARED_ACCOUNT_ID = 'acct-shared';
+const SHARED_JUNK_ID = 'mb-shared-junk';
+
+// The delivery filter enableWebPush is expected to install for ACCOUNT_ID
+// given the mailboxes makeClient hands out.
+const EXPECTED_EMAIL_PUSH: Record<string, EmailPushConfig> = {
+  [ACCOUNT_ID]: {
+    filter: {
+      operator: 'AND',
+      conditions: [{ notKeyword: '$junk' }, { inMailboxOtherThan: [JUNK_ID] }],
+    },
+    properties: ['id', 'threadId'],
+    urgency: 'high',
+  },
+  [SHARED_ACCOUNT_ID]: {
+    filter: {
+      operator: 'AND',
+      conditions: [{ notKeyword: '$junk' }, { inMailboxOtherThan: [SHARED_JUNK_ID] }],
+    },
+    properties: ['id', 'threadId'],
+    urgency: 'high',
+  },
+};
+
+function makeClient(
+  subs: JmapPushSubscription[],
+  options: { emailPushCapability?: boolean } = {},
+): FakeClient & IJMAPClient {
   const destroyed: string[] = [];
+  const mailbox = (id: string, role: string | undefined, accountId: string) => ({
+    id: accountId === ACCOUNT_ID ? id : `${accountId}:${id}`,
+    originalId: id,
+    name: role ?? id,
+    role,
+    accountId,
+    isShared: accountId !== ACCOUNT_ID,
+  });
   const client = {
     destroyed,
     getAccountId: () => ACCOUNT_ID,
+    getCapabilities: () => (options.emailPushCapability ? { [EMAIL_PUSH_CAP]: {} } : {}),
+    getAllMailboxes: vi.fn(async () => [
+      mailbox('mb-inbox', 'inbox', ACCOUNT_ID),
+      mailbox(JUNK_ID, 'junk', ACCOUNT_ID),
+      mailbox('mb-archive', undefined, ACCOUNT_ID),
+      mailbox('mb-shared-inbox', 'inbox', SHARED_ACCOUNT_ID),
+      mailbox(SHARED_JUNK_ID, 'junk', SHARED_ACCOUNT_ID),
+    ]),
     listPushSubscriptions: vi.fn(async () => subs.filter((s) => !destroyed.includes(s.id))),
     createPushSubscription: vi.fn(async () => 'push-new'),
     verifyPushSubscription: vi.fn(async () => undefined),
@@ -108,6 +155,7 @@ function installFetch(activeByDevice: Record<string, boolean | 'unknown'>) {
 
 beforeEach(() => {
   localStorage.clear();
+  resetWebPushResyncState();
   installPushBrowser();
 });
 
@@ -153,6 +201,158 @@ describe('enableWebPush', () => {
     await enableWebPush({ client, relayBaseUrl: RELAY, forceRecreate: true });
 
     expect(client.destroyed).not.toContain('push-other');
+  });
+});
+
+// Registrations made before the client learned about the delivery filter are
+// repaired in the background on app start - nobody should have to find the
+// settings toggle to stop the spam pushes.
+describe('resyncWebPush', () => {
+  it('re-syncs an enabled registration and installs the missing filter', async () => {
+    localStorage.setItem(DEVICE_KEY, THIS_DEVICE);
+    localStorage.setItem(SUB_KEY, 'push-old');
+    const client = makeClient([sub('push-old', THIS_DEVICE)], { emailPushCapability: true });
+    installFetch({});
+
+    expect(await resyncWebPush({ client, relayBaseUrl: RELAY })).toBe(true);
+
+    expect(client.createPushSubscription).not.toHaveBeenCalled();
+    expect(client.updatePushSubscription).toHaveBeenCalledWith(
+      'push-old',
+      expect.objectContaining({ emailPush: EXPECTED_EMAIL_PUSH }),
+    );
+  });
+
+  it('does nothing when push is not enabled for the account', async () => {
+    localStorage.setItem(DEVICE_KEY, THIS_DEVICE);
+    const client = makeClient([], { emailPushCapability: true });
+    installFetch({});
+
+    expect(await resyncWebPush({ client, relayBaseUrl: RELAY })).toBe(false);
+
+    expect(client.listPushSubscriptions).not.toHaveBeenCalled();
+    expect(client.createPushSubscription).not.toHaveBeenCalled();
+  });
+
+  it('runs at most once per account per page load', async () => {
+    localStorage.setItem(DEVICE_KEY, THIS_DEVICE);
+    localStorage.setItem(SUB_KEY, 'push-old');
+    const client = makeClient([sub('push-old', THIS_DEVICE)], { emailPushCapability: true });
+    installFetch({});
+
+    expect(await resyncWebPush({ client, relayBaseUrl: RELAY })).toBe(true);
+    expect(await resyncWebPush({ client, relayBaseUrl: RELAY })).toBe(false);
+
+    expect(client.listPushSubscriptions).toHaveBeenCalledTimes(1);
+  });
+
+  it('swallows failures instead of surfacing them to the app', async () => {
+    localStorage.setItem(DEVICE_KEY, THIS_DEVICE);
+    localStorage.setItem(SUB_KEY, 'push-old');
+    const client = makeClient([sub('push-old', THIS_DEVICE)]);
+    client.listPushSubscriptions = vi.fn(async () => {
+      throw new Error('server down');
+    });
+    vi.stubGlobal('fetch', vi.fn(async () => {
+      throw new Error('relay down');
+    }));
+
+    await expect(resyncWebPush({ client, relayBaseUrl: RELAY })).resolves.toBe(false);
+  });
+});
+
+// Spam filed straight into Junk used to wake the device: `EmailDelivery`
+// fires for every ingested message. Servers that implement
+// draft-ietf-jmap-emailpush evaluate a per-account filter before pushing, so
+// the subscription carries one that excludes $junk and the Junk mailbox.
+describe('enableWebPush delivery filter (emailPush)', () => {
+  it('installs a junk-excluding filter for every account when the server supports it', async () => {
+    localStorage.setItem(DEVICE_KEY, THIS_DEVICE);
+    const client = makeClient([], { emailPushCapability: true });
+    installFetch({});
+
+    await enableWebPush({ client, relayBaseUrl: RELAY });
+
+    expect(client.createPushSubscription).toHaveBeenCalledTimes(1);
+    const params = (client.createPushSubscription as ReturnType<typeof vi.fn>).mock.calls[0][0];
+    expect(params.types).toEqual(['EmailDelivery']);
+    expect(params.emailPush).toEqual(EXPECTED_EMAIL_PUSH);
+  });
+
+  it('sends no emailPush to a server without the capability', async () => {
+    localStorage.setItem(DEVICE_KEY, THIS_DEVICE);
+    const client = makeClient([]);
+    installFetch({});
+
+    await enableWebPush({ client, relayBaseUrl: RELAY });
+
+    const params = (client.createPushSubscription as ReturnType<typeof vi.fn>).mock.calls[0][0];
+    expect(params).not.toHaveProperty('emailPush');
+    expect(client.getAllMailboxes).not.toHaveBeenCalled();
+  });
+
+  it('adds the filter to an existing subscription that predates it', async () => {
+    localStorage.setItem(DEVICE_KEY, THIS_DEVICE);
+    localStorage.setItem(SUB_KEY, 'push-old');
+    const client = makeClient([sub('push-old', THIS_DEVICE)], { emailPushCapability: true });
+    installFetch({});
+
+    const result = await enableWebPush({ client, relayBaseUrl: RELAY });
+
+    expect(result.subscriptionId).toBe('push-old');
+    expect(client.createPushSubscription).not.toHaveBeenCalled();
+    expect(client.updatePushSubscription).toHaveBeenCalledWith(
+      'push-old',
+      expect.objectContaining({ emailPush: EXPECTED_EMAIL_PUSH }),
+    );
+  });
+
+  it('re-syncs a filter whose Junk mailbox id went stale', async () => {
+    localStorage.setItem(DEVICE_KEY, THIS_DEVICE);
+    localStorage.setItem(SUB_KEY, 'push-old');
+    const stale = {
+      ...EXPECTED_EMAIL_PUSH,
+      [ACCOUNT_ID]: {
+        ...EXPECTED_EMAIL_PUSH[ACCOUNT_ID],
+        filter: {
+          operator: 'AND',
+          conditions: [{ notKeyword: '$junk' }, { inMailboxOtherThan: ['mb-junk-deleted'] }],
+        },
+      },
+    };
+    const client = makeClient(
+      [sub('push-old', THIS_DEVICE, { emailPush: stale })],
+      { emailPushCapability: true },
+    );
+    installFetch({});
+
+    await enableWebPush({ client, relayBaseUrl: RELAY });
+
+    expect(client.updatePushSubscription).toHaveBeenCalledWith(
+      'push-old',
+      expect.objectContaining({ emailPush: EXPECTED_EMAIL_PUSH }),
+    );
+  });
+
+  it('leaves a fresh subscription alone when its filter already matches', async () => {
+    localStorage.setItem(DEVICE_KEY, THIS_DEVICE);
+    localStorage.setItem(SUB_KEY, 'push-old');
+    // Key order differs from what we build - must still compare equal.
+    const stored = JSON.parse(JSON.stringify(EXPECTED_EMAIL_PUSH));
+    stored[ACCOUNT_ID] = {
+      urgency: 'high',
+      properties: ['id', 'threadId'],
+      filter: stored[ACCOUNT_ID].filter,
+    };
+    const client = makeClient(
+      [sub('push-old', THIS_DEVICE, { emailPush: stored })],
+      { emailPushCapability: true },
+    );
+    installFetch({});
+
+    await enableWebPush({ client, relayBaseUrl: RELAY });
+
+    expect(client.updatePushSubscription).not.toHaveBeenCalled();
   });
 });
 
