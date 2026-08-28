@@ -19,6 +19,18 @@ interface Props {
   extraProps?: Record<string, unknown>;
 }
 
+// How long a slot iframe may take from creation to init-done before we give
+// up on it. The background loader has its own bound; slot iframes previously
+// had NONE - a sandbox-route load that wedged (transient 502 from a reverse
+// proxy, a stalled keep-alive connection) left the slot silently blank for
+// the whole session, which surfaced as "the plugin panel sometimes doesn't
+// show up".
+const SLOT_BOOT_TIMEOUT_MS = 30_000;
+// One transparent retry: most boot failures are transient iframe document
+// loads, and a single respawn turns them into a brief flicker instead of a
+// missing panel.
+const SLOT_BOOT_MAX_ATTEMPTS = 2;
+
 export function PluginIframeSlot({ pluginId, slot, extraProps }: Props) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const instanceRef = useRef<SandboxInstance | null>(null);
@@ -41,26 +53,67 @@ export function PluginIframeSlot({ pluginId, slot, extraProps }: Props) {
     return () => { cancelled = true; };
   }, [pluginId, slot, extraProps]);
 
-  // Spawn / tear down the slot iframe.
+  // Spawn / tear down the slot iframe. Boot failures (init-error, or the
+  // iframe never finishing boot) retry once, then surface in the console -
+  // previously they were swallowed entirely (the initPromise rejection wasn't
+  // even observed), leaving a blank slot with no diagnostics.
   useEffect(() => {
     if (show !== true) return;
     const active = getActivePlugin(pluginId);
     if (!active || !wrapperRef.current) return;
     const locale = (globalThis as unknown as { __APP_LOCALE__?: string }).__APP_LOCALE__ ?? 'en';
-    const inst = createSlotInstance({
-      plugin: active.plugin,
-      slot,
-      code: active.code,
-      locale,
-      tier: active.tier,
-      extraProps: extraProps ?? {},
-      hostContainer: wrapperRef.current,
-      onResize: (h) => setHeight(h),
-    });
-    instanceRef.current = inst;
+
+    let disposed = false;
+    let watchdog: ReturnType<typeof setTimeout> | null = null;
+
+    const spawn = (attempt: number): void => {
+      if (disposed || !wrapperRef.current) return;
+      const inst = createSlotInstance({
+        plugin: active.plugin,
+        slot,
+        code: active.code,
+        locale,
+        tier: active.tier,
+        extraProps: extraProps ?? {},
+        hostContainer: wrapperRef.current,
+        onResize: (h) => setHeight(h),
+      });
+      instanceRef.current = inst;
+
+      const giveUp = (reason: string): void => {
+        if (disposed || instanceRef.current !== inst) return;
+        try { inst.destroy(); } catch { /* ignore */ }
+        instanceRef.current = null;
+        setHeight(0);
+        if (attempt < SLOT_BOOT_MAX_ATTEMPTS) {
+          console.warn(`[plugin-slot] "${pluginId}/${slot}" failed to boot (${reason}), retrying`);
+          spawn(attempt + 1);
+        } else {
+          console.error(`[plugin-slot] "${pluginId}/${slot}" failed to boot after ${attempt} attempts (${reason})`);
+        }
+      };
+
+      // Per-spawn timer reference: a late failure from a previous attempt
+      // must not clear the current attempt's watchdog.
+      const myWatchdog = setTimeout(() => giveUp('boot timeout'), SLOT_BOOT_TIMEOUT_MS);
+      watchdog = myWatchdog;
+      inst.initPromise.then(
+        () => { clearTimeout(myWatchdog); },
+        (err: Error) => {
+          clearTimeout(myWatchdog);
+          giveUp(err.message ?? 'init error');
+        },
+      );
+    };
+
+    spawn(1);
+
     return () => {
-      try { inst.destroy(); } catch { /* ignore */ }
+      disposed = true;
+      if (watchdog) clearTimeout(watchdog);
+      const inst = instanceRef.current;
       instanceRef.current = null;
+      if (inst) { try { inst.destroy(); } catch { /* ignore */ } }
     };
     // We intentionally don't depend on extraProps here - propagating prop
     // changes happens via postMessage below to avoid iframe churn.
