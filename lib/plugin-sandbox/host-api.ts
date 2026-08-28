@@ -1286,8 +1286,16 @@ async function doSieveRegenerate(): Promise<void> {
 
 // ─── admin config (same as before) ────────────────────────────
 
+// Bound for admin-config round-trips dispatched to plugin API calls. The
+// sandbox side already times API calls out at 30s, but a wedged proxy
+// connection would blank a slot for that whole window - fail fast and let
+// the plugin's fallback config render instead.
+const ADMIN_CONFIG_TIMEOUT_MS = 10_000;
+
 async function adminGetAll(pluginId: string): Promise<Record<string, unknown>> {
-  const res = await apiFetch(`/api/admin/plugins/${encodeURIComponent(pluginId)}/config`);
+  const res = await apiFetch(`/api/admin/plugins/${encodeURIComponent(pluginId)}/config`, {
+    signal: AbortSignal.timeout(ADMIN_CONFIG_TIMEOUT_MS),
+  });
   if (!res.ok) return {};
   return res.json();
 }
@@ -1300,6 +1308,7 @@ async function adminSet(pluginId: string, key: string, value: unknown): Promise<
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ key, value }),
+    signal: AbortSignal.timeout(ADMIN_CONFIG_TIMEOUT_MS),
   });
 }
 async function adminDelete(pluginId: string, key: string): Promise<void> {
@@ -1307,6 +1316,7 @@ async function adminDelete(pluginId: string, key: string): Promise<void> {
     method: 'DELETE',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ key }),
+    signal: AbortSignal.timeout(ADMIN_CONFIG_TIMEOUT_MS),
   });
 }
 

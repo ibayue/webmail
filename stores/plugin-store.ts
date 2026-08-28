@@ -21,6 +21,14 @@ let pluginInitializationPromise: Promise<void> | null = null;
 // One-time guard so we attach the locale->sandbox subscription only once.
 let localeSubscribed = false;
 
+// Bounds for the server round-trips plugin activation depends on. Without
+// these, one stalled request (a keep-alive connection wedged behind a reverse
+// proxy, a transient 502) hangs `initializePlugins` forever - every plugin,
+// including all sidebar slots, stays missing for the whole session with no
+// error anywhere. Failing fast falls back to the locally cached bundles.
+const PLUGIN_SYNC_TIMEOUT_MS = 15_000;
+const PLUGIN_BUNDLE_DOWNLOAD_TIMEOUT_MS = 30_000;
+
 // ─── Store Interface ─────────────────────────────────────────
 
 interface PluginStoreState {
@@ -430,7 +438,9 @@ async function syncServerPlugins(
   set: (partial: Partial<PluginStoreState> | ((state: PluginStoreState) => Partial<PluginStoreState>)) => void,
 ): Promise<void> {
   try {
-    const res = await apiFetch('/api/plugins');
+    const res = await apiFetch('/api/plugins', {
+      signal: AbortSignal.timeout(PLUGIN_SYNC_TIMEOUT_MS),
+    });
     if (!res.ok) return;
 
     const data: { plugins: ServerPluginInfo[] } = await res.json();
@@ -532,7 +542,9 @@ async function downloadPluginBundle(pluginId: string, bundleHash?: string): Prom
     // Append the hash as a query string so any intermediary HTTP cache
     // (browser, service worker, CDN) treats each version as a distinct URL.
     const suffix = bundleHash ? `?v=${encodeURIComponent(bundleHash)}` : '';
-    const res = await apiFetch(`/api/admin/plugins/${encodeURIComponent(pluginId)}/bundle${suffix}`);
+    const res = await apiFetch(`/api/admin/plugins/${encodeURIComponent(pluginId)}/bundle${suffix}`, {
+      signal: AbortSignal.timeout(PLUGIN_BUNDLE_DOWNLOAD_TIMEOUT_MS),
+    });
     if (!res.ok) return null;
     const code = await res.text();
     // Ed25519 signature verification. Present on every server-managed bundle
@@ -562,7 +574,7 @@ async function downloadPluginBundle(pluginId: string, bundleHash?: string): Prom
 async function checkServerApproval(pluginId: string, bundleHash: string): Promise<{ status: 'pending' | 'approved' | 'denied' | 'not-requested' } | null> {
   try {
     const url = `/api/plugin-approval-status?pluginId=${encodeURIComponent(pluginId)}&bundleHash=${encodeURIComponent(bundleHash)}`;
-    const res = await apiFetch(url);
+    const res = await apiFetch(url, { signal: AbortSignal.timeout(PLUGIN_SYNC_TIMEOUT_MS) });
     if (!res.ok) return null;
     return await res.json();
   } catch {
