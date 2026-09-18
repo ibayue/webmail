@@ -14,3 +14,7 @@ examples/
 integration/
 e2e/
 **/node_modules
+# Unit tests never ship in the image, and excluding them keeps the context's
+# type check from seeing imports into excluded dirs (e.g. lite-scripts.test.ts
+# importing scripts/lite/*.mjs, which scripts/ above keeps out of the image).
+**/__tests__
