@@ -1539,6 +1539,10 @@
         "label": "Mostrar contas de e-mail compartilhadas",
         "description": "Mostra as pastas das caixas compartilhadas com você em Compartilhado, na barra lateral. Desative para ocultar todas, ou oculte contas individuais abaixo. Os calendários e contatos continuam visíveis."
       },
+      "compact_shared_mailboxes": {
+        "label": "Caixas compartilhadas compactas",
+        "description": "Mostra cada caixa de correio compartilhada como uma única linha que abre sua caixa de entrada, com suas pastas abaixo. As vazias, como Rascunhos ou Lixeira, são omitidas."
+      },
       "pro_interface": {
         "label": "Interface Pro (experimental)",
         "description": "Layout para utilizadores avançados apenas em desktop com navegação de mensagens em múltiplos separadores e fluxos entre contas. A interface padrão não é afetada; pode voltar a qualquer momento.",

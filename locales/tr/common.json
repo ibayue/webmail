@@ -1539,6 +1539,10 @@
         "label": "Paylaşılan posta hesaplarını göster",
         "description": "Sizinle paylaşılan posta kutularının klasörlerini kenar çubuğunda Paylaşılan altında göster. Hepsini gizlemek için kapatın veya aşağıdan tek tek hesapları gizleyin. Takvimleri ve kişileri görünür kalır."
       },
+      "compact_shared_mailboxes": {
+        "label": "Kompakt paylaşılan posta kutuları",
+        "description": "Her paylaşılan posta kutusunu, gelen kutusunu açan tek bir satır olarak ve klasörleri altında olacak şekilde göster. Taslaklar veya Çöp Kutusu gibi boş klasörler gösterilmez."
+      },
       "pro_interface": {
         "label": "Pro Arayüz (Deneysel)",
         "description": "Yalnızca masaüstü için güçlü kullanıcı düzeni: çoklu sekmede ileti gezme ve hesaplar arası iş akışları. Standart arayüz etkilenmez; istediğiniz zaman geri dönebilirsiniz.",

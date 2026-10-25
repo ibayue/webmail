@@ -1542,6 +1542,10 @@
         "label": "Mostra els comptes de correu compartits",
         "description": "Mostra les carpetes de les bústies compartides amb tu a Compartit, a la barra lateral. Desactiva-ho per amagar-les totes, o amaga comptes concrets a sota. Els calendaris i contactes es mantenen."
       },
+      "compact_shared_mailboxes": {
+        "label": "Bústies compartides compactes",
+        "description": "Mostra cada bústia compartida com una sola fila que obre la seva safata d'entrada, amb les seves carpetes a sota. Les buides, com Esborranys o Paperera, no es mostren."
+      },
       "pro_interface": {
         "label": "Interfície Pro (experimental)",
         "description": "Disposició avançada només per a escriptori amb navegació de missatges en diverses pestanyes i fluxos de treball entre comptes. La interfície estàndard no es veu afectada; podeu tornar-hi en qualsevol moment.",

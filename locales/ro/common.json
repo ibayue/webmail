@@ -1542,6 +1542,10 @@
         "label": "Afișează conturile de e-mail partajate",
         "description": "Afișează folderele cutiilor poștale partajate cu tine la Partajat, în bara laterală. Dezactivează pentru a le ascunde pe toate sau ascunde conturi individuale mai jos. Calendarele și contactele lor rămân."
       },
+      "compact_shared_mailboxes": {
+        "label": "Căsuțe partajate compacte",
+        "description": "Afișează fiecare căsuță poștală partajată ca un singur rând care îi deschide mesajele primite, cu dosarele dedesubt. Dosarele goale, precum Ciorne sau Coș de gunoi, sunt omise."
+      },
       "pro_interface": {
         "label": "Interfață Pro (experimentală)",
         "description": "Aspect destinat utilizatorilor avansați, disponibil doar pe desktop, cu navigare prin mesaje în mai multe file și fluxuri de lucru între conturi. Interfața standard nu este afectată; puteți reveni la aceasta în orice moment.",
