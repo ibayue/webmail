@@ -4118,6 +4118,8 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       signatureIdentity,
       sendingIdentity,
       separator: settings.signatureSeparatorEnabled,
+      // The user's reply/forward signature toggle: off sends the bare text.
+      insertSignature: settings.signatureReplyForwardEnabled,
       to: recipients,
       fromEmail: headerFromEmail,
       identityId: sendingIdentity?.id,
@@ -4141,7 +4143,6 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     });
     if (!prepared) return false;
     const { html: finalHtmlBody, text: finalBody } = prepared;
-
     const originalEmailId = selectedEmail.id;
     const originalSource = emailWriteSource(selectedEmail, client);
     const sendDelaySeconds = useSettingsStore.getState().sendDelaySeconds;

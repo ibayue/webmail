@@ -247,6 +247,8 @@ export const tabSearchEntries: Record<Tab, SettingsSearchEntry[]> = {
     { label: 'settings.email_behavior.quick_reply.label' },
     { label: 'settings.email_behavior.auto_select_reply_identity.label' },
     { label: 'settings.email_behavior.signature_position.label' },
+    { label: 'settings.email_behavior.signature_new_mail.label' },
+    { label: 'settings.email_behavior.signature_reply_forward.label' },
     { label: 'settings.email_behavior.signature_separator.label', advanced: true },
     { label: 'settings.composing_page.sections.sending' },
     { label: 'settings.email_behavior.send_delay.label' },
@@ -358,8 +360,7 @@ export const tabSearchEntries: Record<Tab, SettingsSearchEntry[]> = {
     { label: 'settings.advanced.refresh_cache.label' },
     { label: 'settings.advanced.reset_settings.label' },
     { label: 'settings.advanced.debug_mode.label', advanced: true },
-  ],
-};
+  ],};
 
 // Extra English keywords per tab so common search terms hit even when the
 // translation doesn't contain the literal word.
