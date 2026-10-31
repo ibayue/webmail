@@ -13,8 +13,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 // branding uploads come along; a second run writes nothing, and the local
 // files stay as they were.
 
-import { steps } from '../import/ext';
+import { exportSteps, steps } from '../import/ext';
 import { importLocalData } from '../import';
+import { exportSharedData } from '../export';
 import { getStore, setStoreForTests } from '../index';
 import { resetLocalStoreForTests } from '../local';
 import { separateFakeStore } from '@/lib/admin/__tests__/shared-store-fake';
@@ -113,6 +114,24 @@ describe('importing plugins, themes and branding into the shared store', () => {
     const second = await importLocalData(steps);
     expect(Object.values(second.imported).every((n) => n === 0)).toBe(true);
     expect(snapshot()).toEqual(before);
+  });
+
+  it('writes the same files back into an empty install on export', async () => {
+    const before = snapshot();
+    await importLocalData(steps);
+    // A fresh volume for the instance that goes back to local mode.
+    rmSync(path.join(dir, 'config'), { recursive: true, force: true });
+    rmSync(path.join(dir, 'state'), { recursive: true, force: true });
+    const written = await exportSharedData(exportSteps);
+    expect(written).toMatchObject({ plugins: 5, themes: 3, branding: 1, 'plugin-signing-key': 1, 'directory-keyrings': 1 });
+
+    const bytesOnly = (snap: Record<string, string>) =>
+      Object.fromEntries(Object.entries(snap).filter(([f]) => !f.endsWith('config.json')).map(([f, v]) => [f, v.split(' ')[0]]));
+    expect(bytesOnly(snapshot())).toEqual(bytesOnly(before));
+    if (process.platform !== 'win32') {
+      expect(statSync(path.join(dir, 'state', 'directory-keyrings.json')).mode & 0o777).toBe(0o600);
+      expect(statSync(path.join(dir, 'config', 'plugin-signing.key')).mode & 0o777).toBe(0o600);
+    }
   });
 
   it('keeps what the store already holds', async () => {
