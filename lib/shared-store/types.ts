@@ -130,6 +130,11 @@ export interface LocalLayout {
    * depend on it. Default: `<target>.<pid>.<random>.tmp`.
    */
   tmpName?: (target: string) => string;
+  /**
+   * Flush the temp file to disk before the rename (open with `wx`, write,
+   * fsync, close), for documents that must survive a power cut.
+   */
+  fsync?: boolean;
 }
 
 export interface CollectionOptions {
