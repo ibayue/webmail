@@ -8,7 +8,14 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 const JITTER_MS = 2 * 60 * 60 * 1000; // ± 2 hours
 const FIRST_DELAY_MS = 60 * 60 * 1000;  // 1 hour after consent
 
-let currentTimer: NodeJS.Timeout | null = null;
+// On globalThis: Next loads this module once per bundle (instrumentation,
+// each route), and a reschedule from a route must clear the timer the
+// instrumentation copy started, not a copy of its own.
+const TIMER_KEY = Symbol.for('bulwark.telemetry.timer');
+function timer(): { current: NodeJS.Timeout | null } {
+  const g = globalThis as typeof globalThis & { [TIMER_KEY]?: { current: NodeJS.Timeout | null } };
+  return (g[TIMER_KEY] ??= { current: null });
+}
 
 function jitteredDelay(base: number): number {
   const j = (Math.random() * 2 - 1) * JITTER_MS;
@@ -64,12 +71,14 @@ export async function sendOnce(opts?: { reason?: string }): Promise<{
 }
 
 async function scheduleNext(delayMs: number): Promise<void> {
-  if (currentTimer) clearTimeout(currentTimer);
+  const t = timer();
+  if (t.current) clearTimeout(t.current);
   const at = new Date(Date.now() + delayMs).toISOString();
   await updateState((state) => { state.nextScheduledAt = at; });
-  currentTimer = setTimeout(() => { void tick(); }, delayMs);
+  if (t.current) clearTimeout(t.current);
+  t.current = setTimeout(() => { void tick(); }, delayMs);
   // Don't keep the process alive just for this.
-  currentTimer.unref?.();
+  t.current.unref?.();
 }
 
 async function tick(): Promise<void> {
@@ -104,8 +113,9 @@ export async function startScheduler(): Promise<void> {
 }
 
 export async function stopScheduler(): Promise<void> {
-  if (currentTimer) clearTimeout(currentTimer);
-  currentTimer = null;
+  const t = timer();
+  if (t.current) clearTimeout(t.current);
+  t.current = null;
 }
 
 // Called when consent flips on/off or the collector URL changes via the UI.
