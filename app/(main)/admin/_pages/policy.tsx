@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Loader2, Plus, Trash2, ArrowUp, ArrowDown } from '@/components/icons';
 import { iconForName } from '@/components/icons';
 import type { SettingsPolicy, FeatureGates, PushRelayOption, AdminSidebarApp } from '@/lib/admin/types';
@@ -79,6 +79,9 @@ export function PolicyPage() {
   const [saving, setSaving] = useState(false);
   const setMessage = useAdminFeedback();
   const [dirty, setDirty] = useState(false);
+  // The version of the policy this page loaded: a save based on an older
+  // one is refused instead of undoing someone else's change.
+  const policyETag = useRef<string | null>(null);
 
   useEffect(() => { fetchPolicy(); }, []);
 
@@ -88,6 +91,7 @@ export function PolicyPage() {
       const res = await apiFetch('/api/admin/policy');
       if (res.ok) {
         const data = await res.json();
+        policyETag.current = res.headers.get('ETag');
         setPolicy(data);
         setSavedPolicy(data);
       }
@@ -219,11 +223,12 @@ export function PolicyPage() {
     try {
       const res = await apiFetch('/api/admin/policy', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(policyETag.current ? { 'If-Match': policyETag.current } : {}) },
         body: JSON.stringify(policy),
       });
 
       if (res.ok) {
+        policyETag.current = res.headers.get('ETag');
         setSavedPolicy(policy);
         setMessage({ type: 'success', text: 'Policy saved. Users see the change on their next login.' });
         setDirty(false);

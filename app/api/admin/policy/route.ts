@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { configManager } from '@/lib/admin/config-manager';
+import { configManager, PolicyConflictError } from '@/lib/admin/config-manager';
 import { requireAdminAuth, getClientIP } from '@/lib/admin/session';
 import { auditLog } from '@/lib/admin/audit';
 import { logger } from '@/lib/logger';
@@ -8,6 +8,21 @@ import { canSeeInstanceDetails, signedInIdentity } from '@/lib/auth/instance-det
 import { bearerIdentity } from '@/lib/auth/bearer-identity';
 import { scopesVisibleTo } from '@/lib/admin/policy-scopes';
 import { configReadOnlyResponse } from '@/lib/admin/config-read-only-response';
+
+/** The policy version as an HTTP entity tag. */
+function policyETag(version: string): string {
+  return `"${version}"`;
+}
+
+/**
+ * The version an If-Match header names, or undefined for none (or `*`).
+ * The admin pages send the ETag of the policy they loaded.
+ */
+function ifMatchVersion(request: NextRequest): string | undefined {
+  const raw = request.headers.get('if-match')?.trim();
+  if (!raw || raw === '*') return undefined;
+  return raw.split(',')[0].trim().replace(/^W\//, '').replace(/^"(.*)"$/, '$1');
+}
 
 /**
  * GET /api/admin/policy - Get settings policy (NOT admin-protected - users read this;
@@ -52,8 +67,10 @@ export async function GET(request: NextRequest) {
     // answers with all of them (documented).
     const identity = await signedInIdentity();
     if (identity !== null && !identity.admin) return userPolicyResponse(policy, identity.addresses);
+    // The whole policy, as the admin pages edit it: with its version, which
+    // they send back as If-Match when they save.
     return NextResponse.json({ ...policy, scopes: policy.scopes ?? [] }, {
-      headers: { 'Cache-Control': 'no-store' },
+      headers: { 'Cache-Control': 'no-store', ETag: policyETag(configManager.getPolicyVersion()) },
     });
   } catch (error) {
     logger.error('Policy read error', { error: error instanceof Error ? error.message : 'Unknown error' });
@@ -74,6 +91,10 @@ function userPolicyResponse(policy: SettingsPolicy, addresses: string[]): NextRe
 
 /**
  * PUT /api/admin/policy - Update settings policy (admin-protected)
+ *
+ * With `If-Match: <ETag from GET>` the save is refused with 409 when the
+ * policy changed since it was read, so a page opened earlier can't undo
+ * someone else's save. Without it the policy is replaced, as it always was.
  */
 export async function PUT(request: NextRequest) {
   try {
@@ -110,14 +131,22 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'organisation must be an object' }, { status: 400 });
     }
 
-    await configManager.setPolicy(policy);
+    let version: string;
+    try {
+      version = await configManager.setPolicy(policy, { ifVersion: ifMatchVersion(request) });
+    } catch (error) {
+      if (error instanceof PolicyConflictError) {
+        return NextResponse.json({ error: error.message }, { status: 409 });
+      }
+      throw error;
+    }
     await auditLog('policy.update', {
       restrictionCount: Object.keys(policy.restrictions || {}).length,
       // Entries the sanitizer dropped never reach users, so log what stuck.
       defaultSidebarAppCount: configManager.getPolicy().defaultSidebarApps?.length ?? 0,
     }, ip);
 
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true }, { headers: { ETag: policyETag(version) } });
   } catch (error) {
     const readOnly = configReadOnlyResponse(error);
     if (readOnly) return readOnly;

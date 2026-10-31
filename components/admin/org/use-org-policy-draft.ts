@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { create } from 'zustand';
 import type { FeatureGates, SettingRestriction, SettingsPolicy } from '@/lib/admin/types';
 import { DEFAULT_POLICY } from '@/lib/admin/types';
@@ -50,6 +50,9 @@ export function useOrgPolicyDraft(dirtyId: string) {
   const [policy, setPolicy] = useState<SettingsPolicy | null>(null);
   const [saved, setSaved] = useState<SettingsPolicy | null>(null);
   const [saving, setSaving] = useState(false);
+  // The version of the policy this draft started from: a save based on an
+  // older one is refused instead of undoing someone else's change.
+  const policyETag = useRef<string | null>(null);
   // Outcomes show in a toast, like every admin page's.
   const setMessage = useAdminFeedback();
   const scopeId = useOrgScopeStore((s) => s.scopeId);
@@ -60,6 +63,7 @@ export function useOrgPolicyDraft(dirtyId: string) {
       const res = await apiFetch('/api/admin/policy');
       if (!res.ok) throw new Error();
       const data = (await res.json()) as SettingsPolicy;
+      policyETag.current = res.headers.get('ETag');
       const normalised = { ...DEFAULT_POLICY, ...data, organisation: sanitizeOrganisationPolicy(data.organisation), scopes: data.scopes ?? [] };
       setPolicy(normalised);
       setSaved(clone(normalised));
@@ -186,7 +190,7 @@ export function useOrgPolicyDraft(dirtyId: string) {
     try {
       const res = await apiFetch('/api/admin/policy', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(policyETag.current ? { 'If-Match': policyETag.current } : {}) },
         body: JSON.stringify(policy),
       });
       if (res.ok) {

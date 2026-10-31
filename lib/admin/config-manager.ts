@@ -8,6 +8,8 @@ import { sanitizeDefaultSidebarApps } from '@/lib/sidebar-apps';
 import { sanitizePolicyDefaults } from './policy-defaults';
 import { sanitizeOrganisationPolicy } from './organisation-policy';
 import { sanitizeRestrictions, sanitizeScopes } from './policy-scopes';
+import { versionOf } from '@/lib/shared-store/keys';
+import { serializeLocal } from '@/lib/shared-store/local';
 
 function parseEnvValue(value: string, type: string): unknown {
   switch (type) {
@@ -39,6 +41,34 @@ type WatchedFile = typeof WATCHED_FILES[number];
  */
 const CHANGE_CHECK_INTERVAL_MS = 5_000;
 
+/** The policy version while no policy has been saved (the defaults apply). */
+export const DEFAULT_POLICY_VERSION = 'default';
+
+/**
+ * A policy save based on a version that is no longer the current one:
+ * someone else saved in between (another tab, another admin, a plugin
+ * deletion). The caller's draft would undo their change.
+ */
+export class PolicyConflictError extends Error {
+  constructor() {
+    super('Someone else changed the policy after you opened this page. Reload to see their change; your edits stay here until you reload.');
+    this.name = 'PolicyConflictError';
+  }
+}
+
+/** Policy writes in this process, one after another, so a version check and its write can't interleave. */
+const POLICY_WRITE_QUEUE = 'admin-config\0policy.json';
+
+interface ParsedDoc {
+  data: Record<string, unknown>;
+  /** As the shared store computes it: changes whenever the bytes do. */
+  version: string;
+}
+
+function parseDoc(raw: string): ParsedDoc {
+  return { data: JSON.parse(raw), version: versionOf(Buffer.from(raw, 'utf-8')) };
+}
+
 /** Changes whenever the file is replaced or rewritten; null when it is missing. */
 async function fileStamp(filename: string): Promise<string | null> {
   try {
@@ -52,6 +82,8 @@ async function fileStamp(filename: string): Promise<string | null> {
 class ConfigManager {
   private adminConfig: Record<string, unknown> = {};
   private policyCache: SettingsPolicy = { ...DEFAULT_POLICY };
+  /** Version of the stored policy the cache came from; null while none is stored. */
+  private policyVersion: string | null = null;
   private loaded = false;
   private fileStamps: Partial<Record<WatchedFile, string | null>> = {};
   private lastChangeCheck = 0;
@@ -67,11 +99,12 @@ class ConfigManager {
     logger.debug('ConfigManager loaded', { configKeys: Object.keys(this.adminConfig).length });
   }
 
-  private apply(config: Record<string, unknown> | null, policy: Record<string, unknown> | null): void {
-    this.adminConfig = config || {};
-    this.policyCache = policy
-      ? ConfigManager.completePolicy(policy as Partial<SettingsPolicy>)
+  private apply(config: ParsedDoc | null, policy: ParsedDoc | null): void {
+    this.adminConfig = config?.data || {};
+    this.policyCache = policy?.data
+      ? ConfigManager.completePolicy(policy.data as Partial<SettingsPolicy>)
       : { ...DEFAULT_POLICY };
+    this.policyVersion = policy?.version ?? null;
     this.loaded = true;
     this.applyLoggerSettings();
   }
@@ -273,12 +306,47 @@ class ConfigManager {
   }
 
   /**
-   * Update the settings policy. Writes to disk.
+   * The version of the policy getPolicy() returns, for an ETag. Changes with
+   * every save; DEFAULT_POLICY_VERSION while none was saved.
    */
-  async setPolicy(policy: SettingsPolicy): Promise<void> {
+  getPolicyVersion(): string {
+    return this.policyVersion ?? DEFAULT_POLICY_VERSION;
+  }
+
+  /**
+   * Update the settings policy. Writes to disk. With `ifVersion` (from
+   * getPolicyVersion when the caller read the policy) it refuses with a
+   * PolicyConflictError when the stored policy has changed since, so a
+   * draft based on an older policy can't undo someone else's save.
+   * Returns the new version.
+   */
+  async setPolicy(policy: SettingsPolicy, options: { ifVersion?: string } = {}): Promise<string> {
     assertWritable('update settings policy');
-    this.policyCache = ConfigManager.completePolicy(policy);
-    await this.writeJsonFile('policy.json', this.policyCache as unknown as Record<string, unknown>);
+    return serializeLocal(POLICY_WRITE_QUEUE, async () => {
+      if (options.ifVersion !== undefined) {
+        // Compare with what is on disk now, not with what this process saw last.
+        await this.reloadIfChanged();
+        if (options.ifVersion !== this.getPolicyVersion()) throw new PolicyConflictError();
+      }
+      this.policyCache = ConfigManager.completePolicy(policy);
+      await this.writeJsonFile('policy.json', this.policyCache as unknown as Record<string, unknown>);
+      return this.getPolicyVersion();
+    });
+  }
+
+  /**
+   * Change the stored policy with `change` (return undefined to leave it).
+   * For changes to one part of the policy that must not undo a save that
+   * lands at the same time, such as dropping a deleted plugin's id.
+   */
+  async updatePolicy(change: (current: SettingsPolicy) => SettingsPolicy | undefined): Promise<void> {
+    assertWritable('update settings policy');
+    await serializeLocal(POLICY_WRITE_QUEUE, async () => {
+      const next = change(this.policyCache);
+      if (next === undefined) return;
+      this.policyCache = ConfigManager.completePolicy(next);
+      await this.writeJsonFile('policy.json', this.policyCache as unknown as Record<string, unknown>);
+    });
   }
 
   /**
@@ -353,7 +421,7 @@ class ConfigManager {
     await this.load();
   }
 
-  private async readJsonFile(filename: string): Promise<Record<string, unknown> | null> {
+  private async readJsonFile(filename: string): Promise<ParsedDoc | null> {
     try {
       return await this.readJsonFileOrThrow(filename);
     } catch (error) {
@@ -363,9 +431,9 @@ class ConfigManager {
   }
 
   /** null when the file doesn't exist; throws when it can't be read or parsed. */
-  private async readJsonFileOrThrow(filename: string): Promise<Record<string, unknown> | null> {
+  private async readJsonFileOrThrow(filename: string): Promise<ParsedDoc | null> {
     try {
-      return JSON.parse(await readFile(getConfigPath(filename), 'utf-8'));
+      return parseDoc(await readFile(getConfigPath(filename), 'utf-8'));
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null;
       throw error;
@@ -376,9 +444,11 @@ class ConfigManager {
     await ensureConfigDir();
     const targetPath = getConfigPath(filename);
     const tmpPath = targetPath + '.tmp';
+    const text = JSON.stringify(data, null, 2);
     // Owner-only: config.json carries the session secret and OAuth client secrets.
-    await writeFile(tmpPath, JSON.stringify(data, null, 2), { encoding: 'utf-8', mode: 0o600 });
+    await writeFile(tmpPath, text, { encoding: 'utf-8', mode: 0o600 });
     await rename(tmpPath, targetPath);
+    if (filename === 'policy.json') this.policyVersion = versionOf(Buffer.from(text, 'utf-8'));
     // Our own write is not a change to pick up.
     this.fileStamps[filename] = await fileStamp(filename);
   }
