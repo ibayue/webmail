@@ -46,6 +46,7 @@ import { toStorageQuota, type JMAPQuota, type StorageQuota } from "@/lib/quota";
 import { messagePriorityHeaders, type MessagePriority } from "@/lib/message-priority";
 import { customHeaderProperties } from "@/lib/outgoing/custom-headers";
 import { attachmentParts, HTML_PART_ID, relatedBodyStructure, TEXT_PART_ID, type OutgoingBodyPart } from "./outgoing-body";
+import { addBodyMediaToAttachments } from "./body-media-attachments";
 
 // Cap for the follow-up Email/get issued when a displayed body part comes
 // back truncated at the normal 256000-byte limit (see refetchTruncatedBodyValues
@@ -1649,15 +1650,17 @@ export class JMAPClient implements IJMAPClient {
         ["Email/get", {
           accountId: targetAccountId,
           ids: batchIds,
-          properties: ["id", "attachments"],
+          // The body lists come from the same parse as attachments and cost
+          // nothing more; they hold Apple Mail's inline pictures (#1478).
+          properties: ["id", "attachments", "textBody", "htmlBody"],
           bodyProperties: [...LIST_ATTACHMENT_BODY_PROPERTIES],
         }, "0"],
       ]);
       if (response.methodResponses?.[0]?.[0] !== "Email/get") {
         throw new Error("Email/get for list attachments failed");
       }
-      const list = (response.methodResponses[0][1]?.list || []) as Pick<Email, "id" | "attachments">[];
-      for (const email of list) result.set(email.id, email.attachments ?? []);
+      const list = (response.methodResponses[0][1]?.list || []) as Pick<Email, "id" | "attachments" | "textBody" | "htmlBody">[];
+      for (const email of list) result.set(email.id, addBodyMediaToAttachments(email).attachments ?? []);
     }
     return result;
   }
@@ -2988,6 +2991,7 @@ export class JMAPClient implements IJMAPClient {
       }
 
       await this.refetchTruncatedBodyValues([email], targetAccountId);
+      addBodyMediaToAttachments(email);
 
       if (email.headers) {
         await this.parseEmailHeaders(email);
@@ -4470,6 +4474,7 @@ export class JMAPClient implements IJMAPClient {
         // to avoid an N+1 request pattern on threads with several oversized
         // messages (#884).
         await this.refetchTruncatedBodyValues(emails, targetAccountId);
+        for (const email of emails) addBodyMediaToAttachments(email);
 
         if (accountId && accountId !== this.accountId) {
           namespaceMailboxIds(emails, accountId);
@@ -11591,6 +11596,7 @@ export class JMAPClient implements IJMAPClient {
       ]);
       const fetchedEmails = (emailResponse.methodResponses?.[0]?.[1]?.list ?? []) as Email[];
       await this.refetchTruncatedBodyValues(fetchedEmails, accountId);
+      for (const email of fetchedEmails) addBodyMediaToAttachments(email);
       emailsByAccount.set(accountId, new Map(fetchedEmails.map(email => [email.id, email])));
     }
     const emails = pageSubmissions
