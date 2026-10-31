@@ -160,7 +160,14 @@ export function ThemesPage() {
       });
       if (res.ok) {
         policyETag.current = res.headers.get('ETag');
-        setSavedPolicy(policy);
+        // The server sanitises; continue from what it stored.
+        const stored = ((await res.json().catch(() => null)) as { policy?: SettingsPolicy } | null)?.policy;
+        if (stored) {
+          setPolicy(withThemeDefaults(stored));
+          setSavedPolicy(withThemeDefaults(stored));
+        } else {
+          setSavedPolicy(policy);
+        }
         return null;
       }
       const data = await res.json().catch(() => ({}));

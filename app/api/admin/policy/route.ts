@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { configManager, isPolicyConflict } from '@/lib/admin/config-manager';
+import { completePolicy, configManager, isPolicyConflict } from '@/lib/admin/config-manager';
 import { requireAdminAuth, getClientIP } from '@/lib/admin/session';
 import { auditLog } from '@/lib/admin/audit';
 import { logger } from '@/lib/logger';
@@ -37,7 +37,9 @@ function ifMatchVersion(request: NextRequest): string | undefined {
 export async function GET(request: NextRequest) {
   try {
     await configManager.ensureLoaded();
-    const policy = configManager.getPolicy();
+    // Together: the identity checks below wait on the store, and a change
+    // applied meanwhile must not pair this policy with a newer version.
+    const { policy, version } = configManager.getPolicyWithVersion();
     if (!(await canSeeInstanceDetails(request))) {
       const tokenIdentity = await bearerIdentity(request);
       if (tokenIdentity) return userPolicyResponse(policy, tokenIdentity.addresses);
@@ -70,7 +72,7 @@ export async function GET(request: NextRequest) {
     // The whole policy, as the admin pages edit it: with its version, which
     // they send back as If-Match when they save.
     return NextResponse.json({ ...policy, scopes: policy.scopes ?? [] }, {
-      headers: { 'Cache-Control': 'no-store', ETag: policyETag(configManager.getPolicyVersion()) },
+      headers: { 'Cache-Control': 'no-store', ETag: policyETag(version) },
     });
   } catch (error) {
     logger.error('Policy read error', { error: error instanceof Error ? error.message : 'Unknown error' });
@@ -146,7 +148,10 @@ export async function PUT(request: NextRequest) {
       defaultSidebarAppCount: configManager.getPolicy().defaultSidebarApps?.length ?? 0,
     }, ip);
 
-    return NextResponse.json({ ok: true }, { headers: { ETag: policyETag(version) } });
+    // What was stored, with its version: the page continues from this
+    // instead of reading it back from a replica that may not have it yet.
+    const saved = completePolicy(policy);
+    return NextResponse.json({ ok: true, policy: { ...saved, scopes: saved.scopes ?? [] } }, { headers: { ETag: policyETag(version) } });
   } catch (error) {
     const readOnly = configReadOnlyResponse(error);
     if (readOnly) return readOnly;

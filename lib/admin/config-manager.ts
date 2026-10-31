@@ -70,9 +70,12 @@ export function isPolicyConflict(error: unknown): error is PolicyConflictError {
 
 /** Policy writes in this process, one after another, so a version check and its write can't interleave. */
 const POLICY_WRITE_QUEUE = 'admin-config\0policy.json';
+/** Config read-modify-writes (updateAdminConfig) in this process, one after another. */
+const CONFIG_WRITE_QUEUE = 'admin-config\0config.json';
 
 interface ParsedDoc {
-  data: Record<string, unknown>;
+  /** null when the stored document doesn't parse (shared mode). */
+  data: Record<string, unknown> | null;
   /** As the shared store computes it: changes whenever the bytes do. */
   version: string;
 }
@@ -81,9 +84,19 @@ function parseDoc(raw: string): ParsedDoc {
   return { data: JSON.parse(raw), version: versionOf(Buffer.from(raw, 'utf-8')) };
 }
 
-/** A document from the shared store; throws when it doesn't parse. */
-function parseStored(doc: StoredDoc | null): ParsedDoc | null {
-  return doc ? { data: JSON.parse(doc.data.toString('utf-8')), version: doc.version } : null;
+/**
+ * A document from the shared store. Data that doesn't parse comes back as
+ * null with the document's version, so an If-Match save can still replace
+ * it.
+ */
+function parseStored(doc: StoredDoc | null, onError?: (error: unknown) => void): ParsedDoc | null {
+  if (!doc) return null;
+  try {
+    return { data: JSON.parse(doc.data.toString('utf-8')), version: doc.version };
+  } catch (error) {
+    onError?.(error);
+    return { data: null, version: doc.version };
+  }
 }
 
 /** Which stored document a change area reloads. */
@@ -113,6 +126,8 @@ class ConfigManager {
   private sharedLoad: Promise<void> | null = null;
   /** Shared mode: counts writes applied from their result, so a reload that raced one reads again. */
   private writes = 0;
+  /** Shared mode: counts reloads applied, so a write that raced one reads its result again. */
+  private reloads = 0;
   private unlisten: (() => void) | null = null;
 
   /**
@@ -159,12 +174,9 @@ class ConfigManager {
 
   /** As a broken file on disk: logged, and the defaults apply. */
   private parseOrWarn(filename: string, doc: StoredDoc | null): ParsedDoc | null {
-    try {
-      return parseStored(doc);
-    } catch (error) {
+    return parseStored(doc, (error) => {
       logger.warn(`Failed to read ${filename} from the shared store`, { error: error instanceof Error ? error.message : 'Unknown error' });
-      return null;
-    }
+    });
   }
 
   /** Reload config or policy when another replica changed it. Registered again on every load. */
@@ -178,23 +190,52 @@ class ConfigManager {
   }
 
   /**
-   * Read one document again. Throws when the store can't be read or the
-   * document doesn't parse, keeping the copy in memory; the change poller
-   * then tries again.
+   * Read one document again. Throws when the store can't be read, or when
+   * writes of this process kept landing while reading; the change poller
+   * then tries again. A document that doesn't parse keeps the copy in
+   * memory (the policy takes its version, so a save can replace it).
    */
   private async reloadShared(area: ConfigArea): Promise<void> {
     for (let attempt = 0; attempt < 3; attempt++) {
       const writes = this.writes;
-      const doc = parseStored(await adminConfigDocs().get(AREA_FILES[area]));
+      const doc = this.parseOrWarn(AREA_FILES[area], await adminConfigDocs().get(AREA_FILES[area]));
       // A write of this process landed while reading: its result may be newer.
       if (writes !== this.writes) continue;
-      if (area === 'config') {
-        this.adminConfig = doc?.data || {};
-        this.applyLoggerSettings();
-      } else {
-        this.applyPolicyDoc(doc);
-      }
+      this.applyReloaded(area, doc);
       return;
+    }
+    throw new Error(`${AREA_FILES[area]} kept changing while it was reloaded`);
+  }
+
+  private applyReloaded(area: ConfigArea, doc: ParsedDoc | null): void {
+    this.reloads++;
+    if (doc && doc.data === null) {
+      if (area === 'policy') this.policyVersion = doc.version;
+      return;
+    }
+    if (area === 'config') {
+      this.adminConfig = doc?.data || {};
+      this.applyLoggerSettings();
+    } else {
+      this.applyPolicyDoc(doc);
+    }
+  }
+
+  /**
+   * After a write of this process: apply its result, unless a reload of
+   * another replica's change was applied while it was in flight. That one
+   * may be newer than the write, so the document is read again instead.
+   */
+  private async applyWritten(area: ConfigArea, reloadsBefore: number, apply: () => void): Promise<void> {
+    this.writes++;
+    if (this.reloads === reloadsBefore) {
+      apply();
+      return;
+    }
+    try {
+      this.applyReloaded(area, this.parseOrWarn(AREA_FILES[area], await adminConfigDocs().get(AREA_FILES[area])));
+    } catch {
+      apply();
     }
   }
 
@@ -203,8 +244,9 @@ class ConfigManager {
    * the object it gets), so only the keys a request names change and a
    * concurrent save of other keys on another replica stays.
    */
-  private async updateSharedConfig(change: (config: Record<string, unknown>) => void): Promise<void> {
+  private async updateSharedConfig(change: (config: Record<string, unknown>) => void | false): Promise<void> {
     const inMemory = this.adminConfig;
+    const reloads = this.reloads;
     const result = await adminConfigDocs().update('config.json', (current) => {
       let base: Record<string, unknown> = {};
       if (current) {
@@ -215,12 +257,14 @@ class ConfigManager {
           base = { ...inMemory };
         }
       }
-      change(base);
+      if (change(base) === false) return undefined;
       return JSON.stringify(base, null, 2);
     });
-    this.writes++;
-    if (result.data) this.adminConfig = JSON.parse(result.data.toString('utf-8'));
-    this.applyLoggerSettings();
+    if (result.data === undefined) return;
+    await this.applyWritten('config', reloads, () => {
+      if (result.data) this.adminConfig = JSON.parse(result.data.toString('utf-8'));
+      this.applyLoggerSettings();
+    });
     await announceChange('config');
   }
 
@@ -298,12 +342,17 @@ class ConfigManager {
     // Synchronous callers can't wait: a due check runs in the background and
     // the next read sees its result.
     void this.checkForChanges();
+    return ConfigManager.resolve(this.adminConfig, key, defaultValue);
+  }
+
+  /** A value as get() reads it, from the admin overrides in `adminConfig`. */
+  private static resolve<T>(adminConfig: Record<string, unknown>, key: string, defaultValue?: T): T {
     // Admin override (highest priority)
     const mapping = CONFIG_ENV_MAP[key];
-    if (key in this.adminConfig) {
-      return this.adminConfig[key] as T;
-    } else if (mapping && mapping.fileKey && mapping.fileKey in this.adminConfig) {
-      const fileVal = readFileEnv(<string | undefined>this.adminConfig[mapping.fileKey]);
+    if (key in adminConfig) {
+      return adminConfig[key] as T;
+    } else if (mapping && mapping.fileKey && mapping.fileKey in adminConfig) {
+      const fileVal = readFileEnv(<string | undefined>adminConfig[mapping.fileKey]);
       if (fileVal !== null) {
         return parseEnvValue(fileVal, mapping.type) as T;
       }
@@ -380,13 +429,47 @@ class ConfigManager {
    */
   async setAdminConfig(updates: Record<string, unknown>): Promise<void> {
     assertWritable('update admin config');
-    if (this.usesStore()) return this.updateSharedConfig((config) => Object.assign(config, updates));
+    if (this.usesStore()) {
+      return this.updateSharedConfig((config) => {
+        Object.assign(config, updates);
+      });
+    }
     // Start from what is on disk, so a save here doesn't undo a change another
     // replica saved a moment ago. Same before every write below.
     await this.reloadIfChanged();
     Object.assign(this.adminConfig, updates);
     await this.writeJsonFile('config.json', this.adminConfig);
     this.applyLoggerSettings();
+  }
+
+  /**
+   * Set one admin override to `change(current)`, where `current` is the value
+   * as get() would return it from the stored config (override, else env,
+   * else `defaultValue`). For values built on the current one, such as a
+   * list with one entry changed: two saves at once, here or on another
+   * replica, each build on the other's result. Return undefined to leave
+   * it. Returns the value stored.
+   */
+  async updateAdminConfig<T>(key: string, change: (current: T) => T | undefined, defaultValue?: T): Promise<T | undefined> {
+    assertWritable('update admin config');
+    let stored: T | undefined;
+    if (this.usesStore()) {
+      await this.updateSharedConfig((config) => {
+        stored = change(ConfigManager.resolve(config, key, defaultValue));
+        if (stored === undefined) return false;
+        config[key] = stored;
+      });
+      return stored;
+    }
+    return serializeLocal(CONFIG_WRITE_QUEUE, async () => {
+      await this.reloadIfChanged();
+      stored = change(ConfigManager.resolve(this.adminConfig, key, defaultValue));
+      if (stored === undefined) return undefined;
+      this.adminConfig[key] = stored;
+      await this.writeJsonFile('config.json', this.adminConfig);
+      this.applyLoggerSettings();
+      return stored;
+    });
   }
 
   /**
@@ -447,6 +530,15 @@ class ConfigManager {
   }
 
   /**
+   * The policy and its version, read together. Use this whenever both go
+   * out (a body with its ETag): an await between two separate reads lets a
+   * change from another replica pair an old policy with the new version.
+   */
+  getPolicyWithVersion(): { policy: SettingsPolicy; version: string } {
+    return { policy: this.getPolicy(), version: this.getPolicyVersion() };
+  }
+
+  /**
    * Update the settings policy. Writes to disk. With `ifVersion` (from
    * getPolicyVersion when the caller read the policy) it refuses with a
    * PolicyConflictError when the stored policy has changed since, so a
@@ -477,6 +569,8 @@ class ConfigManager {
     assertWritable('update settings policy');
     if (this.usesStore()) return this.updateSharedPolicy(change);
     await serializeLocal(POLICY_WRITE_QUEUE, async () => {
+      // Change what is on disk now, not what this process saw last.
+      await this.reloadIfChanged();
       const next = change(this.policyCache);
       if (next === undefined) return;
       this.policyCache = ConfigManager.completePolicy(next);
@@ -487,24 +581,29 @@ class ConfigManager {
   private async setSharedPolicy(policy: SettingsPolicy, ifVersion: string | undefined): Promise<string> {
     const completed = ConfigManager.completePolicy(policy);
     const expected = ifVersion === DEFAULT_POLICY_VERSION ? null : ifVersion;
+    const reloads = this.reloads;
     const result = await adminConfigDocs().put(
       'policy.json',
       JSON.stringify(completed, null, 2),
       expected === undefined ? {} : { ifVersion: expected },
     );
-    this.writes++;
     if (!result.ok) {
+      this.writes++;
       // Show what is stored now, so a retry or a reload compares with it.
-      this.applyPolicyDoc(this.parseOrWarn('policy.json', result.current));
+      this.applyReloaded('policy', this.parseOrWarn('policy.json', result.current));
       throw new PolicyConflictError();
     }
-    this.policyCache = completed;
-    this.policyVersion = result.version;
+    const version = result.version;
+    await this.applyWritten('policy', reloads, () => {
+      this.policyCache = completed;
+      this.policyVersion = version;
+    });
     await announceChange('policy');
-    return result.version;
+    return version;
   }
 
   private async updateSharedPolicy(change: (current: SettingsPolicy) => SettingsPolicy | undefined): Promise<void> {
+    const reloads = this.reloads;
     const result = await adminConfigDocs().update('policy.json', (current) => {
       const stored = current
         ? ConfigManager.completePolicy(JSON.parse(current.toString('utf-8')) as Partial<SettingsPolicy>)
@@ -513,8 +612,9 @@ class ConfigManager {
       return next === undefined ? undefined : JSON.stringify(ConfigManager.completePolicy(next), null, 2);
     });
     if (result.data === undefined) return;
-    this.writes++;
-    this.applyPolicyDoc(result.data && result.version ? parseStored({ data: result.data, version: result.version }) : null);
+    await this.applyWritten('policy', reloads, () => {
+      this.applyPolicyDoc(result.data && result.version ? parseStored({ data: result.data, version: result.version }) : null);
+    });
     await announceChange('policy');
   }
 

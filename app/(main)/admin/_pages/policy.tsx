@@ -229,7 +229,14 @@ export function PolicyPage() {
 
       if (res.ok) {
         policyETag.current = res.headers.get('ETag');
-        setSavedPolicy(policy);
+        // The server sanitises; continue from what it stored.
+        const stored = ((await res.json().catch(() => null)) as { policy?: SettingsPolicy } | null)?.policy;
+        if (stored) {
+          setPolicy(stored);
+          setSavedPolicy(stored);
+        } else {
+          setSavedPolicy(policy);
+        }
         setMessage({ type: 'success', text: 'Policy saved. Users see the change on their next login.' });
         setDirty(false);
       } else {
