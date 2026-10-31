@@ -105,9 +105,32 @@ async function writeStateData(data: AdminStateData): Promise<void> {
 
 // ─── Cache & init ───────────────────────────────────────────────────────────
 
-let cachedConfig: AdminConfigData | null = null;
-let cachedState: AdminStateData | null = null;
-let initialized = false;
+/**
+ * What this process knows of admin.json and admin-state.json. On globalThis:
+ * Next bundles this module once per entry (each route bundle, the
+ * instrumentation), and a copy with its own cache kept accepting the old
+ * password after a password change made through another one, until a
+ * restart.
+ */
+interface AdminCache {
+  config: AdminConfigData | null;
+  state: AdminStateData | null;
+  initialized: boolean;
+}
+
+const CACHE_KEY = Symbol.for('bulwark.admin.password');
+const cache: AdminCache = ((globalThis as typeof globalThis & { [CACHE_KEY]?: AdminCache })[CACHE_KEY] ??= {
+  config: null,
+  state: null,
+  initialized: false,
+});
+
+/** Forget what this process read, as a restart would (tests). */
+export function resetAdminCacheForTests(): void {
+  cache.config = null;
+  cache.state = null;
+  cache.initialized = false;
+}
 
 function freshState(): AdminStateData {
   const now = new Date().toISOString();
@@ -115,8 +138,8 @@ function freshState(): AdminStateData {
 }
 
 async function loadState(): Promise<AdminStateData | null> {
-  if (!cachedState) cachedState = await readStateData();
-  return cachedState;
+  if (!cache.state) cache.state = await readStateData();
+  return cache.state;
 }
 
 /**
@@ -135,38 +158,38 @@ async function stateForNewPassword(): Promise<AdminStateData> {
  * - Otherwise, admin dashboard stays disabled.
  */
 export async function initAdminPassword(): Promise<boolean> {
-  if (initialized) return cachedConfig !== null;
+  if (cache.initialized) return cache.config !== null;
 
   const existingConfig = await readConfigData();
   if (existingConfig) {
-    cachedConfig = existingConfig;
-    cachedState = (await readStateData()) ?? freshState();
+    cache.config = existingConfig;
+    cache.state = (await readStateData()) ?? freshState();
     if (!(await readStateData())) {
       // No state file yet (fresh install or migration); create it.
       try {
-        await writeStateData(cachedState);
+        await writeStateData(cache.state);
       } catch {
         /* state dir may not be writable yet during early boot probes */
       }
     }
-    initialized = true;
+    cache.initialized = true;
     logger.info('Admin dashboard enabled (password loaded from admin.json)');
     return true;
   }
 
   const envPassword = process.env.ADMIN_PASSWORD;
   if (!envPassword) {
-    initialized = true;
+    cache.initialized = true;
     logger.info('Admin dashboard disabled (no ADMIN_PASSWORD set)');
     return false;
   }
 
   const hash = isHashed(envPassword) ? envPassword : await hashPassword(envPassword);
-  cachedConfig = { passwordHash: hash, passwordHashFile: undefined };
-  cachedState = await stateForNewPassword();
-  await writeConfigData(cachedConfig);
-  await writeStateData(cachedState);
-  initialized = true;
+  cache.config = { passwordHash: hash, passwordHashFile: undefined };
+  cache.state = await stateForNewPassword();
+  await writeConfigData(cache.config);
+  await writeStateData(cache.state);
+  cache.initialized = true;
   if (isHashed(envPassword)) {
     logger.info('Admin password hash saved to admin.json from environment variable');
   } else {
@@ -179,12 +202,12 @@ export async function initAdminPassword(): Promise<boolean> {
  * Verify a password against the stored admin hash.
  */
 export async function verifyAdminPassword(password: string): Promise<boolean> {
-  if (!cachedConfig) cachedConfig = await readConfigData();
-  if (!cachedConfig) return false;
-  if (cachedConfig.passwordHash) {
-    return verifyPassword(password, cachedConfig.passwordHash);
-  } else if (cachedConfig.passwordHashFile) {
-    let passwordHash = readFileEnv(cachedConfig.passwordHashFile);
+  if (!cache.config) cache.config = await readConfigData();
+  if (!cache.config) return false;
+  if (cache.config.passwordHash) {
+    return verifyPassword(password, cache.config.passwordHash);
+  } else if (cache.config.passwordHashFile) {
+    let passwordHash = readFileEnv(cache.config.passwordHashFile);
     if (passwordHash) {
       return verifyPassword(password, passwordHash);
     }
@@ -205,15 +228,15 @@ export async function changeAdminPassword(currentPassword: string, newPassword: 
   const hash = await hashPassword(newPassword);
   const next: AdminConfigData = { passwordHash: hash, passwordHashFile: undefined };
   await writeConfigData(next);
-  cachedConfig = next;
+  cache.config = next;
 
   const previous = await loadState();
-  cachedState = {
+  cache.state = {
     ...(previous ?? freshState()),
     passwordChangedAt: new Date().toISOString(),
     sessionGeneration: (previous?.sessionGeneration ?? 0) + 1,
   };
-  await writeStateData(cachedState);
+  await writeStateData(cache.state);
   return true;
 }
 
@@ -235,11 +258,11 @@ export async function setInitialAdminPassword(
   const existing = await readConfigData();
   if (existing && !options.allowOverwrite) return false;
   const hash = await hashPassword(newPassword);
-  cachedConfig = { passwordHash: hash, passwordHashFile: undefined };
-  cachedState = await stateForNewPassword();
-  await writeConfigData(cachedConfig);
-  await writeStateData(cachedState);
-  initialized = true;
+  cache.config = { passwordHash: hash, passwordHashFile: undefined };
+  cache.state = await stateForNewPassword();
+  await writeConfigData(cache.config);
+  await writeStateData(cache.state);
+  cache.initialized = true;
   return true;
 }
 
@@ -247,13 +270,13 @@ export async function setInitialAdminPassword(
  * Update the last login timestamp.
  */
 export async function updateLastLogin(): Promise<void> {
-  if (!cachedConfig) return;
-  cachedState = {
-    ...(cachedState ?? freshState()),
+  if (!cache.config) return;
+  cache.state = {
+    ...(cache.state ?? freshState()),
     lastLogin: new Date().toISOString(),
   };
   try {
-    await writeStateData(cachedState);
+    await writeStateData(cache.state);
   } catch (error) {
     logger.warn('Failed to update admin last-login state', {
       error: error instanceof Error ? error.message : 'Unknown error',
@@ -265,15 +288,15 @@ export async function updateLastLogin(): Promise<void> {
  * Check if admin dashboard is enabled (has a password configured).
  */
 export function isAdminEnabled(): boolean {
-  return cachedConfig !== null;
+  return cache.config !== null;
 }
 
 /**
  * Get admin metadata (without the hash).
  */
 export function getAdminMeta(): AdminStateData | null {
-  if (!cachedConfig) return null;
-  return cachedState ?? freshState();
+  if (!cache.config) return null;
+  return cache.state ?? freshState();
 }
 
 // ─── Admin session sign-out ─────────────────────────────────────────────────
@@ -297,6 +320,6 @@ export async function revokeAdminSession(sid: string, exp: number): Promise<void
   const previous = await loadState();
   const revoked = Object.fromEntries(Object.entries(previous?.revokedSessions ?? {}).filter(([, until]) => until >= now));
   revoked[sid] = exp;
-  cachedState = { ...(previous ?? freshState()), revokedSessions: revoked };
-  await writeStateData(cachedState);
+  cache.state = { ...(previous ?? freshState()), revokedSessions: revoked };
+  await writeStateData(cache.state);
 }
