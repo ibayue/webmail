@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { useSettingsStore } from '@/stores/settings-store';
+import { useSettingsStore, type AttachmentPosition } from '@/stores/settings-store';
 import { SettingsSection, SettingItem, Select, ToggleSwitch } from './settings-section';
 import { DownloadsSettings } from './downloads-settings';
 import { TrustedSendersModal } from '@/components/trusted-senders-modal';
@@ -163,10 +163,11 @@ export function ReadingSettings() {
         <SettingItem label={t('attachment_position.label')} description={t('attachment_position.description')}>
           <Select
             value={attachmentPosition}
-            onChange={(value) => updateSetting('attachmentPosition', value as 'beside-sender' | 'below-header')}
+            onChange={(value) => updateSetting('attachmentPosition', value as AttachmentPosition)}
             options={[
               { value: 'beside-sender', label: t('attachment_position.beside-sender') },
               { value: 'below-header', label: t('attachment_position.below-header') },
+              { value: 'below-message', label: t('attachment_position.below-message') },
             ]}
           />
         </SettingItem>

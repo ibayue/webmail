@@ -94,6 +94,19 @@ describe('ReaderAttachments bar', () => {
     expect(screen.queryByRole('button', { name: /attachments_show_more/ })).toBeNull();
   });
 
+  it('shows every file as a card, without collapsing, in cards layout', () => {
+    const files = Array.from({ length: 8 }, (_, i) => file(String(i), `file-${i}.pdf`));
+    const props = renderBar(files, { layout: 'cards' });
+    expect(screen.getByTestId('reader-attachments').dataset.layout).toBe('cards');
+    expect(screen.getAllByTestId('attachment')).toHaveLength(8);
+    expect(screen.queryByRole('button', { name: /attachments_show_more/ })).toBeNull();
+    const card = screen.getAllByTestId('attachment')[2];
+    const buttons = within(card).getAllByRole('button');
+    fireEvent.click(buttons[buttons.length - 1]);
+    expect(props.onDownload).toHaveBeenCalledWith(files[2]);
+    expect(props.onOpen).not.toHaveBeenCalled();
+  });
+
   it('draws the image itself when there is a thumbnail', () => {
     const { container } = render(
       <ReaderAttachments

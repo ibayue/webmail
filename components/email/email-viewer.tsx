@@ -14,7 +14,7 @@ import { useMailReading } from "@/hooks/use-mail-reading";
 import { useReadAloud } from "@/hooks/use-read-aloud";
 import { ReadAloudBar } from "./read-aloud-bar";
 import { attachmentIcon } from "./attachment-chips";
-import { ReaderAttachments } from "./reader-attachments";
+import { ReaderAttachments, type AttachmentDragProps } from "./reader-attachments";
 import { ReaderViewDialog } from "./reader-view-dialog";
 import { ReadingMask } from "./reading-mask";
 import { collectReferencedCids, isEmbeddedInBody, isReportPart, normalizeCid, rewriteCidReferences } from "@/lib/attachment-visibility";
@@ -113,6 +113,7 @@ import {
   BookOpen,
   ArrowLeft,
   Pencil,
+  Paperclip,
 } from "@/components/icons";
 import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
@@ -3040,6 +3041,28 @@ export function EmailViewer({
     }
   }, [isDownloadingAll, effectiveAttachments, blobClient, blobAccountId, email, t, tFiles]);
 
+  // What the attachment bar and the attachment cards share.
+  const attachmentCardsRef = useRef<HTMLDivElement>(null);
+  const readerAttachmentProps = {
+    attachments: effectiveAttachments,
+    thumbUrls: imageThumbUrls,
+    opensPreview: (attachment: EffectiveAttachment) => isAttachmentPreviewable(attachment) && mailAttachmentAction === 'preview',
+    onOpen: handleEffectiveAttachmentOpen,
+    onDownload: handleEffectiveAttachmentDownload,
+    onDownloadAll: handleDownloadAllAttachments,
+    downloadingAll: isDownloadingAll,
+    onSaveToFiles: canSaveToFiles ? setSaveToFilesTarget : undefined,
+    pluginMenu: (attachment: EffectiveAttachment) => <AttachmentPluginMenu emailId={email?.id} attachment={attachment} className="p-2 rounded-md" />,
+    renderItem: (attachment: EffectiveAttachment, tile: (drag: AttachmentDragProps) => React.ReactNode) => (
+      <DraggableAttachmentChip attachment={attachment} client={blobClient} accountId={blobAccountId} enabled={dragOutActive} downloadName={resolveAttachmentName(attachment)}>
+        {(dragProps) => (<>
+          {tile(dragProps)}
+          <AttachmentPluginFrames emailId={email?.id} attachment={attachment} />
+        </>)}
+      </DraggableAttachmentChip>
+    ),
+  };
+
   // Shared "Download all" chip, shown only when bundling is worthwhile (2+).
   const downloadAllButton = effectiveAttachments.length > 1 ? (
     <button
@@ -5031,6 +5054,20 @@ export function EmailViewer({
 
 
               </div>
+              {/* Cards mode: a paperclip with the count jumps down to the cards. */}
+              {attachmentPosition === 'below-message' && effectiveAttachments.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => attachmentCardsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                  title={t('attachments')}
+                  aria-label={t('attachments_count', { count: effectiveAttachments.length })}
+                  className="self-start flex-shrink-0 inline-flex items-center gap-1.5 h-8 px-2 rounded-md text-sm text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
+                  data-testid="attachments-jump"
+                >
+                  <Paperclip className="w-4 h-4" />
+                  <bdi>{effectiveAttachments.length}</bdi>
+                </button>
+              )}
               {/* Attachments on the right (beside-sender mode) */}
               {attachmentPosition === 'beside-sender' && effectiveAttachments.length > 0 && (
                 <div className="relative flex flex-col items-end justify-start gap-1 flex-shrink-0 max-w-[50%]">
@@ -5870,28 +5907,11 @@ export function EmailViewer({
         <PluginSlot name="email-banner" extraProps={pluginEmailProps} />
 
       {/* === ATTACHMENTS: a bar of tiles under the header. Beside-sender
-          mode keeps its own column on wide screens. === */}
-      {effectiveAttachments.length > 0 && (
+          mode keeps its own column on wide screens; cards mode draws them
+          after the body instead. === */}
+      {attachmentPosition !== 'below-message' && effectiveAttachments.length > 0 && (
         <div className={cn("bg-background border-b border-border px-4 lg:px-6 py-3", attachmentPosition === 'beside-sender' && "lg:hidden")}>
-          <ReaderAttachments
-            attachments={effectiveAttachments}
-            thumbUrls={imageThumbUrls}
-            opensPreview={(attachment) => isAttachmentPreviewable(attachment) && mailAttachmentAction === 'preview'}
-            onOpen={handleEffectiveAttachmentOpen}
-            onDownload={handleEffectiveAttachmentDownload}
-            onDownloadAll={handleDownloadAllAttachments}
-            downloadingAll={isDownloadingAll}
-            onSaveToFiles={canSaveToFiles ? setSaveToFilesTarget : undefined}
-            pluginMenu={(attachment) => <AttachmentPluginMenu emailId={email?.id} attachment={attachment} className="p-2 rounded-md" />}
-            renderItem={(attachment, tile) => (
-              <DraggableAttachmentChip attachment={attachment} client={blobClient} accountId={blobAccountId} enabled={dragOutActive} downloadName={resolveAttachmentName(attachment)}>
-                {(dragProps) => (<>
-                  {tile(dragProps)}
-                  <AttachmentPluginFrames emailId={email?.id} attachment={attachment} />
-                </>)}
-              </DraggableAttachmentChip>
-            )}
-          />
+          <ReaderAttachments {...readerAttachmentProps} layout="bar" />
         </div>
       )}
 
@@ -5986,6 +6006,13 @@ export function EmailViewer({
               />
             )}
           </div>
+
+          {/* === ATTACHMENTS as cards after the body (below-message mode) === */}
+          {attachmentPosition === 'below-message' && effectiveAttachments.length > 0 && !mvOpenFolded && !mvAwaitingConversation && (
+            <div ref={attachmentCardsRef} className={cn("bg-background border-t border-border px-4 lg:px-6 py-4 scroll-mt-4", mvViewer && "lg:ps-[60px]")}>
+              <ReaderAttachments {...readerAttachmentProps} layout="cards" />
+            </div>
+          )}
 
           <PluginSlot name="email-footer" extraProps={pluginFooterProps} />
 

@@ -1905,9 +1905,10 @@
       },
       "attachment_position": {
         "label": "Attachment position",
-        "description": "Where to display attachments in the email header",
+        "description": "Where to display the attachments of an open email",
         "beside-sender": "Next to sender",
-        "below-header": "Below header"
+        "below-header": "Below header",
+        "below-message": "Cards below the message"
       },
       "emails_per_page": {
         "10": "10 emails",
