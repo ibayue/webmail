@@ -5187,7 +5187,6 @@
     "settings_ascending": "Kasvav",
     "settings_descending": "Kahanev",
     "disabled_title": "Administraator on failide funktsiooni välja lülitanud",
-    "disabled_description": "Suurte failide üleslaadimine WebDAV kaudu võib põhjustada Stalwart/RocksDB ebastabiilsust, sealhulgas mälupuudusest tingitud krahhe ja taastamatut kettaruumi kasutust. Kustutatud failid ei pruugi objektihoidlast kohe kaduda. Seda funktsiooni ei soovitata kasutada tootmiskeskkonnas.",
     "migration_title": "Failide uuendamine…",
     "migration_description": "Kaustade ja failide korrastamine õigesse struktuuri. See toimub ainult üks kord.",
     "new": "Uus",

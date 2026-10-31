@@ -5055,7 +5055,6 @@
     "settings_ascending": "Oplopend",
     "settings_descending": "Aflopend",
     "disabled_title": "De bestandsfunctie is uitgeschakeld door uw beheerder",
-    "disabled_description": "Grote bestandsuploads via WebDAV kunnen Stalwart/RocksDB-instabiliteit veroorzaken, waaronder geheugenfouten en onherstelbaar schijfgebruik. Verwijderde bestanden worden mogelijk niet onmiddellijk uit de opslag verwijderd. Deze functie wordt niet aanbevolen voor productieomgevingen.",
     "no_accounts": "Geen gekoppelde accounts.",
     "open_folder_tree": "Mappenstructuur openen",
     "migration_title": "Je bestanden worden bijgewerkt…",

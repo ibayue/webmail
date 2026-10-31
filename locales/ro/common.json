@@ -5187,7 +5187,6 @@
     "settings_ascending": "În ordine crescătoare",
     "settings_descending": "Descendent",
     "disabled_title": "Funcția de fișiere este dezactivată de administratorul dvs.",
-    "disabled_description": "Încărcarea fișierelor de dimensiuni mari prin intermediul WebDAV poate provoca instabilitate în Stalwart /RocksDB, inclusiv blocări din cauza epuizării memoriei și utilizare irecuperabilă a spațiului pe disc. Este posibil ca fișierele șterse să nu fie eliminate imediat din spațiul de stocare blob. Această funcție nu este recomandată pentru mediile de producție.",
     "migration_title": "Se actualizează fișierele...",
     "migration_description": "Organizarea dosarelor și a fișierelor în structura corespunzătoare. Această operațiune se efectuează o singură dată.",
     "new": "Nou",

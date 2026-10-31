@@ -5199,7 +5199,6 @@
     "settings_ascending": "Tăng dần",
     "settings_descending": "Giảm dần",
     "disabled_title": "Tính năng tệp bị quản trị viên của bạn tắt",
-    "disabled_description": "Việc tải tệp lớn lên qua WebDAV có thể gây ra sự mất ổn định của Stalwart/RocksDB, bao gồm cả sự cố hết bộ nhớ và mức sử dụng đĩa không thể phục hồi. Các tệp đã xóa có thể không bị xóa ngay lập tức khỏi bộ nhớ blob. Tính năng này không được khuyến nghị cho môi trường sản xuất.",
     "migration_title": "Đang cập nhật tệp của bạn…",
     "migration_description": "Sắp xếp các thư mục và tệp vào cấu trúc thích hợp của chúng. Điều này chỉ xảy ra một lần.",
     "new": "Mới",

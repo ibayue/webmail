@@ -5187,7 +5187,6 @@
     "settings_ascending": "Ascendent",
     "settings_descending": "Descendent",
     "disabled_title": "La funció de fitxers està desactivada per l'administrador",
-    "disabled_description": "Les pujades de fitxers grans via WebDAV poden causar inestabilitat a Stalwart/RocksDB, incloent-hi fallades per manca de memòria i ús de disc irrecuperable. És possible que els fitxers suprimits no s'eliminin immediatament de l'emmagatzematge de blobs. No es recomana aquesta funció per a entorns de producció.",
     "migration_title": "Actualitzant els vostres fitxers…",
     "migration_description": "S'estan organitzant les carpetes i els fitxers en la seva estructura adequada. Això només passa una vegada.",
     "new": "Nou",

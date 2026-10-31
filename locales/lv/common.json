@@ -5055,7 +5055,6 @@
     "settings_ascending": "Augošā",
     "settings_descending": "Dilstošā",
     "disabled_title": "Failu funkciju ir atspējojis administrators",
-    "disabled_description": "Lielu failu augšupielāde, izmantojot WebDAV, var radīt Stalwart/RocksDB nestabilitāti, tostarp atmiņas izsīkumu un neatkopjamu diska izmantojumu. Dzēstie faili var netikt nekavējoties izņemti no blob glabātuves. Šī funkcija nav ieteicama produkcijas vidēm.",
     "no_accounts": "Nav pievienotu kontu.",
     "open_folder_tree": "Atvērt mapju koku",
     "migration_title": "Notiek jūsu failu atjaunināšana…",

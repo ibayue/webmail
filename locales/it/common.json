@@ -5055,7 +5055,6 @@
     "settings_ascending": "Crescente",
     "settings_descending": "Decrescente",
     "disabled_title": "La funzionalità File è stata disabilitata dal tuo amministratore",
-    "disabled_description": "I caricamenti di file di grandi dimensioni tramite WebDAV possono causare instabilità di Stalwart/RocksDB, inclusi crash di memoria e utilizzo irrecuperabile del disco. I file eliminati potrebbero non essere immediatamente rimossi dallo storage. Questa funzionalità non è consigliata per ambienti di produzione.",
     "no_accounts": "Nessun account collegato.",
     "open_folder_tree": "Apri albero cartelle",
     "migration_title": "Aggiornamento dei tuoi file…",
