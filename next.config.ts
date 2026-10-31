@@ -59,8 +59,10 @@ const nextConfig: NextConfig = {
   basePath: basePath || undefined,
   // esbuild ships native binaries + a README the bundler can't parse; load
   // it from node_modules at runtime instead of trying to bundle it. Used by
-  // PLUGIN_DEV_DIR's on-the-fly bundler.
-  serverExternalPackages: ["esbuild"],
+  // PLUGIN_DEV_DIR's on-the-fly bundler. ioredis (the shared store, #1066)
+  // is loaded from node_modules too, so the proxy and the route bundles
+  // don't each carry a copy.
+  serverExternalPackages: ["esbuild", "ioredis"],
   // The build's type check leaves out tests, which are a third of the files
   // and push tsc past the default heap on a 4 GB machine (#1431).
   // `npm run typecheck` still checks them with tsconfig.json.
