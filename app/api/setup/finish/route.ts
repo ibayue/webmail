@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { writeFile } from 'node:fs/promises';
 import { detectSetupState } from '@/lib/setup/state';
-import { authenticateWizardRequest, SETUP_COOKIE } from '@/lib/setup/session';
+import { wizardSessionRefusal, SETUP_COOKIE } from '@/lib/setup/session';
+import { configWriteErrorResponse } from '@/lib/admin/config-read-only-response';
 import { configManager } from '@/lib/admin/config-manager';
 import { setInitialAdminPassword } from '@/lib/admin/password';
 import { clearSetupToken } from '@/lib/setup/token';
@@ -27,9 +28,8 @@ export async function POST(request: NextRequest) {
   if (detectSetupState() !== 'bootstrap') {
     return NextResponse.json({ error: 'Setup is not active' }, { status: 404 });
   }
-  if (!(await authenticateWizardRequest())) {
-    return NextResponse.json({ error: 'Wizard session required' }, { status: 401 });
-  }
+  const wizardRefused = await wizardSessionRefusal();
+  if (wizardRefused) return wizardRefused;
 
   let body: { adminPassword?: unknown; lockConfig?: unknown };
   try {
@@ -105,6 +105,8 @@ export async function POST(request: NextRequest) {
     response.cookies.delete(SETUP_COOKIE);
     return response;
   } catch (error) {
+    const refused = configWriteErrorResponse(error);
+    if (refused) return refused;
     logger.error('Wizard finish failed', {
       error: error instanceof Error ? error.message : 'Unknown error',
     });

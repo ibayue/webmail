@@ -3,7 +3,8 @@ import { writeFile, unlink, mkdir } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { detectSetupState } from '@/lib/setup/state';
-import { authenticateWizardRequest } from '@/lib/setup/session';
+import { wizardSessionRefusal } from '@/lib/setup/session';
+import { configWriteErrorResponse } from '@/lib/admin/config-read-only-response';
 import { configManager } from '@/lib/admin/config-manager';
 import { getConfigDir, assertWritable } from '@/lib/admin/paths';
 import { logger } from '@/lib/logger';
@@ -66,9 +67,8 @@ export async function POST(request: NextRequest) {
   if (detectSetupState() !== 'bootstrap') {
     return NextResponse.json({ error: 'Setup is not active' }, { status: 404 });
   }
-  if (!(await authenticateWizardRequest())) {
-    return NextResponse.json({ error: 'Wizard session required' }, { status: 401 });
-  }
+  const wizardRefused = await wizardSessionRefusal();
+  if (wizardRefused) return wizardRefused;
 
   try {
     assertWritable('upload branding asset');
@@ -121,6 +121,8 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ url: servedUrl, filename: safeName });
   } catch (error) {
+    const refused = configWriteErrorResponse(error);
+    if (refused) return refused;
     logger.error('Wizard branding upload failed', {
       error: error instanceof Error ? error.message : 'Unknown error',
     });
@@ -138,9 +140,8 @@ export async function DELETE(request: NextRequest) {
   if (detectSetupState() !== 'bootstrap') {
     return NextResponse.json({ error: 'Setup is not active' }, { status: 404 });
   }
-  if (!(await authenticateWizardRequest())) {
-    return NextResponse.json({ error: 'Wizard session required' }, { status: 401 });
-  }
+  const wizardRefused = await wizardSessionRefusal();
+  if (wizardRefused) return wizardRefused;
 
   try {
     assertWritable('remove branding asset');
@@ -162,6 +163,8 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json({ ok: true });
   } catch (error) {
+    const refused = configWriteErrorResponse(error);
+    if (refused) return refused;
     logger.error('Wizard branding delete failed', {
       error: error instanceof Error ? error.message : 'Unknown error',
     });
