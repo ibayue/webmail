@@ -32,7 +32,7 @@ import { decryptPayload, encryptPayload } from '@/lib/auth/crypto';
 import { hasSessionSecret } from '@/lib/auth/session-secret';
 import { getCookieOptions } from '@/lib/oauth/cookie-config';
 import { logger } from '@/lib/logger';
-import { getStore, isSharedMode } from '@/lib/shared-store';
+import { getStore, isSharedMode, type CollectionOptions } from '@/lib/shared-store';
 
 export { SESSION_TOO_OLD } from '@/lib/session-policy/constants';
 
@@ -90,8 +90,12 @@ function memo(): { since: Promise<number> | null } {
  * The time in the shared store (#1066). Its local layout is today's file in
  * the state dir, which local mode keeps writing itself (with O_EXCL).
  */
-export function sessionLimitsCollection() {
-  return getStore().collection('session-limits', { local: { dir: () => getStateDir() } });
+export const SESSION_LIMITS_COLLECTION = 'session-limits';
+export const SESSION_LIMITS_ID = ENFORCED_SINCE_FILE;
+export const sessionLimitsLayout: CollectionOptions = { local: { dir: () => getStateDir() } };
+
+function sessionLimitsCollection() {
+  return getStore().collection(SESSION_LIMITS_COLLECTION, sessionLimitsLayout);
 }
 
 function parseTime(text: string): number | null {

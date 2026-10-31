@@ -4,7 +4,7 @@ import type { cookies } from 'next/headers';
 import { getStateDir, getStatePath } from '@/lib/admin/paths';
 import { logger } from '@/lib/logger';
 import { getCookieOptions } from '@/lib/oauth/cookie-config';
-import { getStore, isSharedMode } from '@/lib/shared-store';
+import { getStore, isSharedMode, type CollectionOptions } from '@/lib/shared-store';
 import { WOPI_TOKEN_TTL_MS, type WopiTokenPayload } from '@/lib/wopi/token';
 
 /**
@@ -29,18 +29,21 @@ type CookieStore = Awaited<ReturnType<typeof cookies>>;
 
 export const WOPI_BROWSER_COOKIE = 'bulwark_wopi';
 const REVOCATIONS_FILE = 'wopi-revocations.json';
-const REVOCATIONS_ID = 'revocations.json';
+export const WOPI_COLLECTION = 'wopi';
+export const REVOCATIONS_ID = 'revocations.json';
 
 /** The revocations document; locally today's file in the state dir. */
-export function wopiRevocationsCollection() {
-  return getStore().collection('wopi', {
-    local: {
-      dir: () => getStateDir(),
-      file: () => REVOCATIONS_FILE,
-      idOf: (file) => (file === REVOCATIONS_FILE ? REVOCATIONS_ID : null),
-      tmpName: (target) => `${target}.${process.pid}.tmp`,
-    },
-  });
+export const wopiRevocationsLayout: CollectionOptions = {
+  local: {
+    dir: () => getStateDir(),
+    file: () => REVOCATIONS_FILE,
+    idOf: (file) => (file === REVOCATIONS_FILE ? REVOCATIONS_ID : null),
+    tmpName: (target) => `${target}.${process.pid}.tmp`,
+  },
+};
+
+function wopiRevocationsCollection() {
+  return getStore().collection(WOPI_COLLECTION, wopiRevocationsLayout);
 }
 
 function browserBinding(browserId: string): string {
