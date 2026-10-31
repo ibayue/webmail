@@ -72,15 +72,22 @@ async function scheduleNext(delayMs: number): Promise<void> {
   const t = timer();
   if (t.current) clearTimeout(t.current);
   const at = new Date(Date.now() + delayMs).toISOString();
-  await updateState((state) => { state.nextScheduledAt = at; });
-  if (t.current) clearTimeout(t.current);
+  // The timer first: a state write that fails (store down) must not end
+  // the chain of checks.
   t.current = setTimeout(() => { void tick(); }, delayMs);
   // Don't keep the process alive just for this.
   t.current.unref?.();
+  try {
+    await updateState((state) => { state.nextScheduledAt = at; });
+  } catch (err) {
+    logger.warn('version-check: could not store the schedule', { error: err instanceof Error ? err.message : String(err) });
+  }
 }
 
 async function tick(): Promise<void> {
-  const result = await checkOnce({ reason: 'scheduled' });
+  const result = await checkOnce({ reason: 'scheduled' }).catch((err: unknown) => ({
+    ok: false as const, error: err instanceof Error ? err.message : String(err),
+  }));
   // The scheduler keeps running while third-party traffic is off, so turning
   // the switch off at runtime resumes the checks; checkOnce skips meanwhile.
   const skipped = result.error === NO_THIRD_PARTY_ERROR;
@@ -88,7 +95,8 @@ async function tick(): Promise<void> {
   await scheduleNext(delay);
 }
 
-// Idempotent - safe to call from instrumentation hot-reload in dev.
+// Run by the scheduler leader (lib/scheduler-leader.ts). Idempotent - safe
+// to call from instrumentation hot-reload in dev.
 export async function startScheduler(): Promise<void> {
   if (disabledByEnv()) {
     logger.info('version-check: scheduler not started (disabled by env)');

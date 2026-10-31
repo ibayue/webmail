@@ -1,5 +1,8 @@
 import { logger } from '@/lib/logger';
-import { effectiveConsent, endpointEnabled, loadState, updateState } from './state';
+import { announceChange } from '@/lib/shared-store/changes';
+import {
+  effectiveConsent, endpointEnabled, loadState, loadStateVersioned, saveStateIfUnchanged, updateState,
+} from './state';
 import { buildPayload } from './payload';
 import { fetchTelemetryTarget, resolveEndpointAllowed } from './endpoint-guard';
 import { DEFAULT_ENDPOINT } from './types';
@@ -7,6 +10,8 @@ import { DEFAULT_ENDPOINT } from './types';
 const DAY_MS = 24 * 60 * 60 * 1000;
 const JITTER_MS = 2 * 60 * 60 * 1000; // ± 2 hours
 const FIRST_DELAY_MS = 60 * 60 * 1000;  // 1 hour after consent
+/** A send this long before a scheduled slot already counts for that slot. */
+const SLOT_SLACK_MS = 60 * 1000;
 
 // On globalThis: Next loads this module once per bundle (instrumentation,
 // each route), and a reschedule from a route must clear the timer the
@@ -22,7 +27,42 @@ function jitteredDelay(base: number): number {
   return Math.max(60_000, base + j);
 }
 
-export async function sendOnce(opts?: { reason?: string }): Promise<{
+type Claim = { claimed: true; previous: string | null; at: string } | { claimed: false };
+
+/**
+ * Take the scheduled send for `slot` (its nextScheduledAt): set lastSentAt
+ * with a compare-and-set on the state, unless a send at or after the slot is
+ * already recorded. Of two leaders firing for one slot (a handover after a
+ * long pause), only one gets it.
+ */
+async function claimSlot(slot: string): Promise<Claim> {
+  const slotMs = new Date(slot).getTime();
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const { state, version } = await loadStateVersioned();
+    if (version === null) return { claimed: false };
+    const last = state.lastSentAt ? new Date(state.lastSentAt).getTime() : NaN;
+    if (!Number.isNaN(last) && last >= slotMs - SLOT_SLACK_MS) return { claimed: false };
+    const at = new Date().toISOString();
+    if (await saveStateIfUnchanged({ ...state, lastSentAt: at }, version)) {
+      return { claimed: true, previous: state.lastSentAt, at };
+    }
+  }
+  return { claimed: false };
+}
+
+/** Give a claimed slot back after a failed send, unless another send landed meanwhile. */
+async function releaseSlot(claim: Extract<Claim, { claimed: true }>): Promise<void> {
+  await updateState((state) => {
+    if (state.lastSentAt === claim.at) state.lastSentAt = claim.previous;
+  }).catch(() => {});
+}
+
+/**
+ * Send one heartbeat. A scheduled send passes its `slot` and is skipped
+ * when another replica already sent for it; the admin's "send now" passes
+ * none and always sends.
+ */
+export async function sendOnce(opts?: { reason?: string; slot?: string }): Promise<{
   ok: boolean;
   status?: number;
   error?: string;
@@ -44,6 +84,15 @@ export async function sendOnce(opts?: { reason?: string }): Promise<{
     return { ok: false, error: `endpoint blocked: ${guard.reason}` };
   }
 
+  let claim: Claim | null = null;
+  if (opts?.slot) {
+    claim = await claimSlot(opts.slot);
+    if (!claim.claimed) {
+      logger.info('telemetry: heartbeat skipped, already sent for this slot', { slot: opts.slot });
+      return { ok: false, error: 'already sent' };
+    }
+  }
+
   const payload = await buildPayload();
   try {
     // Never follows redirects: the endpoint guard only vetted the URL we
@@ -55,10 +104,11 @@ export async function sendOnce(opts?: { reason?: string }): Promise<{
       signal: AbortSignal.timeout(5000),
     });
     const ok = res.ok;
-    if (ok) {
+    if (ok && !claim) {
       const at = new Date().toISOString();
       await updateState((next) => { next.lastSentAt = at; });
     }
+    if (!ok && claim?.claimed) await releaseSlot(claim);
     logger.info('telemetry: heartbeat', {
       ok, status: res.status, reason: opts?.reason ?? 'scheduled',
     });
@@ -66,6 +116,7 @@ export async function sendOnce(opts?: { reason?: string }): Promise<{
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     logger.warn('telemetry: heartbeat failed', { error: msg });
+    if (claim?.claimed) await releaseSlot(claim);
     return { ok: false, error: msg };
   }
 }
@@ -74,19 +125,28 @@ async function scheduleNext(delayMs: number): Promise<void> {
   const t = timer();
   if (t.current) clearTimeout(t.current);
   const at = new Date(Date.now() + delayMs).toISOString();
-  await updateState((state) => { state.nextScheduledAt = at; });
-  if (t.current) clearTimeout(t.current);
-  t.current = setTimeout(() => { void tick(); }, delayMs);
+  // The timer first: a state write that fails (store down) must not end
+  // the chain of heartbeats.
+  t.current = setTimeout(() => { void tick(at); }, delayMs);
   // Don't keep the process alive just for this.
   t.current.unref?.();
+  try {
+    await updateState((state) => { state.nextScheduledAt = at; });
+  } catch (err) {
+    logger.warn('telemetry: could not store the schedule', { error: err instanceof Error ? err.message : String(err) });
+  }
 }
 
-async function tick(): Promise<void> {
-  await sendOnce({ reason: 'scheduled' });
+async function tick(slot: string): Promise<void> {
+  try {
+    await sendOnce({ reason: 'scheduled', slot });
+  } catch (err) {
+    logger.warn('telemetry: heartbeat failed', { error: err instanceof Error ? err.message : String(err) });
+  }
   await scheduleNext(jitteredDelay(DAY_MS));
 }
 
-// Called from instrumentation. Idempotent.
+// Run by the scheduler leader (lib/scheduler-leader.ts). Idempotent.
 export async function startScheduler(): Promise<void> {
   const { consent } = await effectiveConsent();
   if (consent !== 'on') {
@@ -119,7 +179,8 @@ export async function stopScheduler(): Promise<void> {
 }
 
 // Called when consent flips on/off or the collector URL changes via the UI.
+// The replica that runs the jobs (any replica's change reaches it) restarts
+// the timer from the stored state; in local mode that is this process, at once.
 export async function reschedule(): Promise<void> {
-  await stopScheduler();
-  await startScheduler();
+  await announceChange('telemetry');
 }
