@@ -33,13 +33,15 @@ interface ChangeGlobals {
   polling?: Promise<void>;
   lastPollOk: number;
   storeLost: boolean;
+  /** Areas whose epoch bump failed (store unreachable after the write). */
+  pendingBumps: Set<string>;
 }
 
 const KEY = Symbol.for('bulwark.sharedStore.changes');
 
 function globals(): ChangeGlobals {
   const g = globalThis as typeof globalThis & { [KEY]?: ChangeGlobals };
-  return (g[KEY] ??= { listeners: new Map(), seen: new Map(), lastPollOk: 0, storeLost: false });
+  return (g[KEY] ??= { listeners: new Map(), seen: new Map(), lastPollOk: 0, storeLost: false, pendingBumps: new Set() });
 }
 
 /**
@@ -74,8 +76,8 @@ async function runListeners(area: string, origin: ChangeOrigin): Promise<boolean
 /**
  * Tell every replica that `area` changed. Call it after the write went
  * through. In shared mode a failure to bump the epoch is logged, not thrown:
- * the write itself succeeded, and other replicas then see it on their next
- * reload of that area (or after their next restart) instead.
+ * the write itself succeeded. The bump is kept and retried by every poll
+ * until it goes through, so the other replicas still pick the change up.
  */
 export async function announceChange(area: string): Promise<void> {
   const g = globals();
@@ -86,7 +88,8 @@ export async function announceChange(area: string): Promise<void> {
       // otherwise the poller reloads to pick up the other replica's.
       if ((g.seen.get(area) ?? 0) === epoch - 1) g.seen.set(area, epoch);
     } catch (error) {
-      logger.warn('Could not announce a change to the other replicas', {
+      g.pendingBumps.add(area);
+      logger.warn('Could not announce a change to the other replicas; retrying with the next poll', {
         area,
         error: error instanceof Error ? error.message : 'Unknown error',
       });
@@ -95,11 +98,23 @@ export async function announceChange(area: string): Promise<void> {
   await runListeners(area, 'local');
 }
 
+/** Send the bumps that failed earlier. A failure leaves them for the next poll. */
+async function retryPendingBumps(g: ChangeGlobals): Promise<void> {
+  for (const area of [...g.pendingBumps]) {
+    await getStore().epochs.bump(area);
+    g.pendingBumps.delete(area);
+    logger.info('Announced a change to the other replicas after a retry', { area });
+  }
+}
+
 /** One poll: read the epochs, run the listeners of every area that moved. */
 export async function pollChanges(): Promise<void> {
   const g = globals();
   if (g.polling) return g.polling;
   g.polling = (async () => {
+    // Our own retried bump then shows up as a change on this replica too,
+    // which costs one reload and keeps the logic simple.
+    if (g.pendingBumps.size) await retryPendingBumps(g);
     const epochs = await getStore().epochs.all();
     if (!epochs[INIT_EPOCH]) {
       if (!g.storeLost) {
