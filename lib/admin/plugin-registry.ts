@@ -486,7 +486,18 @@ export async function getPluginSignature(id: string, code: string, bundleHash?: 
     signature = stored.trim() || null;
   } else {
     signature = await signBundle(id, code);
-    await storeSignature(id, signature);
+    try {
+      await storeSignature(id, signature);
+    } catch (error) {
+      if (isStoreUnavailable(error)) throw error;
+      // Read-only config, a full disk, a file we may not write: serve the
+      // bundle unsigned rather than not at all, as before.
+      logger.warn('[plugin-registry] could not store the signature of a plugin bundle; serving it unsigned', {
+        id,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      signature = null;
+    }
   }
   if (cached && cached.code === code) cached.signature = signature;
   return signature;
