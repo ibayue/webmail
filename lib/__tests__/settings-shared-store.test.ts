@@ -141,3 +141,29 @@ describe('settings with a shared store', () => {
     expect((await storedDoc())!.data.equals(before)).toBe(true);
   });
 });
+
+// Two saves at once, each from a tab that added a template the other
+// doesn't know yet. The route used to load, merge and save without a lock,
+// so the second save put its merge over the first: one template was lost,
+// with two tabs on one instance as well as across replicas.
+async function twoConcurrentSaves() {
+  await push({ templates: [], deletedTemplateIds: {} });
+  const [a, b] = await Promise.all([
+    push({ templates: [template('from-a')], deletedTemplateIds: {} }),
+    push({ templates: [template('from-b')], deletedTemplateIds: {} }),
+  ]);
+  expect([a.status, b.status]).toEqual([200, 200]);
+  const saved = (await (await fetchSettings()).json()).settings as { templates: { id: string }[] };
+  return saved.templates.map((t) => t.id).sort();
+}
+
+describe('two saves at once', () => {
+  it('keep both templates with a shared store', async () => {
+    expect(await twoConcurrentSaves()).toEqual(['from-a', 'from-b']);
+  });
+
+  it('keep both templates on a single instance', async () => {
+    setStoreForTests(null);
+    expect(await twoConcurrentSaves()).toEqual(['from-a', 'from-b']);
+  });
+});

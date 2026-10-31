@@ -5,7 +5,7 @@ import { logger } from '@/lib/logger';
 import { decryptSession } from '@/lib/auth/crypto';
 import { sessionCookieName } from '@/lib/auth/session-cookie';
 import { readStalwartAuthContextFromStore } from '@/lib/stalwart/auth-context';
-import { saveUserSettings, loadUserSettings, deleteUserSettings } from '@/lib/settings-sync';
+import { updateUserSettings, loadUserSettings, deleteUserSettings } from '@/lib/settings-sync';
 import { configManager } from '@/lib/admin/config-manager';
 import { resolvePolicy } from '@/lib/admin/policy-scopes';
 import { hasSessionSecret } from '@/lib/auth/session-secret';
@@ -213,11 +213,12 @@ export async function POST(request: NextRequest) {
 
     // Templates and iCal subscriptions are merged into the stored blob rather
     // than replaced, so a stale tab or device cannot drop ones another added.
-    const stored = await loadUserSettings(accountName, storageServerUrl(serverUrl));
-    await saveUserSettings(
+    // In one step against what is stored now: two saves at once (two tabs,
+    // two replicas) each keep the other's additions.
+    await updateUserSettings(
       accountName,
       storageServerUrl(serverUrl),
-      mergeStoredSubscriptions(stored, mergeStoredTemplates(stored, filteredSettings)),
+      (stored) => mergeStoredSubscriptions(stored, mergeStoredTemplates(stored, filteredSettings)),
     );
     return NextResponse.json({ ok: true });
   } catch (error) {
