@@ -5,6 +5,7 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { NextRequest } from 'next/server';
 
 // With a shared store (#1066) an admin signed out on one replica has to be
 // refused on every other one at once, a new admin password has to sign out
@@ -200,5 +201,33 @@ describe('admin sessions with a shared store', () => {
     expect(await statusFor(token)).toBe(503);
     store.down = false;
     expect(await statusFor(token)).toBe(200);
+  });
+
+  it('says so when a sign-out could not be stored', async () => {
+    await setInitialAdminPassword('first-password-1');
+    const token = await signIn();
+    store.down = true;
+    const { DELETE } = await import('@/app/api/admin/auth/route');
+    const res = await DELETE(new NextRequest('http://localhost/api/admin/auth', { method: 'DELETE', headers: { 'sec-fetch-site': 'same-origin' } }));
+    expect(res.status).toBe(503);
+    expect((await res.json()).error).toMatch(/could not be saved/);
+    expect(jar.has(COOKIE)).toBe(false);
+    store.down = false;
+    // As said: the copy still works.
+    expect(await statusFor(token)).toBe(200);
+  });
+
+  it('refuses the second of two password changes at once with 409, not "incorrect"', async () => {
+    await setInitialAdminPassword('first-password-1');
+    await signIn();
+    const { POST } = await import('@/app/api/admin/change-password/route');
+    const change = (newPassword: string) => POST(new NextRequest('http://localhost/api/admin/change-password', {
+      method: 'POST',
+      headers: { 'sec-fetch-site': 'same-origin', 'content-type': 'application/json' },
+      body: JSON.stringify({ currentPassword: 'first-password-1', newPassword }),
+    }));
+    const statuses = (await Promise.all([change('second-password-2'), change('third-password-3')])).map((r) => r.status);
+    expect(statuses.sort()).toEqual([200, 409]);
+    expect([await verifyAdminPassword('second-password-2'), await verifyAdminPassword('third-password-3')].filter(Boolean)).toHaveLength(1);
   });
 });

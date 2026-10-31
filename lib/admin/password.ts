@@ -330,7 +330,25 @@ export async function verifyAdminPassword(password: string): Promise<boolean> {
 }
 
 /**
- * Change the admin password. Returns true on success.
+ * Two password changes at once (on two replicas): the one that came second
+ * was checked against a password that no longer applies.
+ */
+export class AdminPasswordConflictError extends Error {
+  constructor() {
+    super('The admin password was changed somewhere else a moment ago. Sign in with the new password and try again.');
+    this.name = 'AdminPasswordConflictError';
+  }
+}
+
+/** By name, as the class may come from another bundle's copy of this module. */
+export function isAdminPasswordConflict(error: unknown): error is AdminPasswordConflictError {
+  return error instanceof Error && error.name === 'AdminPasswordConflictError';
+}
+
+/**
+ * Change the admin password. Returns true on success, false when the
+ * current password is wrong. Throws AdminPasswordConflictError when another
+ * change landed between the check and the write (shared store).
  */
 export async function changeAdminPassword(currentPassword: string, newPassword: string): Promise<boolean> {
   const shared = isSharedMode();
@@ -347,7 +365,7 @@ export async function changeAdminPassword(currentPassword: string, newPassword: 
   const hash = await hashPassword(newPassword);
   const next: AdminConfigData = { passwordHash: hash, passwordHashFile: undefined };
   if (shared) {
-    if (!(await writeConfigData(next, { ifVersion: stored!.version })).ok) return false;
+    if (!(await writeConfigData(next, { ifVersion: stored!.version })).ok) throw new AdminPasswordConflictError();
   } else {
     await writeConfigData(next);
   }
