@@ -143,10 +143,10 @@ describe('reauth/sso/complete', () => {
 
     const proof = readPairReauthFromStore(cookieStore as never);
     expect(proof?.owner).toBe(`2:${USER}`);
-    expect(isGrantAvailable(proof!.grantId, `2:${USER}`)).toBe(true);
+    expect(await isGrantAvailable(proof!.grantId, `2:${USER}`)).toBe(true);
 
-    const pairing = createPairingCode(proof!.grantId, `2:${USER}`, WEBMAIL)!;
-    const redeemed = redeemPairingCode(pairing.code);
+    const pairing = (await createPairingCode(proof!.grantId, `2:${USER}`, WEBMAIL))!;
+    const redeemed = await redeemPairingCode(pairing.code);
     expect(redeemed).toMatchObject({
       ok: true,
       grant: {
@@ -170,8 +170,8 @@ describe('reauth/sso/complete', () => {
     expect((await complete()).status).toBe(200);
     expect(exchangeCodeForTokens).toHaveBeenCalledWith('code-1', 'verifier-1', `${WEBMAIL}/auth/callback`, 'corp');
     const proof = readPairReauthFromStore(cookieStore as never)!;
-    const pairing = createPairingCode(proof.grantId, proof.owner, WEBMAIL)!;
-    expect(redeemPairingCode(pairing.code)).toMatchObject({
+    const pairing = (await createPairingCode(proof.grantId, proof.owner, WEBMAIL))!;
+    expect(await redeemPairingCode(pairing.code)).toMatchObject({
       ok: true,
       grant: { serverId: 'corp', tokenEndpoint: 'https://idp.example.net/corp/token', clientId: 'client-corp', confidential: true },
     });
@@ -305,13 +305,13 @@ describe('reauth/sso/complete', () => {
     pending();
     await complete();
     const first = readPairReauthFromStore(cookieStore as never)!;
-    const firstCode = createPairingCode(first.grantId, first.owner, WEBMAIL)!;
+    const firstCode = (await createPairingCode(first.grantId, first.owner, WEBMAIL))!;
 
     pending();
     await complete();
     const second = readPairReauthFromStore(cookieStore as never)!;
     expect(second.grantId).not.toBe(first.grantId);
-    expect(redeemPairingCode(firstCode.code)).toEqual({ ok: false, reason: 'expired' });
+    expect(await redeemPairingCode(firstCode.code)).toEqual({ ok: false, reason: 'expired' });
   });
 });
 

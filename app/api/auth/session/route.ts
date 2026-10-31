@@ -355,13 +355,13 @@ export async function DELETE(request: NextRequest) {
       await revokeImpersonationGrant(cookieStore);
       // A phone that already paired keeps its own sign-in; a QR still on
       // screen stops working.
-      clearPairReauthInStore(cookieStore);
+      await clearPairReauthInStore(cookieStore);
     } else {
       const slot = getSlot(request);
       cookieStore.delete(sessionCookieName(slot));
       clearStalwartAuthContextInStore(cookieStore, slot);
       if (slot === 0) await revokeImpersonationGrant(cookieStore);
-      clearPairReauthInStore(cookieStore, slot);
+      await clearPairReauthInStore(cookieStore, slot);
     }
 
     return NextResponse.json({ ok: true });

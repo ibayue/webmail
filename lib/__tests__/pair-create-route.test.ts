@@ -329,23 +329,23 @@ describe('pair/create gatekeeping', () => {
   it('does not accept a proof for another slot or another user', async () => {
     signIn(1, { username: 'bob@example.org' });
 
-    setPairReauthInStore(cookieStore as never, { grantId: stashGrant(grant(), '1:bob@example.org'), owner: '1:bob@example.org' });
+    await setPairReauthInStore(cookieStore as never, { grantId: await stashGrant(grant(), '1:bob@example.org'), owner: '1:bob@example.org' });
     expect(await create({ slot: 0 })).toMatchObject({ status: 401, body: { error: 'reauth_required' } });
 
-    setPairReauthInStore(cookieStore as never, { grantId: stashGrant(grant(), `1:${USER}`), owner: `1:${USER}` });
+    await setPairReauthInStore(cookieStore as never, { grantId: await stashGrant(grant(), `1:${USER}`), owner: `1:${USER}` });
     expect(await create({ slot: 0 })).toMatchObject({ status: 401, body: { error: 'reauth_required' } });
 
-    setPairReauthInStore(cookieStore as never, { grantId: stashGrant(grant(), '0:mallory@example.org'), owner: '0:mallory@example.org' });
+    await setPairReauthInStore(cookieStore as never, { grantId: await stashGrant(grant(), '0:mallory@example.org'), owner: '0:mallory@example.org' });
     expect(await create({ slot: 0 })).toMatchObject({ status: 401, body: { error: 'reauth_required' } });
 
     // The proof's own account gets a code.
-    setPairReauthInStore(cookieStore as never, { grantId: stashGrant(grant(), `0:${USER}`), owner: `0:${USER}` });
+    await setPairReauthInStore(cookieStore as never, { grantId: await stashGrant(grant(), `0:${USER}`), owner: `0:${USER}` });
     expect((await create({ slot: 0 })).status).toBe(200);
   });
 
   it('matches the proof owner case-insensitively', async () => {
     signIn(0, { username: 'Alice@Example.ORG' });
-    setPairReauthInStore(cookieStore as never, { grantId: stashGrant(grant(), `0:${USER}`), owner: `0:${USER}` });
+    await setPairReauthInStore(cookieStore as never, { grantId: await stashGrant(grant(), `0:${USER}`), owner: `0:${USER}` });
     expect((await create({})).status).toBe(200);
   });
 });

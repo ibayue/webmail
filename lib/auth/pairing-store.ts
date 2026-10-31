@@ -1,4 +1,6 @@
-import { randomBytes } from 'crypto';
+import { createHash, randomBytes } from 'crypto';
+import { decryptPayload, encryptPayload } from '@/lib/auth/crypto';
+import { getStore, isSharedMode } from '@/lib/shared-store';
 
 // Cross-device login pairing ("Link mobile app"). A signed-in desktop proves
 // who it is again (password + TOTP, or a fresh IdP login), which mints a
@@ -18,10 +20,13 @@ import { randomBytes } from 'crypto';
 // secrets, so a late scan can be told "already used" rather than "expired",
 // and the desktop can poll whether its code was redeemed.
 //
-// Storage is an in-process Map, pinned on globalThis so dev HMR and duplicate
-// module evaluation (route bundles) share one instance. That is sufficient for
-// the single-instance deployments this webmail targets; a multi-instance
-// deployment needs sticky sessions or a shared store keyed the same way.
+// One process keeps everything in a Map pinned on globalThis, so dev HMR and
+// duplicate module evaluation (route bundles) share one instance. With a
+// shared store (#1066) the records live there instead, sealed with the
+// session key, so the phone's redeem, the desktop's status polls and a
+// sign-out can each reach any replica. Every function then rejects with
+// StoreUnavailableError while the store is down: nothing is issued or
+// redeemed.
 
 export type PairingGrant =
   | {
@@ -96,6 +101,8 @@ interface Store {
   statusIndex: Map<string, string>; // statusId -> code
   /** Called with a grant that dies unredeemed (see registerGrantDisposer). */
   disposer?: (grant: PairingGrant) => void;
+  /** Shared mode: when this process last swept the shared disposal list. */
+  sharedSweptAt?: number;
 }
 
 const STORE_KEY = '__bulwarkPairingStore';
@@ -117,15 +124,20 @@ export function registerGrantDisposer(disposer: (grant: PairingGrant) => void): 
   store().disposer = disposer;
 }
 
-function wipe(record: GrantRecord): void {
-  const grant = record.grant;
-  record.grant = null;
-  if (!grant) return;
+function dispose(grant: PairingGrant): void {
   try {
     store().disposer?.(grant);
   } catch {
     // Best effort; the grant is gone either way.
   }
+}
+
+// ─── one process ───────────────────────────────────────────────────────────
+
+function wipe(record: GrantRecord): void {
+  const grant = record.grant;
+  record.grant = null;
+  if (grant) dispose(grant);
 }
 
 // Wipe secrets of anything past its expiry and forget tombstones past theirs.
@@ -144,8 +156,7 @@ function sweep(now: number): void {
   }
 }
 
-/** Keep the step-up result until a code for it is redeemed or it expires. */
-export function stashGrant(grant: PairingGrant, owner: string, now = Date.now()): string {
+function stashGrantLocal(grant: PairingGrant, owner: string, now: number): string {
   sweep(now);
   const id = randomBytes(ID_BYTES).toString('hex');
   store().grants.set(id, {
@@ -157,32 +168,25 @@ export function stashGrant(grant: PairingGrant, owner: string, now = Date.now())
   return id;
 }
 
-/** Whether `grantId` can still be paired, by the account it was minted for. */
-export function isGrantAvailable(grantId: string, owner: string, now = Date.now()): boolean {
+function isGrantAvailableLocal(grantId: string, owner: string, now: number): boolean {
   sweep(now);
   const record = store().grants.get(grantId);
   return !!record && record.grant !== null && record.owner === owner && record.expiresAt > now;
 }
 
-/** Drop a grant (sign-out, a new step-up): its codes stop working. */
-export function discardGrant(grantId: string, now = Date.now()): void {
+function discardGrantLocal(grantId: string, now: number): void {
   sweep(now);
   const record = store().grants.get(grantId);
   if (record) wipe(record);
 }
 
-/**
- * Issue a code for an available grant. Earlier codes of the same grant are
- * superseded, so only the QR on screen can be redeemed. Returns null when the
- * grant is gone, so the caller asks for a new step-up.
- */
-export function createPairingCode(
+function createPairingCodeLocal(
   grantId: string,
   owner: string,
   webmailBase: string | null,
-  now = Date.now(),
+  now: number,
 ): { code: string; statusId: string; expiresIn: number } | null {
-  if (!isGrantAvailable(grantId, owner, now)) return null;
+  if (!isGrantAvailableLocal(grantId, owner, now)) return null;
   const { codes, statusIndex, grants } = store();
   const superseded: string[] = [];
   for (const [existing, record] of codes) {
@@ -212,13 +216,7 @@ export function createPairingCode(
   return { code, statusId, expiresIn: Math.max(0, Math.floor((expiresAt - now) / 1000)) };
 }
 
-/**
- * Hand out the grant behind `code`, once. A code nobody issued is `invalid`;
- * one that timed out, or was replaced by a newer QR, is `expired`; one that
- * was redeemed before (by any code of its grant) is `used`. Distinguishing
- * them leaks nothing useful: codes carry 256 bits and cannot be guessed.
- */
-export function redeemPairingCode(code: string, now = Date.now()): RedeemResult {
+function redeemPairingCodeLocal(code: string, now: number): RedeemResult {
   sweep(now);
   const { codes, grants } = store();
   const record = codes.get(code);
@@ -249,8 +247,7 @@ function wasRedeemed(grantId: string): boolean {
   return false;
 }
 
-/** What the desktop shows for its QR: still waiting, used by the phone, or dead. */
-export function getPairingStatus(statusId: string, now = Date.now()): PairingStatus {
+function getPairingStatusLocal(statusId: string, now: number): PairingStatus {
   sweep(now);
   const { statusIndex, codes, grants } = store();
   const code = statusIndex.get(statusId);
@@ -263,10 +260,290 @@ export function getPairingStatus(statusId: string, now = Date.now()): PairingSta
   return 'pending';
 }
 
-/** Test hook: forget everything. */
+// ─── shared store ──────────────────────────────────────────────────────────
+//
+// One grant record holds everything a redeem decides on: the secret, which
+// code is the current one and which code redeemed it. Redeeming is one
+// atomic update of that record, so of two phones (or replicas) racing with
+// the same code, or with two codes of the grant, exactly one gets it. Code
+// records only point at their grant and never change. Codes are stored
+// under their hash: whoever reads the store can't redeem one.
+//
+// A grant that expires unredeemed may hold an app password that must be
+// deleted on the mail server. Each grant is therefore also listed (sealed)
+// in a disposal list; whichever replica next handles a pairing request takes
+// the expired entries off it, atomically, and disposes of those grants.
+
+interface SharedGrantRecord extends GrantRecord {
+  /** Hash of the newest code: the only one that can be redeemed. */
+  current: string | null;
+  /** Hash of the code that redeemed the grant. */
+  redeemed: string | null;
+  /** Codes issued for the grant, oldest first, as [code hash, status id]. */
+  codes: Array<[string, string]>;
+}
+
+interface SharedCodeRecord {
+  grantId: string;
+  statusId: string;
+  webmailBase: string | null;
+  expiresAt: number;
+  forgetAt: number;
+}
+
+interface DisposalEntry {
+  grantId: string;
+  expiresAt: number;
+}
+
+/** The store's TTL only cleans up; every record carries its own expiry. */
+const CLEANUP_MS = 60 * 1000;
+/** How often one replica looks for expired grants to dispose of. */
+const SWEEP_EVERY_MS = 10 * 1000;
+const DISPOSALS_KEY = 'pairing:disposals';
+const grantKey = (grantId: string) => `pairing:grant:${grantId}`;
+const codeKey = (codeHash: string) => `pairing:code:${codeHash}`;
+const statusKey = (statusId: string) => `pairing:status:${statusId}`;
+
+function hashCode(code: string): string {
+  return createHash('sha256').update(code).digest('hex');
+}
+
+function seal(value: unknown): string {
+  return encryptPayload({ r: value }, 'pairing-store');
+}
+
+/** The sealed value, or null when missing or unreadable (another key, tampering). */
+function open<T>(sealed: string | null): T | null {
+  if (sealed === null) return null;
+  const payload = decryptPayload(sealed, 'pairing-store');
+  return payload && typeof payload.r === 'object' && payload.r !== null ? (payload.r as T) : null;
+}
+
+const ttl = (until: number, now: number) => Math.max(until - now, 0) + CLEANUP_MS;
+
+/** The grant's secret while it can still be handed out. */
+function liveGrant(record: SharedGrantRecord, now: number): PairingGrant | null {
+  return record.expiresAt > now ? record.grant : null;
+}
+
+async function readGrant(grantId: string, now: number): Promise<SharedGrantRecord | null> {
+  const record = open<SharedGrantRecord>(await getStore().kv.get(grantKey(grantId)));
+  return record && record.forgetAt > now ? record : null;
+}
+
+async function readCode(codeHash: string, now: number): Promise<SharedCodeRecord | null> {
+  const record = open<SharedCodeRecord>(await getStore().kv.get(codeKey(codeHash)));
+  return record && record.forgetAt > now ? record : null;
+}
+
+/** Take the secret out of a grant record and hand it to the disposer, once across replicas. */
+async function wipeShared(grantId: string): Promise<void> {
+  const wiped: { grant: PairingGrant | null } = { grant: null };
+  await getStore().kv.update(grantKey(grantId), (current) => {
+    wiped.grant = null;
+    const record = open<SharedGrantRecord>(current);
+    if (!record?.grant) return undefined;
+    wiped.grant = record.grant;
+    return seal({ ...record, grant: null, current: null });
+  });
+  if (wiped.grant) dispose(wiped.grant);
+}
+
+async function sweepShared(now: number): Promise<void> {
+  const s = store();
+  // Without a disposer (this process never loaded lib/auth/pair-grant.ts)
+  // the entries are left for a replica that can dispose of them.
+  if (!s.disposer) return;
+  if (s.sharedSweptAt !== undefined && now >= s.sharedSweptAt && now - s.sharedSweptAt < SWEEP_EVERY_MS) return;
+  s.sharedSweptAt = now;
+  const due: DisposalEntry[] = [];
+  await getStore().kv.update(DISPOSALS_KEY, (current) => {
+    const entries = open<DisposalEntry[]>(current) ?? [];
+    due.splice(0, due.length, ...entries.filter((entry) => entry.expiresAt <= now));
+    if (due.length === 0) return undefined;
+    const rest = entries.filter((entry) => entry.expiresAt > now);
+    return rest.length > 0 ? seal(rest) : null;
+  }, { ttlMs: GRANT_TTL_MS + CLEANUP_MS });
+  for (const entry of due) await wipeShared(entry.grantId);
+}
+
+async function stashGrantShared(grant: PairingGrant, owner: string, now: number): Promise<string> {
+  const id = randomBytes(ID_BYTES).toString('hex');
+  const record: SharedGrantRecord = {
+    grant,
+    owner,
+    expiresAt: now + GRANT_TTL_MS,
+    forgetAt: now + GRANT_TTL_MS + TOMBSTONE_MS,
+    current: null,
+    redeemed: null,
+    codes: [],
+  };
+  try {
+    await sweepShared(now);
+    // Listed for disposal before it exists, so no grant is ever unlisted.
+    await getStore().kv.update(DISPOSALS_KEY, (current) => {
+      const entries = open<DisposalEntry[]>(current) ?? [];
+      return seal([...entries, { grantId: id, expiresAt: record.expiresAt }]);
+    }, { ttlMs: GRANT_TTL_MS + CLEANUP_MS });
+    await getStore().kv.set(grantKey(id), seal(record), { ttlMs: ttl(record.forgetAt, now) });
+  } catch (error) {
+    // Not kept, so no phone can redeem it: an app password minted for it
+    // must not stay behind on the mail server.
+    dispose(grant);
+    throw error;
+  }
+  return id;
+}
+
+async function isGrantAvailableShared(grantId: string, owner: string, now: number): Promise<boolean> {
+  await sweepShared(now);
+  const record = await readGrant(grantId, now);
+  return !!record && liveGrant(record, now) !== null && record.owner === owner;
+}
+
+async function createPairingCodeShared(
+  grantId: string,
+  owner: string,
+  webmailBase: string | null,
+  now: number,
+): Promise<{ code: string; statusId: string; expiresIn: number } | null> {
+  await sweepShared(now);
+  const grant = await readGrant(grantId, now);
+  if (!grant || !liveGrant(grant, now) || grant.owner !== owner) return null;
+
+  const code = randomBytes(CODE_BYTES).toString('hex');
+  const hash = hashCode(code);
+  const statusId = randomBytes(ID_BYTES).toString('hex');
+  // A code never outlives its grant.
+  const expiresAt = Math.min(now + CODE_TTL_MS, grant.expiresAt);
+  const forgetAt = expiresAt + TOMBSTONE_MS;
+  const kv = getStore().kv;
+  await kv.set(codeKey(hash), seal({ grantId, statusId, webmailBase, expiresAt, forgetAt } satisfies SharedCodeRecord), { ttlMs: ttl(forgetAt, now) });
+  await kv.set(statusKey(statusId), hash, { ttlMs: ttl(forgetAt, now) });
+
+  // Make it the grant's current code, if the grant is still there to pair.
+  const outcome: { issued: boolean; forgotten: Array<[string, string]> } = { issued: false, forgotten: [] };
+  await kv.update(grantKey(grantId), (current) => {
+    outcome.issued = false;
+    outcome.forgotten = [];
+    const record = open<SharedGrantRecord>(current);
+    if (!record || record.forgetAt <= now || !liveGrant(record, now) || record.owner !== owner) return undefined;
+    outcome.issued = true;
+    // Each new QR replaces the last; only the newest few replaced ones are remembered.
+    const previous = record.codes;
+    outcome.forgotten = previous.slice(0, Math.max(0, previous.length - SUPERSEDED_KEPT));
+    return seal({ ...record, current: hash, codes: [...previous.slice(outcome.forgotten.length), [hash, statusId]] });
+  });
+  // Not issued after all (the grant went meanwhile): the new code goes too.
+  const forgotten = outcome.issued ? outcome.forgotten : [[hash, statusId]];
+  for (const [oldHash, oldStatus] of forgotten) {
+    await kv.del(codeKey(oldHash));
+    await kv.del(statusKey(oldStatus));
+  }
+  if (!outcome.issued) return null;
+  return { code, statusId, expiresIn: Math.max(0, Math.floor((expiresAt - now) / 1000)) };
+}
+
+async function redeemPairingCodeShared(code: string, now: number): Promise<RedeemResult> {
+  await sweepShared(now);
+  const hash = hashCode(code);
+  const codeRecord = await readCode(hash, now);
+  if (!codeRecord) return { ok: false, reason: 'invalid' };
+  const out: { result: RedeemResult } = { result: { ok: false, reason: 'expired' } };
+  await getStore().kv.update(grantKey(codeRecord.grantId), (current) => {
+    const record = open<SharedGrantRecord>(current);
+    if (!record || record.forgetAt <= now) {
+      out.result = { ok: false, reason: 'expired' };
+      return undefined;
+    }
+    if (record.redeemed === hash) {
+      out.result = { ok: false, reason: 'used' };
+      return undefined;
+    }
+    const grant = liveGrant(record, now);
+    if (record.current !== hash || codeRecord.expiresAt <= now || !grant) {
+      out.result = { ok: false, reason: record.redeemed ? 'used' : 'expired' };
+      return undefined;
+    }
+    out.result = { ok: true, grant, webmailBase: codeRecord.webmailBase };
+    return seal({ ...record, grant: null, current: null, redeemed: hash });
+  });
+  return out.result;
+}
+
+async function getPairingStatusShared(statusId: string, now: number): Promise<PairingStatus> {
+  await sweepShared(now);
+  const hash = await getStore().kv.get(statusKey(statusId));
+  const codeRecord = hash ? await readCode(hash, now) : null;
+  if (!hash || !codeRecord) return 'unknown';
+  const grant = await readGrant(codeRecord.grantId, now);
+  if (grant?.redeemed === hash) return 'redeemed';
+  if (!grant || grant.current !== hash || codeRecord.expiresAt <= now) return 'expired';
+  // Its grant was discarded (sign-out, a newer step-up): the code is dead.
+  if (!liveGrant(grant, now)) return 'expired';
+  return 'pending';
+}
+
+async function discardGrantShared(grantId: string, now: number): Promise<void> {
+  await sweepShared(now);
+  await wipeShared(grantId);
+}
+
+// ─── API ───────────────────────────────────────────────────────────────────
+
+/** Keep the step-up result until a code for it is redeemed or it expires. */
+export async function stashGrant(grant: PairingGrant, owner: string, now = Date.now()): Promise<string> {
+  return isSharedMode() ? stashGrantShared(grant, owner, now) : stashGrantLocal(grant, owner, now);
+}
+
+/** Whether `grantId` can still be paired, by the account it was minted for. */
+export async function isGrantAvailable(grantId: string, owner: string, now = Date.now()): Promise<boolean> {
+  return isSharedMode() ? isGrantAvailableShared(grantId, owner, now) : isGrantAvailableLocal(grantId, owner, now);
+}
+
+/** Drop a grant (sign-out, a new step-up): its codes stop working. */
+export async function discardGrant(grantId: string, now = Date.now()): Promise<void> {
+  if (isSharedMode()) await discardGrantShared(grantId, now);
+  else discardGrantLocal(grantId, now);
+}
+
+/**
+ * Issue a code for an available grant. Earlier codes of the same grant are
+ * superseded, so only the QR on screen can be redeemed. Returns null when the
+ * grant is gone, so the caller asks for a new step-up.
+ */
+export async function createPairingCode(
+  grantId: string,
+  owner: string,
+  webmailBase: string | null,
+  now = Date.now(),
+): Promise<{ code: string; statusId: string; expiresIn: number } | null> {
+  return isSharedMode()
+    ? createPairingCodeShared(grantId, owner, webmailBase, now)
+    : createPairingCodeLocal(grantId, owner, webmailBase, now);
+}
+
+/**
+ * Hand out the grant behind `code`, once. A code nobody issued is `invalid`;
+ * one that timed out, or was replaced by a newer QR, is `expired`; one that
+ * was redeemed before (by any code of its grant) is `used`. Distinguishing
+ * them leaks nothing useful: codes carry 256 bits and cannot be guessed.
+ */
+export async function redeemPairingCode(code: string, now = Date.now()): Promise<RedeemResult> {
+  return isSharedMode() ? redeemPairingCodeShared(code, now) : redeemPairingCodeLocal(code, now);
+}
+
+/** What the desktop shows for its QR: still waiting, used by the phone, or dead. */
+export async function getPairingStatus(statusId: string, now = Date.now()): Promise<PairingStatus> {
+  return isSharedMode() ? getPairingStatusShared(statusId, now) : getPairingStatusLocal(statusId, now);
+}
+
+/** Test hook: forget everything this process holds. */
 export function resetPairingStoreForTests(): void {
   const s = store();
   s.grants.clear();
   s.codes.clear();
   s.statusIndex.clear();
+  s.sharedSweptAt = undefined;
 }

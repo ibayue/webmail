@@ -134,6 +134,16 @@ describe('sign-in routes while the shared store is down', () => {
     expect(redeemed.status).toBe(503);
   });
 
+  it('QR pairing answers 503 to the phone and the desktop, not an expired code', async () => {
+    vi.stubEnv('SESSION_SECRET', 'a-test-session-secret-of-at-least-32-chars');
+    const redeemed = await post('@/app/api/auth/pair/redeem/route', { pairing_code: 'a'.repeat(64) });
+    expect(redeemed.status).toBe(503);
+    const { GET } = await import('@/app/api/auth/pair/status/route');
+    const status = (await GET({ nextUrl: { searchParams: new URLSearchParams({ id: 'b'.repeat(32) }) } } as never)) as unknown as RouteResponse;
+    expect(status.status).toBe(503);
+    vi.unstubAllEnvs();
+  });
+
   it('signs in again once the store is back', async () => {
     store.down = false;
     const res = await post('@/app/api/auth/session/route', { serverUrl: SERVER, username: 'alice@example.org', password: 'secret' });

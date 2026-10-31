@@ -156,18 +156,18 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: result.error }, { status: STEP_UP_ERRORS[result.error] });
       }
       await settlePairStepUp(attemptKey, 'success').catch(settleFailed);
-      grantId = stashGrant(result.grant, owner);
-      setPairReauthInStore(cookieStore, { grantId, owner });
+      grantId = await stashGrant(result.grant, owner);
+      await setPairReauthInStore(cookieStore, { grantId, owner });
       logger.info('Pair step-up succeeded', { flow: result.grant.flow, method: 'password' });
     } else {
       const proof = readPairReauthFromStore(cookieStore);
-      if (!proof || proof.owner !== owner || !isGrantAvailable(proof.grantId, owner)) {
+      if (!proof || proof.owner !== owner || !(await isGrantAvailable(proof.grantId, owner))) {
         return NextResponse.json({ error: 'reauth_required' }, { status: 401 });
       }
       grantId = proof.grantId;
     }
 
-    const pairing = createPairingCode(grantId, owner, webmailBase);
+    const pairing = await createPairingCode(grantId, owner, webmailBase);
     if (!pairing) {
       return NextResponse.json({ error: 'reauth_required' }, { status: 401 });
     }
