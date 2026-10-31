@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { completePolicy, configManager, PolicyConflictError } from '@/lib/admin/config-manager';
+import { completePolicy, configManager, isPolicyConflict } from '@/lib/admin/config-manager';
 import { requireAdminAuth, getClientIP } from '@/lib/admin/session';
 import { auditLog } from '@/lib/admin/audit';
 import { logger } from '@/lib/logger';
@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
         await configManager.setPolicy(next, { ifVersion: version });
         break;
       } catch (error) {
-        if (!(error instanceof PolicyConflictError)) throw error;
+        if (!isPolicyConflict(error)) throw error;
         if (attempt >= 3) return NextResponse.json({ error: error.message }, { status: 409 });
       }
     }

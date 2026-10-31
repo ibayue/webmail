@@ -59,6 +59,15 @@ export class PolicyConflictError extends Error {
   }
 }
 
+/**
+ * Whether `error` is a PolicyConflictError. By name, not instanceof: the
+ * config manager on globalThis may come from another bundle's copy of this
+ * module (the instrumentation creates it), whose class is a different object.
+ */
+export function isPolicyConflict(error: unknown): error is PolicyConflictError {
+  return error instanceof Error && error.name === 'PolicyConflictError';
+}
+
 /** Policy writes in this process, one after another, so a version check and its write can't interleave. */
 const POLICY_WRITE_QUEUE = 'admin-config\0policy.json';
 

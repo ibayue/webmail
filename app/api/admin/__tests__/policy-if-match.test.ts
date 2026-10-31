@@ -101,4 +101,26 @@ describe('policy save with If-Match', () => {
     expect(res.status).toBe(200);
     expect((await stored()).features.calendarEnabled).toBe(false);
   });
+
+  it('answers 409 when the config manager was made by another bundle\'s copy of the module', async () => {
+    // In the server the instrumentation creates the config manager, so its
+    // errors are of the instrumentation's classes, not the route's.
+    const KEY = Symbol.for('bulwark.admin.configManager');
+    const g = globalThis as Record<symbol, unknown>;
+    const mine = g[KEY];
+    try {
+      delete g[KEY];
+      vi.resetModules();
+      await (await import('@/lib/admin/config-manager')).configManager.load();
+      vi.resetModules();
+      const route = await import('@/app/api/admin/policy/route');
+      const res = await route.GET(new NextRequest(URL));
+      const etag = res.headers.get('ETag')!;
+      await writeFile(path.join(dir, 'policy.json'), JSON.stringify({ features: { calendarEnabled: false } }));
+      const stale = await route.PUT(new NextRequest(URL, { method: 'PUT', headers: { 'if-match': etag }, body: JSON.stringify(await res.json()) }));
+      expect(stale.status).toBe(409);
+    } finally {
+      g[KEY] = mine;
+    }
+  });
 });
