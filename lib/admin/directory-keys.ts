@@ -12,9 +12,8 @@
 // With root keys known, an unsigned or badly signed bundle is refused. With
 // none (a custom directory that set none), bundles install as before.
 import { createHash, createPublicKey, verify as nodeVerify } from 'node:crypto';
-import { readFile, writeFile } from 'node:fs/promises';
 import { canonicalJson } from '@/lib/extension-package';
-import { ensureStateDir, getStatePath } from './paths';
+import { DIRECTORY_KEYRINGS_ID, directoryKeyringDocs } from './extension-store';
 
 export const OFFICIAL_DIRECTORY = 'https://extensions.bulwarkmail.org';
 
@@ -67,6 +66,9 @@ export function verifyKeyring(doc: Keyring, rootKeys: Record<string, string>): b
   return ed25519Verify(root, canonicalJson(body), signature);
 }
 
+// Per replica and per module copy, for up to KEYRING_TTL_MS (10 min): a key
+// the directory revokes still verifies here for that long, on each replica.
+// The anti-rollback dates below are shared by every replica.
 const keyringCache = new Map<string, { at: number; keys: KeyringKey[] }>();
 
 /** Clears cached keyrings (tests, and after a directory rotates its key). */
@@ -87,31 +89,30 @@ async function onlineKeys(directoryUrl: string, rootKeys: Record<string, string>
   return doc.keys;
 }
 
-const KEYRING_ISSUED_FILE = 'directory-keyrings.json';
-
 /**
  * A root-signed keyring stays valid forever on its own, so whoever controls
  * the directory host (or the path to it) could serve an old one in which a
  * since-revoked online key is still active, and sign bundles with that
- * leaked key. The newest `issuedAt` seen per directory is kept in the state
- * dir; an older keyring is refused.
+ * leaked key. The newest `issuedAt` seen per directory is kept in the admin
+ * state (S/directory-keyrings.json, or the shared store: one record for
+ * every replica); an older keyring is refused. Checked and recorded in one
+ * update, so two installs at once can't put an older date back.
  */
 async function assertKeyringIsCurrent(origin: string, issuedAt: string): Promise<void> {
   const issued = Date.parse(issuedAt);
   if (!Number.isFinite(issued)) throw new Error("the directory's keyring has no valid issue date");
-  const file = getStatePath(KEYRING_ISSUED_FILE);
-  let seen: Record<string, string> = {};
-  try {
-    seen = JSON.parse(await readFile(file, 'utf-8')) as Record<string, string>;
-  } catch { /* none recorded yet */ }
-  const previous = Date.parse(seen[origin] ?? '');
-  if (Number.isFinite(previous) && issued < previous) {
-    throw new Error(`the directory's keyring (issued ${issuedAt}) is older than the one seen before (${seen[origin]})`);
-  }
-  if (!Number.isFinite(previous) || issued > previous) {
-    await ensureStateDir();
-    await writeFile(file, JSON.stringify({ ...seen, [origin]: new Date(issued).toISOString() }), { mode: 0o600 });
-  }
+  await directoryKeyringDocs().update(DIRECTORY_KEYRINGS_ID, (current) => {
+    let seen: Record<string, string> = {};
+    try {
+      if (current) seen = JSON.parse(current.toString('utf-8')) as Record<string, string>;
+    } catch { /* none recorded yet */ }
+    const previous = Date.parse(seen[origin] ?? '');
+    if (Number.isFinite(previous) && issued < previous) {
+      throw new Error(`the directory's keyring (issued ${issuedAt}) is older than the one seen before (${seen[origin]})`);
+    }
+    if (Number.isFinite(previous) && issued === previous) return undefined;
+    return JSON.stringify({ ...seen, [origin]: new Date(issued).toISOString() });
+  });
 }
 
 export type SignatureCheck =
