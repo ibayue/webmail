@@ -1,7 +1,7 @@
 export { startScheduler, stopScheduler, reschedule, sendOnce } from './sender';
 export { buildPayload, markProcessStart } from './payload';
 export {
-  loadState, saveState, getInstanceId, effectiveConsent,
+  loadState, saveState, updateState, getInstanceId, effectiveConsent,
 } from './state';
 export { recordLogin, getLoginCounts } from './login-tracker';
 export {

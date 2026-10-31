@@ -1,5 +1,5 @@
 import { logger } from '@/lib/logger';
-import { effectiveConsent, endpointEnabled, loadState, saveState } from './state';
+import { effectiveConsent, endpointEnabled, loadState, updateState } from './state';
 import { buildPayload } from './payload';
 import { fetchTelemetryTarget, resolveEndpointAllowed } from './endpoint-guard';
 import { DEFAULT_ENDPOINT } from './types';
@@ -49,9 +49,8 @@ export async function sendOnce(opts?: { reason?: string }): Promise<{
     });
     const ok = res.ok;
     if (ok) {
-      const next = await loadState();
-      next.lastSentAt = new Date().toISOString();
-      await saveState(next);
+      const at = new Date().toISOString();
+      await updateState((next) => { next.lastSentAt = at; });
     }
     logger.info('telemetry: heartbeat', {
       ok, status: res.status, reason: opts?.reason ?? 'scheduled',
@@ -67,9 +66,7 @@ export async function sendOnce(opts?: { reason?: string }): Promise<{
 async function scheduleNext(delayMs: number): Promise<void> {
   if (currentTimer) clearTimeout(currentTimer);
   const at = new Date(Date.now() + delayMs).toISOString();
-  const state = await loadState();
-  state.nextScheduledAt = at;
-  await saveState(state);
+  await updateState((state) => { state.nextScheduledAt = at; });
   currentTimer = setTimeout(() => { void tick(); }, delayMs);
   // Don't keep the process alive just for this.
   currentTimer.unref?.();

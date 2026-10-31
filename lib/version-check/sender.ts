@@ -1,7 +1,9 @@
 import { logger } from '@/lib/logger';
 import {
-  disabledByEnv, effectiveEndpoint, getCurrentVersion, isStatusStale, loadState, saveState,
+  disabledByEnv, effectiveEndpoint, freshStatus, getCurrentVersion, isStatusStale, loadState, saveState,
+  updateState, withVersionStatus,
 } from './state';
+import { isSharedMode } from '@/lib/shared-store';
 import { fetchStatus } from './fetcher';
 import type { UpdateStatus } from './types';
 import { isNoThirdPartyTrafficOn } from '@/lib/admin/third-party-mode';
@@ -39,13 +41,15 @@ export async function checkOnce(opts?: { reason?: string }): Promise<{
   const now = new Date().toISOString();
   const result = await fetchStatus(endpoint, current);
 
-  const next = await loadState();
-  next.lastCheckedAt = now;
-  if (result.ok) {
-    next.lastSuccessAt = now;
-    next.status = result.status;
-  }
-  await saveState(next);
+  const shared = isSharedMode();
+  await updateState((next) => {
+    next.lastCheckedAt = now;
+    if (result.ok) {
+      next.lastSuccessAt = now;
+      next.status = result.status;
+      if (shared) next.statuses = withVersionStatus(next.statuses, result.status);
+    }
+  });
 
   logger.info('version-check: ran', {
     ok: result.ok,
@@ -60,9 +64,7 @@ export async function checkOnce(opts?: { reason?: string }): Promise<{
 async function scheduleNext(delayMs: number): Promise<void> {
   if (currentTimer) clearTimeout(currentTimer);
   const at = new Date(Date.now() + delayMs).toISOString();
-  const state = await loadState();
-  state.nextScheduledAt = at;
-  await saveState(state);
+  await updateState((state) => { state.nextScheduledAt = at; });
   currentTimer = setTimeout(() => { void tick(); }, delayMs);
   // Don't keep the process alive just for this.
   currentTimer.unref?.();
@@ -92,8 +94,12 @@ export async function startScheduler(): Promise<void> {
   // version we no longer run, and its schedule would keep that stale answer
   // (e.g. "update available" for the version we just upgraded from) on screen
   // for up to an hour. Drop it and check promptly instead (#913).
-  const stale = isStatusStale(state.status);
-  if (stale) {
+  // With a shared store, replicas on another version may still be serving
+  // that status: keep it, and only check promptly when there is none for
+  // this version yet.
+  const shared = isSharedMode();
+  const stale = shared ? !freshStatus(state) && state.status !== null : isStatusStale(state.status);
+  if (stale && !shared) {
     logger.info('version-check: discarding status from a previous version', {
       cached: state.status?.current ?? null,
       running: getCurrentVersion(),
