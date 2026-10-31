@@ -678,6 +678,7 @@ function MailboxTreeItem({
   onContextMenu,
   dragAccountId = null,
   sharedAccountName,
+  renderAfterChild,
 }: {
   node: MailboxNode;
   selectedMailbox: string;
@@ -696,6 +697,9 @@ function MailboxTreeItem({
    *  account (compact shared mailboxes, #1342): the row is named after the
    *  account and carries its icon. */
   sharedAccountName?: string;
+  /** Rendered after each direct child's subtree, e.g. the Scheduled row after
+   *  Drafts. Not passed further down. */
+  renderAfterChild?: (child: MailboxNode) => React.ReactNode;
 }) {
   const tNotifications = useTranslations('notifications');
   const tSidebar = useTranslations('sidebar');
@@ -778,19 +782,21 @@ function MailboxTreeItem({
       />
 
       {hasChildren && isExpanded && !isCollapsed && node.children.map((child) => (
-        <MailboxTreeItem
-          key={child.id}
-          node={child}
-          selectedMailbox={selectedMailbox}
-          expandedFolders={expandedFolders}
-          onMailboxSelect={onMailboxSelect}
-          onToggleExpand={onToggleExpand}
-          isCollapsed={isCollapsed}
-          onUnreadFilterClick={onUnreadFilterClick}
-          colorful={colorful}
-          onContextMenu={onContextMenu}
-          dragAccountId={dragAccountId}
-        />
+        <Fragment key={child.id}>
+          <MailboxTreeItem
+            node={child}
+            selectedMailbox={selectedMailbox}
+            expandedFolders={expandedFolders}
+            onMailboxSelect={onMailboxSelect}
+            onToggleExpand={onToggleExpand}
+            isCollapsed={isCollapsed}
+            onUnreadFilterClick={onUnreadFilterClick}
+            colorful={colorful}
+            onContextMenu={onContextMenu}
+            dragAccountId={dragAccountId}
+          />
+          {renderAfterChild?.(child)}
+        </Fragment>
       ))}
     </>
   );
@@ -1665,14 +1671,21 @@ function SidebarImpl({
 
   // A compact shared mailbox's row is its inbox and stands for the account, so
   // its menu is the inbox's plus what the account's header row offered.
-  const handleCompactSharedContextMenu = (e: React.MouseEvent, node: MailboxNode, inboxId: string, accountId?: string) => {
+  const handleCompactSharedContextMenu = (
+    e: React.MouseEvent,
+    node: MailboxNode,
+    inboxId: string,
+    accountId: string | undefined,
+    inboxHasSubfolders: boolean,
+  ) => {
     const mailbox = mailboxes.find(mb => mb.id === node.id);
     if (!mailbox) return;
+    const isRow = node.id === inboxId;
     openMailboxContextMenu(e, {
       kind: "mailbox",
       mailbox,
-      hasChildren: node.children.length > 0,
-      sharedAccountId: node.id === inboxId ? accountId : undefined,
+      hasChildren: isRow ? inboxHasSubfolders : node.children.length > 0,
+      sharedAccountId: isRow ? accountId : undefined,
     });
   };
 
@@ -2056,7 +2069,19 @@ function SidebarImpl({
                   const menuAccountId = sharedAccountMenuId(account.accountId);
                   const compact = compactSharedMailboxes ? compactSharedMailbox(account) : null;
                   if (compact) {
+                    // A row without folders below it has no chevron, so what
+                    // else hangs below it (Scheduled, tags) stays shown.
+                    const compactExpanded = !isCollapsed
+                      && (expandedFolders.has(compact.id) || compact.children.length === 0);
                     const scheduledCount = menuAccountId ? (scheduledTotalByAccount?.[menuAccountId] ?? 0) : 0;
+                    const scheduledRow = () => scheduledCount > 0
+                      && renderScheduledRow(`${account.id}-scheduled`, { accountId: menuAccountId, depth: 1 });
+                    // Scheduled goes after Drafts, as under a header row; with
+                    // Drafts left out (empty), after the other folders.
+                    const hasDrafts = compact.children.some((child) => child.role === 'drafts');
+                    // "Mark subfolders read" covers the inbox's own subfolders
+                    // only, not the account's folders listed below the row.
+                    const inboxHasSubfolders = (account.children.find((child) => child.id === compact.id)?.children.length ?? 0) > 0;
                     return (
                       <div key={account.id} data-testid="compact-shared-mailbox">
                         <MailboxTreeItem
@@ -2069,10 +2094,21 @@ function SidebarImpl({
                           isCollapsed={isCollapsed}
                           onUnreadFilterClick={onUnreadFilterClick}
                           colorful={colorfulSidebarIcons}
-                          onContextMenu={(e, node) => handleCompactSharedContextMenu(e, node, compact.id, menuAccountId)}
+                          onContextMenu={(e, node) => handleCompactSharedContextMenu(e, node, compact.id, menuAccountId, inboxHasSubfolders)}
+                          renderAfterChild={(child) => child.role === 'drafts' && scheduledRow()}
                         />
-                        {expandedFolders.has(compact.id) && !isCollapsed && scheduledCount > 0
-                          && renderScheduledRow(`${account.id}-scheduled`, { accountId: menuAccountId, depth: 1 })}
+                        {compactExpanded && !hasDrafts && scheduledRow()}
+                        {compactExpanded && menuAccountId && activeAccountId && (
+                          <SharedAccountTags
+                            loginId={activeAccountId}
+                            accountId={menuAccountId}
+                            selectedKeyword={selectedKeywordAccountId === menuAccountId ? selectedKeyword : null}
+                            expandedTags={expandedTags}
+                            onTagSelect={onTagSelect}
+                            onToggleExpand={handleToggleTagExpand}
+                            colorful={colorfulSidebarIcons}
+                          />
+                        )}
                       </div>
                     );
                   }

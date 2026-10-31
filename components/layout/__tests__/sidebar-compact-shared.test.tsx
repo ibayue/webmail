@@ -120,6 +120,38 @@ describe('Sidebar compact shared mailboxes (#1342)', () => {
     expect(screen.queryByTestId('mailbox-hide-shared-account')).toBeNull();
   });
 
+  it('lists Scheduled right after Drafts', () => {
+    const withDrafts = mailboxes.map((mb) => (mb.id === 'g1-drafts' ? { ...mb, totalEmails: 2 } : mb));
+    render(
+      <Sidebar mailboxes={withDrafts} selectedMailbox="inbox" showScheduledMailbox scheduledTotalByAccount={{ g1: 3 }} />,
+    );
+
+    fireEvent.click(within(sales()).getByTestId('folder-expand-toggle'));
+
+    const names = folderNames(sales());
+    expect(names[names.indexOf('Drafts') + 1]).toBe('scheduled');
+  });
+
+  it('lists Scheduled after the other folders when Drafts is left out', () => {
+    render(<Sidebar mailboxes={mailboxes} selectedMailbox="inbox" showScheduledMailbox scheduledTotalByAccount={{ g1: 3 }} />);
+
+    fireEvent.click(within(sales()).getByTestId('folder-expand-toggle'));
+
+    expect(folderNames(sales())).toEqual(['Inbox', 'Requests', 'Sent', 'Junk', 'scheduled']);
+  });
+
+  it('offers marking subfolders read only when the inbox has subfolders of its own', () => {
+    const support = [...mailboxes, shared('g2', 'support@example.com', 'sent', { name: 'Sent', role: 'sent', totalEmails: 4 })];
+    render(<Sidebar mailboxes={support} selectedMailbox="inbox" />);
+
+    fireEvent.contextMenu(within(compactRows()[1]).getAllByTestId('folder-row')[0]);
+    expect(screen.queryByText('mark_folder_tree_read')).toBeNull();
+    fireEvent.keyDown(document, { key: 'Escape' });
+
+    fireEvent.contextMenu(within(sales()).getAllByTestId('folder-row')[0]);
+    expect(screen.getByText('mark_folder_tree_read')).toBeTruthy();
+  });
+
   it('keeps the shared mailboxes behind More in Mountain View', () => {
     useSettingsStore.setState({ interfaceLayout: 'mountain-view' } as never);
     render(<Sidebar mailboxes={mailboxes} selectedMailbox="inbox" mvShell />);
