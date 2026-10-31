@@ -96,6 +96,7 @@ import { FilterPanelHost } from "@/components/search/filter-panel-host";
 import { SearchFilterPanel, SELECT_CLASS } from "@/components/search/search-filter-panel";
 import type { ContactSuggestion } from "@/lib/search-suggestions";
 import type { Attachment, SendEmailResult } from "@/lib/jmap/types";
+import type { IJMAPClient } from "@/lib/jmap/client-interface";
 import { peekListAttachments, requestListAttachments, type ListAttachmentSource, type LoadListAttachments } from "@/lib/list-attachments";
 import { useSearchHistoryStore } from "@/stores/search-history-store";
 import { WelcomeBanner } from "@/components/ui/welcome-banner";
@@ -503,6 +504,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     batchMarkAsSpam,
     batchUndoSpam,
     accountMailboxes,
+    accountSharedMailboxes,
     viewingAccountId,
     selectAccountMailbox,
     setViewingAccount,
@@ -591,6 +593,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     batchMarkAsSpam: state.batchMarkAsSpam,
     batchUndoSpam: state.batchUndoSpam,
     accountMailboxes: state.accountMailboxes,
+    accountSharedMailboxes: state.accountSharedMailboxes,
     viewingAccountId: state.viewingAccountId,
     selectAccountMailbox: state.selectAccountMailbox,
     setViewingAccount: state.setViewingAccount,
@@ -3309,10 +3312,12 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     return true;
   };
 
-  const handleAccountMailboxSelect = async (accountId: string | null, mailboxId: string) => {
+  // `activeClient` stands in for `client` when the caller has just switched
+  // logins and this render's `client` is still the previous one.
+  const handleAccountMailboxSelect = async (accountId: string | null, mailboxId: string, activeClient?: IJMAPClient) => {
     const viewingClient = accountId
       ? useAuthStore.getState().getClientForAccount(accountId) ?? client
-      : client;
+      : activeClient ?? client;
     selectAccountMailbox(accountId, mailboxId);
     selectEmail(null);
     if (isMobile) {
@@ -3335,6 +3340,23 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
         await fetchEmails(viewingClient, mailboxId);
       }
     }
+  };
+
+  // Pro sidebar: a shared mailbox listed under another login (#1486). Shared
+  // mail is read through the active login - its folder list, actions and
+  // tags all assume it - so switch to that login first, wait for its folders
+  // and open the mailbox there, as a folder link to another login does.
+  const handleLoginSharedMailboxSelect = async (loginId: string, mailboxId: string) => {
+    if (useAuthStore.getState().activeAccountId !== loginId) {
+      const before = useEmailStore.getState().mailboxes;
+      await switchAccount(loginId);
+      // Overtaken or failed: the folders on screen are not that login's.
+      if (useAuthStore.getState().activeAccountId !== loginId) return;
+      const fresh = await freshMailboxes(before);
+      if (useAuthStore.getState().activeAccountId !== loginId) return;
+      if (!fresh.some((mb) => mb.id === mailboxId)) return;
+    }
+    await handleAccountMailboxSelect(null, mailboxId, useAuthStore.getState().client ?? undefined);
   };
 
   const handleMailboxSelect = async (mailboxId: string) => {
@@ -5011,6 +5033,8 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
               mvShell={mvShell}
               multiAccountMode={isEmbedded}
               accountMailboxes={accountMailboxes}
+              accountSharedMailboxes={accountSharedMailboxes}
+              onLoginSharedMailboxSelect={handleLoginSharedMailboxSelect}
               viewingAccountId={viewingAccountId}
             />
           </ErrorBoundary>

@@ -213,6 +213,13 @@ interface EmailStore {
    */
   accountMailboxes: Record<string, Mailbox[]>;
   /**
+   * The shared (group/delegated) mailboxes each login can reach, keyed by
+   * login. Kept apart from `accountMailboxes`, which holds a login's own
+   * folders only, so nothing that looks up a role there picks a shared one.
+   * Only the Pro sidebar reads it, to list them under each login (#1486).
+   */
+  accountSharedMailboxes: Record<string, Mailbox[]>;
+  /**
    * When set, the mail view is reading from this account instead of the
    * global active one. `null` means "use the global active account" - i.e.
    * the standard single-account behavior. Selecting a folder under a
@@ -1853,12 +1860,24 @@ async function unifiedMailboxesFor(
  * the unified scope uses, so the two never fetch the same list twice and a
  * list already there is not fetched again until that login reports a change.
  */
-export async function loadAccountMailboxes(client: IJMAPClient, accountId: string): Promise<boolean> {
+export async function loadAccountMailboxes(
+  client: IJMAPClient,
+  accountId: string,
+  opts: { withShared?: boolean } = {},
+): Promise<boolean> {
+  const withShared = opts.withShared ?? false;
   try {
-    const { mailboxes, fresh } = await unifiedMailboxesFor(client, false);
-    if (!fresh && useEmailStore.getState().accountMailboxes[accountId]) return true;
+    const { mailboxes, fresh } = await unifiedMailboxesFor(client, withShared);
+    const state = useEmailStore.getState();
+    if (!fresh && state.accountMailboxes[accountId] && (!withShared || state.accountSharedMailboxes[accountId])) return true;
+    // With the shared ones the list is getAllMailboxes: own folders go where
+    // they always went, the shared ones beside them.
+    const own = withShared ? mailboxes.filter((m) => !m.isShared) : mailboxes.slice();
     useEmailStore.setState((state) => ({
-      accountMailboxes: { ...state.accountMailboxes, [accountId]: mailboxes.slice() },
+      accountMailboxes: { ...state.accountMailboxes, [accountId]: own },
+      ...(withShared
+        ? { accountSharedMailboxes: { ...state.accountSharedMailboxes, [accountId]: mailboxes.filter((m) => m.isShared) } }
+        : {}),
     }));
     return true;
   } catch (error) {
@@ -3238,6 +3257,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
   emails: [],
   mailboxes: [],
   accountMailboxes: {},
+  accountSharedMailboxes: {},
   viewingAccountId: null,
   selectedEmail: null,
   selectedMailbox: "",
