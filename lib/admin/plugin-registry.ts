@@ -468,7 +468,9 @@ async function storeSignature(id: string, signature: string | null): Promise<voi
  * a later change to the stored bundle stops verifying from then on.
  *
  * `bundleHash` (the registry entry's) lets shared mode answer from this
- * replica's bundle cache.
+ * replica's bundle cache. Only a signature that verifies for the cached
+ * code goes into it: one read while another replica was halfway through an
+ * install belongs to other bytes.
  */
 export async function getPluginSignature(id: string, code: string, bundleHash?: string): Promise<string | null> {
   if (!SAFE_ID_RE.test(id)) return null;
@@ -487,7 +489,12 @@ export async function getPluginSignature(id: string, code: string, bundleHash?: 
   } else {
     signature = await signBundle(id, code);
     try {
-      await storeSignature(id, signature);
+      // Only if still missing: a replica that stored one first wins, and
+      // its signature is what every replica serves.
+      if (signature) {
+        const written = await pluginDocs().put(`${id}.sig`, signature, { ifVersion: null });
+        if (!written.ok) signature = written.current?.data.toString('utf-8').trim() || null;
+      }
     } catch (error) {
       if (isStoreUnavailable(error)) throw error;
       // Read-only config, a full disk, a file we may not write: serve the
@@ -499,8 +506,17 @@ export async function getPluginSignature(id: string, code: string, bundleHash?: 
       signature = null;
     }
   }
-  if (cached && cached.code === code) cached.signature = signature;
+  if (cached && cached.code === code && signature && (await signatureVerifies(code, signature))) cached.signature = signature;
   return signature;
+}
+
+async function signatureVerifies(code: string, signature: string): Promise<boolean> {
+  try {
+    const { verifyBytes } = await import('./plugin-signing');
+    return await verifyBytes(code, signature);
+  } catch {
+    return false;
+  }
 }
 
 /**
