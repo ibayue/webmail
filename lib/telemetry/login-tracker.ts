@@ -1,5 +1,6 @@
 import { createHmac } from 'node:crypto';
 import { logger } from '@/lib/logger';
+import { isStoreUnavailableError } from '@/lib/shared-store/types';
 import { getInstanceId, telemetryDocs } from './state';
 
 // We never store usernames or server URLs in the clear. Each login is
@@ -81,7 +82,8 @@ export async function recordLogin(username: string, serverUrl: string): Promise<
 /**
  * Total distinct accounts seen in the 90-day retention window, plus those
  * with a login in the last 7 days. Read from the store each time, so every
- * replica reports the same numbers.
+ * replica reports the same numbers. Throws while the shared store is down
+ * rather than reporting zero accounts.
  */
 export async function getLoginCounts(): Promise<{ total: number; active7d: number }> {
   try {
@@ -97,7 +99,8 @@ export async function getLoginCounts(): Promise<{ total: number; active7d: numbe
       if (ts >= sevenAgo) active7d++;
     }
     return { total, active7d };
-  } catch {
+  } catch (err) {
+    if (isStoreUnavailableError(err)) throw err;
     return { total: 0, active7d: 0 };
   }
 }

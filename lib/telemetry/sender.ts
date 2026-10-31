@@ -116,8 +116,10 @@ export async function sendOnce(opts?: { reason?: string; slot?: string }): Promi
     }
   }
 
-  const payload = await buildPayload();
   try {
+    // Inside the try: a payload that can't be built (store down) gives the
+    // claimed slot back instead of losing the day's heartbeat.
+    const payload = await buildPayload();
     // Never follows redirects: the endpoint guard only vetted the URL we
     // were given, so a 3xx to an internal host would bypass it.
     const res = await fetchTelemetryTarget(endpoint, {

@@ -18,7 +18,8 @@ import { separateDiskStore, type SeparateDiskStore } from './helpers/separate-di
 const log = vi.hoisted(() => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() }));
 vi.mock('@/lib/logger', () => ({ logger: log }));
 vi.mock('@/lib/admin/third-party-mode', () => ({ isNoThirdPartyTrafficOn: async () => false }));
-vi.mock('@/lib/telemetry/payload', () => ({ buildPayload: async () => ({ schema: '1' }), markProcessStart: () => {} }));
+const buildPayload = vi.hoisted(() => vi.fn(async () => ({ schema: '1' })));
+vi.mock('@/lib/telemetry/payload', () => ({ buildPayload, markProcessStart: () => {} }));
 const sent = vi.hoisted(() => vi.fn(async (_url: string, _init?: unknown) => new Response('ok')));
 vi.mock('@/lib/telemetry/endpoint-guard', () => ({
   resolveEndpointAllowed: async () => ({ ok: true }),
@@ -277,6 +278,16 @@ describe('scheduler leader with a shared store', () => {
     vi.advanceTimersByTime(2 * 60 * MIN);
     expect((await sendOnce({ reason: 'scheduled', slot: new Date().toISOString() })).ok).toBe(true);
     expect(sent).toHaveBeenCalledTimes(3);
+  });
+
+  it('gives the slot back when the payload cannot be built', async () => {
+    const slot = new Date(Date.now() - 1000).toISOString();
+    await consentOn(slot);
+    buildPayload.mockRejectedValueOnce(new Error('store down'));
+    expect((await sendOnce({ reason: 'scheduled', slot })).ok).toBe(false);
+    expect((await loadState()).lastSentAt).toBeNull();
+    expect((await sendOnce({ reason: 'scheduled', slot })).ok).toBe(true);
+    expect(sent).toHaveBeenCalledTimes(1);
   });
 
   it('gives the slot back when the send fails', async () => {

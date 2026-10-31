@@ -65,6 +65,15 @@ describe('telemetry with a shared store', () => {
     expect(await a.getLoginCounts()).toEqual({ total: 3, active7d: 3 });
   });
 
+  it('does not report zero accounts while the store is down', async () => {
+    const { recordLogin, getLoginCounts } = await import('@/lib/telemetry/login-tracker');
+    await recordLogin('alice@example.org', 'https://mail.example.org');
+    store.down = true;
+    await expect(getLoginCounts()).rejects.toThrow('down (test)');
+    store.down = false;
+    expect(await getLoginCounts()).toEqual({ total: 1, active7d: 1 });
+  });
+
   it('shows on replica B the consent set on replica A', async () => {
     const { updateState, effectiveConsent } = await import('@/lib/telemetry/state');
     await updateState((state) => { state.consent = 'on'; });
