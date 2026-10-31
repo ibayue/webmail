@@ -5,7 +5,7 @@ import { createPairingCode, isGrantAvailable, stashGrant } from '@/lib/auth/pair
 import { pairingOwner, readPairReauthFromStore, setPairReauthInStore } from '@/lib/auth/pair-reauth';
 import { mintGrantWithPassword } from '@/lib/auth/pair-grant';
 import { appAcceptsServerUrl } from '@/lib/auth/pair-bundle';
-import { beginPairStepUp, pairAttemptKey, settlePairStepUp } from '@/lib/auth/pair-attempts';
+import { pairAttemptKey, reservePairStepUp, settlePairStepUp } from '@/lib/auth/pair-attempts';
 import { hasSessionSecret } from '@/lib/auth/session-secret';
 import { readStalwartAuthContextFromStore } from '@/lib/stalwart/auth-context';
 import { isTrustedJmapServerUrl } from '@/lib/stalwart/server-fetch';
@@ -134,7 +134,8 @@ export async function POST(request: NextRequest) {
       // was written under an identity address.
       const accountName = context.accountName ?? context.username;
       const attemptKey = pairAttemptKey(serverUrl, accountName);
-      if (!(await beginPairStepUp(attemptKey))) {
+      const attempt = await reservePairStepUp(attemptKey);
+      if (!attempt) {
         return NextResponse.json({ error: 'too_many_attempts' }, { status: 429 });
       }
       const totp = typeof body?.totp === 'string' && body.totp.trim() ? body.totp.trim() : undefined;
@@ -152,7 +153,7 @@ export async function POST(request: NextRequest) {
       });
       if (!result.ok) {
         const wrong = result.error === 'invalid_credentials' || (result.error === 'totp_required' && !!totp);
-        await settlePairStepUp(attemptKey, wrong ? 'wrong_credential' : 'other').catch(settleFailed);
+        await settlePairStepUp(attemptKey, wrong ? 'wrong_credential' : 'other', Date.now(), attempt).catch(settleFailed);
         return NextResponse.json({ error: result.error }, { status: STEP_UP_ERRORS[result.error] });
       }
       await settlePairStepUp(attemptKey, 'success').catch(settleFailed);

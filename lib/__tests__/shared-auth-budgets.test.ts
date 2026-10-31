@@ -106,6 +106,18 @@ describe('sign-in budgets with a shared store', () => {
     expect(await (await attempts()).beginPairStepUp(key, T0 + 30)).toBe(false);
   });
 
+  it('gives an attempt back only to the windows it was counted in', async () => {
+    const key = 'https://mail.example.org|carol@example.org';
+    const early = await (await attempts()).reservePairStepUp(key, T0);
+    expect(early).not.toBeNull();
+    // The 15-minute window has reset; five new attempts fill the next one.
+    const later = T0 + 16 * 60 * 1000;
+    for (let i = 0; i < 5; i++) expect(await (await attempts()).beginPairStepUp(key, later)).toBe(true);
+    // The early attempt turns out not to count: the new window keeps its five.
+    await (await attempts()).settlePairStepUp(key, 'other', later, early!);
+    expect(await (await attempts()).beginPairStepUp(key, later)).toBe(false);
+  });
+
   it('caps pair step-ups at 20 a day across replicas', async () => {
     const key = 'https://mail.example.org|bob@example.org';
     let now = T0;

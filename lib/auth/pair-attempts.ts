@@ -113,16 +113,30 @@ function recordFailureLocal(key: string, now: number): void {
  * attempt is counted as a failure until {@link settlePairStepUp} says better.
  */
 export async function beginPairStepUp(key: string, now = Date.now()): Promise<boolean> {
+  return (await reservePairStepUp(key, now)) !== null;
+}
+
+/** A counted step-up attempt: which windows it was counted in (shared store). */
+export interface PairStepUpTicket {
+  resetAts?: number[];
+}
+
+/**
+ * {@link beginPairStepUp}, returning the attempt (null when locked out), so
+ * {@link settlePairStepUp} gives it back only to the windows it was counted in.
+ */
+export async function reservePairStepUp(key: string, now = Date.now()): Promise<PairStepUpTicket | null> {
   if (isSharedMode()) {
     // Check and count in one step, so parallel attempts on several replicas
     // can't all pass before the first one is counted.
-    return (await getStore().counters.reserve(sharedLimits(key), now)).ok;
+    const result = await getStore().counters.reserve(sharedLimits(key), now);
+    return result.ok ? { resetAts: result.resetAts } : null;
   }
   // Check and count with nothing in between, as parallel requests would
   // otherwise all pass the check.
-  if (isLockedLocal(key, now)) return false;
+  if (isLockedLocal(key, now)) return null;
   recordFailureLocal(key, now);
-  return true;
+  return {};
 }
 
 /**
@@ -134,6 +148,7 @@ export async function settlePairStepUp(
   key: string,
   outcome: 'success' | 'wrong_credential' | 'other',
   now = Date.now(),
+  ticket?: PairStepUpTicket,
 ): Promise<void> {
   if (outcome === 'success') {
     await clearPairStepUpFailures(key);
@@ -141,7 +156,8 @@ export async function settlePairStepUp(
   }
   if (outcome === 'other') {
     if (isSharedMode()) {
-      await getStore().counters.refund(sharedLimits(key).map((limit) => ({ key: limit.key })), now);
+      // A window that has reset since the attempt was counted is left alone.
+      await getStore().counters.refund(sharedLimits(key).map((limit, i) => ({ key: limit.key, resetAt: ticket?.resetAts?.[i] })), now);
       return;
     }
     const entry = store().get(key);
