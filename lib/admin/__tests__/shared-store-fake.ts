@@ -36,6 +36,8 @@ export function separateFakeStore(root: string): SharedStore & { down: boolean }
       const log = localLog(name, { ...options, local: { ...options.local, path: () => path.join(root, 'logs', `${name}.log`) } });
       return {
         append: (line: string) => guard(() => log.append(line)),
+        appendMany: (lines: string[]) => guard(() => log.appendMany(lines)),
+        clear: () => guard(() => log.clear()),
         readAll: () => guard(() => log.readAll()),
         length: () => guard(() => log.length()),
       };

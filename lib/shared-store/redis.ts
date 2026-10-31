@@ -353,6 +353,14 @@ export function createRedisStore(options: RedisStoreOptions): SharedStore {
         const clean = line.replace(/[\r\n]+/g, ' ');
         await call(() => client.multi().rpush(key, clean).ltrim(key, -opts.maxEntries, -1).exec());
       },
+      async appendMany(lines) {
+        if (lines.length === 0) return;
+        const clean = lines.map((line) => line.replace(/[\r\n]+/g, ' '));
+        await call(() => client.multi().rpush(key, ...clean).ltrim(key, -opts.maxEntries, -1).exec());
+      },
+      async clear() {
+        await call(() => client.del(key));
+      },
       async readAll() {
         return call(() => client.lrange(key, 0, -1));
       },

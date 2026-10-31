@@ -307,6 +307,33 @@ export function runStoreContract(target: ContractTarget): void {
         await log.append('one\ntwo');
         expect(await log.readAll()).toEqual(['one two']);
       });
+
+      it('appends a batch in order, with no other writer\'s line inside it', async () => {
+        const [a, b] = await open(2);
+        const batch = Array.from({ length: 200 }, (_, i) => `batch-${i}`);
+        await Promise.all([
+          a.log(`audit-${run}`, logOptions()).appendMany(batch),
+          ...Array.from({ length: 20 }, (_, i) => b.log(`audit-${run}`, logOptions()).append(`single-${i}`)),
+        ]);
+        const lines = await a.log(`audit-${run}`, logOptions()).readAll();
+        expect(lines).toHaveLength(220);
+        const start = lines.indexOf('batch-0');
+        expect(lines.slice(start, start + 200)).toEqual(batch);
+        await a.log(`audit-${run}`, logOptions()).appendMany([]);
+        expect(await b.log(`audit-${run}`, logOptions()).length()).toBe(220);
+      });
+
+      it('clears the log for every replica', async () => {
+        const [a, b] = await open(2);
+        await a.log(`audit-${run}`, logOptions()).appendMany(['one', 'two\nthree']);
+        expect(await b.log(`audit-${run}`, logOptions()).readAll()).toEqual(['one', 'two three']);
+        await b.log(`audit-${run}`, logOptions()).clear();
+        expect(await a.log(`audit-${run}`, logOptions()).readAll()).toEqual([]);
+        expect(await a.log(`audit-${run}`, logOptions()).length()).toBe(0);
+        await b.log(`audit-${run}`, logOptions()).clear();
+        await a.log(`audit-${run}`, logOptions()).append('again');
+        expect(await b.log(`audit-${run}`, logOptions()).readAll()).toEqual(['again']);
+      });
     });
 
     describe('leases', () => {

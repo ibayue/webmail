@@ -402,6 +402,23 @@ export function localLog(name: string, options: LogOptions): AppendLog {
         await rotateIfNeeded(file);
       });
     },
+    async appendMany(lines) {
+      if (lines.length === 0) return;
+      const file = path.resolve(local.path());
+      await serializeLocal(`log\0${file}`, async () => {
+        await mkdir(path.dirname(file), { recursive: true });
+        await appendFile(file, lines.map((line) => line.replace(/[\r\n]+/g, ' ') + '\n').join(''), 'utf-8');
+        await rotateIfNeeded(file);
+      });
+    },
+    async clear() {
+      const file = path.resolve(local.path());
+      await serializeLocal(`log\0${file}`, async () => {
+        await unlink(file).catch((error) => {
+          if (!isMissing(error)) throw error;
+        });
+      });
+    },
     async readAll() {
       try {
         const content = await readFile(path.resolve(local.path()), 'utf-8');
