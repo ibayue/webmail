@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { isStoreUnavailableError } from '@/lib/shared-store/types';
 
 /**
  * A user's stored document exists but can't be read: it doesn't decrypt
@@ -22,7 +23,7 @@ function named(error: unknown, name: string): boolean {
 
 /** The shared store couldn't be reached (StoreUnavailableError from lib/shared-store). */
 export function isStoreUnavailable(error: unknown): boolean {
-  return named(error, 'StoreUnavailableError');
+  return isStoreUnavailableError(error);
 }
 
 export function isStoredDataUnreadable(error: unknown): boolean {
