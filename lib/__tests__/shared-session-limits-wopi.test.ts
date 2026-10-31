@@ -121,6 +121,38 @@ describe('office editor revocations with a shared store', () => {
     expect(await c.isWopiTokenRevoked(second)).toBe(true);
   });
 
+  it('writes a sign-out made during an outage once the store answers again', async () => {
+    const tab = browser('browser-1');
+    const payload = await token(tab, 0, Date.now() - 1000);
+    const a = await wopi();
+    store.down = true;
+    await a.revokeWopiTokens(tab, 0);
+    store.down = false;
+    // The next editor request through A writes it.
+    await a.isWopiTokenRevoked(await token(browser('browser-9'), 0, Date.now()));
+    otherReplica();
+    expect(await (await wopi()).isWopiTokenRevoked(payload)).toBe(true);
+  });
+
+  it('retries an unwritten sign-out on a timer, without any editor request', async () => {
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
+    try {
+      const tab = browser('browser-1');
+      const payload = await token(tab, 0, Date.now() - 1000);
+      const a = await wopi();
+      store.down = true;
+      await a.revokeWopiTokens(tab, 0);
+      store.down = false;
+      await vi.advanceTimersByTimeAsync(20_000);
+      // The retry writes a file in the fake store: let that real I/O finish.
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      otherReplica();
+      expect(await (await wopi()).isWopiTokenRevoked(payload)).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('refuses editor tokens while the store is down, and still signs out', async () => {
     const tab = browser('browser-1');
     const payload = await token(tab, 0, Date.now() - 1000);

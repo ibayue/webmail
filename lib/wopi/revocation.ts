@@ -63,14 +63,20 @@ export function wopiBrowserBinding(cookieStore: CookieStore): string {
 interface RevocationState {
   revocations: Map<string, number>;
   loadedMtimeMs: number | null;
+  /** Shared mode: revocations the store didn't take (it was down), written as soon as it answers. */
+  pending: Map<string, number>;
+  retryTimer?: ReturnType<typeof setInterval>;
 }
+
+/** How often a replica holding unwritten revocations tries the store again. */
+const RETRY_EVERY_MS = 15 * 1000;
 
 // One copy per process, not one per bundle.
 const STATE_KEY = Symbol.for('bulwark.wopiRevocations');
 
 function state(): RevocationState {
   const g = globalThis as typeof globalThis & { [STATE_KEY]?: RevocationState };
-  g[STATE_KEY] ??= { revocations: new Map(), loadedMtimeMs: null };
+  g[STATE_KEY] ??= { revocations: new Map(), loadedMtimeMs: null, pending: new Map() };
   return g[STATE_KEY];
 }
 
@@ -106,8 +112,9 @@ async function reloadLocal(): Promise<void> {
   }
 }
 
-/** Shared store: read the document; throws when the store is down. */
+/** Shared store: write what an outage held back, then read the document; throws when the store is down. */
 async function reloadShared(): Promise<void> {
+  if (state().pending.size > 0) await persist(Date.now());
   const doc = await wopiRevocationsCollection().get(REVOCATIONS_ID);
   if (!doc) return;
   try {
@@ -146,30 +153,60 @@ export async function revokeWopiTokens(
   prune(s.revocations, nowMs);
 
   try {
-    // Merged with what is stored now, so a revocation written meanwhile
-    // (another tab, another replica) is kept.
-    const written = await wopiRevocationsCollection().update(REVOCATIONS_ID, (current) => {
-      const merged = new Map(s.revocations);
-      if (current) {
-        try {
-          for (const [k, at] of Object.entries(JSON.parse(current.toString('utf-8')) as Record<string, unknown>)) {
-            if (typeof at === 'number') merged.set(k, Math.max(at, merged.get(k) ?? 0));
-          }
-        } catch {
-          // Unreadable: replaced by what this process knows.
-        }
-      }
-      prune(merged, nowMs);
-      return JSON.stringify(Object.fromEntries(merged));
-    });
-    if (written.data) merge(written.data.toString('utf-8'));
+    await persist(nowMs);
     if (!shared) s.loadedMtimeMs = (await stat(getStatePath(REVOCATIONS_FILE))).mtimeMs;
   } catch (error) {
-    // Still refused by this process until it restarts.
+    // Still refused by this process; with a shared store it is written as
+    // soon as the store answers again, so other replicas refuse it too.
+    if (shared) {
+      s.pending.set(key, nowMs);
+      startRetry();
+    }
     logger.warn('Could not persist WOPI revocation', {
       error: error instanceof Error ? error.message : 'Unknown error',
     });
   }
+}
+
+/**
+ * Write this process's revocations, merged with what is stored now, so a
+ * revocation written meanwhile (another tab, another replica) is kept.
+ */
+async function persist(nowMs: number): Promise<void> {
+  const s = state();
+  const pendingNow = new Map(s.pending);
+  const written = await wopiRevocationsCollection().update(REVOCATIONS_ID, (current) => {
+    const merged = new Map(s.revocations);
+    if (current) {
+      try {
+        for (const [k, at] of Object.entries(JSON.parse(current.toString('utf-8')) as Record<string, unknown>)) {
+          if (typeof at === 'number') merged.set(k, Math.max(at, merged.get(k) ?? 0));
+        }
+      } catch {
+        // Unreadable: replaced by what this process knows.
+      }
+    }
+    prune(merged, nowMs);
+    return JSON.stringify(Object.fromEntries(merged));
+  });
+  if (written.data) merge(written.data.toString('utf-8'));
+  for (const [key, at] of pendingNow) if (s.pending.get(key) === at) s.pending.delete(key);
+  if (s.pending.size === 0 && s.retryTimer) {
+    clearInterval(s.retryTimer);
+    s.retryTimer = undefined;
+  }
+}
+
+function startRetry(): void {
+  const s = state();
+  if (s.retryTimer) return;
+  s.retryTimer = setInterval(() => {
+    if (!isSharedMode() || state().pending.size === 0) return;
+    persist(Date.now()).catch(() => {
+      // Still down; tried again on the next tick, check or sign-out.
+    });
+  }, RETRY_EVERY_MS);
+  s.retryTimer.unref?.();
 }
 
 /** Whether signing out has revoked this token since it was minted. */
