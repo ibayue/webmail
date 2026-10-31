@@ -64,9 +64,13 @@ export async function loadState(): Promise<TelemetryStateFile> {
     return { ...DEFAULTS, ...parsed };
   } catch (err) {
     if ((err as NodeJS.ErrnoException).code !== 'ENOENT') {
+      // Unreadable is not missing: answer with the defaults (so nothing is
+      // sent on a guess) but leave the file alone, or a passing read error
+      // would switch the admin's consent off for good.
       logger.warn('telemetry: state read failed', {
         error: err instanceof Error ? err.message : String(err),
       });
+      return { ...DEFAULTS };
     }
     // First-ever load on a fresh install: persist the default-off state so the
     // instance id and (lack of) consent are stable across restarts. The admin
