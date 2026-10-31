@@ -1,7 +1,7 @@
 import { createHash, randomBytes, timingSafeEqual } from 'crypto';
 import type { RedeemBundle } from '@/lib/auth/pair-bundle';
 import { isMobileCodeChallenge } from '@/lib/auth/mobile-handoff';
-import { createFailureBudget } from '@/lib/auth/verify-budget';
+import { createFailureBudget, type BudgetRefund } from '@/lib/auth/verify-budget';
 
 // One-time codes for the browser sign-in hand-off to the mobile app
 // (lib/auth/mobile-handoff.ts, bulwarkmail.org/docs/development/mobile-handoff). The app opens the
@@ -167,18 +167,18 @@ export function resetHandoffStoreForTests(): void {
 // Per-client limits on the routes. Codes carry 256 bits and die on the first
 // attempt, so guessing is hopeless either way; these keep one client from
 // filling the store or hammering the redeem route.
-const createBudget = createFailureBudget({ clientMax: 10, globalMax: Infinity });
-const redeemBudget = createFailureBudget({ clientMax: 10, globalMax: Infinity });
+const createBudget = createFailureBudget({ name: 'handoff-create', clientMax: 10, globalMax: Infinity });
+const redeemBudget = createFailureBudget({ name: 'handoff-redeem', clientMax: 10, globalMax: Infinity });
 
 /** Count one parked sign-in for `client`; false when it is over its limit. */
-export function reserveHandoffCreate(client: string, now = Date.now()): boolean {
-  return createBudget.reserve(client, now) !== null;
+export async function reserveHandoffCreate(client: string, now = Date.now()): Promise<boolean> {
+  return (await createBudget.reserve(client, now)) !== null;
 }
 
 /**
  * Reserve one redeem attempt for `client`: null when it is over its limit,
  * otherwise a refund to call when the redeem succeeded (only failures count).
  */
-export function reserveHandoffRedeem(client: string, now = Date.now()): (() => void) | null {
+export function reserveHandoffRedeem(client: string, now = Date.now()): Promise<BudgetRefund | null> {
   return redeemBudget.reserve(client, now);
 }

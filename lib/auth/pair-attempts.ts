@@ -12,6 +12,14 @@
 // starts, and is given back only once it turns out not to have been a wrong
 // credential: otherwise parallel requests would all pass the check before the
 // first one failed.
+//
+// One process keeps the counts in memory, as always. With a shared store
+// (#1066) they are counters there, so every replica counts the same attempts;
+// when the store is down every function rejects with StoreUnavailableError
+// and the step-up is refused.
+
+import { createHash } from 'node:crypto';
+import { getStore, isSharedMode } from '@/lib/shared-store';
 
 const MAX_FAILURES = 5;
 const WINDOW_MS = 15 * 60 * 1000;
@@ -51,12 +59,42 @@ function live(key: string, now: number): Entry | null {
   return entry;
 }
 
-export function isPairStepUpLocked(key: string, now = Date.now()): boolean {
+// ─── shared store ──────────────────────────────────────────────────────────
+
+/** The two counters of an account; the key itself holds a login name, so it is hashed. */
+function sharedLimits(key: string) {
+  const id = createHash('sha256').update(key).digest('base64url');
+  return [
+    { key: `pair-attempts:window:${id}`, max: MAX_FAILURES, windowMs: WINDOW_MS },
+    { key: `pair-attempts:day:${id}`, max: MAX_DAILY_FAILURES, windowMs: DAY_MS },
+  ];
+}
+
+// ─── API ───────────────────────────────────────────────────────────────────
+
+export async function isPairStepUpLocked(key: string, now = Date.now()): Promise<boolean> {
+  if (isSharedMode()) {
+    const limits = sharedLimits(key);
+    const counts = await Promise.all(limits.map((limit) => getStore().counters.get(limit.key, now)));
+    return limits.some((limit, i) => (counts[i]?.count ?? 0) >= limit.max);
+  }
+  return isLockedLocal(key, now);
+}
+
+export async function recordPairStepUpFailure(key: string, now = Date.now()): Promise<void> {
+  if (isSharedMode()) {
+    await getStore().counters.reserve(sharedLimits(key).map((limit) => ({ ...limit, max: Infinity })), now);
+    return;
+  }
+  recordFailureLocal(key, now);
+}
+
+function isLockedLocal(key: string, now: number): boolean {
   const entry = live(key, now);
   return !!entry && (entry.failures >= MAX_FAILURES || entry.daily >= MAX_DAILY_FAILURES);
 }
 
-export function recordPairStepUpFailure(key: string, now = Date.now()): void {
+function recordFailureLocal(key: string, now: number): void {
   const entry = live(key, now);
   if (entry) {
     entry.failures += 1;
@@ -74,9 +112,16 @@ export function recordPairStepUpFailure(key: string, now = Date.now()): void {
  * Start a step-up: false when the account is locked out, otherwise the
  * attempt is counted as a failure until {@link settlePairStepUp} says better.
  */
-export function beginPairStepUp(key: string, now = Date.now()): boolean {
-  if (isPairStepUpLocked(key, now)) return false;
-  recordPairStepUpFailure(key, now);
+export async function beginPairStepUp(key: string, now = Date.now()): Promise<boolean> {
+  if (isSharedMode()) {
+    // Check and count in one step, so parallel attempts on several replicas
+    // can't all pass before the first one is counted.
+    return (await getStore().counters.reserve(sharedLimits(key), now)).ok;
+  }
+  // Check and count with nothing in between, as parallel requests would
+  // otherwise all pass the check.
+  if (isLockedLocal(key, now)) return false;
+  recordFailureLocal(key, now);
   return true;
 }
 
@@ -85,12 +130,20 @@ export function beginPairStepUp(key: string, now = Date.now()): boolean {
  * count, a wrong credential keeps its failure, anything else (the server was
  * unreachable, pairing is unavailable) gives the attempt back.
  */
-export function settlePairStepUp(key: string, outcome: 'success' | 'wrong_credential' | 'other'): void {
+export async function settlePairStepUp(
+  key: string,
+  outcome: 'success' | 'wrong_credential' | 'other',
+  now = Date.now(),
+): Promise<void> {
   if (outcome === 'success') {
-    clearPairStepUpFailures(key);
+    await clearPairStepUpFailures(key);
     return;
   }
   if (outcome === 'other') {
+    if (isSharedMode()) {
+      await getStore().counters.refund(sharedLimits(key).map((limit) => ({ key: limit.key })), now);
+      return;
+    }
     const entry = store().get(key);
     if (entry) {
       entry.failures = Math.max(0, entry.failures - 1);
@@ -99,6 +152,10 @@ export function settlePairStepUp(key: string, outcome: 'success' | 'wrong_creden
   }
 }
 
-export function clearPairStepUpFailures(key: string): void {
+export async function clearPairStepUpFailures(key: string): Promise<void> {
+  if (isSharedMode()) {
+    await Promise.all(sharedLimits(key).map((limit) => getStore().counters.reset(limit.key)));
+    return;
+  }
   store().delete(key);
 }
