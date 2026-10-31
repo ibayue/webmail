@@ -28,6 +28,7 @@ vi.mock('@/lib/admin/config-manager', () => ({
       organisation: { disclaimer: { html: '<p>Acme GmbH</p>', text: 'Acme GmbH' } },
       scopes: SCOPES,
     }),
+    getPolicyWithVersion() { return { policy: this.getPolicy(), version: 'v1' }; },
   },
 }));
 const logs = vi.hoisted(() => ({ calls: [] as unknown[][] }));

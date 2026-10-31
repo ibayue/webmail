@@ -283,7 +283,18 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Cross-origin request rejected' }, { status: 403 });
     }
     const ip = getClientIP(request);
-    await clearAdminSessionCookie();
+    try {
+      await clearAdminSessionCookie();
+    } catch (error) {
+      if (!isStoreUnavailable(error)) throw error;
+      // The cookie is gone from this browser, but the sign-out couldn't be
+      // stored, so a copy of the cookie isn't refused yet.
+      await auditLog('admin.logout', { stored: false }, ip);
+      return NextResponse.json(
+        { error: 'Signed out in this browser, but the sign-out could not be saved, so a copy of the session still works until it expires. Try signing out again in a moment.' },
+        { status: 503, headers: { 'Retry-After': '10' } },
+      );
+    }
     await auditLog('admin.logout', {}, ip);
     return NextResponse.json({ ok: true });
   } catch (error) {

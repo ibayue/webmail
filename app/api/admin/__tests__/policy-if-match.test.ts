@@ -94,6 +94,22 @@ describe('policy save with If-Match', () => {
     expect((await stored()).forceEnabledPlugins).toEqual([]);
   });
 
+  it('drops a deleted plugin without undoing a save another replica made on the same volume', async () => {
+    await load();
+    await writeFile(path.join(dir, 'policy.json'), JSON.stringify({ features: { calendarEnabled: false }, forceEnabledPlugins: ['demo', 'other'] }));
+    await forgetExtensionInPolicy('plugin', 'demo');
+    expect((await stored()).forceEnabledPlugins).toEqual(['other']);
+    expect((await stored()).features.calendarEnabled).toBe(false);
+  });
+
+  it('answers a save with what it stored', async () => {
+    const page = await load();
+    const res = await save({ ...page.policy, features: { ...(page.policy.features as object), calendarEnabled: false } }, page.etag);
+    const body = await res.json();
+    expect(body.policy.features.calendarEnabled).toBe(false);
+    expect(res.headers.get('ETag')).toBe((await load()).etag);
+  });
+
   it('replaces the policy without If-Match, as before', async () => {
     await load();
     await configManager.setPolicy({ ...configManager.getPolicy(), forceEnabledPlugins: [] });

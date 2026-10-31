@@ -39,6 +39,8 @@ import { separateFakeStore } from './shared-store-fake';
 
 let dir: string;
 let store: ReturnType<typeof separateFakeStore>;
+/** Runs inside the store's document calls, to land another replica's change mid-request. */
+const hooks: { onGet?: (id: string) => Promise<void>; afterUpdate?: (id: string) => Promise<void> } = {};
 
 const stored = async (id: string) => {
   const doc = await adminConfigDocs().get(id);
@@ -71,6 +73,24 @@ beforeEach(async () => {
   resetLocalStoreForTests();
   resetChangesForTests();
   store = separateFakeStore(path.join(dir, 'store'));
+  const collection = store.collection.bind(store);
+  store.collection = (name, options) => {
+    const docs = collection(name, options);
+    return {
+      ...docs,
+      get: async (id) => {
+        await hooks.onGet?.(id);
+        return docs.get(id);
+      },
+      update: async (id, fn, updateOptions) => {
+        const result = await docs.update(id, fn, updateOptions);
+        const hook = hooks.afterUpdate;
+        hooks.afterUpdate = undefined;
+        await hook?.(id);
+        return result;
+      },
+    };
+  };
   setStoreForTests(store);
   await store.epochs.bump(INIT_EPOCH);
   await adminConfigDocs().put('config.json', JSON.stringify({ appName: 'First', setupComplete: true }));
@@ -81,6 +101,8 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
+  hooks.onGet = undefined;
+  hooks.afterUpdate = undefined;
   setStoreForTests(null);
   resetChangesForTests();
   resetLocalStoreForTests();
@@ -160,7 +182,82 @@ describe('config manager with a shared store', () => {
   });
 });
 
+describe('change notices racing writes', () => {
+  it('fails a reload when writes of this replica kept landing while it read, so the poller tries again', async () => {
+    let reads = 0;
+    let n = 0;
+    hooks.onGet = async (id) => {
+      if (id !== 'config.json') return;
+      reads++;
+      await configManager.setAdminConfig({ loginShowVersion: ++n % 2 === 0 });
+    };
+    // The listener the change poller runs for a remote change.
+    const reload = (configManager as unknown as { reloadShared(area: string): Promise<void> }).reloadShared('config');
+    await expect(reload).rejects.toThrow(/kept changing/);
+    expect(reads).toBe(3);
+  });
+
+  it('keeps another replica\'s change that was reloaded while a save of this one was in flight', async () => {
+    hooks.afterUpdate = async () => {
+      const current = await stored('config.json');
+      await otherReplicaSaves('config.json', { ...current, appName: 'Saved elsewhere' });
+      await pollChanges();
+    };
+    await configManager.setAdminConfig({ loginShowVersion: false });
+    expect(configManager.get('appName')).toBe('Saved elsewhere');
+    expect(configManager.get('loginShowVersion')).toBe(false);
+  });
+});
+
+describe('updateAdminConfig with a shared store', () => {
+  it('builds each of two saves on two replicas on the other\'s result', async () => {
+    const other = await otherReplicaManager();
+    const add = (host: string) => (list: Array<{ host: string }>) => [...list, { host }];
+    await Promise.all([
+      configManager.updateAdminConfig('domainBranding', add('a.example'), []),
+      other.updateAdminConfig('domainBranding', add('b.example'), []),
+    ]);
+    const hosts = (await stored('config.json')).domainBranding.map((e: { host: string }) => e.host).sort();
+    expect(hosts).toEqual(['a.example', 'b.example']);
+  });
+
+  it('starts from the value get() would give and leaves the config alone on undefined', async () => {
+    vi.stubEnv('APP_NAME', 'From env');
+    expect(await configManager.updateAdminConfig<string>('appName', (current) => `${current}!`)).toBe('First!');
+    await configManager.removeAdminOverride('appName');
+    expect(await configManager.updateAdminConfig<string>('appName', (current) => `${current}!`)).toBe('From env!');
+    const before = await adminConfigDocs().get('config.json');
+    expect(await configManager.updateAdminConfig('appName', () => undefined)).toBeUndefined();
+    expect((await adminConfigDocs().get('config.json'))!.version).toBe(before!.version);
+  });
+});
+
 describe('policy saves with a shared store', () => {
+  it('lets a save replace a stored policy that doesn\'t parse', async () => {
+    await adminConfigDocs().put('policy.json', '{ not json');
+    await store.epochs.bump('policy');
+    await pollChanges();
+    const page = await load();
+    expect(page.etag).toBe(`"${(await adminConfigDocs().get('policy.json'))!.version}"`);
+    expect((await save(page.policy, page.etag)).status).toBe(200);
+    expect(await stored('policy.json')).toMatchObject({ features: page.policy.features });
+
+    // The same after a restart.
+    await adminConfigDocs().put('policy.json', '{ not json');
+    await configManager.reload();
+    const again = await load();
+    expect((await save(again.policy, again.etag)).status).toBe(200);
+  });
+
+  it('answers a save with the stored policy and its version', async () => {
+    const page = await load();
+    const res = await save({ ...page.policy, features: { ...page.policy.features, calendarEnabled: false } }, page.etag);
+    const body = await res.json();
+    expect(body.policy.features.calendarEnabled).toBe(false);
+    expect(body.policy.scopes).toEqual([]);
+    expect(res.headers.get('ETag')).toBe(`"${(await adminConfigDocs().get('policy.json'))!.version}"`);
+  });
+
   async function load() {
     const res = await GET(new NextRequest('https://mail.example/api/admin/policy'));
     return { policy: await res.json(), etag: res.headers.get('ETag')! };

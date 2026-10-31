@@ -130,6 +130,11 @@ export interface LocalLayout {
    * depend on it. Default: `<target>.<pid>.<random>.tmp`.
    */
   tmpName?: (target: string) => string;
+  /**
+   * Flush the temp file to disk before the rename (open with `wx`, write,
+   * fsync, close), for documents that must survive a power cut.
+   */
+  fsync?: boolean;
 }
 
 export interface CollectionOptions {
@@ -205,6 +210,13 @@ export interface LogOptions {
 export interface AppendLog {
   /** One line, without a newline. Lines are never interleaved or torn. */
   append(line: string): Promise<void>;
+  /**
+   * Several lines in one call, in this order; no other writer's line lands
+   * between them. For bulk copies such as the import.
+   */
+  appendMany(lines: string[]): Promise<void>;
+  /** Remove every line readAll returns (local: the current file; rotated files stay). */
+  clear(): Promise<void>;
   /** Every line, oldest first (local: the current file only, as today). */
   readAll(): Promise<string[]>;
   length(): Promise<number>;

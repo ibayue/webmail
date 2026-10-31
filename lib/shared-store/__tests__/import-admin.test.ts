@@ -17,8 +17,12 @@ import { resetLocalStoreForTests } from '../local';
 import { separateFakeStore } from '@/lib/admin/__tests__/shared-store-fake';
 import { adminConfigDocs, adminStateDocs } from '@/lib/admin/admin-store';
 import { AUDIT_LOG_OPTIONS } from '@/lib/admin/audit';
+import { INIT_EPOCH } from '../changes';
 
 let dir: string;
+let store: ReturnType<typeof separateFakeStore>;
+/** Store calls of the shared audit log; `failAfter` makes the n+1st batch fail, as an outage would. */
+const calls = { append: 0, appendMany: 0, failAfter: Infinity };
 const config = (file: string) => path.join(dir, 'config', file);
 const state = (file: string) => path.join(dir, 'state', file);
 const LOCAL: Record<string, string> = {};
@@ -42,7 +46,26 @@ beforeEach(() => {
     LOCAL[file] = content;
   }
   resetLocalStoreForTests();
-  setStoreForTests(separateFakeStore(path.join(dir, 'store')));
+  store = separateFakeStore(path.join(dir, 'store'));
+  const log = store.log.bind(store);
+  calls.append = 0;
+  calls.appendMany = 0;
+  calls.failAfter = Infinity;
+  store.log = (name, options) => {
+    const inner = log(name, options);
+    return {
+      ...inner,
+      append: async (line) => {
+        calls.append++;
+        return inner.append(line);
+      },
+      appendMany: async (lines) => {
+        if (++calls.appendMany > calls.failAfter) throw new Error('store went away (test)');
+        return inner.appendMany(lines);
+      },
+    };
+  };
+  setStoreForTests(store);
 });
 
 afterEach(() => {
@@ -71,6 +94,34 @@ describe('admin import', () => {
       expect(readFileSync(file, 'utf-8')).toBe(LOCAL[file]);
       expect(statSync(file).mtimeMs).toBe(mtimes[i]);
     });
+  });
+
+  it('copies a long audit log in batches, in order', async () => {
+    const lines = Array.from({ length: 1201 }, (_, i) => JSON.stringify({ ts: String(i), action: 'admin.login', detail: {}, ip: '1' }));
+    writeFileSync(state('audit.log'), lines.map((l) => `${l}\n`).join(''));
+    expect((await importLocalData(steps)).imported.audit).toBe(1201);
+    expect(calls).toMatchObject({ append: 0, appendMany: 3 });
+    expect(await getStore().log('audit', AUDIT_LOG_OPTIONS).readAll()).toEqual(lines);
+  });
+
+  it('redoes an audit import that stopped halfway, without doubling lines', async () => {
+    const lines = Array.from({ length: 1100 }, (_, i) => JSON.stringify({ ts: String(i), action: 'admin.login', detail: {}, ip: '1' }));
+    writeFileSync(state('audit.log'), lines.map((l) => `${l}\n`).join(''));
+    calls.failAfter = 1;
+    await expect(importLocalData(steps)).rejects.toThrow(/went away/);
+    expect(await getStore().log('audit', AUDIT_LOG_OPTIONS).length()).toBe(500);
+
+    calls.failAfter = Infinity;
+    expect((await importLocalData(steps)).imported.audit).toBe(1100);
+    expect(await getStore().log('audit', AUDIT_LOG_OPTIONS).readAll()).toEqual(lines);
+    expect((await importLocalData(steps)).imported.audit).toBe(0);
+  });
+
+  it('leaves the log of a running deployment alone on a forced re-run', async () => {
+    await store.epochs.bump(INIT_EPOCH);
+    await getStore().log('audit', AUDIT_LOG_OPTIONS).append('{"ts":"9","action":"admin.login","detail":{},"ip":"2"}');
+    expect((await importLocalData(steps)).imported.audit).toBe(0);
+    expect(await getStore().log('audit', AUDIT_LOG_OPTIONS).length()).toBe(1);
   });
 
   it('keeps what the store already holds', async () => {

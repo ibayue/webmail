@@ -87,6 +87,28 @@ describe('change notices', () => {
     expect(seen).toEqual(['local', 'local', 'remote']);
   });
 
+  it('sends a change notice again when the store was unreachable right after the write', async () => {
+    const store = fakeSharedStore();
+    setStoreForTests(store);
+    await store.epochs.bump(INIT_EPOCH);
+    await markEpochsSeen();
+    const bump = store.epochs.bump.bind(store.epochs);
+    let fail = true;
+    store.epochs.bump = async (area: string) => {
+      if (fail) throw new Error('connection dropped');
+      return bump(area);
+    };
+    await announceChange('config');
+    expect((await store.epochs.all()).config).toBeUndefined();
+    await pollChanges(); // still down
+    expect((await store.epochs.all()).config).toBeUndefined();
+    fail = false;
+    await pollChanges();
+    expect((await store.epochs.all()).config).toBe(1);
+    await pollChanges();
+    expect((await store.epochs.all()).config).toBe(1); // sent once, not every poll
+  });
+
   it('retries a listener that failed on the next poll', async () => {
     const store = fakeSharedStore();
     setStoreForTests(store);

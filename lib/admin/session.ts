@@ -266,12 +266,13 @@ export async function clearAdminSessionCookie(): Promise<void> {
   try {
     await revokeAdminSession(payload.sid, payload.exp);
   } catch (error) {
-    // Local mode keeps it in memory regardless; only a restart forgets it.
-    // A shared store that is down keeps every admin request out until it
-    // is back, but then the token works again until it expires.
     logger.warn('Failed to save the admin session sign-out', {
       error: error instanceof Error ? error.message : 'Unknown error',
     });
+    // Local mode keeps it in memory regardless; only a restart forgets it.
+    // With a shared store nothing kept it: once the store is back a copy of
+    // the cookie would work again until it expires, so the caller is told.
+    if (isStoreUnavailable(error)) throw error;
   }
 }
 

@@ -58,20 +58,24 @@ export function useOrgPolicyDraft(dirtyId: string) {
   const scopeId = useOrgScopeStore((s) => s.scopeId);
   const setScopeId = useOrgScopeStore((s) => s.setScopeId);
 
+  /** Start editing from `data`, the policy stored at version `etag`. */
+  const adopt = useCallback((data: SettingsPolicy, etag: string | null) => {
+    policyETag.current = etag;
+    const normalised = { ...DEFAULT_POLICY, ...data, organisation: sanitizeOrganisationPolicy(data.organisation), scopes: data.scopes ?? [] };
+    setPolicy(normalised);
+    setSaved(clone(normalised));
+  }, []);
+
   const load = useCallback(async () => {
     try {
       const res = await apiFetch('/api/admin/policy');
       if (!res.ok) throw new Error();
-      const data = (await res.json()) as SettingsPolicy;
-      policyETag.current = res.headers.get('ETag');
-      const normalised = { ...DEFAULT_POLICY, ...data, organisation: sanitizeOrganisationPolicy(data.organisation), scopes: data.scopes ?? [] };
-      setPolicy(normalised);
-      setSaved(clone(normalised));
+      adopt((await res.json()) as SettingsPolicy, res.headers.get('ETag'));
     } catch {
       setMessage({ type: 'error', text: 'Could not load the policy' });
       setPolicy((p) => p ?? { ...DEFAULT_POLICY, organisation: clone(DEFAULT_ORGANISATION_POLICY), scopes: [] });
     }
-  }, [setMessage]);
+  }, [adopt, setMessage]);
 
   useEffect(() => { void load(); }, [load]);
 
@@ -194,8 +198,11 @@ export function useOrgPolicyDraft(dirtyId: string) {
         body: JSON.stringify(policy),
       });
       if (res.ok) {
-        // The server sanitises; show what it kept.
-        await load();
+        // The server sanitises; show what it kept. From the answer, not a new
+        // read, which another instance might serve before it has the change.
+        const stored = ((await res.json().catch(() => null)) as { policy?: SettingsPolicy } | null)?.policy;
+        if (stored) adopt(stored, res.headers.get('ETag'));
+        else await load();
         setMessage({ type: 'success', text: 'Saved. Users get the change the next time Bulwark loads.' });
       } else {
         const data = await res.json().catch(() => ({}));

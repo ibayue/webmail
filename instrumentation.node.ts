@@ -80,16 +80,19 @@ migrateLegacyAdminLayout()
     // or with BULWARK_TELEMETRY=on; BULWARK_TELEMETRY=off or an empty
     // collector URL keeps it from sending.
     // See https://bulwarkmail.org/docs/legal/privacy/telemetry
-    const { startScheduler, markProcessStart } = await import("./lib/telemetry");
+    const { startScheduler, stopScheduler, markProcessStart } = await import("./lib/telemetry");
     markProcessStart();
-    await startScheduler();
-  })
-  .then(async () => {
     // Hourly check against version.telemetry.bulwarkmail.org. Disable with
     // BULWARK_UPDATE_CHECK=off or override the endpoint with
     // BULWARK_UPDATE_CHECK_URL.
-    const { startScheduler } = await import("./lib/version-check");
-    await startScheduler();
+    const versionCheck = await import("./lib/version-check");
+    // Both run on one replica of the deployment, the scheduler leader
+    // (#1066); a single instance always leads.
+    const { startSchedulerLeader } = await import("./lib/scheduler-leader");
+    await startSchedulerLeader([
+      { name: "telemetry", start: startScheduler, stop: stopScheduler },
+      { name: "version-check", start: versionCheck.startScheduler, stop: versionCheck.stopScheduler },
+    ]);
   })
   .catch((err) => {
     console.warn("Admin dashboard init skipped:", err instanceof Error ? err.message : err);

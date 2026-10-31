@@ -10,13 +10,14 @@ import { fakeSharedStore } from '@/lib/shared-store/__tests__/fake-shared';
  * Redis would hold them apart from this replica's files. Without that, code
  * that still read and wrote its local files would pass for shared.
  *
- * `down` makes every document, log and counter call fail as an outage would.
+ * `down` makes every document, log, counter and kv call fail as an outage would.
  */
 export function separateFakeStore(root: string): SharedStore & { down: boolean } {
   const fake = fakeSharedStore();
   const guard = <T>(fn: () => Promise<T>): Promise<T> =>
     fake.down ? Promise.reject(new StoreUnavailableError('down (test)')) : fn();
   const counters = fake.counters;
+  const kv = fake.kv;
   return Object.assign(fake, {
     collection(name: string, options: CollectionOptions) {
       // Read-only config comes from the mounted files, as in the Redis store.
@@ -35,9 +36,18 @@ export function separateFakeStore(root: string): SharedStore & { down: boolean }
       const log = localLog(name, { ...options, local: { ...options.local, path: () => path.join(root, 'logs', `${name}.log`) } });
       return {
         append: (line: string) => guard(() => log.append(line)),
+        appendMany: (lines: string[]) => guard(() => log.appendMany(lines)),
+        clear: () => guard(() => log.clear()),
         readAll: () => guard(() => log.readAll()),
         length: () => guard(() => log.length()),
       };
+    },
+    kv: {
+      get: (key: string) => guard(() => kv.get(key)),
+      set: (...args: Parameters<typeof kv.set>) => guard(() => kv.set(...args)),
+      del: (key: string) => guard(() => kv.del(key)),
+      take: (key: string) => guard(() => kv.take(key)),
+      update: (...args: Parameters<typeof kv.update>) => guard(() => kv.update(...args)),
     },
     counters: {
       reserve: (...args: Parameters<typeof counters.reserve>) => guard(() => counters.reserve(...args)),

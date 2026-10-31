@@ -1,4 +1,4 @@
-import { getStore, type CollectionOptions, type DocCollection } from '@/lib/shared-store';
+import { getStore, isStoreUnavailableError, type CollectionOptions, type DocCollection } from '@/lib/shared-store';
 import { getConfigDir, getStateDir } from './paths';
 
 /**
@@ -32,12 +32,7 @@ export function adminStateDocs(): DocCollection {
   return getStore().collection(ADMIN_STATE_COLLECTION, adminStateOptions);
 }
 
-/**
- * Whether `error` is the shared store's StoreUnavailableError. By name, not
- * instanceof: the store on globalThis may come from another bundle's copy
- * of the shared-store module (proxy, instrumentation, routes), whose class
- * is a different object.
- */
+/** Whether `error` is the shared store's StoreUnavailableError, from any bundle's module copy. */
 export function isStoreUnavailable(error: unknown): boolean {
-  return error instanceof Error && error.name === 'StoreUnavailableError';
+  return isStoreUnavailableError(error);
 }
