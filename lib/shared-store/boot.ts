@@ -49,6 +49,9 @@ function sleep(ms: number): Promise<void> {
 
 async function waitForStore(): Promise<void> {
   const store = getStore();
+  // The client connects by itself; give the first connection a moment
+  // before calling the store unreachable.
+  await Promise.race([store.ready(), sleep(5000)]);
   let warned = false;
   for (;;) {
     try {
