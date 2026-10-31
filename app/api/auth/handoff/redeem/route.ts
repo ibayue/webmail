@@ -40,11 +40,11 @@ export async function POST(request: NextRequest) {
     }
     if (!isHandoffCodeVerifier(verifier)) {
       // Still spend the code: a malformed verifier is a wrong one.
-      redeemHandoff(code, '');
+      await redeemHandoff(code, '');
       return NextResponse.json({ error: 'invalid_verifier' }, { status: 400, headers: NO_STORE });
     }
 
-    const result = redeemHandoff(code, verifier);
+    const result = await redeemHandoff(code, verifier);
     if (!result.ok) {
       const error = result.reason === 'verifier_mismatch' ? 'invalid_verifier' : `${result.reason}_code`;
       logger.warn('Mobile hand-off redeem refused', { reason: result.reason });

@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json().catch(() => null);
     const code = body?.code;
-    if (!isHandoffCode(code) || !confirmHandoff(code)) {
+    if (!isHandoffCode(code) || !(await confirmHandoff(code))) {
       return NextResponse.json({ error: 'invalid_code' }, { status: 400, headers: NO_STORE });
     }
     return NextResponse.json({ ok: true }, { headers: NO_STORE });

@@ -174,8 +174,8 @@ describe('/api/auth/sso/complete for an app that sent a PKCE challenge', () => {
     expect(JSON.stringify(res.body)).not.toMatch(/"at"|"rt"/);
     expect(jar.has('jmap_rt')).toBe(false);
 
-    expect(confirmHandoff(res.body.mobile_handoff_code)).toBe(true);
-    const redeemed = redeemHandoff(res.body.mobile_handoff_code, VERIFIER);
+    expect(await confirmHandoff(res.body.mobile_handoff_code)).toBe(true);
+    const redeemed = await redeemHandoff(res.body.mobile_handoff_code, VERIFIER);
     expect(redeemed).toMatchObject({
       ok: true,
       state: 'm-1',

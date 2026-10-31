@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'too_many_requests' }, { status: 429, headers: NO_STORE });
     }
 
-    const code = stashHandoff(
+    const code = await stashHandoff(
       { flow: 'password', server_url: body.server_url, username: body.username, password: body.password },
       { challenge, state },
     );
