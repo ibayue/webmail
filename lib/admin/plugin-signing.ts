@@ -12,16 +12,32 @@
 
 import { generateKeyPairSync, createPrivateKey, createPublicKey, sign as nodeSign, KeyObject } from 'node:crypto';
 import { readFile, writeFile, chmod } from 'node:fs/promises';
-import { existsSync } from 'node:fs';
 import { ensureConfigDir, getConfigPath, assertWritable } from './paths';
 import { logger } from '@/lib/logger';
 
 const KEY_FILENAME = 'plugin-signing.key';
 
-let cached: { privateKey: KeyObject; publicKey: KeyObject } | null = null;
-let initPromise: Promise<void> | null = null;
+type KeyPair = { privateKey: KeyObject; publicKey: KeyObject };
 
-function parseKey(pem: string, source: string): { privateKey: KeyObject; publicKey: KeyObject } {
+/**
+ * The loaded key, on globalThis: Next evaluates this module once per bundle
+ * entry (three times in the build), and every copy must sign with the same
+ * key and share one load.
+ */
+interface SigningGlobals {
+  cached: KeyPair | null;
+  init: Promise<void> | null;
+  /** Bumped by invalidatePluginSigningCache, so a load that started before doesn't win. */
+  generation: number;
+}
+const GLOBAL_KEY = Symbol.for('bulwark.admin.pluginSigning');
+
+function signingGlobals(): SigningGlobals {
+  const g = globalThis as typeof globalThis & { [GLOBAL_KEY]?: SigningGlobals };
+  return (g[GLOBAL_KEY] ??= { cached: null, init: null, generation: 0 });
+}
+
+function parseKey(pem: string, source: string): KeyPair {
   let privateKey: KeyObject;
   try {
     if (!pem.includes('-----BEGIN PRIVATE KEY-----')) throw new Error('not PKCS#8 PEM');
@@ -53,52 +69,96 @@ async function loadOrCreate(): Promise<{ privateKey: KeyObject; publicKey: KeyOb
   const externalPath = process.env.PLUGIN_SIGNING_KEY_FILE?.trim();
   if (externalPath) return loadExternal(externalPath);
 
+  return loadOrCreateFile();
+}
+
+async function readKeyFile(path: string): Promise<string | null> {
+  try {
+    return await readFile(path, 'utf-8');
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code === 'ENOENT') return null;
+    throw err;
+  }
+}
+
+/**
+ * The key file in the admin config dir, made on first use. Created with
+ * `wx`: when two writers start at once (two processes, or module copies
+ * that missed each other's load), only one key is ever written and the
+ * other writer reads it back, so every signature verifies against the same
+ * key. Before, the last write won and signatures made with the first key
+ * stopped verifying.
+ */
+async function loadOrCreateFile(): Promise<KeyPair> {
   await ensureConfigDir();
   const path = getConfigPath(KEY_FILENAME);
 
-  if (existsSync(path)) {
-    const pem = await readFile(path, 'utf-8');
-    return parseKey(pem, KEY_FILENAME);
-  }
+  const existing = await readKeyFile(path);
+  if (existing !== null) return parseExistingKey(path, existing);
 
-  // First boot: generate and persist. Use sync APIs so a half-written file
-  // never lingers if the process dies between writes.
   assertWritable('plugin-signing.generateKeypair');
   const { privateKey, publicKey } = generateKeyPairSync('ed25519');
   const pem = privateKey.export({ type: 'pkcs8', format: 'pem' }) as string;
-  await writeFile(path, pem, { encoding: 'utf-8', mode: 0o600 });
+  try {
+    await writeFile(path, pem, { encoding: 'utf-8', mode: 0o600, flag: 'wx' });
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code !== 'EEXIST') throw err;
+    // Someone else made the key first: use theirs.
+    return parseExistingKey(path, (await readKeyFile(path)) ?? '');
+  }
   // Ensure 0600 on filesystems that ignored mode on writeFile.
   try { await chmod(path, 0o600); } catch { /* best effort */ }
   logger.info('[plugin-signing] generated new Ed25519 keypair');
   return { privateKey, publicKey };
 }
 
-async function ensureLoaded(): Promise<void> {
-  if (cached) return;
-  if (!initPromise) {
-    initPromise = (async () => {
+/**
+ * Parse a key file another writer may still be writing: an empty or cut
+ * off file is read again for up to a second before it counts as broken.
+ */
+async function parseExistingKey(path: string, pem: string): Promise<KeyPair> {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return parseKey(pem, KEY_FILENAME);
+    } catch (err) {
+      if (attempt >= 20 || pem.includes('-----END PRIVATE KEY-----')) throw err;
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      pem = (await readKeyFile(path)) ?? '';
+    }
+  }
+}
+
+async function ensureLoaded(): Promise<KeyPair> {
+  const g = signingGlobals();
+  if (g.cached) return g.cached;
+  if (!g.init) {
+    const generation = g.generation;
+    g.init = (async () => {
       try {
-        cached = await loadOrCreate();
+        const loaded = await loadOrCreate();
+        // A rotation (invalidatePluginSigningCache) during the load wins.
+        if (g.generation === generation) g.cached = loaded;
       } catch (err) {
-        initPromise = null;
+        if (g.generation === generation) g.init = null;
         logger.error('[plugin-signing] keypair load failed', { error: err instanceof Error ? err.message : String(err) });
         throw err;
       }
     })();
   }
-  await initPromise;
+  await g.init;
+  return g.cached ?? ensureLoaded();
 }
 
 // ─── Public API ──────────────────────────────────────────────
 
 /** Returns the public key as a raw 32-byte Uint8Array (Ed25519 standard form). */
 export async function getPublicKeyRaw(): Promise<Uint8Array> {
-  await ensureLoaded();
+  const { publicKey } = await ensureLoaded();
   // Export as SPKI DER and pull the last 32 bytes (the raw key after the
   // 12-byte AlgorithmIdentifier prefix). Node has no built-in raw export
   // for Ed25519, but the SPKI prefix is fixed for Ed25519 so the slice is
   // safe.
-  const spki = cached!.publicKey.export({ type: 'spki', format: 'der' }) as Buffer;
+  const spki = publicKey.export({ type: 'spki', format: 'der' }) as Buffer;
   if (spki.length < 32) throw new Error('SPKI export too short');
   return new Uint8Array(spki.subarray(spki.length - 32));
 }
@@ -111,14 +171,16 @@ export async function getPublicKeyBase64(): Promise<string> {
 
 /** Sign `bytes` and return a base64-encoded 64-byte Ed25519 signature. */
 export async function signBytes(bytes: Uint8Array | string): Promise<string> {
-  await ensureLoaded();
+  const { privateKey } = await ensureLoaded();
   const data = typeof bytes === 'string' ? Buffer.from(bytes, 'utf-8') : Buffer.from(bytes);
-  const sig = nodeSign(null, data, cached!.privateKey);
+  const sig = nodeSign(null, data, privateKey);
   return sig.toString('base64');
 }
 
 /** Force a re-read on next access. Used after operator rotates the key. */
 export function invalidatePluginSigningCache(): void {
-  cached = null;
-  initPromise = null;
+  const g = signingGlobals();
+  g.cached = null;
+  g.init = null;
+  g.generation++;
 }
