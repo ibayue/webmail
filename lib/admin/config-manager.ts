@@ -2,7 +2,7 @@ import { readFile, writeFile, rename, stat } from 'node:fs/promises';
 import { configureLogger, logger } from '@/lib/logger';
 import { readFileEnv } from '@/lib/read-file-env';
 import { CONFIG_ENV_MAP, DEFAULT_FEATURE_GATES, DEFAULT_POLICY, DEFAULT_THEME_POLICY, type SettingsPolicy } from './types';
-import { ensureConfigDir, getConfigPath, assertWritable } from './paths';
+import { ensureConfigDir, getConfigPath, assertWritable, isConfigReadOnly } from './paths';
 import { isValidRelayUrl, normalizeRelayUrl } from '@/lib/push-relays';
 import { sanitizeDefaultSidebarApps } from '@/lib/sidebar-apps';
 import { sanitizePolicyDefaults } from './policy-defaults';
@@ -10,6 +10,9 @@ import { sanitizeOrganisationPolicy } from './organisation-policy';
 import { sanitizeRestrictions, sanitizeScopes } from './policy-scopes';
 import { versionOf } from '@/lib/shared-store/keys';
 import { serializeLocal } from '@/lib/shared-store/local';
+import { isSharedMode, type StoredDoc } from '@/lib/shared-store';
+import { announceChange, onSharedChange } from '@/lib/shared-store/changes';
+import { adminConfigDocs } from './admin-store';
 
 function parseEnvValue(value: string, type: string): unknown {
   switch (type) {
@@ -69,6 +72,15 @@ function parseDoc(raw: string): ParsedDoc {
   return { data: JSON.parse(raw), version: versionOf(Buffer.from(raw, 'utf-8')) };
 }
 
+/** A document from the shared store; throws when it doesn't parse. */
+function parseStored(doc: StoredDoc | null): ParsedDoc | null {
+  return doc ? { data: JSON.parse(doc.data.toString('utf-8')), version: doc.version } : null;
+}
+
+/** Which stored document a change area reloads. */
+const AREA_FILES = { config: 'config.json', policy: 'policy.json' } as const;
+type ConfigArea = keyof typeof AREA_FILES;
+
 /** Changes whenever the file is replaced or rewritten; null when it is missing. */
 async function fileStamp(filename: string): Promise<string | null> {
   try {
@@ -88,9 +100,24 @@ class ConfigManager {
   private fileStamps: Partial<Record<WatchedFile, string | null>> = {};
   private lastChangeCheck = 0;
   private changeCheck: Promise<void> | null = null;
+  /** Shared mode: the first load, shared by every request that waits for it. */
+  private sharedLoad: Promise<void> | null = null;
+  /** Shared mode: counts writes applied from their result, so a reload that raced one reads again. */
+  private writes = 0;
+  private unlisten: (() => void) | null = null;
+
+  /**
+   * Shared mode (#1066): config and policy live in the shared store, and
+   * every replica reloads them when another one announces a change.
+   * Read-only config keeps reading the mounted files, as in local mode.
+   */
+  private usesStore(): boolean {
+    return isSharedMode() && !isConfigReadOnly();
+  }
 
   /** Load admin config and policy from disk. Called once at startup and on reload. */
   async load(): Promise<void> {
+    if (this.usesStore()) return this.loadShared();
     // Stamped before reading, so a write that lands mid-read is seen next time.
     const stamps = await this.readStamps();
     this.apply(await this.readJsonFile('config.json'), await this.readJsonFile('policy.json'));
@@ -101,12 +128,91 @@ class ConfigManager {
 
   private apply(config: ParsedDoc | null, policy: ParsedDoc | null): void {
     this.adminConfig = config?.data || {};
+    this.applyPolicyDoc(policy);
+    this.loaded = true;
+    this.applyLoggerSettings();
+  }
+
+  private applyPolicyDoc(policy: ParsedDoc | null): void {
     this.policyCache = policy?.data
       ? ConfigManager.completePolicy(policy.data as Partial<SettingsPolicy>)
       : { ...DEFAULT_POLICY };
     this.policyVersion = policy?.version ?? null;
-    this.loaded = true;
+  }
+
+  private async loadShared(): Promise<void> {
+    this.listenForChanges();
+    const docs = adminConfigDocs();
+    const [config, policy] = await Promise.all([docs.get('config.json'), docs.get('policy.json')]);
+    this.apply(this.parseOrWarn('config.json', config), this.parseOrWarn('policy.json', policy));
+    logger.debug('ConfigManager loaded from the shared store', { configKeys: Object.keys(this.adminConfig).length });
+  }
+
+  /** As a broken file on disk: logged, and the defaults apply. */
+  private parseOrWarn(filename: string, doc: StoredDoc | null): ParsedDoc | null {
+    try {
+      return parseStored(doc);
+    } catch (error) {
+      logger.warn(`Failed to read ${filename} from the shared store`, { error: error instanceof Error ? error.message : 'Unknown error' });
+      return null;
+    }
+  }
+
+  /** Reload config or policy when another replica changed it. Registered again on every load. */
+  private listenForChanges(): void {
+    this.unlisten?.();
+    const off = (Object.keys(AREA_FILES) as ConfigArea[]).map((area) =>
+      // A change of this process already replaced the copy in memory.
+      onSharedChange(area, (origin) => (origin === 'remote' ? this.reloadShared(area) : undefined)),
+    );
+    this.unlisten = () => off.forEach((fn) => fn());
+  }
+
+  /**
+   * Read one document again. Throws when the store can't be read or the
+   * document doesn't parse, keeping the copy in memory; the change poller
+   * then tries again.
+   */
+  private async reloadShared(area: ConfigArea): Promise<void> {
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const writes = this.writes;
+      const doc = parseStored(await adminConfigDocs().get(AREA_FILES[area]));
+      // A write of this process landed while reading: its result may be newer.
+      if (writes !== this.writes) continue;
+      if (area === 'config') {
+        this.adminConfig = doc?.data || {};
+        this.applyLoggerSettings();
+      } else {
+        this.applyPolicyDoc(doc);
+      }
+      return;
+    }
+  }
+
+  /**
+   * Shared mode: change the stored config.json with `change` (which edits
+   * the object it gets), so only the keys a request names change and a
+   * concurrent save of other keys on another replica stays.
+   */
+  private async updateSharedConfig(change: (config: Record<string, unknown>) => void): Promise<void> {
+    const inMemory = this.adminConfig;
+    const result = await adminConfigDocs().update('config.json', (current) => {
+      let base: Record<string, unknown> = {};
+      if (current) {
+        try {
+          base = JSON.parse(current.toString('utf-8'));
+        } catch {
+          // Broken in the store: start from this replica's copy, as a broken file would.
+          base = { ...inMemory };
+        }
+      }
+      change(base);
+      return JSON.stringify(base, null, 2);
+    });
+    this.writes++;
+    if (result.data) this.adminConfig = JSON.parse(result.data.toString('utf-8'));
     this.applyLoggerSettings();
+    await announceChange('config');
   }
 
   private async readStamps(): Promise<Partial<Record<WatchedFile, string | null>>> {
@@ -141,7 +247,8 @@ class ConfigManager {
 
   /** At most every CHANGE_CHECK_INTERVAL_MS: one stat per watched file. */
   private checkForChanges(): Promise<void> {
-    if (!this.loaded) return Promise.resolve();
+    // Shared mode hears of changes from the store instead (listenForChanges).
+    if (!this.loaded || this.usesStore()) return Promise.resolve();
     if (this.changeCheck) return this.changeCheck;
     const now = Date.now();
     if (now - this.lastChangeCheck < CHANGE_CHECK_INTERVAL_MS) return Promise.resolve();
@@ -163,10 +270,16 @@ class ConfigManager {
   /**
    * Ensure config is loaded. Once loaded, waits for the periodic check for
    * changes on disk when one is due (a stat per file, every few seconds).
+   * In shared mode a request never waits on the store once the config is
+   * loaded: changes arrive through the change notices.
    */
   async ensureLoaded(): Promise<void> {
-    if (!this.loaded) await this.load();
-    else await this.checkForChanges();
+    if (this.loaded) return this.checkForChanges();
+    if (!this.usesStore()) return this.load();
+    this.sharedLoad ??= this.load().finally(() => {
+      this.sharedLoad = null;
+    });
+    await this.sharedLoad;
   }
 
   /**
@@ -258,6 +371,7 @@ class ConfigManager {
    */
   async setAdminConfig(updates: Record<string, unknown>): Promise<void> {
     assertWritable('update admin config');
+    if (this.usesStore()) return this.updateSharedConfig((config) => Object.assign(config, updates));
     // Start from what is on disk, so a save here doesn't undo a change another
     // replica saved a moment ago. Same before every write below.
     await this.reloadIfChanged();
@@ -271,6 +385,11 @@ class ConfigManager {
    */
   async removeAdminOverride(key: string): Promise<void> {
     assertWritable('remove admin override');
+    if (this.usesStore()) {
+      return this.updateSharedConfig((config) => {
+        delete config[key];
+      });
+    }
     await this.reloadIfChanged();
     delete this.adminConfig[key];
     await this.writeJsonFile('config.json', this.adminConfig);
@@ -292,6 +411,11 @@ class ConfigManager {
    */
   async markSetupComplete(): Promise<void> {
     assertWritable('mark setup complete');
+    if (this.usesStore()) {
+      return this.updateSharedConfig((config) => {
+        config.setupComplete = true;
+      });
+    }
     await this.reloadIfChanged();
     this.adminConfig.setupComplete = true;
     await this.writeJsonFile('config.json', this.adminConfig);
@@ -322,6 +446,7 @@ class ConfigManager {
    */
   async setPolicy(policy: SettingsPolicy, options: { ifVersion?: string } = {}): Promise<string> {
     assertWritable('update settings policy');
+    if (this.usesStore()) return this.setSharedPolicy(policy, options.ifVersion);
     return serializeLocal(POLICY_WRITE_QUEUE, async () => {
       if (options.ifVersion !== undefined) {
         // Compare with what is on disk now, not with what this process saw last.
@@ -341,12 +466,47 @@ class ConfigManager {
    */
   async updatePolicy(change: (current: SettingsPolicy) => SettingsPolicy | undefined): Promise<void> {
     assertWritable('update settings policy');
+    if (this.usesStore()) return this.updateSharedPolicy(change);
     await serializeLocal(POLICY_WRITE_QUEUE, async () => {
       const next = change(this.policyCache);
       if (next === undefined) return;
       this.policyCache = ConfigManager.completePolicy(next);
       await this.writeJsonFile('policy.json', this.policyCache as unknown as Record<string, unknown>);
     });
+  }
+
+  private async setSharedPolicy(policy: SettingsPolicy, ifVersion: string | undefined): Promise<string> {
+    const completed = ConfigManager.completePolicy(policy);
+    const expected = ifVersion === DEFAULT_POLICY_VERSION ? null : ifVersion;
+    const result = await adminConfigDocs().put(
+      'policy.json',
+      JSON.stringify(completed, null, 2),
+      expected === undefined ? {} : { ifVersion: expected },
+    );
+    this.writes++;
+    if (!result.ok) {
+      // Show what is stored now, so a retry or a reload compares with it.
+      this.applyPolicyDoc(this.parseOrWarn('policy.json', result.current));
+      throw new PolicyConflictError();
+    }
+    this.policyCache = completed;
+    this.policyVersion = result.version;
+    await announceChange('policy');
+    return result.version;
+  }
+
+  private async updateSharedPolicy(change: (current: SettingsPolicy) => SettingsPolicy | undefined): Promise<void> {
+    const result = await adminConfigDocs().update('policy.json', (current) => {
+      const stored = current
+        ? ConfigManager.completePolicy(JSON.parse(current.toString('utf-8')) as Partial<SettingsPolicy>)
+        : ConfigManager.completePolicy({});
+      const next = change(stored);
+      return next === undefined ? undefined : JSON.stringify(ConfigManager.completePolicy(next), null, 2);
+    });
+    if (result.data === undefined) return;
+    this.writes++;
+    this.applyPolicyDoc(result.data && result.version ? parseStored({ data: result.data, version: result.version }) : null);
+    await announceChange('policy');
   }
 
   /**

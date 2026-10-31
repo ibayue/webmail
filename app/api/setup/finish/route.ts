@@ -8,6 +8,8 @@ import { clearSetupToken } from '@/lib/setup/token';
 import { ensureConfigDir, getConfigPath } from '@/lib/admin/paths';
 import { auditLog } from '@/lib/admin/audit';
 import { logger } from '@/lib/logger';
+import { isSharedMode } from '@/lib/shared-store';
+import { adminConfigDocs } from '@/lib/admin/admin-store';
 
 export const dynamic = 'force-dynamic';
 
@@ -77,12 +79,16 @@ export async function POST(request: NextRequest) {
 
     // 3. Optional advisory lock marker.
     if (lockConfig) {
-      await ensureConfigDir();
-      await writeFile(
-        getConfigPath('.config-locked'),
-        new Date().toISOString(),
-        'utf-8',
-      );
+      if (isSharedMode()) {
+        await adminConfigDocs().put('.config-locked', new Date().toISOString());
+      } else {
+        await ensureConfigDir();
+        await writeFile(
+          getConfigPath('.config-locked'),
+          new Date().toISOString(),
+          'utf-8',
+        );
+      }
     }
 
     // 4. Destroy the setup token. Any other browser holding the cookie is
