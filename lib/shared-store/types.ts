@@ -23,6 +23,16 @@ export class StoreUnavailableError extends Error {
   }
 }
 
+/**
+ * Whether `error` is a StoreUnavailableError. Check with this, never with
+ * `instanceof`: Next evaluates this module once per bundle entry, and the
+ * store on globalThis throws the class of whichever copy created it, so
+ * `instanceof` in another copy is false.
+ */
+export function isStoreUnavailableError(error: unknown): boolean {
+  return (error as Error | null)?.name === 'StoreUnavailableError';
+}
+
 /** A collection or document id that would leave its namespace. */
 export class InvalidStoreKeyError extends Error {
   constructor(key: string) {
