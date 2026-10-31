@@ -7,7 +7,8 @@ import { createHash } from 'node:crypto';
 import path from 'node:path';
 import { decryptPayload, encryptPayload } from '@/lib/auth/crypto';
 import { getStore, type CollectionOptions } from '@/lib/shared-store';
-import { isStoreUnavailable, StoredDataUnreadableError } from '@/lib/stored-data-errors';
+import { isStoreUnavailable, isStoredDataUnreadable, StoredDataUnreadableError } from '@/lib/stored-data-errors';
+import { moveUnreadableAside } from '@/lib/stored-data-quarantine';
 import type { CredentialInject } from './credentials';
 
 export interface VaultUser {
@@ -72,7 +73,7 @@ function collection() {
 /**
  * The user's credentials from a stored document; {} for none. One that
  * doesn't decrypt (another session secret) throws StoredDataUnreadableError,
- * so no write lands on top of it.
+ * so no write lands on top of it before it is moved aside (see modify).
  */
 function decode(user: VaultUser, raw: Buffer | null): VaultData {
   if (!raw) return {};
@@ -93,7 +94,13 @@ async function load(user: VaultUser): Promise<VaultData> {
     if (isStoreUnavailable(error)) throw error;
     throw new StoredDataUnreadableError('plugin credentials', { cause: error });
   }
-  return decode(user, stored?.data ?? null);
+  try {
+    return decode(user, stored?.data ?? null);
+  } catch (error) {
+    // Reads as no credentials; the next write moves it aside.
+    if (isStoredDataUnreadable(error)) return {};
+    throw error;
+  }
 }
 
 /**
@@ -101,18 +108,32 @@ async function load(user: VaultUser): Promise<VaultData> {
  * two writes at once (two tabs, two replicas) both land. `change` edits the
  * data it gets and says whether it changed anything; it may run more than
  * once. An empty vault is deleted.
+ *
+ * A vault that doesn't decrypt is moved aside first (kept next to the
+ * original as `.unreadable-<time>`, never overwritten), and the write goes
+ * on as if nothing was stored.
  */
 async function modify<T>(user: VaultUser, change: (data: VaultData) => { result: T; changed: boolean }): Promise<T> {
-  let result!: T;
-  await collection().update(userKey(user), (current) => {
-    const data = decode(user, current);
-    const out = change(data);
-    result = out.result;
-    if (!out.changed) return undefined;
-    if (Object.keys(data).length === 0) return current ? null : undefined;
-    return encryptPayload({ u: userKey(user), d: data }, 'plugin-secrets');
-  });
-  return result;
+  const docs = collection();
+  const id = userKey(user);
+  for (let attempt = 0; ; attempt++) {
+    try {
+      let result!: T;
+      await docs.update(id, (current) => {
+        const data = decode(user, current);
+        const out = change(data);
+        result = out.result;
+        if (!out.changed) return undefined;
+        if (Object.keys(data).length === 0) return current ? null : undefined;
+        return encryptPayload({ u: userKey(user), d: data }, 'plugin-secrets');
+      });
+      return result;
+    } catch (error) {
+      if (!isStoredDataUnreadable(error) || attempt >= 2) throw error;
+      const current = await docs.get(id);
+      if (current) await moveUnreadableAside(docs, id, current, path.join(vaultDir(), `${id}.enc`), 'plugin credentials');
+    }
+  }
 }
 
 export async function getUserCredential(user: VaultUser, pluginId: string, credentialId: string): Promise<StoredCredential | null> {

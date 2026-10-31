@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync, readdirSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -120,13 +120,20 @@ describe('settings with a shared store', () => {
     expect((await (await fetchSettings()).json()).settings).toBeNull();
   });
 
-  it('answers 503 to a save over a stored document that does not decrypt and leaves its bytes alone', async () => {
+  it('moves a stored document that does not decrypt aside in the store before a save, keeping its bytes', async () => {
     const garbage = Buffer.alloc(64, 7);
-    await store.collection('settings', SETTINGS_COLLECTION).put(settingsId(USER, SERVER), garbage);
+    const id = settingsId(USER, SERVER);
+    await store.collection('settings', SETTINGS_COLLECTION).put(id, garbage);
 
-    expect((await push({ theme: 'light' })).status).toBe(503);
-    expect((await fetchSettings()).status).toBe(503);
-    expect((await storedDoc())?.data.equals(garbage)).toBe(true);
+    expect((await (await fetchSettings()).json()).settings).toBeNull();
+    expect((await push({ theme: 'light' })).status).toBe(200);
+    expect((await (await fetchSettings()).json()).settings).toEqual({ theme: 'light' });
+
+    // In the store, not on this replica's disk.
+    const aside = readdirSync(path.join(store.root, 'settings')).filter((f) => f.startsWith(`${id}.unreadable-`));
+    expect(aside).toHaveLength(1);
+    const asideId = aside[0].slice(0, -'.enc'.length);
+    expect((await store.collection('settings', SETTINGS_COLLECTION).get(asideId))?.data.equals(garbage)).toBe(true);
   });
 
   it('answers 503 and writes nothing while the store is down', async () => {

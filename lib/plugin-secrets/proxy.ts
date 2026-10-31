@@ -69,7 +69,12 @@ export interface ResolvedCredential {
  * admin configured for an installed plugin that declares it.
  */
 export async function resolveCredential(user: VaultUser, pluginId: string, credentialId: string): Promise<ResolvedCredential | null> {
-  const stored = await getUserCredential(user, pluginId, credentialId);
+  const plugin = await getPlugin(pluginId);
+  const spec = (plugin as { credentials?: Record<string, CredentialSpec> } | null)?.credentials?.[credentialId];
+  // A credential the admin set up never depends on the user's own vault: a
+  // user can only store credentials a plugin declares for users, so there
+  // is nothing of theirs to find under this id.
+  const stored = spec?.scope === 'admin' ? null : await getUserCredential(user, pluginId, credentialId);
   if (stored) {
     // Only for a plugin this server knows declares it, on the server the
     // manifest fixes (see declaredUserCredential).
@@ -81,8 +86,6 @@ export async function resolveCredential(user: VaultUser, pluginId: string, crede
       trusted: privateProxyOrigins().includes(stored.origin), scope: 'user',
     };
   }
-  const plugin = await getPlugin(pluginId);
-  const spec = (plugin as { credentials?: Record<string, CredentialSpec> } | null)?.credentials?.[credentialId];
   if (!plugin || !plugin.enabled || !spec || spec.scope !== 'admin') return null;
   const config = await getPluginConfig(pluginId);
   const secret = config[spec.secretKey];

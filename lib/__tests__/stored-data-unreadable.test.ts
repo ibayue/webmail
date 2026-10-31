@@ -1,14 +1,16 @@
 // @vitest-environment node
-import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 
 // A settings file or plugin vault that exists but doesn't decrypt (written
-// with another session secret, or cut short) used to read as "nothing
-// stored". The next save then merged into nothing and overwrote the user's
-// real data. Now the read throws, and the routes answer 503 and write nothing.
+// with another session secret) used to read as "nothing stored", and the
+// next save wrote over it: the user's real data was gone for good. Now the
+// save first moves it aside (`<file>.unreadable-<time>`, bytes unchanged)
+// and goes on as if nothing was stored, so the user can save again and the
+// old data can still be restored with the old secret.
 
 let secret = 'a'.repeat(64);
 vi.mock('@/lib/auth/session-secret', () => ({
@@ -26,6 +28,13 @@ vi.mock('@/lib/admin/config-manager', () => ({
   },
 }));
 vi.mock('@/lib/admin/third-party-mode', () => ({ isNoThirdPartyTrafficOn: async () => false, thirdPartyRefusal: () => null }));
+// One installed plugin with a credential the admin set up.
+vi.mock('@/lib/admin/plugin-registry', () => ({
+  getPlugin: async (id: string) => (id === 'paperless'
+    ? { id, enabled: true, credentials: { shared: { scope: 'admin', label: 'Paperless', inject: { type: 'bearer' }, origin: 'https://paperless.example.com', secretKey: 'token' } } }
+    : null),
+}));
+vi.mock('@/lib/admin/plugin-config', () => ({ getPluginConfig: async () => ({ token: 'admin-token' }) }));
 
 const jar = new Map<string, string>();
 vi.mock('next/headers', () => ({
@@ -72,29 +81,38 @@ async function signIn() {
   } as never, 0, { serverUrl: SERVER, authHeader: 'Bearer t', username: USER });
 }
 
+function files(dir: string): string[] {
+  return readdirSync(dir).sort();
+}
+
 function onlyFile(dir: string): string {
-  const [file] = readdirSync(dir).filter((name) => name.endsWith('.enc'));
+  const [file] = files(dir).filter((name) => name.endsWith('.enc'));
   return path.join(dir, file);
 }
 
+function asideOf(dir: string, file: string): string | undefined {
+  const name = files(dir).find((n) => n.startsWith(`${path.basename(file)}.unreadable-`));
+  return name && path.join(dir, name);
+}
+
 describe('settings that do not decrypt', () => {
-  it('reads a missing file as nothing stored and one written with another secret as an error', async () => {
+  it('read as nothing stored, and a file too short to hold any as well', async () => {
     const { loadUserSettings, saveUserSettings } = await import('@/lib/settings-sync');
-    const { StoredDataUnreadableError } = await import('@/lib/stored-data-errors');
     expect(await loadUserSettings(USER, SERVER)).toBeNull();
 
     await saveUserSettings(USER, SERVER, { theme: 'dark' });
     secret = 'b'.repeat(64);
-    await expect(loadUserSettings(USER, SERVER)).rejects.toBeInstanceOf(StoredDataUnreadableError);
+    expect(await loadUserSettings(USER, SERVER)).toBeNull();
 
     writeFileSync(onlyFile(path.join(dataDir, 'settings')), Buffer.alloc(10));
-    await expect(loadUserSettings(USER, SERVER)).rejects.toBeInstanceOf(StoredDataUnreadableError);
+    expect(await loadUserSettings(USER, SERVER)).toBeNull();
   });
 
-  it('answers 503 to GET and POST and leaves the stored file as it was', async () => {
-    const { saveUserSettings } = await import('@/lib/settings-sync');
+  it('are moved aside unchanged by the next save, which then goes through', async () => {
+    const { saveUserSettings, loadUserSettings } = await import('@/lib/settings-sync');
     await saveUserSettings(USER, SERVER, { theme: 'dark', templates: [{ id: 'a' }] });
-    const file = onlyFile(path.join(dataDir, 'settings'));
+    const dir = path.join(dataDir, 'settings');
+    const file = onlyFile(dir);
     const before = readFileSync(file);
     secret = 'b'.repeat(64);
     await signIn();
@@ -103,15 +121,34 @@ describe('settings that do not decrypt', () => {
     const got = await GET(new NextRequest('https://webmail.example/api/settings', {
       headers: { 'x-settings-username': USER, 'x-settings-server': SERVER },
     }));
-    expect(got.status).toBe(503);
+    expect(got.status).toBe(200);
+    expect((await got.json()).settings).toBeNull();
 
     const saved = await POST(new NextRequest('https://webmail.example/api/settings', {
       method: 'POST',
       headers: { 'sec-fetch-site': 'same-origin', 'content-type': 'application/json' },
       body: JSON.stringify({ username: USER, serverUrl: SERVER, settings: { theme: 'light' } }),
     }));
-    expect(saved.status).toBe(503);
-    expect(readFileSync(file).equals(before)).toBe(true);
+    expect(saved.status).toBe(200);
+    expect(await loadUserSettings(USER, SERVER)).toEqual({ theme: 'light' });
+
+    const aside = asideOf(dir, file);
+    expect(aside).toBeDefined();
+    expect(readFileSync(aside!).equals(before)).toBe(true);
+    // With the old secret back, the moved file still holds the old settings.
+    secret = 'a'.repeat(64);
+    writeFileSync(file, readFileSync(aside!));
+    expect(await loadUserSettings(USER, SERVER)).toEqual({ theme: 'dark', templates: [{ id: 'a' }] });
+  });
+
+  it('a file too short to hold any is written over, not moved', async () => {
+    const { updateUserSettings, loadUserSettings, settingsId } = await import('@/lib/settings-sync');
+    const dir = path.join(dataDir, 'settings');
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(path.join(dir, `${settingsId(USER, SERVER)}.enc`), Buffer.alloc(0));
+    await updateUserSettings(USER, SERVER, (stored) => ({ ...(stored ?? {}), theme: 'dark' }));
+    expect(files(dir)).toEqual([`${settingsId(USER, SERVER)}.enc`]);
+    expect(await loadUserSettings(USER, SERVER)).toEqual({ theme: 'dark' });
   });
 });
 
@@ -119,44 +156,57 @@ describe('a plugin vault that does not decrypt', () => {
   const user = { username: USER, serverUrl: SERVER };
   const input = { origin: 'https://cloud.example.org', inject: { type: 'basic' } as const, label: 'Nextcloud', secret: 'pw' };
 
-  it('reads a missing vault as empty and one written with another secret as an error', async () => {
+  it('reads as empty, and the next write moves it aside unchanged and goes through', async () => {
     const { listUserCredentials, putUserCredential } = await import('@/lib/plugin-secrets/vault');
-    const { StoredDataUnreadableError } = await import('@/lib/stored-data-errors');
     expect(await listUserCredentials(user)).toEqual([]);
-
     await putUserCredential(user, 'nextcloud', 'cloud', input);
+    const dir = path.join(dataDir, 'plugin-secrets');
+    const file = onlyFile(dir);
+    const before = readFileSync(file);
     secret = 'b'.repeat(64);
-    await expect(listUserCredentials(user)).rejects.toBeInstanceOf(StoredDataUnreadableError);
-    // A write merges into what is stored, so it must not land either.
-    await expect(putUserCredential(user, 'other', 'x', input)).rejects.toBeInstanceOf(StoredDataUnreadableError);
+
+    expect(await listUserCredentials(user)).toEqual([]);
+    await putUserCredential(user, 'other', 'x', input);
+    expect((await listUserCredentials(user)).map((c) => c.pluginId)).toEqual(['other']);
+    const aside = asideOf(dir, file);
+    expect(aside).toBeDefined();
+    expect(readFileSync(aside!).equals(before)).toBe(true);
   });
 
-  it('answers 503 on the credential routes and the proxy and leaves the vault as it was', async () => {
+  it('lets the routes work again: list, connect, disconnect, and the proxy finds no credential', async () => {
     const { putUserCredential } = await import('@/lib/plugin-secrets/vault');
     await putUserCredential(user, 'nextcloud', 'cloud', input);
-    const file = onlyFile(path.join(dataDir, 'plugin-secrets'));
-    const before = readFileSync(file);
     secret = 'b'.repeat(64);
 
     const { GET, POST, DELETE } = await import('@/app/api/plugin-secrets/route');
     const { POST: proxy } = await import('@/app/api/plugin-proxy/route');
     const same = { 'sec-fetch-site': 'same-origin' };
 
-    expect((await GET(new NextRequest('http://localhost/api/plugin-secrets'))).status).toBe(503);
-    const post = await POST(new NextRequest('http://localhost/api/plugin-secrets', {
-      method: 'POST',
-      headers: same,
-      body: JSON.stringify({ pluginId: 'nextcloud', credentialId: 'other', label: 'x', origin: 'https://cloud.example.org', inject: { type: 'basic' }, secret: 's' }),
-    }));
-    expect(post.status).toBe(503);
-    const del = await DELETE(new NextRequest('http://localhost/api/plugin-secrets?plugin=nextcloud', { method: 'DELETE', headers: same }));
-    expect(del.status).toBe(503);
+    const listed = await GET(new NextRequest('http://localhost/api/plugin-secrets?plugin=paperless'));
+    expect(listed.status).toBe(200);
+    expect(await listed.json()).toMatchObject({ credentials: [], admin: [{ credentialId: 'shared', configured: true }] });
     const proxied = await proxy(new NextRequest(
       'http://localhost/api/plugin-proxy?plugin=nextcloud&credential=cloud&url=https%3A%2F%2Fcloud.example.org%2F',
       { method: 'POST', headers: same },
     ));
-    expect(proxied.status).toBe(503);
+    expect(proxied.status).toBe(404);
+    const post = await POST(new NextRequest('http://localhost/api/plugin-secrets', {
+      method: 'POST',
+      headers: same,
+      body: JSON.stringify({ pluginId: 'nextcloud', credentialId: 'cloud', label: 'x', origin: 'https://cloud.example.org', inject: { type: 'basic' }, secret: 's' }),
+    }));
+    expect(post.status).toBe(200);
+    const del = await DELETE(new NextRequest('http://localhost/api/plugin-secrets?plugin=nextcloud', { method: 'DELETE', headers: same }));
+    expect(del.status).toBe(200);
+  });
 
-    expect(readFileSync(file).equals(before)).toBe(true);
+  it('resolves an admin credential without reading the user vault', async () => {
+    const { resolveCredential } = await import('@/lib/plugin-secrets/proxy');
+    // A vault that can't even be read (a folder where the file should be).
+    const { userKey } = await import('@/lib/plugin-secrets/vault');
+    mkdirSync(path.join(dataDir, 'plugin-secrets', `${userKey(user)}.enc`), { recursive: true });
+
+    expect(await resolveCredential(user, 'paperless', 'shared')).toMatchObject({ scope: 'admin', secret: 'admin-token' });
+    await expect(resolveCredential(user, 'nextcloud', 'cloud')).rejects.toThrow();
   });
 });
