@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
     }
     await refund();
     // Just signed in: an older refusal of this credential no longer applies.
-    recordStoredCredentialStatus(authHeader, 200);
+    await recordStoredCredentialStatus(authHeader, 200);
 
     // A token sign-in's stamp (lib/auth/session-age.ts) knows no account:
     // the token routes never see one. The first verified account names it,

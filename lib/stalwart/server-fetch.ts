@@ -70,9 +70,9 @@ export async function fetchJmapServer(
   trusted: boolean | undefined,
 ): Promise<Response> {
   const authHeader = new Headers(givenInit.headers).get('authorization');
-  if (authHeader && isStoredCredentialRefused(authHeader)) return refusedCredentialResponse();
+  if (authHeader && (await isStoredCredentialRefused(authHeader))) return refusedCredentialResponse();
   const response = await fetchUnbudgeted(url, givenInit, trusted);
-  if (authHeader) recordStoredCredentialStatus(authHeader, response.status);
+  if (authHeader) await recordStoredCredentialStatus(authHeader, response.status);
   return response;
 }
 
