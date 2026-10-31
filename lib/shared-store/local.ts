@@ -1,6 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import { existsSync } from 'node:fs';
-import { appendFile, mkdir, readFile, readdir, rename, stat, unlink, writeFile } from 'node:fs/promises';
+import { appendFile, mkdir, open, readFile, readdir, rename, stat, unlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { assertDocId, assertKey, assertName, toBuffer, versionOf } from './keys';
 import type {
@@ -245,7 +245,20 @@ export function localCollection(name: string, options: CollectionOptions): DocCo
   async function writeCurrent(file: string, data: Buffer): Promise<void> {
     await mkdir(path.dirname(file), { recursive: true });
     const tmp = layout.tmpName ? layout.tmpName(file) : `${file}.${process.pid}.${randomBytes(4).toString('hex')}.tmp`;
-    await writeFile(tmp, data, layout.mode !== undefined ? { mode: layout.mode } : undefined);
+    if (layout.fsync) {
+      const handle = await open(tmp, 'wx', layout.mode ?? 0o666);
+      try {
+        await handle.writeFile(data);
+        await handle.sync();
+      } catch (error) {
+        await handle.close().catch(() => {});
+        await unlink(tmp).catch(() => {});
+        throw error;
+      }
+      await handle.close();
+    } else {
+      await writeFile(tmp, data, layout.mode !== undefined ? { mode: layout.mode } : undefined);
+    }
     try {
       await rename(tmp, file);
     } catch (error) {

@@ -2,6 +2,7 @@
 import { mkdtempSync, readdirSync, readFileSync, rmSync, statSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import { open } from 'node:fs/promises';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 import { setStoreForTests } from '@/lib/shared-store';
@@ -88,6 +89,21 @@ describe('account archives with a shared store', () => {
 });
 
 describe('account archives on a single instance', () => {
+  it('flush the new file to disk before it replaces the old one', async () => {
+    setStoreForTests(null);
+    const handle = await open(path.join(disks, 'probe'), 'w');
+    const proto = Object.getPrototypeOf(handle) as { sync: () => Promise<void> };
+    await handle.close();
+    const sync = vi.spyOn(proto, 'sync');
+    try {
+      await saveArchive(owner, envelope);
+      expect(sync).toHaveBeenCalledTimes(1);
+      expect(await loadArchive(owner)).toEqual(envelope);
+    } finally {
+      sync.mockRestore();
+    }
+  });
+
   it('keep today\'s file: <sha256 of the owner>.json under account-archives, mode 0600', async () => {
     setStoreForTests(null);
     await saveArchive(owner, envelope);

@@ -22,6 +22,8 @@ export const ARCHIVE_COLLECTION: CollectionOptions = {
     file: (id) => `${id}.json`,
     idOf: (relative) => (ARCHIVE_FILE.test(relative) ? relative.slice(0, -'.json'.length) : null),
     mode: 0o600,
+    // Written to disk before the rename, as it always was.
+    fsync: true,
   },
 };
 
