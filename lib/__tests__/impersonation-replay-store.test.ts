@@ -49,7 +49,10 @@ describe('consumeImpersonationJti', () => {
     const blocked = path.join(stateDir, 'not-a-dir');
     writeFileSync(blocked, '');
     process.env.ADMIN_STATE_DIR = blocked;
-    expect(await consumeImpersonationJti('jti-unrecorded', exp, now)).toBe(false);
+    await expect(consumeImpersonationJti('jti-unrecorded', exp, now)).rejects.toMatchObject({ name: 'ImpersonationReplayUnavailableError' });
+    // Not remembered as used: once the marker can be written, the token works.
+    process.env.ADMIN_STATE_DIR = stateDir;
+    expect(await consumeImpersonationJti('jti-unrecorded', exp, now)).toBe(true);
   });
 
   it('prunes markers once their token can no longer verify', async () => {

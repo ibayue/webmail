@@ -12,17 +12,20 @@ function markerName(jti: string): string {
   return createHash('sha256').update(jti).digest('hex');
 }
 
-/**
- * The used jtis in the shared store (#1066): one empty document each, gone
- * once its token can no longer verify. Its local layout is today's marker
- * directory, though local mode keeps writing the markers itself (with
- * O_EXCL, which a shared state volume honours).
- */
-export function impersonationJtiCollection() {
-  return getStore().collection(STORE_DIR, {
-    local: { dir: () => getStatePath(STORE_DIR) },
-    ttlMs: IMPERSONATION_REPLAY_WINDOW_SEC * 1000,
-  });
+/** The used jti's key in the shared store (#1066); it expires with the token. */
+const sharedKey = (jti: string) => `imp-jti:${markerName(jti)}`;
+
+/** The use of a token couldn't be recorded: it is refused, and the route answers 503. */
+export class ImpersonationReplayUnavailableError extends Error {
+  constructor(options?: { cause?: unknown }) {
+    super('The impersonation replay store is unavailable', options);
+    this.name = 'ImpersonationReplayUnavailableError';
+  }
+}
+
+/** By name, as every bundle has its own copy of the class. */
+export function isImpersonationReplayUnavailable(error: unknown): boolean {
+  return (error as Error | null)?.name === 'ImpersonationReplayUnavailableError';
 }
 
 async function pruneExpired(dir: string, nowMs: number): Promise<void> {
@@ -38,8 +41,10 @@ async function pruneExpired(dir: string, nowMs: number): Promise<void> {
 }
 
 /**
- * Record an impersonation token's jti as used; false when it was used before
- * or the use can't be recorded.
+ * Record an impersonation token's jti as used; false when it was used before.
+ * Rejects with ImpersonationReplayUnavailableError when the use can't be
+ * recorded: the token is refused then, as a restart or another replica
+ * would otherwise accept it again.
  *
  * The in-process cache alone forgot every jti on restart and knew nothing of
  * other replicas, so a captured handoff link could be redeemed again within
@@ -47,24 +52,32 @@ async function pruneExpired(dir: string, nowMs: number): Promise<void> {
  * created with O_EXCL, which survives restarts and is shared by every
  * replica that mounts the same state volume. Markers are pruned once the
  * token they stand for can no longer verify. With a shared store the marker
- * is a document there, created only if missing, so exactly one replica
- * accepts the token.
+ * is a key there, set only if missing and expiring with the token, so
+ * exactly one replica accepts the token. The in-process cache learns a jti
+ * only once it was recorded.
  */
 export async function consumeImpersonationJti(
   jti: string,
   exp: number,
   nowMs: number = Date.now(),
 ): Promise<boolean> {
-  if (!impersonationReplayCache.consume(jti, exp, Math.floor(nowMs / 1000))) return false;
+  const nowSec = Math.floor(nowMs / 1000);
+  if (impersonationReplayCache.has(jti, nowSec)) return false;
+  if (!(await recordUse(jti, nowMs))) return false;
+  impersonationReplayCache.consume(jti, exp, nowSec);
+  return true;
+}
 
+/** True when this call recorded the jti, false when it was recorded before. */
+async function recordUse(jti: string, nowMs: number): Promise<boolean> {
   if (isSharedMode()) {
     try {
-      return (await impersonationJtiCollection().put(markerName(jti), '', { ifVersion: null })).ok;
+      return await getStore().kv.set(sharedKey(jti), '1', { ifAbsent: true, ttlMs: IMPERSONATION_REPLAY_WINDOW_SEC * 1000 });
     } catch (err) {
       logger.error('Impersonation replay store unavailable, refusing the token', {
         error: err instanceof Error ? err.message : 'Unknown',
       });
-      return false;
+      throw new ImpersonationReplayUnavailableError({ cause: err });
     }
   }
 
@@ -83,6 +96,6 @@ export async function consumeImpersonationJti(
     logger.error('Impersonation replay store unavailable, refusing the token', {
       error: err instanceof Error ? err.message : 'Unknown',
     });
-    return false;
+    throw new ImpersonationReplayUnavailableError({ cause: err });
   }
 }

@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync, readdirSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -72,8 +72,18 @@ describe('impersonation replay with a shared store', () => {
     expect(results.filter(Boolean)).toHaveLength(1);
   });
 
-  it('refuses the token while the store is down', async () => {
+  it('refuses the token while the store is down, without remembering it as used', async () => {
     store.down = true;
+    await expect(consumeImpersonationJti('jti-down', exp, now)).rejects.toMatchObject({ name: 'ImpersonationReplayUnavailableError' });
+    store.down = false;
+    expect(await consumeImpersonationJti('jti-down', exp, now)).toBe(true);
     expect(await consumeImpersonationJti('jti-down', exp, now)).toBe(false);
+  });
+
+  it('keeps used tokens as expiring keys, not as documents of an ever-growing collection', async () => {
+    const set = vi.spyOn(store.kv, 'set');
+    expect(await consumeImpersonationJti('jti-kv', exp, now)).toBe(true);
+    expect(set).toHaveBeenCalledWith(expect.stringMatching(/^imp-jti:[0-9a-f]{64}$/), '1', { ifAbsent: true, ttlMs: 420_000 });
+    expect(readdirSync(sharedDir)).toEqual([]);
   });
 });
