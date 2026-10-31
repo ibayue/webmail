@@ -5,6 +5,9 @@ import { migrateLegacyAdminLayout, migratePolicyUnifiedMailbox } from "./lib/adm
 import { detectSetupState } from "./lib/setup/state";
 import { ensureSetupToken } from "./lib/setup/token";
 import { ensureSessionSecret } from "./lib/auth/session-secret";
+import { bootState, sharedStoreUrl } from "./lib/shared-store";
+import { bootSharedMode } from "./lib/shared-store/boot";
+import { importLocalData } from "./lib/shared-store/import";
 
 const pkg = JSON.parse(
   readFileSync(`${process.cwd()}/package.json`, "utf-8")
@@ -12,23 +15,40 @@ const pkg = JSON.parse(
 const current: string = pkg.version ?? "0.0.0";
 console.info(`Bulwark Webmail v${current}`);
 
+// With REDIS_URL every replica shares one store (#1066). Without it,
+// everything below runs exactly as it always has.
+const shared = sharedStoreUrl() !== null;
+
+async function loadAdmin(): Promise<void> {
+  await configManager.load();
+  await initAdminPassword();
+}
+
+async function bootShared(): Promise<void> {
+  await bootSharedMode({ version: current, importLocal: importLocalData, load: loadAdmin });
+  if (bootState() !== "ready") throw new Error(`shared store boot ended in state ${bootState()}`);
+}
+
 // Initialize admin config and password bootstrap. Migration runs first so
-// existing v1 layouts are split before anything reads admin.json.
+// existing v1 layouts are split before anything reads admin.json (with a
+// shared store: before they are imported).
 migrateLegacyAdminLayout()
   .then(() => migratePolicyUnifiedMailbox())
-  .then(() => configManager.load())
-  .then(() => initAdminPassword())
+  .then(() => (shared ? bootShared() : loadAdmin()))
   .then(async () => {
     console.info("Admin dashboard initialized");
-    try {
-      if (await ensureSessionSecret()) {
-        console.info(
-          "Generated a session secret in the admin state dir. Keep that dir on a " +
-          "persistent volume, or set SESSION_SECRET, so restarts don't sign everyone out.",
-        );
+    // With a shared store, boot already made or loaded the secret.
+    if (!shared) {
+      try {
+        if (await ensureSessionSecret()) {
+          console.info(
+            "Generated a session secret in the admin state dir. Keep that dir on a " +
+            "persistent volume, or set SESSION_SECRET, so restarts don't sign everyone out.",
+          );
+        }
+      } catch (err) {
+        console.warn("Failed to generate a session secret:", err instanceof Error ? err.message : err);
       }
-    } catch (err) {
-      console.warn("Failed to generate a session secret:", err instanceof Error ? err.message : err);
     }
     // If we're in bootstrap state (no JMAP_SERVER_URL env and no
     // setupComplete in config.json), generate/refresh the setup token and
