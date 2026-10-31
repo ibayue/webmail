@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { writeFile, unlink, mkdir } from 'node:fs/promises';
-import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { detectSetupState } from '@/lib/setup/state';
 import { wizardSessionRefusal } from '@/lib/setup/session';
 import { configWriteErrorResponse } from '@/lib/admin/config-read-only-response';
 import { configManager } from '@/lib/admin/config-manager';
-import { getConfigDir, assertWritable } from '@/lib/admin/paths';
+import { assertWritable } from '@/lib/admin/paths';
+import { brandingDocs } from '@/lib/admin/extension-store';
+import { announceChange } from '@/lib/shared-store/changes';
 import { logger } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
@@ -41,10 +41,6 @@ const EXT_BY_MIME: Record<string, string> = {
   'image/x-icon': '.ico',
   'image/vnd.microsoft.icon': '.ico',
 };
-
-function getBrandingDir(): string {
-  return path.join(getConfigDir(), 'branding');
-}
 
 function sanitizeFilename(name: string): string {
   return path.basename(name).replace(/[^a-zA-Z0-9._-]/g, '_');
@@ -96,28 +92,22 @@ export async function POST(request: NextRequest) {
     const ext = EXT_BY_MIME[file.type] ?? '.png';
     const safeName = sanitizeFilename(`${slot}${ext}`);
 
-    const dir = getBrandingDir();
-    if (!existsSync(dir)) {
-      await mkdir(dir, { recursive: true });
-    }
-
     // Remove any existing file for this slot with a different extension so
     // the wizard doesn't leave orphan files behind on re-upload.
+    const docs = brandingDocs();
+    const stored = await docs.list('');
     for (const otherExt of Object.values(EXT_BY_MIME)) {
       if (otherExt === ext) continue;
-      const oldPath = path.join(dir, `${slot}${otherExt}`);
-      if (existsSync(oldPath)) {
-        try { await unlink(oldPath); } catch { /* ignore */ }
-      }
+      if (stored.includes(`${slot}${otherExt}`)) await docs.delete(`${slot}${otherExt}`);
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
-    const filePath = path.join(dir, safeName);
-    await writeFile(filePath, buffer);
+    await docs.put(safeName, buffer);
 
     const servedUrl = `/api/admin/branding/${safeName}`;
     await configManager.ensureLoaded();
     await configManager.setAdminConfig({ [slot]: servedUrl });
+    await announceChange('branding');
 
     return NextResponse.json({ url: servedUrl, filename: safeName });
   } catch (error) {
@@ -150,16 +140,15 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid or missing slot' }, { status: 400 });
     }
 
-    const dir = getBrandingDir();
+    const docs = brandingDocs();
+    const stored = await docs.list('');
     for (const ext of Object.values(EXT_BY_MIME)) {
-      const filePath = path.join(dir, `${slot}${ext}`);
-      if (existsSync(filePath)) {
-        try { await unlink(filePath); } catch { /* ignore */ }
-      }
+      if (stored.includes(`${slot}${ext}`)) await docs.delete(`${slot}${ext}`);
     }
 
     await configManager.ensureLoaded();
     await configManager.removeAdminOverride(slot);
+    await announceChange('branding');
 
     return NextResponse.json({ ok: true });
   } catch (error) {

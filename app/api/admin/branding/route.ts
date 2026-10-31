@@ -2,21 +2,20 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAdminAuth, getClientIP } from '@/lib/admin/session';
 import { auditLog } from '@/lib/admin/audit';
 import { configManager } from '@/lib/admin/config-manager';
-import { getConfigDir, assertWritable } from '@/lib/admin/paths';
+import { assertWritable } from '@/lib/admin/paths';
 import {
   parseDomainBranding,
   type DomainBrandingEntry,
   type BrandingOverrideKey,
 } from '@/lib/admin/domain-branding';
 import { logger } from '@/lib/logger';
-import { writeFile, unlink, mkdir, readdir } from 'node:fs/promises';
-import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { configReadOnlyResponse } from '@/lib/admin/config-read-only-response';
+import { brandingDocs } from '@/lib/admin/extension-store';
+import { announceChange } from '@/lib/shared-store/changes';
 
-function getBrandingDir(): string {
-  return path.join(getConfigDir(), 'branding');
-}
+// Uploads live in C/branding, or the shared store in shared mode (#1066),
+// and are served by /api/admin/branding/<file> from there.
 const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2 MB
 const ALLOWED_MIME_TYPES = new Set([
   'image/svg+xml',
@@ -166,28 +165,19 @@ export async function POST(request: NextRequest) {
     const safeName = host
       ? domainAssetName(host, slot as BrandingOverrideKey, ext)
       : sanitizeFilename(`${slot}${ext}`);
-    const filePath = path.join(getBrandingDir(), safeName);
-
-    if (!existsSync(getBrandingDir())) {
-      await mkdir(getBrandingDir(), { recursive: true });
-    }
-
     // Strip any prior asset for the same slot but a different extension so
     // the directory doesn't accumulate orphan files on re-upload.
-    const dir = getBrandingDir();
-    const allFiles = await readdir(dir).catch(() => [] as string[]);
-    for (const f of allFiles) {
+    const docs = brandingDocs();
+    for (const f of await docs.list('')) {
       if (f === safeName) continue;
       const isSame = host
         ? isDomainAssetFor(f, host, slot as BrandingOverrideKey)
         : POSSIBLE_EXTS.some(e => f === `${slot}${e}`);
-      if (isSame) {
-        try { await unlink(path.join(dir, f)); } catch { /* ignore */ }
-      }
+      if (isSame) await docs.delete(f);
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
-    await writeFile(filePath, buffer);
+    await docs.put(safeName, buffer);
 
     const servedUrl = `/api/admin/branding/${safeName}`;
     await configManager.ensureLoaded();
@@ -201,6 +191,7 @@ export async function POST(request: NextRequest) {
       await configManager.setAdminConfig({ [slot]: servedUrl });
     }
 
+    await announceChange('branding');
     await auditLog('branding_upload', {
       slot,
       host: host || undefined,
@@ -249,22 +240,15 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: `Invalid host: ${rawHost}` }, { status: 400 });
     }
 
-    const dir = getBrandingDir();
+    const docs = brandingDocs();
     let removed = false;
-    if (host) {
-      const allFiles = await readdir(dir).catch(() => [] as string[]);
-      for (const f of allFiles) {
-        if (isDomainAssetFor(f, host, slot as BrandingOverrideKey)) {
-          try { await unlink(path.join(dir, f)); removed = true; } catch { /* ignore */ }
-        }
-      }
-    } else {
-      for (const ext of POSSIBLE_EXTS) {
-        const filePath = path.join(dir, `${slot}${ext}`);
-        if (existsSync(filePath)) {
-          await unlink(filePath);
-          removed = true;
-        }
+    for (const f of await docs.list('')) {
+      const isSame = host
+        ? isDomainAssetFor(f, host, slot as BrandingOverrideKey)
+        : POSSIBLE_EXTS.some(e => f === `${slot}${e}`);
+      if (isSame) {
+        await docs.delete(f);
+        removed = true;
       }
     }
 
@@ -276,6 +260,7 @@ export async function DELETE(request: NextRequest) {
       await configManager.removeAdminOverride(slot);
     }
 
+    await announceChange('branding');
     await auditLog('branding_delete', { slot, host: host || undefined, fileRemoved: removed }, ip);
 
     return NextResponse.json({ success: true });
