@@ -2,8 +2,8 @@ import { createHash, createCipheriv, createDecipheriv, randomBytes } from 'node:
 import path from 'node:path';
 import { logger } from '@/lib/logger';
 import { getSessionSecret } from '@/lib/auth/session-secret';
-import { getStore, StoreUnavailableError, type CollectionOptions } from '@/lib/shared-store';
-import { StoredDataUnreadableError } from '@/lib/stored-data-errors';
+import { getStore, type CollectionOptions } from '@/lib/shared-store';
+import { isStoreUnavailable, StoredDataUnreadableError } from '@/lib/stored-data-errors';
 
 const ALGORITHM = 'aes-256-gcm';
 const IV_LENGTH = 12;
@@ -87,7 +87,7 @@ export async function loadUserSettings(username: string, serverUrl: string): Pro
   try {
     stored = await collection().get(settingsId(username, serverUrl));
   } catch (error) {
-    if (error instanceof StoreUnavailableError) throw error;
+    if (isStoreUnavailable(error)) throw error;
     logger.warn('Failed to read user settings', { error: error instanceof Error ? error.message : 'Unknown error' });
     throw new StoredDataUnreadableError('settings', { cause: error });
   }
@@ -113,7 +113,7 @@ export async function deleteUserSettings(username: string, serverUrl: string): P
   try {
     await collection().delete(settingsId(username, serverUrl));
   } catch (error) {
-    if (error instanceof StoreUnavailableError) throw error;
+    if (isStoreUnavailable(error)) throw error;
     logger.warn('Failed to delete user settings', { error: error instanceof Error ? error.message : 'Unknown error' });
   }
 }
