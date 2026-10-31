@@ -16,15 +16,33 @@ import { separateFakeStore } from '@/lib/admin/__tests__/shared-store-fake';
 
 let dir: string;
 
-/** One replica's copy of lib/setup/token.ts. */
+let replicas = 0;
+
+/**
+ * One replica's copy of lib/setup/token.ts, with a state dir of its own:
+ * replicas share the store, not a volume. Each call runs with that dir.
+ */
 async function replica() {
   vi.resetModules();
-  return import('@/lib/setup/token');
+  const token = await import('@/lib/setup/token');
+  const own = path.join(dir, `state-${++replicas}`);
+  const inOwnDir = <A extends unknown[], R>(fn: (...args: A) => Promise<R>) => (...args: A) => {
+    vi.stubEnv('ADMIN_STATE_DIR', own);
+    return fn(...args);
+  };
+  return {
+    ensureSetupToken: inOwnDir(token.ensureSetupToken),
+    verifySetupToken: inOwnDir(token.verifySetupToken),
+    clearSetupToken: inOwnDir(token.clearSetupToken),
+  };
 }
+
+/** Whether any replica wrote a token file. */
+const anyTokenFile = () => Array.from({ length: replicas }, (_, i) => path.join(dir, `state-${i + 1}`, '.setup-token')).some((f) => existsSync(f));
 
 beforeEach(() => {
   dir = mkdtempSync(path.join(tmpdir(), 'bw-setup-token-'));
-  vi.stubEnv('ADMIN_STATE_DIR', path.join(dir, 'state'));
+  replicas = 0;
   resetLocalStoreForTests();
   setStoreForTests(separateFakeStore(path.join(dir, 'store')));
 });
@@ -44,7 +62,7 @@ describe('setup token with a shared store', () => {
     expect(new Set(tokens).size).toBe(1);
     for (const r of replicas) expect(await r.verifySetupToken(tokens[0])).toBe(true);
     expect(await replicas[0].verifySetupToken('0'.repeat(64))).toBe(false);
-    expect(existsSync(path.join(dir, 'state', '.setup-token'))).toBe(false);
+    expect(anyTokenFile()).toBe(false);
   });
 
   it('keeps the token across restarts within the hour, then issues a new one', async () => {
@@ -63,6 +81,7 @@ describe('setup token with a shared store', () => {
   it('stops the token working on every replica once the wizard finished on one', async () => {
     const [a, b] = [await replica(), await replica()];
     const token = await a.ensureSetupToken();
+    expect(await b.verifySetupToken(token)).toBe(true);
     await a.clearSetupToken();
     expect(await b.verifySetupToken(token)).toBe(false);
   });
