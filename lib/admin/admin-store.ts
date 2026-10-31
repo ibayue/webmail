@@ -31,3 +31,13 @@ export function adminConfigDocs(): DocCollection {
 export function adminStateDocs(): DocCollection {
   return getStore().collection(ADMIN_STATE_COLLECTION, adminStateOptions);
 }
+
+/**
+ * Whether `error` is the shared store's StoreUnavailableError. By name, not
+ * instanceof: the store on globalThis may come from another bundle's copy
+ * of the shared-store module (proxy, instrumentation, routes), whose class
+ * is a different object.
+ */
+export function isStoreUnavailable(error: unknown): boolean {
+  return error instanceof Error && error.name === 'StoreUnavailableError';
+}

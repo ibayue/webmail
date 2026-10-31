@@ -5,7 +5,7 @@ import { createCipheriv, createDecipheriv, randomBytes, createHash } from 'node:
 import { getSessionSecret } from '@/lib/auth/session-secret';
 import { isSameOriginRequest } from '@/lib/security/same-origin';
 import { logger } from '@/lib/logger';
-import { StoreUnavailableError } from '@/lib/shared-store';
+import { isStoreUnavailable } from './admin-store';
 import { ADMIN_SESSION_COOKIE, DEFAULT_ADMIN_SESSION_TTL } from './types';
 import type { AdminSessionPayload } from './types';
 import { getAdminSessionGeneration, isAdminSessionRevoked, revokeAdminSession } from './password';
@@ -155,7 +155,7 @@ export async function requireAdminAuth(request: Request): Promise<{ payload: Adm
     payload = await verifyCurrentAdminSession(token);
   } catch (error) {
     // Sign-outs can't be checked: no admin request goes through.
-    if (error instanceof StoreUnavailableError) {
+    if (isStoreUnavailable(error)) {
       return {
         error: NextResponse.json(
           { error: 'The admin dashboard is temporarily unavailable' },

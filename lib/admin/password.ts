@@ -1,9 +1,9 @@
 import { scrypt, randomBytes, timingSafeEqual } from 'node:crypto';
 import { logger } from '@/lib/logger';
-import { isSharedMode, StoreUnavailableError, type DocCollection, type PutOptions, type PutResult, type StoredDoc } from '@/lib/shared-store';
+import { isSharedMode, type DocCollection, type PutOptions, type PutResult, type StoredDoc } from '@/lib/shared-store';
 import { announceChange, onSharedChange } from '@/lib/shared-store/changes';
 import { assertWritable } from './paths';
-import { adminConfigDocs, adminStateDocs } from './admin-store';
+import { adminConfigDocs, adminStateDocs, isStoreUnavailable } from './admin-store';
 import type { AdminConfigData, AdminStateData } from './types';
 import { readFileEnv } from '../read-file-env';
 
@@ -85,7 +85,7 @@ async function readDoc<T>(docs: DocCollection, id: string): Promise<{ data: T; v
   try {
     doc = await docs.get(id);
   } catch (error) {
-    if (error instanceof StoreUnavailableError) throw error;
+    if (isStoreUnavailable(error)) throw error;
     logger.warn('Failed to read admin file', { file: id, error: error instanceof Error ? error.message : 'Unknown error' });
     return null;
   }
