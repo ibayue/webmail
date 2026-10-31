@@ -1,6 +1,6 @@
 import { logger } from '@/lib/logger';
 import { getStore, isSharedMode, replicaId } from '@/lib/shared-store';
-import { onSharedChange } from '@/lib/shared-store/changes';
+import { onSharedChange, storeLostItsData } from '@/lib/shared-store/changes';
 
 /**
  * One replica runs the background jobs (telemetry heartbeat, update check)
@@ -102,11 +102,18 @@ export async function tryLead(): Promise<boolean> {
   g.trying = (async () => {
     let holds: boolean;
     let reason = 'another replica holds the lease';
-    try {
-      holds = await getStore().leases.acquire(LEADER_LEASE, replicaId(), LEADER_TTL_MS);
-    } catch (error) {
+    if (storeLostItsData()) {
+      // The store was emptied under us: a lease taken there now proves
+      // nothing, and the jobs' stored schedule is gone. Wait for it back.
       holds = false;
-      reason = `could not reach the shared store: ${message(error)}`;
+      reason = 'the shared store lost its data';
+    } else {
+      try {
+        holds = await getStore().leases.acquire(LEADER_LEASE, replicaId(), LEADER_TTL_MS);
+      } catch (error) {
+        holds = false;
+        reason = `could not reach the shared store: ${message(error)}`;
+      }
     }
     if (holds && !g.leading) await becomeLeader(g);
     else if (holds) await startJobs(g);

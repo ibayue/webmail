@@ -139,6 +139,20 @@ describe('scheduler leader with a shared store', () => {
     expect(isSchedulerLeader()).toBe(false);
   });
 
+  it('stops leading when the store lost its data', async () => {
+    await store.epochs.bump(INIT_EPOCH);
+    await consentOn(new Date(Date.now() + 5 * MIN).toISOString());
+    await startSchedulerLeader(jobs);
+    expect(isSchedulerLeader()).toBe(true);
+
+    // Flushed: the init epoch is gone, and the next poll notices.
+    resetLocalStoreForTests();
+    await pollChanges();
+    await pass(10_000);
+    expect(isSchedulerLeader()).toBe(false);
+    expect(log.info).toHaveBeenCalledWith('scheduler: stopped leading', expect.objectContaining({ reason: 'the shared store lost its data' }));
+  });
+
   it('stops its timers when another replica has taken the lease', async () => {
     const slot = new Date(Date.now() + 5 * MIN).toISOString();
     await consentOn(slot);
