@@ -16,6 +16,7 @@
  */
 
 import { configManager } from '@/lib/admin/config-manager';
+import { logger } from '@/lib/logger';
 import { parseJmapServers, resolveTrustedJmapUrl } from '@/lib/admin/jmap-servers';
 import { fetchPublicUrl, type PublicFetchResponse } from '@/lib/security/url-guard';
 import {
@@ -72,7 +73,12 @@ export async function fetchJmapServer(
   const authHeader = new Headers(givenInit.headers).get('authorization');
   if (authHeader && (await isStoredCredentialRefused(authHeader))) return refusedCredentialResponse();
   const response = await fetchUnbudgeted(url, givenInit, trusted);
-  if (authHeader) await recordStoredCredentialStatus(authHeader, response.status);
+  // Not awaited: this process's copy is updated at once, the shared write follows.
+  if (authHeader) {
+    void recordStoredCredentialStatus(authHeader, response.status).catch((error) => {
+      logger.warn('Stored credential status not recorded', { error: error instanceof Error ? error.message : 'Unknown error' });
+    });
+  }
   return response;
 }
 
