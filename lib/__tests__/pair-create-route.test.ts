@@ -59,6 +59,9 @@ import { openPhoneRefreshToken } from '@/lib/auth/pair-bundle';
 import { POST as createPOST } from '@/app/api/auth/pair/create/route';
 import { POST as redeemPOST } from '@/app/api/auth/pair/redeem/route';
 import { GET as statusGET } from '@/app/api/auth/pair/status/route';
+import { setStoreForTests } from '@/lib/shared-store';
+import { resetLocalStoreForTests } from '@/lib/shared-store/local';
+import { switchableSharedStore } from './helpers/shared-store-down';
 
 const SERVER = 'https://mail.example.org';
 const CUSTOM_SERVER = 'https://custom.example';
@@ -850,5 +853,22 @@ describe('pair/create for a server the app refuses', () => {
     signIn(0, { serverUrl: 'http://localhost:8080' });
     config.jmapServerUrl = 'http://localhost:8080';
     expect((await create({ password: PASSWORD })).status).toBe(200);
+  });
+});
+
+describe('pair/create while the shared store is down (#1066)', () => {
+  afterEach(() => {
+    setStoreForTests(null);
+    resetLocalStoreForTests();
+  });
+
+  it('answers 503 to a password step-up and sends nothing to the mail server', async () => {
+    const store = switchableSharedStore();
+    store.down = true;
+    setStoreForTests(store);
+    const res = await create({ password: PASSWORD });
+    expect(res.status).toBe(503);
+    expect(res.body.error).toBe('temporarily_unavailable');
+    expect(calls).toHaveLength(0);
   });
 });
