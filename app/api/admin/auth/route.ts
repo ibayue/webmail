@@ -38,10 +38,25 @@ function signInUnavailable(): NextResponse {
  * Results are cached briefly per (server, user) — the admin panel's
  * layout and dashboard page between them trigger this three times on
  * every navigation, and admin status does not change on that timescale.
+ * Per instance (#1066): a demoted Stalwart admin keeps auto-login for up to
+ * 60 s on each. At most ADMIN_CHECK_CACHE_MAX entries, so one entry per
+ * credential that ever asked can't grow it without bound.
  */
 const ADMIN_CHECK_CACHE_MS = 60_000;
+const ADMIN_CHECK_CACHE_MAX = 1000;
 const ADMIN_CHECK_TIMEOUT_MS = 10_000;
 const adminCheckCache = new Map<string, { value: boolean; expires: number }>();
+
+function rememberAdminCheck(key: string, value: boolean): void {
+  const now = Date.now();
+  adminCheckCache.delete(key);
+  if (adminCheckCache.size >= ADMIN_CHECK_CACHE_MAX) {
+    for (const [k, entry] of adminCheckCache) if (entry.expires <= now) adminCheckCache.delete(k);
+  }
+  // Still full: the oldest entries go first.
+  while (adminCheckCache.size >= ADMIN_CHECK_CACHE_MAX) adminCheckCache.delete(adminCheckCache.keys().next().value!);
+  adminCheckCache.set(key, { value, expires: now + ADMIN_CHECK_CACHE_MS });
+}
 
 async function fetchWithTimeout(url: string, init: Parameters<typeof fetch>[1]): Promise<Response> {
   const controller = new AbortController();
@@ -84,7 +99,7 @@ async function checkStalwartAdmin(request: NextRequest, mode: StalwartAdminAcces
   if (cached && cached.expires > Date.now()) return cached.value;
 
   const isAdmin = await runStalwartAdminCheck(creds);
-  adminCheckCache.set(cacheKey, { value: isAdmin, expires: Date.now() + ADMIN_CHECK_CACHE_MS });
+  rememberAdminCheck(cacheKey, isAdmin);
   return isAdmin;
 }
 
