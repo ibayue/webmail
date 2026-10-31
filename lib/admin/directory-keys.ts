@@ -97,15 +97,16 @@ async function onlineKeys(directoryUrl: string, rootKeys: Record<string, string>
  * state (S/directory-keyrings.json, or the shared store: one record for
  * every replica); an older keyring is refused. Checked and recorded in one
  * update, so two installs at once can't put an older date back.
+ *
+ * A record that can't be read (a broken file, a read error, the shared
+ * store down) refuses the keyring: treating it as empty would let exactly
+ * the replay through that it exists to stop.
  */
 async function assertKeyringIsCurrent(origin: string, issuedAt: string): Promise<void> {
   const issued = Date.parse(issuedAt);
   if (!Number.isFinite(issued)) throw new Error("the directory's keyring has no valid issue date");
   await directoryKeyringDocs().update(DIRECTORY_KEYRINGS_ID, (current) => {
-    let seen: Record<string, string> = {};
-    try {
-      if (current) seen = JSON.parse(current.toString('utf-8')) as Record<string, string>;
-    } catch { /* none recorded yet */ }
+    const seen = current ? parseSeen(current) : {};
     const previous = Date.parse(seen[origin] ?? '');
     if (Number.isFinite(previous) && issued < previous) {
       throw new Error(`the directory's keyring (issued ${issuedAt}) is older than the one seen before (${seen[origin]})`);
@@ -113,6 +114,19 @@ async function assertKeyringIsCurrent(origin: string, issuedAt: string): Promise
     if (Number.isFinite(previous) && issued === previous) return undefined;
     return JSON.stringify({ ...seen, [origin]: new Date(issued).toISOString() });
   });
+}
+
+function parseSeen(data: Buffer): Record<string, string> {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(data.toString('utf-8'));
+  } catch {
+    parsed = null;
+  }
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    throw new Error('the keyring dates recorded before could not be read');
+  }
+  return parsed as Record<string, string>;
 }
 
 export type SignatureCheck =
