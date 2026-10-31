@@ -152,3 +152,19 @@ describe('sign-in routes while the shared store is down', () => {
     expect(fetchSpy).toHaveBeenCalled();
   });
 });
+
+describe('mobile hand-off redeem when the store fails after the budget was counted', () => {
+  it('gives the attempt back, so outages do not lock the app out', async () => {
+    store.down = false;
+    vi.stubEnv('SESSION_SECRET', 'a-test-session-secret-of-at-least-32-chars');
+    const take = vi.spyOn(store.kv, 'take').mockRejectedValue(Object.assign(new Error('down (test)'), { name: 'StoreUnavailableError' }));
+    for (let i = 0; i < 12; i++) {
+      expect((await post('@/app/api/auth/handoff/redeem/route', { code: 'a'.repeat(64), code_verifier: 'v'.repeat(43) })).status).toBe(503);
+    }
+    take.mockRestore();
+    const res = await post('@/app/api/auth/handoff/redeem/route', { code: 'a'.repeat(64), code_verifier: 'v'.repeat(43) });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe('invalid_code');
+    vi.unstubAllEnvs();
+  });
+});

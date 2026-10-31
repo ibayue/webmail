@@ -4,6 +4,7 @@ import { isMobileCodeChallenge } from '@/lib/auth/mobile-handoff';
 import { createFailureBudget, type BudgetRefund } from '@/lib/auth/verify-budget';
 import { decryptPayload, encryptPayload } from '@/lib/auth/crypto';
 import { getStore, isSharedMode } from '@/lib/shared-store';
+import { logger } from '@/lib/logger';
 
 // One-time codes for the browser sign-in hand-off to the mobile app
 // (lib/auth/mobile-handoff.ts, bulwarkmail.org/docs/development/mobile-handoff). The app opens the
@@ -220,9 +221,14 @@ export async function redeemHandoff(code: string, verifier: string, now = Date.n
     const record = open(await kv.take(sharedKey(code)), now);
     if (!record) return { ok: false, reason: 'invalid' };
     const bundle = record.expiresAt > now ? record.bundle : null;
-    // A tombstone goes back, so a late attempt is told "expired".
+    // A tombstone goes back, so a late attempt is told "expired". The code is
+    // spent already: if the tombstone can't be written, the answer stands.
     const spent = { ...record, bundle: null };
-    await kv.set(sharedKey(code), seal(spent), { ttlMs: ttl(spent, now), ifAbsent: true });
+    try {
+      await kv.set(sharedKey(code), seal(spent), { ttlMs: ttl(spent, now), ifAbsent: true });
+    } catch (error) {
+      logger.warn('Mobile hand-off tombstone not written', { error: error instanceof Error ? error.message : 'Unknown error' });
+    }
     return redeemOutcome(record, bundle, verifier, now);
   }
   sweep(now);

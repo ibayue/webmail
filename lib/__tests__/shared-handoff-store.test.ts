@@ -63,10 +63,24 @@ describe('mobile hand-off with a shared store', () => {
   });
 
   it('spends an unconfirmed code on the first attempt, on any replica', async () => {
-    const code = await (await replica()).stashHandoff(PASSWORD_BUNDLE, { challenge: CHALLENGE, state: 's', awaitConfirm: true }, T0);
+    // Parked on A (the SSO callback), tried too early on B: A can't confirm it any more.
+    const a = await replica();
+    const code = await a.stashHandoff(PASSWORD_BUNDLE, { challenge: CHALLENGE, state: 's', awaitConfirm: true }, T0);
+    const g = globalThis as Record<string, unknown>;
+    const aMemory = g.__bulwarkMobileHandoffStore;
     expect(await (await replica()).redeemHandoff(code, VERIFIER, T0 + 1)).toEqual({ ok: false, reason: 'invalid' });
-    expect(await (await replica()).confirmHandoff(code, T0 + 2)).toBe(false);
-    expect(await (await replica()).redeemHandoff(code, VERIFIER, T0 + 3)).toEqual({ ok: false, reason: 'invalid' });
+    // Back on A, with A's own memory.
+    g.__bulwarkMobileHandoffStore = aMemory;
+    expect(await a.confirmHandoff(code, T0 + 2)).toBe(false);
+    expect(await a.redeemHandoff(code, VERIFIER, T0 + 3)).toEqual({ ok: false, reason: 'invalid' });
+  });
+
+  it('still hands out the sign-in when the tombstone after the redeem cannot be written', async () => {
+    const code = await (await replica()).stashHandoff(PASSWORD_BUNDLE, { challenge: CHALLENGE, state: 's' }, T0);
+    const app = await replica();
+    vi.spyOn(store.kv, 'set').mockRejectedValueOnce(Object.assign(new Error('down (test)'), { name: 'StoreUnavailableError' }));
+    expect(await app.redeemHandoff(code, VERIFIER, T0 + 1)).toMatchObject({ ok: true, bundle: PASSWORD_BUNDLE });
+    vi.restoreAllMocks();
   });
 
   it('spends a code on a wrong verifier and tells a late attempt it expired', async () => {

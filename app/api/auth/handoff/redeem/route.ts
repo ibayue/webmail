@@ -6,6 +6,7 @@ import {
   redeemHandoff,
   reserveHandoffRedeem,
 } from '@/lib/auth/handoff-store';
+import type { BudgetRefund } from '@/lib/auth/verify-budget';
 import { loginClientAddress } from '@/lib/auth/client-address';
 import { rejectCrossOriginRequest } from '@/lib/security/same-origin';
 import { isStoreUnavailable, storeUnavailableResponse } from '@/lib/auth/store-unavailable';
@@ -26,8 +27,9 @@ const NO_STORE = { 'Cache-Control': 'no-store' };
 export async function POST(request: NextRequest) {
   const crossOrigin = rejectCrossOriginRequest(request);
   if (crossOrigin) return crossOrigin;
+  let refund: BudgetRefund | null = null;
   try {
-    const refund = await reserveHandoffRedeem(loginClientAddress(request));
+    refund = await reserveHandoffRedeem(loginClientAddress(request));
     if (!refund) {
       return NextResponse.json({ error: 'too_many_requests' }, { status: 429, headers: NO_STORE });
     }
@@ -55,7 +57,11 @@ export async function POST(request: NextRequest) {
     logger.info('Mobile hand-off redeemed', { flow: result.bundle.flow });
     return NextResponse.json({ ...result.bundle, state: result.state }, { headers: NO_STORE });
   } catch (error) {
-    if (isStoreUnavailable(error)) return storeUnavailableResponse(NO_STORE);
+    if (isStoreUnavailable(error)) {
+      // Nothing was redeemed: the attempt doesn't count.
+      if (refund) await refund();
+      return storeUnavailableResponse(NO_STORE);
+    }
     logger.error('Mobile hand-off redeem error', { error: error instanceof Error ? error.message : 'Unknown error' });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500, headers: NO_STORE });
   }
