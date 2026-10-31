@@ -23,6 +23,7 @@ import {
 import { configManager } from '@/lib/admin/config-manager';
 import { checkBundleSignature } from '@/lib/admin/directory-keys';
 import { configReadOnlyResponse } from '@/lib/admin/config-read-only-response';
+import { storeUnavailableResponse } from '@/lib/admin/store-unavailable-response';
 import { compareVersions } from '@/lib/version-compare';
 import { RELEASE_VERSION } from '@/lib/release-version';
 import {
@@ -386,6 +387,8 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     const readOnly = configReadOnlyResponse(error);
     if (readOnly) return readOnly;
+    const unavailable = storeUnavailableResponse(error);
+    if (unavailable) return unavailable;
     if (error instanceof DirectoryError) {
       return NextResponse.json({ error: error.message }, { status: 502 });
     }

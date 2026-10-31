@@ -15,6 +15,7 @@ import { keptVersions, listHistory } from '@/lib/admin/extension-history';
 
 import { readThemePackage } from '@/lib/extension-package';
 import { configReadOnlyResponse } from '@/lib/admin/config-read-only-response';
+import { storeUnavailableResponse } from '@/lib/admin/store-unavailable-response';
 
 /**
  * GET /api/admin/themes - List all admin-managed themes
@@ -85,6 +86,8 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     const readOnly = configReadOnlyResponse(error);
     if (readOnly) return readOnly;
+    const unavailable = storeUnavailableResponse(error);
+    if (unavailable) return unavailable;
     logger.error('Theme install error', { error: error instanceof Error ? error.message : 'Unknown error' });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
@@ -124,6 +127,8 @@ export async function PATCH(request: NextRequest) {
   } catch (error) {
     const readOnly = configReadOnlyResponse(error);
     if (readOnly) return readOnly;
+    const unavailable = storeUnavailableResponse(error);
+    if (unavailable) return unavailable;
     logger.error('Theme update error', { error: error instanceof Error ? error.message : 'Unknown error' });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
@@ -156,6 +161,8 @@ export async function DELETE(request: NextRequest) {
   } catch (error) {
     const readOnly = configReadOnlyResponse(error);
     if (readOnly) return readOnly;
+    const unavailable = storeUnavailableResponse(error);
+    if (unavailable) return unavailable;
     logger.error('Theme delete error', { error: error instanceof Error ? error.message : 'Unknown error' });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }

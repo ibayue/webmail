@@ -3,6 +3,7 @@ import { getPluginBundle, getPlugin, getPluginSignature } from '@/lib/admin/plug
 import { getDevPlugin, readDevBundle } from '@/lib/admin/plugin-dev';
 import { signBytes } from '@/lib/admin/plugin-signing';
 import { canSeeInstanceDetails } from '@/lib/auth/instance-details';
+import { storeUnavailableResponse } from '@/lib/admin/store-unavailable-response';
 
 async function safeSign(code: string): Promise<string | null> {
   try { return await signBytes(code); } catch { return null; }
@@ -56,7 +57,7 @@ export async function GET(
       return NextResponse.json({ error: 'Plugin is disabled' }, { status: 403 });
     }
 
-    const code = await getPluginBundle(id);
+    const code = await getPluginBundle(id, plugin.bundleHash);
     if (!code) {
       return NextResponse.json({ error: 'Bundle not found' }, { status: 404 });
     }
@@ -71,7 +72,7 @@ export async function GET(
     };
     if (etag) headers['ETag'] = etag;
 
-    const signature = await getPluginSignature(id, code);
+    const signature = await getPluginSignature(id, code, plugin.bundleHash);
     if (signature) headers['X-Bundle-Signature'] = signature;
 
     if (etag && request.headers.get('if-none-match') === etag) {
@@ -80,7 +81,9 @@ export async function GET(
 
     headers['Content-Length'] = String(Buffer.byteLength(code, 'utf-8'));
     return new NextResponse(code, { headers });
-  } catch {
+  } catch (error) {
+    const unavailable = storeUnavailableResponse(error);
+    if (unavailable) return unavailable;
     return NextResponse.json({ error: 'Not found' }, { status: 404 });
   }
 }
