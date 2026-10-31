@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getPublicKeyBase64 } from '@/lib/admin/plugin-signing';
+import { getPublicKeyBase64, isSigningKeyMismatch } from '@/lib/admin/plugin-signing';
 import { logger } from '@/lib/logger';
 import { storeUnavailableResponse } from '@/lib/admin/store-unavailable-response';
 
@@ -22,6 +22,13 @@ export async function GET() {
       { headers: { 'Cache-Control': 'no-store' } },
     );
   } catch (err) {
+    if (isSigningKeyMismatch(err)) {
+      // Logged by plugin-signing.ts with the key's source.
+      return NextResponse.json(
+        { error: 'This instance signs plugins with a different key than the other instances; ask the administrator to give them the same key.' },
+        { status: 503, headers: { 'Retry-After': '60' } },
+      );
+    }
     const unavailable = storeUnavailableResponse(err);
     if (unavailable) return unavailable;
     logger.error('[plugin-signing-pubkey] load failed', { error: err instanceof Error ? err.message : String(err) });

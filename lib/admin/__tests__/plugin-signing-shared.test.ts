@@ -73,6 +73,29 @@ describe('plugin signing key with a shared store', () => {
     expect(await getStore().kv.get('plugin-signing-key')).toBeNull();
   });
 
+  it('refuses to sign on a replica whose key file differs from the others', async () => {
+    // Replica A uses the key in the store.
+    const a = await moduleCopy();
+    const signature = await a.signBytes('payload');
+    expect(signature).toBeTruthy();
+
+    // Replica B was given a PLUGIN_SIGNING_KEY_FILE nobody else has.
+    delete (globalThis as Record<symbol, unknown>)[GLOBAL_KEY];
+    const other = generateKeyPairSync('ed25519').privateKey.export({ type: 'pkcs8', format: 'pem' }) as string;
+    const keyFile = path.join(dir, 'other.pem');
+    await writeFile(keyFile, other);
+    vi.stubEnv('PLUGIN_SIGNING_KEY_FILE', keyFile);
+    const b = await moduleCopy();
+    const refused = await b.signBytes('payload').catch((e: unknown) => e as Error & { code?: string });
+    expect(refused).toMatchObject({ name: 'StoreUnavailableError', code: 'plugin-signing-key-mismatch' });
+    expect((refused as Error).message).toContain('PLUGIN_SIGNING_KEY_FILE');
+
+    const { GET } = await import('@/app/api/plugin-signing-pubkey/route');
+    const res = await GET();
+    expect(res.status).toBe(503);
+    expect((await res.json()).error).toContain('different key');
+  });
+
   it('fails while the store is down, and makes no key of its own', async () => {
     store.down = true;
     const replica = await moduleCopy();

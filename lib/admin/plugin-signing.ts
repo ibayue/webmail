@@ -15,16 +15,38 @@
 // needs it creates it there if nobody has, then every replica reads it back,
 // so all of them sign with the same key. Read-only config keeps using the
 // mounted key file, as in local mode.
+//
+// Whatever the source, in shared mode each replica compares its key's
+// fingerprint with the one stored by the first replica that loaded a key
+// (kv `plugin-signing-key-fingerprint`). A replica with another key (a
+// PLUGIN_SIGNING_KEY_FILE or read-only config set on some replicas only)
+// refuses to sign and to hand out its public key: its signatures would
+// fail on clients that got the key from another replica.
 
-import { generateKeyPairSync, createPrivateKey, createPublicKey, sign as nodeSign, KeyObject } from 'node:crypto';
+import { createHash, generateKeyPairSync, createPrivateKey, createPublicKey, sign as nodeSign, verify as nodeVerify, KeyObject } from 'node:crypto';
 import { readFile, writeFile, chmod } from 'node:fs/promises';
 import { ensureConfigDir, getConfigPath, assertWritable, isConfigReadOnly } from './paths';
-import { getStore, isSharedMode } from '@/lib/shared-store';
+import { getStore, isSharedMode, StoreUnavailableError } from '@/lib/shared-store';
 import { logger } from '@/lib/logger';
 
 const KEY_FILENAME = 'plugin-signing.key';
 
 type KeyPair = { privateKey: KeyObject; publicKey: KeyObject };
+
+/**
+ * This replica's key isn't the deployment's. A StoreUnavailableError by
+ * name, so installs that need a signature answer 503 and write nothing.
+ */
+export class SigningKeyMismatchError extends StoreUnavailableError {
+  readonly code = 'plugin-signing-key-mismatch';
+}
+
+export function isSigningKeyMismatch(error: unknown): boolean {
+  return (error as { code?: unknown } | null)?.code === 'plugin-signing-key-mismatch';
+}
+
+/** The fingerprint every replica's key is compared with (shared mode). */
+export const SHARED_FINGERPRINT_NAME = 'plugin-signing-key-fingerprint';
 
 /**
  * The loaded key, on globalThis: Next evaluates this module once per bundle
@@ -69,15 +91,36 @@ async function loadExternal(path: string): Promise<{ privateKey: KeyObject; publ
   return parseKey(pem, 'PLUGIN_SIGNING_KEY_FILE');
 }
 
-async function loadOrCreate(): Promise<{ privateKey: KeyObject; publicKey: KeyObject }> {
+async function loadOrCreate(): Promise<{ pair: KeyPair; source: string }> {
   // An empty value (`PLUGIN_SIGNING_KEY_FILE=` in an env file) means unset,
   // like the other *_FILE variables. Reading '' fails, and a failed load
   // makes every bundle ship unsigned with only a console warning.
   const externalPath = process.env.PLUGIN_SIGNING_KEY_FILE?.trim();
-  if (externalPath) return loadExternal(externalPath);
+  if (externalPath) return { pair: await loadExternal(externalPath), source: 'PLUGIN_SIGNING_KEY_FILE' };
 
-  if (isSharedMode() && !isConfigReadOnly()) return loadOrCreateShared();
-  return loadOrCreateFile();
+  if (isSharedMode() && !isConfigReadOnly()) return { pair: await loadOrCreateShared(), source: 'the shared store' };
+  return { pair: await loadOrCreateFile(), source: `${KEY_FILENAME} in the admin config dir` };
+}
+
+function fingerprintOf(publicKey: KeyObject): string {
+  const spki = publicKey.export({ type: 'spki', format: 'der' }) as Buffer;
+  return createHash('sha256').update(spki.subarray(spki.length - 32)).digest('hex').slice(0, 32);
+}
+
+/** Shared mode: refuse a key that isn't the one the first replica recorded. */
+async function assertDeploymentKey(pair: KeyPair, source: string): Promise<void> {
+  if (!isSharedMode()) return;
+  const kv = getStore().kv;
+  const mine = fingerprintOf(pair.publicKey);
+  await kv.set(SHARED_FINGERPRINT_NAME, mine, { ifAbsent: true });
+  const recorded = await kv.get(SHARED_FINGERPRINT_NAME);
+  if (recorded !== null && recorded !== mine) {
+    throw new SigningKeyMismatchError(
+      `This instance's plugin signing key (from ${source}) is not the one the other instances use. ` +
+      'Give every instance the same PLUGIN_SIGNING_KEY_FILE (or none). After rotating the key on every instance on purpose, ' +
+      `delete the shared store's ${SHARED_FINGERPRINT_NAME} key.`,
+    );
+  }
 }
 
 /** The key the store's kv holds. Exported for the shared-store import. */
@@ -166,7 +209,8 @@ async function ensureLoaded(): Promise<KeyPair> {
     const generation = g.generation;
     g.init = (async () => {
       try {
-        const loaded = await loadOrCreate();
+        const { pair: loaded, source } = await loadOrCreate();
+        await assertDeploymentKey(loaded, source);
         // A rotation (invalidatePluginSigningCache) during the load wins.
         if (g.generation === generation) g.cached = loaded;
       } catch (err) {
@@ -206,6 +250,17 @@ export async function signBytes(bytes: Uint8Array | string): Promise<string> {
   const data = typeof bytes === 'string' ? Buffer.from(bytes, 'utf-8') : Buffer.from(bytes);
   const sig = nodeSign(null, data, privateKey);
   return sig.toString('base64');
+}
+
+/** Whether `signature` (base64) is this key's signature of `bytes`. */
+export async function verifyBytes(bytes: Uint8Array | string, signature: string): Promise<boolean> {
+  const { publicKey } = await ensureLoaded();
+  const data = typeof bytes === 'string' ? Buffer.from(bytes, 'utf-8') : Buffer.from(bytes);
+  try {
+    return nodeVerify(null, data, publicKey, Buffer.from(signature, 'base64'));
+  } catch {
+    return false;
+  }
 }
 
 /** Force a re-read on next access. Used after operator rotates the key. */
