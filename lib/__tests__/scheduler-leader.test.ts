@@ -7,7 +7,7 @@ import { setTimeout as realSleep } from 'node:timers/promises';
 import { NextRequest } from 'next/server';
 import { replicaId, setStoreForTests } from '@/lib/shared-store';
 import { resetLocalStoreForTests } from '@/lib/shared-store/local';
-import { INIT_EPOCH, pollChanges, resetChangesForTests } from '@/lib/shared-store/changes';
+import { INIT_EPOCH, announceChange, pollChanges, resetChangesForTests } from '@/lib/shared-store/changes';
 import { separateDiskStore, type SeparateDiskStore } from './helpers/separate-disk-store';
 
 // The background jobs with several replicas (#1066): only the holder of the
@@ -150,6 +150,82 @@ describe('scheduler leader with a shared store', () => {
     await ioSettles();
     expect(isSchedulerLeader()).toBe(false);
     expect(sent).not.toHaveBeenCalled();
+  });
+
+  it('does not arm a new timer after a send that was in flight when the lead moved', async () => {
+    const slot = new Date(Date.now() + MIN).toISOString();
+    await consentOn(slot);
+    let finish!: (res: Response) => void;
+    sent.mockImplementationOnce(() => new Promise<Response>((resolve) => { finish = resolve; }));
+    await startSchedulerLeader(jobs);
+
+    await vi.advanceTimersByTimeAsync(MIN + 1000);
+    await sends(1);
+    // The lead moves to replica-a while the heartbeat hangs.
+    await store.leases.release(LEADER_LEASE, replicaId());
+    expect(await store.leases.acquire(LEADER_LEASE, 'replica-a', 30_000)).toBe(true);
+    await pass(10_000);
+    expect(isSchedulerLeader()).toBe(false);
+    await stopSchedulerLeader(); // no more tries from this replica
+
+    finish(new Response('ok'));
+    await ioSettles();
+    await vi.advanceTimersByTimeAsync(27 * 60 * MIN);
+    await ioSettles();
+    expect(sent).toHaveBeenCalledTimes(1);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it('stops a job whose restart finished after the replica stepped down', async () => {
+    let running = false;
+    let starts = 0;
+    let finishStart: (() => void) | null = null;
+    const job = {
+      name: 'telemetry',
+      start: async () => {
+        if (++starts === 2) await new Promise<void>((resolve) => { finishStart = resolve; });
+        running = true;
+      },
+      stop: async () => { running = false; },
+    };
+    await startSchedulerLeader([job]);
+    expect(running).toBe(true);
+
+    // Consent changed: the restart's start hangs while the lead is lost.
+    const restarted = announceChange('telemetry');
+    await vi.waitFor(() => expect(finishStart).not.toBeNull());
+    store.down = true;
+    await pass(10_000);
+    expect(isSchedulerLeader()).toBe(false);
+    finishStart!();
+    await restarted;
+    expect(running).toBe(false);
+  });
+
+  it('version check: does not arm a new timer after a check that was in flight when it stopped', async () => {
+    vi.stubEnv('VERSION_CHECK_DATA_DIR', path.join(dir, 'version-check'));
+    vi.stubEnv('BULWARK_UPDATE_CHECK', '');
+    vi.stubEnv('BULWARK_UPDATE_CHECK_URL', 'https://version.example/');
+    vi.stubEnv('NEXT_PUBLIC_APP_VERSION', '1.20.0');
+    let finish!: (res: Response) => void;
+    const fetchMock = vi.fn(() => new Promise<Response>((resolve) => { finish = resolve; }));
+    vi.stubGlobal('fetch', fetchMock);
+    const versionCheck = await import('@/lib/version-check');
+    try {
+      await versionCheck.startScheduler();
+      await vi.advanceTimersByTimeAsync(31_000);
+      await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+      await versionCheck.stopScheduler();
+      finish(new Response('{}', { status: 500 }));
+      await ioSettles();
+      await vi.advanceTimersByTimeAsync(2 * 60 * MIN);
+      await ioSettles();
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(vi.getTimerCount()).toBe(0);
+    } finally {
+      await versionCheck.stopScheduler();
+      vi.unstubAllGlobals();
+    }
   });
 
   it('sends once when two leaders fire for the same slot, and not again after it', async () => {

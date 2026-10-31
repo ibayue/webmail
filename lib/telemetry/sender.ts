@@ -17,9 +17,16 @@ const SLOT_SLACK_MS = 60 * 1000;
 // each route), and a reschedule from a route must clear the timer the
 // instrumentation copy started, not a copy of its own.
 const TIMER_KEY = Symbol.for('bulwark.telemetry.timer');
-function timer(): { current: NodeJS.Timeout | null } {
-  const g = globalThis as typeof globalThis & { [TIMER_KEY]?: { current: NodeJS.Timeout | null } };
-  return (g[TIMER_KEY] ??= { current: null });
+/**
+ * `generation` goes up on every stop. A start or a tick captures it and
+ * arms a timer only while it is unchanged, so a check or send still in
+ * flight when the scheduler stops (this replica lost the lead) can't set a
+ * new timer afterwards.
+ */
+interface TimerState { current: NodeJS.Timeout | null; generation: number }
+function timer(): TimerState {
+  const g = globalThis as typeof globalThis & { [TIMER_KEY]?: TimerState };
+  return (g[TIMER_KEY] ??= { current: null, generation: 0 });
 }
 
 function jitteredDelay(base: number): number {
@@ -121,13 +128,14 @@ export async function sendOnce(opts?: { reason?: string; slot?: string }): Promi
   }
 }
 
-async function scheduleNext(delayMs: number): Promise<void> {
+async function scheduleNext(delayMs: number, generation: number): Promise<void> {
   const t = timer();
+  if (t.generation !== generation) return; // stopped meanwhile
   if (t.current) clearTimeout(t.current);
   const at = new Date(Date.now() + delayMs).toISOString();
   // The timer first: a state write that fails (store down) must not end
   // the chain of heartbeats.
-  t.current = setTimeout(() => { void tick(at); }, delayMs);
+  t.current = setTimeout(() => { void tick(at, generation); }, delayMs);
   // Don't keep the process alive just for this.
   t.current.unref?.();
   try {
@@ -137,17 +145,18 @@ async function scheduleNext(delayMs: number): Promise<void> {
   }
 }
 
-async function tick(slot: string): Promise<void> {
+async function tick(slot: string, generation: number): Promise<void> {
   try {
     await sendOnce({ reason: 'scheduled', slot });
   } catch (err) {
     logger.warn('telemetry: heartbeat failed', { error: err instanceof Error ? err.message : String(err) });
   }
-  await scheduleNext(jitteredDelay(DAY_MS));
+  await scheduleNext(jitteredDelay(DAY_MS), generation);
 }
 
 // Run by the scheduler leader (lib/scheduler-leader.ts). Idempotent.
 export async function startScheduler(): Promise<void> {
+  const generation = timer().generation;
   const { consent } = await effectiveConsent();
   if (consent !== 'on') {
     logger.info('telemetry: scheduler not started', { consent });
@@ -165,7 +174,7 @@ export async function startScheduler(): Promise<void> {
     const remaining = new Date(state.nextScheduledAt).getTime() - Date.now();
     if (remaining > 0) delay = Math.min(remaining, DAY_MS + JITTER_MS);
   }
-  await scheduleNext(delay);
+  await scheduleNext(delay, generation);
   logger.info('telemetry: scheduler started', {
     nextInMs: delay,
     endpoint: state.endpoint,
@@ -174,6 +183,7 @@ export async function startScheduler(): Promise<void> {
 
 export async function stopScheduler(): Promise<void> {
   const t = timer();
+  t.generation++;
   if (t.current) clearTimeout(t.current);
   t.current = null;
 }

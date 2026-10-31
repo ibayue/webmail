@@ -59,7 +59,9 @@ async function startJobs(g: LeaderGlobals): Promise<void> {
     if (g.started.has(job.name)) continue;
     try {
       await job.start();
+      // Stepped down while it started: don't leave its timer running.
       if (g.leading) g.started.add(job.name);
+      else await job.stop();
     } catch (error) {
       logger.warn('scheduler: could not start a job; retrying', { job: job.name, error: message(error) });
     }
@@ -126,6 +128,7 @@ async function restartJob(name: string): Promise<void> {
   await job.stop();
   await job.start();
   if (g.leading) g.started.add(name);
+  else await job.stop();
 }
 
 /**

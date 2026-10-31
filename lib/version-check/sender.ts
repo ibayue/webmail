@@ -17,9 +17,16 @@ const FAILURE_BACKOFF_MS = 15 * 60 * 1000; // after a failed fetch, retry in 15 
 // each route), and a reschedule from a route must clear the timer the
 // instrumentation copy started, not a copy of its own.
 const TIMER_KEY = Symbol.for('bulwark.versionCheck.timer');
-function timer(): { current: NodeJS.Timeout | null } {
-  const g = globalThis as typeof globalThis & { [TIMER_KEY]?: { current: NodeJS.Timeout | null } };
-  return (g[TIMER_KEY] ??= { current: null });
+/**
+ * `generation` goes up on every stop. A start or a tick captures it and
+ * arms a timer only while it is unchanged, so a check or send still in
+ * flight when the scheduler stops (this replica lost the lead) can't set a
+ * new timer afterwards.
+ */
+interface TimerState { current: NodeJS.Timeout | null; generation: number }
+function timer(): TimerState {
+  const g = globalThis as typeof globalThis & { [TIMER_KEY]?: TimerState };
+  return (g[TIMER_KEY] ??= { current: null, generation: 0 });
 }
 
 /** What checkOnce reports while NO_THIRD_PARTY_TRAFFIC is on. */
@@ -68,13 +75,14 @@ export async function checkOnce(opts?: { reason?: string }): Promise<{
   return { ok: false, error: result.error };
 }
 
-async function scheduleNext(delayMs: number): Promise<void> {
+async function scheduleNext(delayMs: number, generation: number): Promise<void> {
   const t = timer();
+  if (t.generation !== generation) return; // stopped meanwhile
   if (t.current) clearTimeout(t.current);
   const at = new Date(Date.now() + delayMs).toISOString();
   // The timer first: a state write that fails (store down) must not end
   // the chain of checks.
-  t.current = setTimeout(() => { void tick(); }, delayMs);
+  t.current = setTimeout(() => { void tick(generation); }, delayMs);
   // Don't keep the process alive just for this.
   t.current.unref?.();
   try {
@@ -84,7 +92,7 @@ async function scheduleNext(delayMs: number): Promise<void> {
   }
 }
 
-async function tick(): Promise<void> {
+async function tick(generation: number): Promise<void> {
   const result = await checkOnce({ reason: 'scheduled' }).catch((err: unknown) => ({
     ok: false as const, error: err instanceof Error ? err.message : String(err),
   }));
@@ -92,12 +100,13 @@ async function tick(): Promise<void> {
   // the switch off at runtime resumes the checks; checkOnce skips meanwhile.
   const skipped = result.error === NO_THIRD_PARTY_ERROR;
   const delay = result.ok || skipped ? jitteredDelay(HOUR_MS) : FAILURE_BACKOFF_MS;
-  await scheduleNext(delay);
+  await scheduleNext(delay, generation);
 }
 
 // Run by the scheduler leader (lib/scheduler-leader.ts). Idempotent - safe
 // to call from instrumentation hot-reload in dev.
 export async function startScheduler(): Promise<void> {
+  const generation = timer().generation;
   if (disabledByEnv()) {
     logger.info('version-check: scheduler not started (disabled by env)');
     return;
@@ -134,12 +143,13 @@ export async function startScheduler(): Promise<void> {
     const remaining = new Date(state.nextScheduledAt).getTime() - Date.now();
     if (remaining > 0) delay = Math.min(remaining, HOUR_MS + JITTER_MS);
   }
-  await scheduleNext(delay);
+  await scheduleNext(delay, generation);
   logger.info('version-check: scheduler started', { nextInMs: delay });
 }
 
 export async function stopScheduler(): Promise<void> {
   const t = timer();
+  t.generation++;
   if (t.current) clearTimeout(t.current);
   t.current = null;
 }
