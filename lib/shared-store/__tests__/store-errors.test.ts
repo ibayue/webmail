@@ -12,3 +12,25 @@ describe('isStoreUnavailableError', () => {
     expect(second.isStoreUnavailableError(null)).toBe(false);
   });
 });
+
+describe('redis store error mapping', () => {
+  const reply = (message: string) => Object.assign(new Error(message), { name: 'ReplyError' });
+
+  it('treats a full server (OOM under noeviction) and connection errors as unavailable', async () => {
+    const { unavailable } = await import('../redis');
+    const { isStoreUnavailableError } = await import('../types');
+    for (const error of [reply('OOM command not allowed when used memory > \'maxmemory\'.'), reply('LOADING Redis is loading'), new Error('Stream isn\'t writeable')]) {
+      let thrown: unknown;
+      try { unavailable(error); } catch (e) { thrown = e; }
+      expect(isStoreUnavailableError(thrown)).toBe(true);
+    }
+  });
+
+  it('rethrows script and command errors as they are', async () => {
+    const { unavailable } = await import('../redis');
+    const bug = reply('ERR Error running script (call to f_x): attempt to compare nil');
+    let thrown: unknown;
+    try { unavailable(bug); } catch (e) { thrown = e; }
+    expect(thrown).toBe(bug);
+  });
+});

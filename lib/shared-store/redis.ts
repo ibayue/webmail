@@ -128,9 +128,11 @@ type ScriptName = keyof typeof SCRIPTS;
 type Scripted = Redis & { [K in ScriptName]: (...args: Array<string | number | Buffer>) => Promise<unknown> };
 
 // Server replies that mean "not available right now", not "bug in our script".
-const UNAVAILABLE_REPLY = /^(NOAUTH|WRONGPASS|LOADING|READONLY|MASTERDOWN|BUSY|CLUSTERDOWN|TRYAGAIN|ERR max number of clients)/;
+// OOM is what a full server with the required noeviction policy answers to writes.
+const UNAVAILABLE_REPLY = /^(NOAUTH|WRONGPASS|LOADING|READONLY|MASTERDOWN|BUSY|CLUSTERDOWN|TRYAGAIN|OOM|NOREPLICAS|ERR max number of clients)/;
 
-function unavailable(error: unknown): never {
+/** Throw `error` as a StoreUnavailableError when it means the store is unavailable; rethrow it as it is otherwise. */
+export function unavailable(error: unknown): never {
   if (isStoreUnavailableError(error)) throw error;
   const name = (error as Error)?.name;
   const message = (error as Error)?.message ?? '';
@@ -233,7 +235,8 @@ export function createRedisStore(options: RedisStoreOptions): SharedStore {
         if (ok === 1) return next;
         await backoff(attempt);
       }
-      throw new Error(`Too many concurrent writes to ${key}`);
+      // Fail closed like an outage: the callers then answer 503 instead of 500.
+      throw new StoreUnavailableError(`Too many concurrent writes to ${key}`);
     },
   };
 
@@ -318,7 +321,7 @@ export function createRedisStore(options: RedisStoreOptions): SharedStore {
           }
           await backoff(attempt);
         }
-        throw new Error(`Too many concurrent writes to ${name}/${id}`);
+        throw new StoreUnavailableError(`Too many concurrent writes to ${name}/${id}`);
       },
       async delete(id, putOpts: PutOptions = {}) {
         assertDocId(id);
