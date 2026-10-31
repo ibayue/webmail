@@ -51,7 +51,7 @@ let store: ReturnType<typeof switchableSharedStore>;
  */
 async function replica(disposer?: (grant: PairingGrant) => void) {
   vi.resetModules();
-  const pinned = (globalThis as Record<string, { sweepTimer?: ReturnType<typeof setInterval> } | undefined>).__bulwarkPairingStore;
+  const pinned = (globalThis as unknown as Record<string, { sweepTimer?: ReturnType<typeof setInterval> } | undefined>).__bulwarkPairingStore;
   if (pinned?.sweepTimer) clearInterval(pinned.sweepTimer);
   delete (globalThis as Record<string, unknown>).__bulwarkPairingStore;
   const mod = await import('@/lib/auth/pairing-store');
