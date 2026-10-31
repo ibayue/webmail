@@ -9,10 +9,17 @@
 // (PEM-encoded PKCS#8 private, mode 0600) and is generated lazily on first
 // use. Operators can instead point PLUGIN_SIGNING_KEY_FILE at a read-only
 // secret outside the admin config directory.
+//
+// With a shared store (#1066) and no PLUGIN_SIGNING_KEY_FILE, the key lives
+// in the store instead (kv `plugin-signing-key`): the first replica that
+// needs it creates it there if nobody has, then every replica reads it back,
+// so all of them sign with the same key. Read-only config keeps using the
+// mounted key file, as in local mode.
 
 import { generateKeyPairSync, createPrivateKey, createPublicKey, sign as nodeSign, KeyObject } from 'node:crypto';
 import { readFile, writeFile, chmod } from 'node:fs/promises';
-import { ensureConfigDir, getConfigPath, assertWritable } from './paths';
+import { ensureConfigDir, getConfigPath, assertWritable, isConfigReadOnly } from './paths';
+import { getStore, isSharedMode } from '@/lib/shared-store';
 import { logger } from '@/lib/logger';
 
 const KEY_FILENAME = 'plugin-signing.key';
@@ -69,7 +76,31 @@ async function loadOrCreate(): Promise<{ privateKey: KeyObject; publicKey: KeyOb
   const externalPath = process.env.PLUGIN_SIGNING_KEY_FILE?.trim();
   if (externalPath) return loadExternal(externalPath);
 
+  if (isSharedMode() && !isConfigReadOnly()) return loadOrCreateShared();
   return loadOrCreateFile();
+}
+
+/** The key the store's kv holds. Exported for the shared-store import. */
+export const SHARED_KEY_NAME = 'plugin-signing-key';
+
+/**
+ * Shared mode: the one key every replica uses. Created only if absent, then
+ * read back, so replicas starting at once agree on whichever was stored
+ * first. A store outage fails the load (and with it the install that needs
+ * a signature); it is tried again on the next use.
+ */
+async function loadOrCreateShared(): Promise<KeyPair> {
+  const kv = getStore().kv;
+  let pem = await kv.get(SHARED_KEY_NAME);
+  if (pem === null) {
+    const generated = generateKeyPairSync('ed25519').privateKey.export({ type: 'pkcs8', format: 'pem' }) as string;
+    if (await kv.set(SHARED_KEY_NAME, generated, { ifAbsent: true })) {
+      logger.info('[plugin-signing] generated new Ed25519 keypair in the shared store');
+    }
+    pem = await kv.get(SHARED_KEY_NAME);
+    if (pem === null) throw new Error('The plugin signing key could not be stored in the shared store');
+  }
+  return parseKey(pem, 'The shared store\'s plugin signing key');
 }
 
 async function readKeyFile(path: string): Promise<string | null> {
