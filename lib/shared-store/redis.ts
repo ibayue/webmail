@@ -5,6 +5,7 @@ import { assertDocId, assertKey, assertName, toBuffer, versionOf } from './keys'
 import { localCollection } from './local';
 import {
   StoreUnavailableError,
+  isStoreUnavailableError,
   type AppendLog,
   type CollectionOptions,
   type CounterStore,
@@ -130,7 +131,7 @@ type Scripted = Redis & { [K in ScriptName]: (...args: Array<string | number | B
 const UNAVAILABLE_REPLY = /^(NOAUTH|WRONGPASS|LOADING|READONLY|MASTERDOWN|BUSY|CLUSTERDOWN|TRYAGAIN|ERR max number of clients)/;
 
 function unavailable(error: unknown): never {
-  if (error instanceof StoreUnavailableError) throw error;
+  if (isStoreUnavailableError(error)) throw error;
   const name = (error as Error)?.name;
   const message = (error as Error)?.message ?? '';
   if (name === 'ReplyError' && !UNAVAILABLE_REPLY.test(message)) throw error;
