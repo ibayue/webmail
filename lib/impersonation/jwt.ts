@@ -191,4 +191,6 @@ class ReplayCache {
   }
 }
 
-export const impersonationReplayCache = new ReplayCache();
+// One per process, not one per bundle: the route bundles each evaluate this module.
+const REPLAY_CACHE_KEY = Symbol.for('bulwark.impersonationReplayCache');
+export const impersonationReplayCache: ReplayCache = ((globalThis as typeof globalThis & { [REPLAY_CACHE_KEY]?: ReplayCache })[REPLAY_CACHE_KEY] ??= new ReplayCache());

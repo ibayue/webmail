@@ -1,3 +1,4 @@
+import path from 'node:path';
 import { fakeSharedStore } from '@/lib/shared-store/__tests__/fake-shared';
 import { StoreUnavailableError, type SharedStore } from '@/lib/shared-store/types';
 
@@ -5,8 +6,12 @@ import { StoreUnavailableError, type SharedStore } from '@/lib/shared-store/type
  * A shared store that can be taken down: while `down` is set every kv,
  * counter and collection call rejects with StoreUnavailableError, as the
  * Redis store does when its server can't be reached.
+ *
+ * With `sharedDir`, collections keep their documents under
+ * `<sharedDir>/<collection>` instead of the local layout they declare, so the
+ * "shared store" is apart from each replica's own files, as Redis is.
  */
-export function switchableSharedStore(): SharedStore & { down: boolean } {
+export function switchableSharedStore(options: { sharedDir?: string } = {}): SharedStore & { down: boolean } {
   const base = fakeSharedStore();
   const guard = <T extends object>(target: T): T =>
     new Proxy(target, {
@@ -19,12 +24,15 @@ export function switchableSharedStore(): SharedStore & { down: boolean } {
         };
       },
     });
+  const { sharedDir } = options;
   const store: SharedStore & { down: boolean } = {
     ...base,
     down: false,
     kv: guard(base.kv),
     counters: guard(base.counters),
-    collection: (name, options) => guard(base.collection(name, options)),
+    collection: (name, collectionOptions) => guard(base.collection(name, sharedDir
+      ? { ...collectionOptions, configDir: false, local: { dir: () => path.join(sharedDir, name) } }
+      : collectionOptions)),
   };
   return store;
 }
