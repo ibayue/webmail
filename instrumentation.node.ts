@@ -5,9 +5,10 @@ import { migrateLegacyAdminLayout, migratePolicyUnifiedMailbox } from "./lib/adm
 import { detectSetupState } from "./lib/setup/state";
 import { ensureSetupToken } from "./lib/setup/token";
 import { ensureSessionSecret } from "./lib/auth/session-secret";
-import { bootState, sharedStoreUrl } from "./lib/shared-store";
+import { bootState, getStore, sharedStoreUrl } from "./lib/shared-store";
 import { bootSharedMode } from "./lib/shared-store/boot";
 import { importLocalData } from "./lib/shared-store/import";
+import { exportSharedData } from "./lib/shared-store/export";
 
 const pkg = JSON.parse(
   readFileSync(`${process.cwd()}/package.json`, "utf-8")
@@ -24,6 +25,26 @@ async function loadAdmin(): Promise<void> {
   await initAdminPassword();
 }
 
+// SHARED_STORE_EXPORT=1 with REDIS_URL: write the store back into the data
+// dirs (the way back to one instance), then exit instead of serving.
+const exportOnly = shared && process.env.SHARED_STORE_EXPORT === "1";
+
+async function exportAndExit(): Promise<never> {
+  const store = getStore();
+  for (;;) {
+    try {
+      await store.ping(2000);
+      break;
+    } catch {
+      console.warn("Export: waiting for the shared store");
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+    }
+  }
+  const written = await exportSharedData();
+  console.info("Export from the shared store done; start without REDIS_URL on this volume now.", written);
+  process.exit(0);
+}
+
 async function bootShared(): Promise<void> {
   await bootSharedMode({ version: current, importLocal: importLocalData, load: loadAdmin });
   if (bootState() !== "ready") throw new Error(`shared store boot ended in state ${bootState()}`);
@@ -34,7 +55,7 @@ async function bootShared(): Promise<void> {
 // shared store: before they are imported).
 migrateLegacyAdminLayout()
   .then(() => migratePolicyUnifiedMailbox())
-  .then(() => (shared ? bootShared() : loadAdmin()))
+  .then(() => (exportOnly ? exportAndExit() : shared ? bootShared() : loadAdmin()))
   .then(async () => {
     console.info("Admin dashboard initialized");
     // With a shared store, boot already made or loaded the secret.
