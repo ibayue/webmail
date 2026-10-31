@@ -1,4 +1,7 @@
 import type { ImportSummary } from './boot';
+import { steps as adminSteps } from './import/admin';
+import { steps as authSteps } from './import/auth';
+import { steps as dataSteps } from './import/data';
 
 /**
  * Copy an existing single-instance install's local files into an
@@ -13,7 +16,8 @@ export interface ImportStep {
   run(): Promise<number>;
 }
 
-const STEPS: ImportStep[] = [];
+/** In this order: config first, then state, then user data. */
+const STEPS: ImportStep[] = [...adminSteps, ...authSteps, ...dataSteps];
 
 export async function importLocalData(steps: ImportStep[] = STEPS): Promise<ImportSummary> {
   const imported: Record<string, number> = {};
