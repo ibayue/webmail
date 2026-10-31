@@ -12,6 +12,7 @@ import { logger } from '@/lib/logger';
 import path from 'node:path';
 import { configReadOnlyResponse } from '@/lib/admin/config-read-only-response';
 import { brandingDocs } from '@/lib/admin/extension-store';
+import type { PutResult } from '@/lib/shared-store';
 import { announceChange } from '@/lib/shared-store/changes';
 
 // Uploads live in C/branding, or the shared store in shared mode (#1066),
@@ -111,6 +112,10 @@ function clearDomainKeys(
   return next;
 }
 
+function brandingUrl(name: string, written: PutResult): string {
+  return `/api/admin/branding/${name}${written.ok ? `?v=${written.version}` : ''}`;
+}
+
 /**
  * POST /api/admin/branding - Upload a branding image file
  *
@@ -177,9 +182,12 @@ export async function POST(request: NextRequest) {
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
-    await docs.put(safeName, buffer);
+    const written = await docs.put(safeName, buffer);
 
-    const servedUrl = `/api/admin/branding/${safeName}`;
+    // The version in the URL changes with the bytes, so browsers (which may
+    // keep the file for an hour) and the rendered icons and previews pick up
+    // a re-upload of the same slot and type at once.
+    const servedUrl = brandingUrl(safeName, written);
     await configManager.ensureLoaded();
 
     if (host) {

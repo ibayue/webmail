@@ -102,9 +102,10 @@ export async function POST(request: NextRequest) {
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
-    await docs.put(safeName, buffer);
+    const written = await docs.put(safeName, buffer);
 
-    const servedUrl = `/api/admin/branding/${safeName}`;
+    // Versioned like the admin upload's URL (app/api/admin/branding/route.ts).
+    const servedUrl = `/api/admin/branding/${safeName}${written.ok ? `?v=${written.version}` : ''}`;
     await configManager.ensureLoaded();
     await configManager.setAdminConfig({ [slot]: servedUrl });
     await announceChange('branding');

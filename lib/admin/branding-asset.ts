@@ -57,7 +57,8 @@ export async function fetchBrandingAsset(url: string, label = 'branding asset'):
   }
 
   if (url.startsWith(ADMIN_BRANDING_PREFIX)) {
-    const filename = path.basename(url.slice(ADMIN_BRANDING_PREFIX.length));
+    // The URL carries the upload's version (?v=…) for caches; the file is the path.
+    const filename = path.basename(url.slice(ADMIN_BRANDING_PREFIX.length).split(/[?#]/)[0]);
     const doc = await brandingDocs().get(filename);
     if (!doc) throw new Error(`Branding file ${filename} not found`);
     return doc.data;
