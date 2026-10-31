@@ -49,7 +49,8 @@ if (isLite && (process.env.NEXT_PUBLIC_LOCALE_PREFIX ?? "never") !== "always") {
 
 const nextConfig: NextConfig = {
   output: isLite ? "export" : "standalone",
-  // No `X-Powered-By: Next.js` on every response.
+  // No `X-Powered-By: Next.js`; headers() below sends
+  // `X-Powered-By: bulwarkmail.org` instead, without a version.
   poweredByHeader: false,
   // Directory-style pages (out/en/mail/index.html) are what static hosts and
   // the shipped SPA-fallback rules expect; next/image has no optimizer here.
@@ -77,6 +78,12 @@ const nextConfig: NextConfig = {
     : {
         async headers() {
           return [
+            {
+              // Lets people see a site runs Bulwark. No version, so it tells
+              // a scanner nothing about which fixes are missing.
+              source: "/:path*",
+              headers: [{ key: "X-Powered-By", value: "bulwarkmail.org" }],
+            },
             {
               // Untrusted plugin iframes have opaque origins and load these public,
               // immutable chunks in CORS mode. Next prefixes this source with basePath.
