@@ -6,7 +6,6 @@ import { HistoryError, readHistoryEntry } from '@/lib/admin/extension-history';
 import { getPlugin, getTheme, savePlugin, saveTheme } from '@/lib/admin/plugin-registry';
 import { invalidateFrameOriginsCache } from '@/lib/admin/csp-frame-origins';
 import { configReadOnlyResponse } from '@/lib/admin/config-read-only-response';
-import { storeUnavailableResponse } from '@/lib/admin/store-unavailable-response';
 import { EXTENSION_ID_RE } from '@/lib/extension-package';
 
 /**
@@ -88,8 +87,6 @@ export async function POST(
     }
     const readOnly = configReadOnlyResponse(error);
     if (readOnly) return readOnly;
-    const unavailable = storeUnavailableResponse(error);
-    if (unavailable) return unavailable;
     logger.error('Extension rollback error', { error: error instanceof Error ? error.message : 'Unknown error' });
     return NextResponse.json({ error: 'Rollback failed' }, { status: 500 });
   }

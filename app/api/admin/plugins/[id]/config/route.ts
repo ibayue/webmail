@@ -135,8 +135,6 @@ export async function PUT(
   } catch (error) {
     const readOnly = configReadOnlyResponse(error);
     if (readOnly) return readOnly;
-    const unavailable = storeUnavailableResponse(error);
-    if (unavailable) return unavailable;
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -176,8 +174,6 @@ export async function DELETE(
   } catch (error) {
     const readOnly = configReadOnlyResponse(error);
     if (readOnly) return readOnly;
-    const unavailable = storeUnavailableResponse(error);
-    if (unavailable) return unavailable;
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

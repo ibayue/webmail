@@ -61,8 +61,6 @@ export async function POST(request: NextRequest) {
   } catch (err) {
     const readOnly = configReadOnlyResponse(err);
     if (readOnly) return readOnly;
-    const unavailable = storeUnavailableResponse(err);
-    if (unavailable) return unavailable;
     logger.error('plugin-approvals POST', { error: err instanceof Error ? err.message : String(err) });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
@@ -89,8 +87,6 @@ export async function DELETE(request: NextRequest) {
   } catch (err) {
     const readOnly = configReadOnlyResponse(err);
     if (readOnly) return readOnly;
-    const unavailable = storeUnavailableResponse(err);
-    if (unavailable) return unavailable;
     logger.error('plugin-approvals DELETE', { error: err instanceof Error ? err.message : String(err) });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
