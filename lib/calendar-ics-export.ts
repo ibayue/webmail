@@ -116,7 +116,7 @@ export function eventToICS(event: CalendarEvent): string {
   const now = formatNow();
   const lines: string[] = [
     "BEGIN:VCALENDAR",
-    "PRODID:-//JMAP-Webmail//EN",
+    "PRODID:-//Bulwark Mail//Bulwark Webmail//EN",
     "VERSION:2.0",
     "CALSCALE:GREGORIAN",
     "METHOD:PUBLISH",

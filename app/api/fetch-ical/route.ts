@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
     for (let i = 0; i <= MAX_REDIRECTS; i++) {
       const headers: Record<string, string> = {
         'Accept': 'text/calendar, application/ics, text/plain, */*',
-        'User-Agent': 'JMAP-Webmail/1.0 Calendar-Fetcher',
+        'User-Agent': 'Bulwark-Webmail-Calendar (+https://bulwarkmail.org)',
       };
       if (authHeader && new URL(currentUrl).origin === originalOrigin) {
         headers['Authorization'] = authHeader;

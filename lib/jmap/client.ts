@@ -5318,7 +5318,7 @@ export class JMAPClient implements IJMAPClient {
 
     const lines: string[] = [
       'BEGIN:VCALENDAR',
-      'PRODID:-//JMAP-Webmail//EN',
+      'PRODID:-//Bulwark Mail//Bulwark Webmail//EN',
       'VERSION:2.0',
       'CALSCALE:GREGORIAN',
       'METHOD:REPLY',
@@ -5507,7 +5507,7 @@ export class JMAPClient implements IJMAPClient {
 
     const lines: string[] = [
       'BEGIN:VCALENDAR',
-      'PRODID:-//JMAP-Webmail//EN',
+      'PRODID:-//Bulwark Mail//Bulwark Webmail//EN',
       'VERSION:2.0',
       'CALSCALE:GREGORIAN',
       'METHOD:REQUEST',
@@ -5685,7 +5685,7 @@ export class JMAPClient implements IJMAPClient {
 
     const lines: string[] = [
       'BEGIN:VCALENDAR',
-      'PRODID:-//JMAP-Webmail//EN',
+      'PRODID:-//Bulwark Mail//Bulwark Webmail//EN',
       'VERSION:2.0',
       'CALSCALE:GREGORIAN',
       'METHOD:CANCEL',

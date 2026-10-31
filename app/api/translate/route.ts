@@ -176,7 +176,7 @@ async function mymemoryRequest(
 
   const res = await fetch(url.toString(), {
     signal,
-    headers: { 'User-Agent': 'JMAP-Webmail/1.0 Translate-Plugin' },
+    headers: { 'User-Agent': 'Bulwark-Webmail-Translate (+https://bulwarkmail.org)' },
   });
   const data = (await res.json().catch(() => null)) as
     | { responseStatus?: number | string; responseData?: { translatedText?: string }; responseDetails?: string }
