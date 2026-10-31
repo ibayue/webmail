@@ -6,6 +6,7 @@ import { logger } from '@/lib/logger';
 import { POLICY_DOMAINS_HEADER, POLICY_SCOPE_HEADER, type SettingsPolicy } from '@/lib/admin/types';
 import { canSeeInstanceDetails, signedInIdentity } from '@/lib/auth/instance-details';
 import { bearerIdentity } from '@/lib/auth/bearer-identity';
+import { isStoreUnavailable, storeUnavailableResponse } from '@/lib/auth/store-unavailable';
 import { scopesVisibleTo } from '@/lib/admin/policy-scopes';
 import { configReadOnlyResponse } from '@/lib/admin/config-read-only-response';
 
@@ -75,6 +76,8 @@ export async function GET(request: NextRequest) {
       headers: { 'Cache-Control': 'no-store', ETag: policyETag(version) },
     });
   } catch (error) {
+    // A Bearer token can't be checked without the shared store (its budget).
+    if (isStoreUnavailable(error)) return storeUnavailableResponse();
     logger.error('Policy read error', { error: error instanceof Error ? error.message : 'Unknown error' });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }

@@ -55,12 +55,12 @@ async function verifiedOwner(request: NextRequest): Promise<ArchiveOwner | NextR
       const trusted = resolveTrustedJmapUrl(ctx.serverUrl,
         configManager.get<string>('jmapServerUrl', ''),
         parseJmapServers(configManager.get<unknown>('jmapServers', [])));
-      if (isStoredCredentialRefused(ctx.authHeader)) return denied;
+      if (await isStoredCredentialRefused(ctx.authHeader)) return denied;
       await verifyJmapAuth(ctx.serverUrl, ctx.authHeader, { trusted: !!trusted, clientIp: loginClientAddress(request) });
-      recordStoredCredentialStatus(ctx.authHeader, 200);
+      await recordStoredCredentialStatus(ctx.authHeader, 200);
     } catch (error) {
       if (error instanceof JmapAuthVerificationError && error.upstreamStatus === 401) {
-        recordStoredCredentialStatus(ctx.authHeader, 401);
+        await recordStoredCredentialStatus(ctx.authHeader, 401);
       }
       return denied;
     }
