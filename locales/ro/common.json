@@ -1,5 +1,5 @@
 {
-  "meta_description": "Client de webmail minimalist care utilizează protocolul JMAP",
+  "meta_description": "Webmail auto-găzduit pentru e-mail, calendar, contacte și fișiere, construit pe JMAP",
   "login": {
     "title": "Webmail",
     "username_label": "E-mail",

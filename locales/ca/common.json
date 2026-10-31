@@ -1,5 +1,5 @@
 {
-  "meta_description": "Client de correu web minimalista que utilitza el protocol JMAP",
+  "meta_description": "Correu web autoallotjat per a correu, calendari, contactes i fitxers, basat en JMAP",
   "login": {
     "title": "Webmail",
     "username_label": "Correu electrònic",

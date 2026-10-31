@@ -1,5 +1,5 @@
 {
-  "meta_description": "Minimalistische webmailclient die het JMAP-protocol gebruikt",
+  "meta_description": "Zelf gehoste webmail voor e-mail, agenda, contacten en bestanden, gebouwd op JMAP",
   "login": {
     "title": "Webmail",
     "username_label": "E-mail",

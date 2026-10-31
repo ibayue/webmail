@@ -1,5 +1,5 @@
 {
-  "meta_description": "JMAPプロトコルを使用するミニマルなウェブメールクライアント",
+  "meta_description": "メール、カレンダー、連絡先、ファイルを一つにまとめたセルフホスト型ウェブメール（JMAP ベース）",
   "login": {
     "title": "ウェブメール",
     "username_label": "メールアドレス",

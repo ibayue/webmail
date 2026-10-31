@@ -1,5 +1,5 @@
 {
-  "meta_description": "Ứng dụng thư điện tử trên web tối giản sử dụng giao thức JMAP",
+  "meta_description": "Webmail tự lưu trữ cho thư, lịch, danh bạ và tệp, xây dựng trên JMAP",
   "login": {
     "title": "Thư điện tử trên web",
     "username_label": "Email",

@@ -1,5 +1,5 @@
 {
-  "meta_description": "Client di posta web minimalista che utilizza il protocollo JMAP",
+  "meta_description": "Webmail self-hosted per posta, calendario, contatti e file, basato su JMAP",
   "login": {
     "title": "Webmail",
     "username_label": "Email",

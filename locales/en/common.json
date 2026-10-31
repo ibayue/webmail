@@ -1,5 +1,5 @@
 {
-  "meta_description": "Minimalist webmail client using JMAP protocol",
+  "meta_description": "Self-hosted webmail for mail, calendar, contacts and files, built on JMAP",
   "login": {
     "title": "Webmail",
     "username_label": "Email",

@@ -1,5 +1,5 @@
 {
-  "meta_description": "Minimalistisk nettpostklient som bruker JMAP-protokollen",
+  "meta_description": "Selvhostet nettpost for e-post, kalender, kontakter og filer, bygget på JMAP",
   "login": {
     "title": "Nettpost",
     "username_label": "E-post",

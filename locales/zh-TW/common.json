@@ -1,5 +1,5 @@
 {
-  "meta_description": "使用 JMAP 通訊協定的極簡網頁郵件用戶端",
+  "meta_description": "以 JMAP 為基礎的自架網頁郵件，整合郵件、行事曆、聯絡人與檔案",
   "login": {
     "title": "網頁郵件",
     "username_label": "電子郵件地址",

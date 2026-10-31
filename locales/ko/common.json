@@ -1,5 +1,5 @@
 {
-  "meta_description": "JMAP 프로토콜을 사용하는 미니멀한 웹메일 클라이언트",
+  "meta_description": "메일, 캘린더, 연락처, 파일을 한곳에서 다루는 JMAP 기반 셀프 호스팅 웹메일",
   "login": {
     "title": "웹메일",
     "username_label": "이메일",

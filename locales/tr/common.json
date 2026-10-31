@@ -1,5 +1,5 @@
 {
-  "meta_description": "JMAP protokolünü kullanan minimalist web posta istemcisi",
+  "meta_description": "E-posta, takvim, kişiler ve dosyalar için JMAP tabanlı, kendi sunucunuzda barındırılan web posta",
   "login": {
     "title": "Webmail",
     "username_label": "E-posta",

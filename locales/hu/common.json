@@ -1,5 +1,5 @@
 {
-  "meta_description": "Minimalista webmail kliens JMAP protokollal",
+  "meta_description": "Saját üzemeltetésű webmail levelezéshez, naptárhoz, névjegyekhez és fájlokhoz, JMAP alapokon",
   "login": {
     "title": "Webmail",
     "username_label": "E-mail",

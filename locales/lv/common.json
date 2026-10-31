@@ -1,5 +1,5 @@
 {
-  "meta_description": "Minimālistisks tīmekļa pasta klients, kas izmanto JMAP protokolu",
+  "meta_description": "Pašmitināms tīmekļa pasts e-pastam, kalendāram, kontaktiem un failiem, balstīts uz JMAP",
   "login": {
     "title": "Tīmekļa pasts",
     "username_label": "E-pasta adrese",

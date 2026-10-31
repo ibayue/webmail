@@ -1,5 +1,5 @@
 {
-  "meta_description": "Minimalistlik JMAP-protokolli kasutav veebipostiklient",
+  "meta_description": "Isehostitav veebipost e-kirjade, kalendri, kontaktide ja failide jaoks, põhineb JMAP-il",
   "login": {
     "title": "Veebipost",
     "username_label": "E-post",

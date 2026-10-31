@@ -1,5 +1,5 @@
 {
-  "meta_description": "Minimalistický webmailový klient využívajúci protokol JMAP",
+  "meta_description": "Webmail na vlastný hosting s poštou, kalendárom, kontaktmi a súbormi, postavený na JMAP",
   "login": {
     "title": "Webmail",
     "username_label": "E-mail",

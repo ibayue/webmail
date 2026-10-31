@@ -1,5 +1,5 @@
 {
-  "meta_description": "Cliente de webmail minimalista que usa o protocolo JMAP",
+  "meta_description": "Webmail auto-hospedado para e-mail, calendário, contatos e arquivos, baseado em JMAP",
   "login": {
     "title": "Webmail",
     "username_label": "E-mail",

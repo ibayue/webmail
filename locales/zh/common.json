@@ -1,5 +1,5 @@
 {
-  "meta_description": "使用 JMAP 协议的极简网页邮件客户端",
+  "meta_description": "基于 JMAP 的自托管网页邮件，集邮件、日历、联系人和文件于一体",
   "login": {
     "title": "网页邮箱",
     "username_label": "邮箱地址",

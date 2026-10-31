@@ -1,5 +1,5 @@
 {
-  "meta_description": "Cliente de correo web minimalista que usa el protocolo JMAP",
+  "meta_description": "Webmail autoalojado para correo, calendario, contactos y archivos, basado en JMAP",
   "login": {
     "title": "Correo Web",
     "username_label": "Correo electrónico",

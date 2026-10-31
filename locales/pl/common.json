@@ -1,5 +1,5 @@
 {
-  "meta_description": "Minimalistyczny klient poczty internetowej wykorzystujący protokół JMAP",
+  "meta_description": "Samodzielnie hostowana poczta internetowa z pocztą, kalendarzem, kontaktami i plikami, oparta na JMAP",
   "login": {
     "title": "Webmail",
     "username_label": "E-mail",

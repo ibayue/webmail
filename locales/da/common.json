@@ -1,5 +1,5 @@
 {
-  "meta_description": "Minimalistisk webmail-klient, der bruger JMAP-protokollen",
+  "meta_description": "Selvhostet webmail til mail, kalender, kontakter og filer, bygget på JMAP",
   "login": {
     "title": "Webmail",
     "username_label": "Email",
