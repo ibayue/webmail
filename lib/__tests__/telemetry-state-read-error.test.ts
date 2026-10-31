@@ -40,6 +40,16 @@ describe('telemetry state that cannot be read', () => {
     expect((await effectiveConsent()).consent).toBe('on');
   });
 
+  it('refuses to write over it', async () => {
+    const { updateState } = await import('@/lib/telemetry/state');
+    mkdirSync(dir, { recursive: true });
+    const file = path.join(dir, 'state.json');
+    writeFileSync(file, '{"consent":"on","endp');
+
+    await expect(updateState((state) => { state.nextScheduledAt = 'x'; })).rejects.toThrow('could not be read');
+    expect(readFileSync(file, 'utf8')).toBe('{"consent":"on","endp');
+  });
+
   it('still writes the default state on a fresh install', async () => {
     const { loadState } = await import('@/lib/telemetry/state');
     expect((await loadState()).consent).toBe('off');

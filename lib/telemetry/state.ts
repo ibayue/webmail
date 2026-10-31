@@ -2,7 +2,7 @@ import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { logger } from '@/lib/logger';
 import { getStore, type CollectionOptions } from '@/lib/shared-store';
-import { isStoreUnavailable } from '@/lib/stored-data-errors';
+import { isStoreUnavailable, StoredDataUnreadableError } from '@/lib/stored-data-errors';
 import type { TelemetryStateFile, ConsentState } from './types';
 import { DEFAULT_ENDPOINT } from './types';
 import { isNoThirdPartyTrafficOn } from '@/lib/admin/third-party-mode';
@@ -143,7 +143,8 @@ export async function saveState(state: TelemetryStateFile): Promise<void> {
 /**
  * Change some fields of the stored state without undoing a write that
  * landed meanwhile (another replica scheduling, the admin changing consent).
- * `change` may run more than once. Returns the state written.
+ * `change` may run more than once. Returns the state written. A state file
+ * that doesn't parse throws StoredDataUnreadableError and is left as it is.
  */
 export async function updateState(change: (state: TelemetryStateFile) => void): Promise<TelemetryStateFile> {
   let next: TelemetryStateFile = { ...DEFAULTS };
@@ -151,8 +152,10 @@ export async function updateState(change: (state: TelemetryStateFile) => void): 
     let state: TelemetryStateFile;
     try {
       state = current ? parse(current) : { ...DEFAULTS };
-    } catch {
-      state = { ...DEFAULTS }; // a corrupt file: this write replaces it
+    } catch (err) {
+      // Unreadable is not missing, here as on reads: writing the defaults
+      // with one change would throw away the admin's consent and endpoint.
+      throw new StoredDataUnreadableError('telemetry state', { cause: err });
     }
     change(state);
     next = state;
