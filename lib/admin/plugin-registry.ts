@@ -296,7 +296,9 @@ async function bundleHashFixes(registry: PluginRegistry): Promise<Map<string, { 
     let code: string | null = null;
     try {
       code = await readText('plugins', `${plugin.id}.js`);
-    } catch {
+    } catch (error) {
+      // A store outage says nothing about the bundle: try again next time.
+      if (isStoreUnavailable(error)) continue;
       /* unreadable: cleared, as a missing bundle */
     }
     fixes.set(plugin.id, { from: plugin.bundleHash, to: code === null ? null : sha256Hex(code) });
