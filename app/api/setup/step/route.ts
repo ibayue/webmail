@@ -4,7 +4,7 @@ import { authenticateWizardRequest } from '@/lib/setup/session';
 import { configManager } from '@/lib/admin/config-manager';
 import { CONFIG_ENV_MAP } from '@/lib/admin/types';
 import { parseJmapServers } from '@/lib/admin/jmap-servers';
-import { effectiveConsent, loadState, saveState, reschedule } from '@/lib/telemetry';
+import { effectiveConsent, updateState, reschedule } from '@/lib/telemetry';
 import { logger } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
@@ -93,12 +93,12 @@ export async function POST(request: NextRequest) {
     // A BULWARK_TELEMETRY env var hard-locks the choice; don't fight it.
     const { source } = await effectiveConsent();
     if (source !== 'env') {
-      const tstate = await loadState();
-      tstate.consent = consent;
-      if (consent === 'on' && !tstate.consentedAt) {
-        tstate.consentedAt = new Date().toISOString();
-      }
-      await saveState(tstate);
+      const now = new Date().toISOString();
+      // Against the stored state, so a schedule written meanwhile stays.
+      await updateState((tstate) => {
+        tstate.consent = consent;
+        if (consent === 'on' && !tstate.consentedAt) tstate.consentedAt = now;
+      });
       await reschedule();
     }
   }

@@ -19,6 +19,7 @@ vi.mock('@/lib/telemetry', () => ({
   effectiveConsent: async () => ({ source: 'env' }),
   loadState: async () => ({}),
   saveState: async () => {},
+  updateState: async () => ({}),
   reschedule: async () => {},
 }));
 
