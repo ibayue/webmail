@@ -1903,7 +1903,6 @@
       "attachment_position": {
         "label": "Posició dels fitxers adjunts",
         "description": "On mostrar els fitxers adjunts a la capçalera del correu",
-        "beside-sender": "Al costat del remitent",
         "below-header": "Sota la capçalera"
       },
       "emails_per_page": {

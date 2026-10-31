@@ -1900,7 +1900,6 @@
       "attachment_position": {
         "label": "Posição dos anexos",
         "description": "Onde exibir os anexos no cabeçalho do e-mail",
-        "beside-sender": "Ao lado do remetente",
         "below-header": "Abaixo do cabeçalho"
       },
       "emails_per_page": {

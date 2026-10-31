@@ -1903,8 +1903,7 @@
       "attachment_position": {
         "label": "Anhangsposition",
         "description": "Wo die Anhänge einer geöffneten E-Mail angezeigt werden",
-        "beside-sender": "Neben dem Absender",
-        "below-header": "Unter dem Header",
+        "below-header": "Als Leiste unter dem Header",
         "below-message": "Als Karten unter der Nachricht"
       },
       "emails_per_page": {

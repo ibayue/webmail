@@ -1903,7 +1903,6 @@
       "attachment_position": {
         "label": "Хавсралтын байрлал",
         "description": "Имэйл толгой хэсэгт хавсралтуудыг хаана харуулах вэ",
-        "beside-sender": "Илгээгчийн хажууд",
         "below-header": "Толгойн доор"
       },
       "emails_per_page": {

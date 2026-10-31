@@ -1903,7 +1903,6 @@
       "attachment_position": {
         "label": "附件位置",
         "description": "選擇在郵件標頭的哪個位置顯示附件",
-        "beside-sender": "寄件者旁",
         "below-header": "標頭下方"
       },
       "emails_per_page": {

@@ -1903,7 +1903,6 @@
       "attachment_position": {
         "label": "Csatolmány pozíciója",
         "description": "Hol jelenjenek meg a csatolmányok az e-mail fejlécben",
-        "beside-sender": "Feladó mellett",
         "below-header": "Fejléc alatt"
       },
       "emails_per_page": {

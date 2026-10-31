@@ -1900,7 +1900,6 @@
       "attachment_position": {
         "label": "Pozycja załączników",
         "description": "Gdzie wyświetlać załączniki w nagłówku wiadomości e-mail",
-        "beside-sender": "Obok nadawcy",
         "below-header": "Pod nagłówkiem"
       },
       "emails_per_page": {

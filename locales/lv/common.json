@@ -1900,7 +1900,6 @@
       "attachment_position": {
         "label": "Pielikumu novietojums",
         "description": "Kur rādīt pielikumus vēstules galvenē",
-        "beside-sender": "Blakus sūtītājam",
         "below-header": "Zem galvenes"
       },
       "emails_per_page": {

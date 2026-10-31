@@ -1900,7 +1900,6 @@
       "attachment_position": {
         "label": "附件位置",
         "description": "在邮件标题中的何处显示附件",
-        "beside-sender": "发件人旁",
         "below-header": "标题下方"
       },
       "emails_per_page": {

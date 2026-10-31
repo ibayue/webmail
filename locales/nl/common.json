@@ -1900,7 +1900,6 @@
       "attachment_position": {
         "label": "Positie van bijlagen",
         "description": "Waar bijlagen in de e-mailkop worden weergegeven",
-        "beside-sender": "Naast de afzender",
         "below-header": "Onder de kop"
       },
       "emails_per_page": {

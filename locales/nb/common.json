@@ -1903,7 +1903,6 @@
       "attachment_position": {
         "label": "Plassering av vedlegg",
         "description": "Velg hvor vedlegg skal vises i e-postoverskriften",
-        "beside-sender": "Ved siden av avsender",
         "below-header": "Under overskriften"
       },
       "emails_per_page": {

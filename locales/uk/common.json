@@ -1900,7 +1900,6 @@
       "attachment_position": {
         "label": "Позиція прикріплення",
         "description": "Де відображати вкладення в заголовку електронної пошти",
-        "beside-sender": "Поруч із відправником",
         "below-header": "Під заголовком"
       },
       "emails_per_page": {

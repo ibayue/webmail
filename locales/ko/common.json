@@ -1900,7 +1900,6 @@
       "attachment_position": {
         "label": "첨부파일 위치",
         "description": "메일 상단에서 첨부파일을 어디에 표시할지 설정해요",
-        "beside-sender": "보낸 사람 옆",
         "below-header": "제목 아래"
       },
       "emails_per_page": {

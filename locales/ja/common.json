@@ -1900,7 +1900,6 @@
       "attachment_position": {
         "label": "添付ファイルの位置",
         "description": "メールヘッダー内での添付ファイルの表示位置",
-        "beside-sender": "送信者の横",
         "below-header": "ヘッダーの下"
       },
       "emails_per_page": {

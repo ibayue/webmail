@@ -302,8 +302,8 @@ export type FirstDayOfWeek = 0 | 1 | 6; // 0 = Sunday, 1 = Monday, 6 = Saturday
 export type TimeZoneSetting = 'auto' | (string & {});
 export type ExternalContentPolicy = 'ask' | 'block' | 'allow';
 export type MailAttachmentAction = 'preview' | 'download';
-/** 'below-message' shows larger preview cards after the body. */
-export type AttachmentPosition = 'beside-sender' | 'below-header' | 'below-message';
+/** 'below-header': a bar of tiles under the header. 'below-message': preview cards after the body. */
+export type AttachmentPosition = 'below-header' | 'below-message';
 export type ToolbarPosition = 'top' | 'below-subject';
 export type ArchiveMode = 'single' | 'year' | 'month';
 export type MailLayout = 'split' | 'focus' | 'horizontal';
@@ -901,7 +901,7 @@ const DEFAULT_SETTINGS = {
   messageSpacing: 'auto' as MessageSpacing,
   plainTextFont: 'sans' as PlainTextFont,
   mailAttachmentAction: 'preview' as MailAttachmentAction,
-  attachmentPosition: 'beside-sender' as AttachmentPosition,
+  attachmentPosition: 'below-header' as AttachmentPosition,
   emailAlwaysLightMode: false,
   archiveMode: 'single' as ArchiveMode,
   hoverActions: ['delete', 'star', 'markRead', 'archive'] as HoverAction[],
@@ -1547,6 +1547,7 @@ export const useSettingsStore = create<SettingsState>()(
           migrateAnimationsSetting(settings);
           migrateNotificationSoundDefault(settings);
           migrateTintListRowsDefault(settings);
+          migrateAttachmentPosition(settings);
 
           // Apply settings, noting which keys were taken over for the
           // onSettingsImport hook.
@@ -1948,7 +1949,7 @@ export const useSettingsStore = create<SettingsState>()(
     },
     {
       name: 'settings-storage',
-      version: 11,
+      version: 12,
       migrate: migrateSettings,
       onRehydrateStorage: () => {
         return (state) => {
@@ -2053,6 +2054,8 @@ export function migrateSettings(persisted: unknown, version: number): SettingsSt
         // taken as chosen below.
         migrateNotificationSoundDefault(state);
         migrateTintListRowsDefault(state);
+        // The old default must not be taken as chosen below either.
+        migrateAttachmentPosition(state);
         // v8: admin policy defaults (#1248) skip settings the user chose.
         // Earlier builds did not record that, so a setting that differs from
         // the build default is taken as chosen.
@@ -2061,6 +2064,18 @@ export function migrateSettings(persisted: unknown, version: number): SettingsSt
         }
         migrateAnimationsSetting(state);
         return state as unknown as SettingsState;
+}
+
+/**
+ * v12: the attachments next to the sender ('beside-sender', the old default)
+ * gave way to the bar under the header. Imports and server copies from older
+ * builds still carry the old value and go through this too.
+ */
+export function migrateAttachmentPosition(state: Record<string, unknown>): void {
+  if (state.attachmentPosition === undefined) return;
+  if (state.attachmentPosition !== 'below-header' && state.attachmentPosition !== 'below-message') {
+    state.attachmentPosition = 'below-header';
+  }
 }
 
 /**

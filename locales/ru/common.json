@@ -1900,7 +1900,6 @@
       "attachment_position": {
         "label": "Расположение вложений",
         "description": "Где отображать вложения в заголовке письма",
-        "beside-sender": "Рядом с отправителем",
         "below-header": "Под заголовком"
       },
       "emails_per_page": {

@@ -1903,7 +1903,6 @@
       "attachment_position": {
         "label": "Pozícia príloh",
         "description": "Kde zobrazovať prílohy v hlavičke e-mailu",
-        "beside-sender": "Vedľa odosielateľa",
         "below-header": "Pod hlavičkou"
       },
       "emails_per_page": {

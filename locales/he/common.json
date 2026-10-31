@@ -1837,7 +1837,6 @@
       "attachment_position": {
         "label": "עמדת התקשרות",
         "description": "היכן להציג קבצים מצורפים בכותרת הדוא\"ל",
-        "beside-sender": "ליד השולח",
         "below-header": "מתחת לכותרת"
       },
       "emails_per_page": {

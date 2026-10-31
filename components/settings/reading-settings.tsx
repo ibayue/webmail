@@ -162,10 +162,9 @@ export function ReadingSettings() {
       <SettingsSection id="attachments" title={tPage('sections.attachments')}>
         <SettingItem label={t('attachment_position.label')} description={t('attachment_position.description')}>
           <Select
-            value={attachmentPosition}
+            value={attachmentPosition === 'below-message' ? 'below-message' : 'below-header'}
             onChange={(value) => updateSetting('attachmentPosition', value as AttachmentPosition)}
             options={[
-              { value: 'beside-sender', label: t('attachment_position.beside-sender') },
               { value: 'below-header', label: t('attachment_position.below-header') },
               { value: 'below-message', label: t('attachment_position.below-message') },
             ]}

@@ -1903,7 +1903,6 @@
       "attachment_position": {
         "label": "Placering af vedhæftninger",
         "description": "Hvor vedhæftninger skal vises i e-mail-headeren",
-        "beside-sender": "Ved siden af afsender",
         "below-header": "Under header"
       },
       "emails_per_page": {

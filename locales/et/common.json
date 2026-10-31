@@ -1903,7 +1903,6 @@
       "attachment_position": {
         "label": "Manuse asukoht",
         "description": "Kuhu kuvada manused kirja päises",
-        "beside-sender": "Saatja kõrval",
         "below-header": "Päise all"
       },
       "emails_per_page": {

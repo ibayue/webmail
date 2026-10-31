@@ -1906,8 +1906,7 @@
       "attachment_position": {
         "label": "Attachment position",
         "description": "Where to display the attachments of an open email",
-        "beside-sender": "Next to sender",
-        "below-header": "Below header",
+        "below-header": "Bar below the header",
         "below-message": "Cards below the message"
       },
       "emails_per_page": {

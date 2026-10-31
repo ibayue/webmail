@@ -1900,7 +1900,6 @@
       "attachment_position": {
         "label": "Posizione degli allegati",
         "description": "Dove visualizzare gli allegati nell'intestazione dell'email",
-        "beside-sender": "Accanto al mittente",
         "below-header": "Sotto l'intestazione"
       },
       "emails_per_page": {

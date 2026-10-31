@@ -4344,7 +4344,6 @@
       "attachment_position": {
         "label": "ตำแหน่งไฟล์แนบ",
         "description": "ตำแหน่งที่จะแสดงไฟล์แนบในส่วนหัวของอีเมล",
-        "beside-sender": "ข้างผู้ส่ง",
         "below-header": "ใต้ส่วนหัว"
       },
       "emails_per_page": {

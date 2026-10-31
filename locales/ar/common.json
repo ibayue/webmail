@@ -1903,7 +1903,6 @@
       "attachment_position": {
         "label": "موضع المرفق",
         "description": "أين تُعرض المرفقات في ترويسة الرسالة",
-        "beside-sender": "بجانب المرسل",
         "below-header": "أسفل الترويسة"
       },
       "emails_per_page": {

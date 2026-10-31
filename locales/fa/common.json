@@ -1903,7 +1903,6 @@
       "attachment_position": {
         "label": "موقعیت پیوست",
         "description": "محل پیوست‌ها",
-        "beside-sender": "کنار فرستنده",
         "below-header": "زیر هدر"
       },
       "emails_per_page": {

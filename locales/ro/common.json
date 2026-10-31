@@ -1903,7 +1903,6 @@
       "attachment_position": {
         "label": "Poziția atașamentului",
         "description": "Unde să afișați atașamentele în antetul e-mailului",
-        "beside-sender": "Lângă expeditor",
         "below-header": "Sub antet"
       },
       "emails_per_page": {

@@ -73,6 +73,16 @@ describe('attachment position in the reader', () => {
     expect(screen.queryByTestId('attachments-jump')).toBeNull();
   });
 
+  it('draws the bar, and nothing beside the sender, for the retired beside-sender value', async () => {
+    useSettingsStore.setState({ attachmentPosition: 'beside-sender' as never });
+    const { container } = render(<EmailViewer email={email} mailboxes={[]} selectedMailbox="inbox" />);
+    await screen.findByText('Here is the invoice.');
+    expect(container.querySelectorAll('[data-testid="attachment"]')).toHaveLength(2);
+    const sections = container.querySelectorAll('[data-testid="reader-attachments"]');
+    expect(sections).toHaveLength(1);
+    expect((sections[0] as HTMLElement).dataset.layout).toBe('bar');
+  });
+
   it('draws cards after the body, with a jump link in the header', async () => {
     useSettingsStore.setState({ attachmentPosition: 'below-message' });
     const { container } = render(<EmailViewer email={email} mailboxes={[]} selectedMailbox="inbox" />);

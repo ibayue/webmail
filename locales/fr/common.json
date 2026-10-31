@@ -1900,7 +1900,6 @@
       "attachment_position": {
         "label": "Position des pièces jointes",
         "description": "Où afficher les pièces jointes dans l'en-tête de l'email",
-        "beside-sender": "À côté de l'expéditeur",
         "below-header": "Sous l'en-tête"
       },
       "emails_per_page": {

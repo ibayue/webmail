@@ -1900,7 +1900,6 @@
       "attachment_position": {
         "label": "Ek Konumu",
         "description": "E-posta başlığında eklerin nerede görüntüleneceği",
-        "beside-sender": "Göndericinin yanı",
         "below-header": "Başlığın altı"
       },
       "emails_per_page": {

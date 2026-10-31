@@ -1900,7 +1900,6 @@
       "attachment_position": {
         "label": "Pozice příloh",
         "description": "Kde zobrazovat přílohy v hlavičce e-mailu",
-        "beside-sender": "Vedle odesílatele",
         "below-header": "Pod hlavičkou"
       },
       "emails_per_page": {
