@@ -51,6 +51,8 @@ let store: ReturnType<typeof switchableSharedStore>;
  */
 async function replica(disposer?: (grant: PairingGrant) => void) {
   vi.resetModules();
+  const pinned = (globalThis as Record<string, { sweepTimer?: ReturnType<typeof setInterval> } | undefined>).__bulwarkPairingStore;
+  if (pinned?.sweepTimer) clearInterval(pinned.sweepTimer);
   delete (globalThis as Record<string, unknown>).__bulwarkPairingStore;
   const mod = await import('@/lib/auth/pairing-store');
   if (disposer) mod.registerGrantDisposer(disposer);
@@ -204,5 +206,74 @@ describe('pairing store with a shared store', () => {
     // Back up: the code was never spent.
     store.down = false;
     expect(await (await replica()).redeemPairingCode(pairing.code, T0 + 2)).toMatchObject({ ok: true });
+  });
+});
+
+describe('app-password disposal with a shared store, as time passes', () => {
+  // Fake Date: the fake store's own expiries follow it, as Redis TTLs follow the wall clock.
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(T0);
+  });
+  afterEach(() => vi.useRealTimers());
+
+  const later = (ms: number) => vi.setSystemTime(Date.now() + ms);
+
+  for (const idle of [7 * 60_000, 20 * 60_000, 2 * 24 * 60 * 60_000]) {
+    it(`disposes of an abandoned grant when pairing is next used ${Math.round(idle / 60_000)} min later, once`, async () => {
+      const disposed: PairingGrant[] = [];
+      await (await replica((g) => disposed.push(g))).stashGrant(APP_GRANT, OWNER);
+      later(idle);
+      await (await replica((g) => disposed.push(g))).getPairingStatus('0'.repeat(32));
+      later(60_000);
+      await (await replica((g) => disposed.push(g))).getPairingStatus('0'.repeat(32));
+      expect(disposed).toEqual([APP_GRANT]);
+    });
+  }
+
+  it('never disposes of a redeemed grant, even after its record is gone', async () => {
+    const disposed: PairingGrant[] = [];
+    const desktop = await replica((g) => disposed.push(g));
+    const id = await desktop.stashGrant(APP_GRANT, OWNER);
+    const code = (await desktop.createPairingCode(id, OWNER, BASE))!;
+    expect((await (await replica()).redeemPairingCode(code.code)).ok).toBe(true);
+    later(2 * 24 * 60 * 60_000);
+    await (await replica((g) => disposed.push(g))).getPairingStatus('0'.repeat(32));
+    expect(disposed).toEqual([]);
+  });
+
+  it('sweeps from a timer in the process holding the disposer, without any request', async () => {
+    vi.useFakeTimers({ toFake: ['Date', 'setInterval', 'clearInterval'] });
+    vi.setSystemTime(T0);
+    const disposed: PairingGrant[] = [];
+    const desktop = await replica((g) => disposed.push(g));
+    await desktop.stashGrant(APP_GRANT, OWNER);
+    await vi.advanceTimersByTimeAsync(7 * 60_000);
+    expect(disposed).toEqual([APP_GRANT]);
+    desktop.resetPairingStoreForTests();
+  });
+
+  it('keeps an unreadable disposal list and refuses to stash an app password it could not list', async () => {
+    await getStore().kv.set('pairing:disposals', 'not-sealed');
+    const disposed: PairingGrant[] = [];
+    const desktop = await replica((g) => disposed.push(g));
+    await expect(desktop.stashGrant(APP_GRANT, OWNER)).rejects.toThrow('unreadable');
+    expect(disposed).toEqual([APP_GRANT]);
+    later(10 * 60_000);
+    await desktop.getPairingStatus('0'.repeat(32));
+    expect(await getStore().kv.get('pairing:disposals')).toBe('not-sealed');
+  });
+
+  it('retries a sign-out discard that hit an outage once the store is back', async () => {
+    const desktop = await replica();
+    const id = await desktop.stashGrant(GRANT, OWNER);
+    const code = (await desktop.createPairingCode(id, OWNER, BASE))!;
+    store.down = true;
+    await expect(desktop.discardGrant(id)).rejects.toThrow('down');
+    store.down = false;
+    later(1000);
+    // The next pairing request on that replica finishes the sign-out.
+    await desktop.getPairingStatus('0'.repeat(32));
+    expect(await (await replica()).redeemPairingCode(code.code)).toEqual({ ok: false, reason: 'expired' });
   });
 });

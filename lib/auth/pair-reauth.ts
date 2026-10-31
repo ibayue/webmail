@@ -26,7 +26,7 @@ export function pairingOwner(slot: number, username: string): string {
   return `${slot}:${username.trim().toLowerCase()}`;
 }
 
-/** Kill a grant; when the shared store is down it still runs out within its five minutes. */
+/** Kill a grant; when the shared store is down the pairing store retries it once the store is back. */
 async function discard(grantId: string): Promise<void> {
   try {
     await discardGrant(grantId);

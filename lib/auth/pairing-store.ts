@@ -1,6 +1,7 @@
 import { createHash, randomBytes } from 'crypto';
 import { decryptPayload, encryptPayload } from '@/lib/auth/crypto';
-import { getStore, isSharedMode } from '@/lib/shared-store';
+import { getStore, isSharedMode, isStoreUnavailableError } from '@/lib/shared-store';
+import { logger } from '@/lib/logger';
 
 // Cross-device login pairing ("Link mobile app"). A signed-in desktop proves
 // who it is again (password + TOTP, or a fresh IdP login), which mints a
@@ -103,6 +104,10 @@ interface Store {
   disposer?: (grant: PairingGrant) => void;
   /** Shared mode: when this process last swept the shared disposal list. */
   sharedSweptAt?: number;
+  /** Shared mode: the minute sweep of the process holding the disposer. */
+  sweepTimer?: ReturnType<typeof setInterval>;
+  /** Shared mode: grants a sign-out couldn't discard (store down), until they'd expire anyway. */
+  pendingDiscards?: Map<string, number>;
 }
 
 const STORE_KEY = '__bulwarkPairingStore';
@@ -122,6 +127,7 @@ function store(): Store {
  */
 export function registerGrantDisposer(disposer: (grant: PairingGrant) => void): void {
   store().disposer = disposer;
+  startSweepTimer();
 }
 
 function dispose(grant: PairingGrant): void {
@@ -270,9 +276,14 @@ function getPairingStatusLocal(statusId: string, now: number): PairingStatus {
 // under their hash: whoever reads the store can't redeem one.
 //
 // A grant that expires unredeemed may hold an app password that must be
-// deleted on the mail server. Each grant is therefore also listed (sealed)
-// in a disposal list; whichever replica next handles a pairing request takes
-// the expired entries off it, atomically, and disposes of those grants.
+// deleted on the mail server. Each such grant is therefore also listed in a
+// sealed disposal list, with everything the disposer needs, and the list
+// never expires. The process that registered the disposer (the one that
+// mints grants) sweeps it every minute, and every pairing request sweeps it
+// too: an expired entry whose grant was neither redeemed nor discarded is
+// disposed of, and the entry is removed only once that succeeded. Grant
+// records of app-password grants are kept a day after they are forgotten,
+// so the sweep can still tell a redeemed grant from an abandoned one.
 
 interface SharedGrantRecord extends GrantRecord {
   /** Hash of the newest code: the only one that can be redeemed. */
@@ -281,6 +292,8 @@ interface SharedGrantRecord extends GrantRecord {
   redeemed: string | null;
   /** Codes issued for the grant, oldest first, as [code hash, status id]. */
   codes: Array<[string, string]>;
+  /** The secret was handed to the disposer (expired or discarded). */
+  disposed?: boolean;
 }
 
 interface SharedCodeRecord {
@@ -294,12 +307,18 @@ interface SharedCodeRecord {
 interface DisposalEntry {
   grantId: string;
   expiresAt: number;
+  /** What the disposer needs, in case the grant record is gone by then. */
+  grant: PairingGrant;
 }
 
 /** The store's TTL only cleans up; every record carries its own expiry. */
 const CLEANUP_MS = 60 * 1000;
-/** How often one replica looks for expired grants to dispose of. */
+/** App-password grant records outlive their tombstone by this much (see above). */
+const DISPOSAL_RECORD_MS = 24 * 60 * 60 * 1000;
+/** How often one replica looks for expired grants to dispose of, at most. */
 const SWEEP_EVERY_MS = 10 * 1000;
+/** How often the process holding the disposer sweeps without any request. */
+const SWEEP_TIMER_MS = 60 * 1000;
 const DISPOSALS_KEY = 'pairing:disposals';
 const grantKey = (grantId: string) => `pairing:grant:${grantId}`;
 const codeKey = (codeHash: string) => `pairing:code:${codeHash}`;
@@ -322,6 +341,11 @@ function open<T>(sealed: string | null): T | null {
 
 const ttl = (until: number, now: number) => Math.max(until - now, 0) + CLEANUP_MS;
 
+/** A grant whose unredeemed end must delete something on the mail server. */
+function needsDisposal(grant: PairingGrant): boolean {
+  return grant.flow === 'password' && grant.credential === 'app-password' && !!grant.appPasswordId;
+}
+
 /** The grant's secret while it can still be handed out. */
 function liveGrant(record: SharedGrantRecord, now: number): PairingGrant | null {
   return record.expiresAt > now ? record.grant : null;
@@ -337,35 +361,117 @@ async function readCode(codeHash: string, now: number): Promise<SharedCodeRecord
   return record && record.forgetAt > now ? record : null;
 }
 
-/** Take the secret out of a grant record and hand it to the disposer, once across replicas. */
-async function wipeShared(grantId: string): Promise<void> {
-  const wiped: { grant: PairingGrant | null } = { grant: null };
+type WipeOutcome = 'wiped' | 'redeemed' | 'gone' | 'missing';
+
+/**
+ * Take the secret out of a grant record and hand it to the disposer, once
+ * across replicas: the one update that finds the secret disposes of it.
+ */
+async function wipeShared(grantId: string): Promise<WipeOutcome> {
+  const out: { grant: PairingGrant | null; outcome: WipeOutcome } = { grant: null, outcome: 'missing' };
   await getStore().kv.update(grantKey(grantId), (current) => {
-    wiped.grant = null;
+    out.grant = null;
     const record = open<SharedGrantRecord>(current);
-    if (!record?.grant) return undefined;
-    wiped.grant = record.grant;
-    return seal({ ...record, grant: null, current: null });
+    if (!record) {
+      out.outcome = 'missing';
+      return undefined;
+    }
+    if (!record.grant) {
+      out.outcome = record.redeemed ? 'redeemed' : 'gone';
+      return undefined;
+    }
+    out.grant = record.grant;
+    out.outcome = 'wiped';
+    return seal({ ...record, grant: null, current: null, disposed: true });
   });
-  if (wiped.grant) dispose(wiped.grant);
+  if (out.grant) dispose(out.grant);
+  return out.outcome;
+}
+
+/** Read the disposal list; null when it exists but can't be read (kept as it is). */
+function openDisposals(current: string | null): DisposalEntry[] | null {
+  if (current === null) return [];
+  const entries = open<DisposalEntry[]>(current);
+  return Array.isArray(entries) ? entries : null;
+}
+
+function logUnreadableDisposals(): void {
+  logger.error('Pairing: the app-password disposal list in the shared store is unreadable (another session secret?); left as it is');
+}
+
+/** Remove one entry; true when this call removed it. */
+async function removeDisposal(grantId: string): Promise<boolean> {
+  const out = { removed: false, unreadable: false };
+  await getStore().kv.update(DISPOSALS_KEY, (current) => {
+    out.removed = false;
+    const entries = openDisposals(current);
+    out.unreadable = entries === null;
+    if (!entries) return undefined;
+    const rest = entries.filter((entry) => entry.grantId !== grantId);
+    if (rest.length === entries.length) return undefined;
+    out.removed = true;
+    return rest.length > 0 ? seal(rest) : null;
+  });
+  if (out.unreadable) logUnreadableDisposals();
+  return out.removed;
+}
+
+/** Retry discards a sign-out couldn't write while the store was down. */
+async function flushPendingDiscards(now: number): Promise<void> {
+  const pending = store().pendingDiscards;
+  if (!pending) return;
+  for (const [grantId, until] of [...pending]) {
+    if (until <= now) {
+      // Its grant has expired anyway; an app password is in the disposal list.
+      pending.delete(grantId);
+      continue;
+    }
+    await wipeShared(grantId);
+    await removeDisposal(grantId).catch(() => false);
+    pending.delete(grantId);
+  }
 }
 
 async function sweepShared(now: number): Promise<void> {
   const s = store();
+  await flushPendingDiscards(now);
   // Without a disposer (this process never loaded lib/auth/pair-grant.ts)
   // the entries are left for a replica that can dispose of them.
   if (!s.disposer) return;
   if (s.sharedSweptAt !== undefined && now >= s.sharedSweptAt && now - s.sharedSweptAt < SWEEP_EVERY_MS) return;
   s.sharedSweptAt = now;
-  const due: DisposalEntry[] = [];
-  await getStore().kv.update(DISPOSALS_KEY, (current) => {
-    const entries = open<DisposalEntry[]>(current) ?? [];
-    due.splice(0, due.length, ...entries.filter((entry) => entry.expiresAt <= now));
-    if (due.length === 0) return undefined;
-    const rest = entries.filter((entry) => entry.expiresAt > now);
-    return rest.length > 0 ? seal(rest) : null;
-  }, { ttlMs: GRANT_TTL_MS + CLEANUP_MS });
-  for (const entry of due) await wipeShared(entry.grantId);
+  const entries = openDisposals(await getStore().kv.get(DISPOSALS_KEY));
+  if (!entries) {
+    logUnreadableDisposals();
+    return;
+  }
+  for (const entry of entries.filter((e) => e.expiresAt <= now)) {
+    try {
+      const outcome = await wipeShared(entry.grantId);
+      // Without its record (it outlived even the extra day) the entry
+      // decides: whoever removes it disposes of the grant.
+      const removed = await removeDisposal(entry.grantId);
+      if (outcome === 'missing' && removed) dispose(entry.grant);
+    } catch (error) {
+      // Left in the list for the next sweep.
+      logger.warn('Pairing: expired grant not disposed of yet', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+  }
+}
+
+/** Sweep every minute in this process, without waiting for a pairing request. */
+function startSweepTimer(): void {
+  const s = store();
+  if (s.sweepTimer || !isSharedMode()) return;
+  s.sweepTimer = setInterval(() => {
+    if (!isSharedMode()) return;
+    sweepShared(Date.now()).catch((error) => {
+      logger.debug('Pairing sweep failed', { error: error instanceof Error ? error.message : 'Unknown error' });
+    });
+  }, SWEEP_TIMER_MS);
+  s.sweepTimer.unref?.();
 }
 
 async function stashGrantShared(grant: PairingGrant, owner: string, now: number): Promise<string> {
@@ -379,14 +485,25 @@ async function stashGrantShared(grant: PairingGrant, owner: string, now: number)
     redeemed: null,
     codes: [],
   };
+  const disposable = needsDisposal(grant);
   try {
     await sweepShared(now);
-    // Listed for disposal before it exists, so no grant is ever unlisted.
-    await getStore().kv.update(DISPOSALS_KEY, (current) => {
-      const entries = open<DisposalEntry[]>(current) ?? [];
-      return seal([...entries, { grantId: id, expiresAt: record.expiresAt }]);
-    }, { ttlMs: GRANT_TTL_MS + CLEANUP_MS });
-    await getStore().kv.set(grantKey(id), seal(record), { ttlMs: ttl(record.forgetAt, now) });
+    if (disposable) {
+      // Listed for disposal before it exists, so no such grant is ever unlisted.
+      const out = { unreadable: false };
+      await getStore().kv.update(DISPOSALS_KEY, (current) => {
+        const entries = openDisposals(current);
+        out.unreadable = entries === null;
+        if (!entries) return undefined;
+        return seal([...entries, { grantId: id, expiresAt: record.expiresAt, grant } satisfies DisposalEntry]);
+      });
+      if (out.unreadable) {
+        logUnreadableDisposals();
+        throw new Error('The pairing disposal list is unreadable');
+      }
+    }
+    const keepFor = disposable ? ttl(record.forgetAt + DISPOSAL_RECORD_MS, now) : ttl(record.forgetAt, now);
+    await getStore().kv.set(grantKey(id), seal(record), { ttlMs: keepFor });
   } catch (error) {
     // Not kept, so no phone can redeem it: an app password minted for it
     // must not stay behind on the mail server.
@@ -469,6 +586,8 @@ async function redeemPairingCodeShared(code: string, now: number): Promise<Redee
     out.result = { ok: true, grant, webmailBase: codeRecord.webmailBase };
     return seal({ ...record, grant: null, current: null, redeemed: hash });
   });
+  // Nothing left to dispose of; the sweep would see the redeemed record anyway.
+  if (out.result.ok && needsDisposal(out.result.grant)) await removeDisposal(codeRecord.grantId).catch(() => false);
   return out.result;
 }
 
@@ -486,8 +605,20 @@ async function getPairingStatusShared(statusId: string, now: number): Promise<Pa
 }
 
 async function discardGrantShared(grantId: string, now: number): Promise<void> {
-  await sweepShared(now);
-  await wipeShared(grantId);
+  try {
+    await sweepShared(now);
+    await wipeShared(grantId);
+  } catch (error) {
+    if (isStoreUnavailableError(error)) {
+      // Retried by the next sweep once the store is back, so a QR left on
+      // screen at sign-out doesn't stay redeemable.
+      const s = store();
+      (s.pendingDiscards ??= new Map()).set(grantId, now + GRANT_TTL_MS);
+      startSweepTimer();
+    }
+    throw error;
+  }
+  await removeDisposal(grantId).catch(() => false);
 }
 
 // ─── API ───────────────────────────────────────────────────────────────────
@@ -546,4 +677,7 @@ export function resetPairingStoreForTests(): void {
   s.codes.clear();
   s.statusIndex.clear();
   s.sharedSweptAt = undefined;
+  if (s.sweepTimer) clearInterval(s.sweepTimer);
+  s.sweepTimer = undefined;
+  s.pendingDiscards = undefined;
 }
