@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { StoreUnavailableError } from '@/lib/shared-store/types';
+import { isStoreUnavailableError, type StoreUnavailableError } from '@/lib/shared-store/types';
 
 /**
  * Answers for when the shared store (#1066) can't be reached. Sign-in limits
@@ -10,12 +10,9 @@ import { StoreUnavailableError } from '@/lib/shared-store/types';
 
 export const STORE_RETRY_AFTER_SECONDS = 10;
 
-/**
- * Also by name: Next gives each bundle its own copy of the error class, and
- * the one store on globalThis throws the copy of whichever bundle created it.
- */
+/** By name, as every bundle has its own copy of the error class (see isStoreUnavailableError). */
 export function isStoreUnavailable(error: unknown): error is StoreUnavailableError {
-  return error instanceof StoreUnavailableError || (error instanceof Error && error.name === 'StoreUnavailableError');
+  return isStoreUnavailableError(error);
 }
 
 export function storeUnavailableResponse(headers: Record<string, string> = {}): NextResponse {
