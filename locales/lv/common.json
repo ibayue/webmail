@@ -473,6 +473,9 @@
     "source_truncated": "Rāda pirmos {size}. Lai redzētu pārējo, eksportējiet vēstuli.",
     "source_copied": "Avota kods nokopēts starpliktuvē",
     "attachments": "Pielikumi",
+    "attachments_count": "{count, plural, zero {# pielikumu} one {# pielikums} other {# pielikumi}}",
+    "attachments_show_more": "Rādīt vēl {count}",
+    "attachments_show_fewer": "Rādīt mazāk",
     "important": "Svarīgi",
     "download": "Lejupielādēt",
     "download_all": "Lejupielādēt visu",
@@ -1900,7 +1903,8 @@
       "attachment_position": {
         "label": "Pielikumu novietojums",
         "description": "Kur rādīt pielikumus vēstules galvenē",
-        "below-header": "Zem galvenes"
+        "below-header": "Zem galvenes",
+        "below-message": "Kartītes zem ziņojuma"
       },
       "emails_per_page": {
         "10": "10 vēstules",

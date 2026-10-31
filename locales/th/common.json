@@ -1407,6 +1407,9 @@
     "source_truncated": "แสดง {size} แรก ส่งออกข้อความเพื่อดูส่วนที่เหลือ",
     "source_copied": "คัดลอกข้อความต้นฉบับแล้ว",
     "attachments": "ไฟล์แนบ",
+    "attachments_count": "{count, plural, other {ไฟล์แนบ # รายการ}}",
+    "attachments_show_more": "แสดงเพิ่มอีก {count} รายการ",
+    "attachments_show_fewer": "แสดงน้อยลง",
     "important": "สำคัญ",
     "download": "ดาวน์โหลด",
     "download_all": "ดาวน์โหลดทั้งหมด",
@@ -4343,7 +4346,8 @@
       "attachment_position": {
         "label": "ตำแหน่งไฟล์แนบ",
         "description": "ตำแหน่งที่จะแสดงไฟล์แนบในส่วนหัวของอีเมล",
-        "below-header": "ใต้ส่วนหัว"
+        "below-header": "ใต้ส่วนหัว",
+        "below-message": "การ์ดใต้ข้อความ"
       },
       "emails_per_page": {
         "10": "10 ฉบับ",

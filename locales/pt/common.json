@@ -473,6 +473,9 @@
     "source_truncated": "A mostrar os primeiros {size}. Exporte a mensagem para ver o resto.",
     "source_copied": "Código-fonte copiado para a área de transferência",
     "attachments": "Anexos",
+    "attachments_count": "{count, plural, one {# anexo} other {# anexos}}",
+    "attachments_show_more": "Mostrar mais {count}",
+    "attachments_show_fewer": "Mostrar menos",
     "important": "Importante",
     "download": "Baixar",
     "download_all": "Baixar tudo",
@@ -1900,7 +1903,8 @@
       "attachment_position": {
         "label": "Posição dos anexos",
         "description": "Onde exibir os anexos no cabeçalho do e-mail",
-        "below-header": "Abaixo do cabeçalho"
+        "below-header": "Abaixo do cabeçalho",
+        "below-message": "Cartões abaixo da mensagem"
       },
       "emails_per_page": {
         "10": "10 e-mails",

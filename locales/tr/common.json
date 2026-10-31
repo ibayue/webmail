@@ -473,6 +473,9 @@
     "source_truncated": "İlk {size} gösteriliyor. Gerisi için iletiyi dışa aktarın.",
     "source_copied": "Kaynak panoya kopyalandı",
     "attachments": "Ekler",
+    "attachments_count": "{count, plural, one {# ek} other {# ek}}",
+    "attachments_show_more": "{count} tane daha göster",
+    "attachments_show_fewer": "Daha az göster",
     "important": "Önemli",
     "download": "İndir",
     "download_all": "Tümünü indir",
@@ -1900,7 +1903,8 @@
       "attachment_position": {
         "label": "Ek Konumu",
         "description": "E-posta başlığında eklerin nerede görüntüleneceği",
-        "below-header": "Başlığın altı"
+        "below-header": "Başlığın altı",
+        "below-message": "Mesajın altında kartlar"
       },
       "emails_per_page": {
         "10": "10 e-posta",

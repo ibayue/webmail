@@ -473,6 +473,9 @@
     "source_truncated": "Affichage des premiers {size}. Exportez le message pour voir la suite.",
     "source_copied": "Source copiée dans le presse-papiers",
     "attachments": "Pièces jointes",
+    "attachments_count": "{count, plural, one {# pièce jointe} other {# pièces jointes}}",
+    "attachments_show_more": "Afficher {count} de plus",
+    "attachments_show_fewer": "Afficher moins",
     "important": "Important",
     "download": "Télécharger",
     "download_all": "Tout télécharger",
@@ -1900,7 +1903,8 @@
       "attachment_position": {
         "label": "Position des pièces jointes",
         "description": "Où afficher les pièces jointes dans l'en-tête de l'email",
-        "below-header": "Sous l'en-tête"
+        "below-header": "Sous l'en-tête",
+        "below-message": "Cartes sous le message"
       },
       "emails_per_page": {
         "10": "10 e-mails",

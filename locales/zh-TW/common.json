@@ -473,6 +473,9 @@
     "source_truncated": "僅顯示前 {size}。匯出郵件可查看其餘部分。",
     "source_copied": "原始碼已複製到剪貼簿",
     "attachments": "附件",
+    "attachments_count": "{count, plural, other {# 個附件}}",
+    "attachments_show_more": "再顯示 {count} 個",
+    "attachments_show_fewer": "顯示較少",
     "important": "重要",
     "download": "下載",
     "download_all": "全部下載",
@@ -1903,7 +1906,8 @@
       "attachment_position": {
         "label": "附件位置",
         "description": "選擇在郵件標頭的哪個位置顯示附件",
-        "below-header": "標頭下方"
+        "below-header": "標頭下方",
+        "below-message": "訊息下方的卡片"
       },
       "emails_per_page": {
         "10": "10 封郵件",

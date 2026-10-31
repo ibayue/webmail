@@ -473,6 +473,9 @@
     "source_truncated": "Se muestran los primeros {size}. Exporta el mensaje para ver el resto.",
     "source_copied": "Código fuente copiado al portapapeles",
     "attachments": "Archivos adjuntos",
+    "attachments_count": "{count, plural, one {# adjunto} other {# adjuntos}}",
+    "attachments_show_more": "Mostrar {count} más",
+    "attachments_show_fewer": "Mostrar menos",
     "important": "Importante",
     "download": "Descargar",
     "download_all": "Descargar todo",
@@ -1900,7 +1903,8 @@
       "attachment_position": {
         "label": "Posición del adjunto",
         "description": "Dónde mostrar los adjuntos en el encabezado del correo",
-        "below-header": "Debajo del encabezado"
+        "below-header": "Debajo del encabezado",
+        "below-message": "Tarjetas debajo del mensaje"
       },
       "emails_per_page": {
         "10": "10 correos",

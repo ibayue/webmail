@@ -473,6 +473,9 @@
     "source_truncated": "Se afișează primii {size}. Exportă mesajul pentru rest.",
     "source_copied": "Sursă copiată în clipboard",
     "attachments": "Anexe",
+    "attachments_count": "{count, plural, one {# atașament} few {# atașamente} other {# de atașamente}}",
+    "attachments_show_more": "Afișează încă {count}",
+    "attachments_show_fewer": "Afișează mai puține",
     "important": "Important",
     "download": "Descărcați",
     "download_all": "Descărcați tot",
@@ -1903,7 +1906,8 @@
       "attachment_position": {
         "label": "Poziția atașamentului",
         "description": "Unde să afișați atașamentele în antetul e-mailului",
-        "below-header": "Sub antet"
+        "below-header": "Sub antet",
+        "below-message": "Carduri sub mesaj"
       },
       "emails_per_page": {
         "10": "10 e-mailuri",

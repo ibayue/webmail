@@ -473,6 +473,9 @@
     "source_truncated": "Zobrazeno prvních {size}. Zbytek uvidíte po exportu zprávy.",
     "source_copied": "Zdrojový kód byl zkopírován do schránky",
     "attachments": "Přílohy",
+    "attachments_count": "{count, plural, one {# příloha} few {# přílohy} many {# přílohy} other {# příloh}}",
+    "attachments_show_more": "Zobrazit dalších {count}",
+    "attachments_show_fewer": "Zobrazit méně",
     "important": "Důležité",
     "download": "Stáhnout",
     "download_all": "Stáhnout vše",
@@ -1900,7 +1903,8 @@
       "attachment_position": {
         "label": "Pozice příloh",
         "description": "Kde zobrazovat přílohy v hlavičce e-mailu",
-        "below-header": "Pod hlavičkou"
+        "below-header": "Pod hlavičkou",
+        "below-message": "Karty pod zprávou"
       },
       "emails_per_page": {
         "10": "10 zpráv",

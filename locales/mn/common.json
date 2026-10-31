@@ -473,6 +473,9 @@
     "source_truncated": "Эхний {size}-г харуулж байна. Үлдсэнийг харахын тулд захидлыг экспортлоно уу.",
     "source_copied": "Эх сурвалжийг санах ой руу хуулсан",
     "attachments": "Хавсралт",
+    "attachments_count": "{count, plural, one {# хавсралт} other {# хавсралт}}",
+    "attachments_show_more": "Өөр {count}-г харуулах",
+    "attachments_show_fewer": "Цөөнийг харуулах",
     "important": "Чухал",
     "download": "Татаж авах",
     "download_all": "Бүгдийг нь татаж авах",
@@ -1903,7 +1906,8 @@
       "attachment_position": {
         "label": "Хавсралтын байрлал",
         "description": "Имэйл толгой хэсэгт хавсралтуудыг хаана харуулах вэ",
-        "below-header": "Толгойн доор"
+        "below-header": "Толгойн доор",
+        "below-message": "Захидлын доор карт хэлбэрээр"
       },
       "emails_per_page": {
         "10": "10 имэйл",

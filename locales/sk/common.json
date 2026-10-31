@@ -473,6 +473,9 @@
     "source_truncated": "Zobrazuje sa prvých {size}. Zvyšok uvidíte po exporte správy.",
     "source_copied": "Zdrojový kód bol skopírovaný do schránky",
     "attachments": "Prílohy",
+    "attachments_count": "{count, plural, one {# príloha} few {# prílohy} many {# prílohy} other {# príloh}}",
+    "attachments_show_more": "Zobraziť ďalšie ({count})",
+    "attachments_show_fewer": "Zobraziť menej",
     "important": "Dôležité",
     "download": "Stiahnuť",
     "download_all": "Stiahnuť všetko",
@@ -1903,7 +1906,8 @@
       "attachment_position": {
         "label": "Pozícia príloh",
         "description": "Kde zobrazovať prílohy v hlavičke e-mailu",
-        "below-header": "Pod hlavičkou"
+        "below-header": "Pod hlavičkou",
+        "below-message": "Karty pod správou"
       },
       "emails_per_page": {
         "10": "10 e-mailov",

@@ -473,6 +473,9 @@
     "source_truncated": "De eerste {size} worden getoond. Exporteer het bericht voor de rest.",
     "source_copied": "Bron gekopieerd naar klembord",
     "attachments": "Bijlagen",
+    "attachments_count": "{count, plural, one {# bijlage} other {# bijlagen}}",
+    "attachments_show_more": "Nog {count} tonen",
+    "attachments_show_fewer": "Minder tonen",
     "important": "Belangrijk",
     "download": "Downloaden",
     "download_all": "Alles downloaden",
@@ -1900,7 +1903,8 @@
       "attachment_position": {
         "label": "Positie van bijlagen",
         "description": "Waar bijlagen in de e-mailkop worden weergegeven",
-        "below-header": "Onder de kop"
+        "below-header": "Onder de kop",
+        "below-message": "Kaarten onder het bericht"
       },
       "emails_per_page": {
         "10": "10 e-mails",

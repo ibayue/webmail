@@ -473,6 +473,9 @@
     "source_truncated": "Показано перші {size}. Експортуйте лист, щоб побачити решту.",
     "source_copied": "Джерело скопійовано в буфер обміну",
     "attachments": "Додатки",
+    "attachments_count": "{count, plural, one {# вкладення} few {# вкладення} many {# вкладень} other {# вкладення}}",
+    "attachments_show_more": "Показати ще {count}",
+    "attachments_show_fewer": "Показати менше",
     "important": "важливо",
     "download": "Завантажити",
     "download_all": "Завантажити все",
@@ -1900,7 +1903,8 @@
       "attachment_position": {
         "label": "Позиція прикріплення",
         "description": "Де відображати вкладення в заголовку електронної пошти",
-        "below-header": "Під заголовком"
+        "below-header": "Під заголовком",
+        "below-message": "Картки під листом"
       },
       "emails_per_page": {
         "10": "10 електронних листів",

@@ -422,6 +422,9 @@
     "source_truncated": "מוצגים {size} הראשונים. ייצאו את ההודעה כדי לראות את השאר.",
     "source_copied": "המקור הועתק ללוח",
     "attachments": "קבצים מצורפים",
+    "attachments_count": "{count, plural, one {קובץ מצורף אחד} two {# קבצים מצורפים} other {# קבצים מצורפים}}",
+    "attachments_show_more": "הצג עוד {count}",
+    "attachments_show_fewer": "הצג פחות",
     "important": "חָשׁוּב",
     "download": "הורד",
     "download_all": "הורד הכל",
@@ -1837,7 +1840,8 @@
       "attachment_position": {
         "label": "עמדת התקשרות",
         "description": "היכן להציג קבצים מצורפים בכותרת הדוא\"ל",
-        "below-header": "מתחת לכותרת"
+        "below-header": "מתחת לכותרת",
+        "below-message": "כרטיסים מתחת להודעה"
       },
       "emails_per_page": {
         "10": "10 מיילים",

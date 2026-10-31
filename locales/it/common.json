@@ -473,6 +473,9 @@
     "source_truncated": "Sono mostrati i primi {size}. Esporta il messaggio per il resto.",
     "source_copied": "Sorgente copiata negli appunti",
     "attachments": "Allegati",
+    "attachments_count": "{count, plural, one {# allegato} other {# allegati}}",
+    "attachments_show_more": "Mostra altri {count}",
+    "attachments_show_fewer": "Mostra meno",
     "important": "Importante",
     "download": "Scarica",
     "download_all": "Scarica tutto",
@@ -1900,7 +1903,8 @@
       "attachment_position": {
         "label": "Posizione degli allegati",
         "description": "Dove visualizzare gli allegati nell'intestazione dell'email",
-        "below-header": "Sotto l'intestazione"
+        "below-header": "Sotto l'intestazione",
+        "below-message": "Schede sotto il messaggio"
       },
       "emails_per_page": {
         "10": "10 messaggi",

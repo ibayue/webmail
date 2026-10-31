@@ -473,6 +473,9 @@
     "source_truncated": "Viser de første {size}. Eksporter meddelelsen for at se resten.",
     "source_copied": "Kilde kopieret til udklipsholder",
     "attachments": "Vedhæftninger",
+    "attachments_count": "{count, plural, one {# vedhæftet fil} other {# vedhæftede filer}}",
+    "attachments_show_more": "Vis {count} mere",
+    "attachments_show_fewer": "Vis færre",
     "important": "Vigtig",
     "download": "Download",
     "download_all": "Download alle",
@@ -1903,7 +1906,8 @@
       "attachment_position": {
         "label": "Placering af vedhæftninger",
         "description": "Hvor vedhæftninger skal vises i e-mail-headeren",
-        "below-header": "Under header"
+        "below-header": "Under header",
+        "below-message": "Kort under beskeden"
       },
       "emails_per_page": {
         "10": "10 e-mails",
