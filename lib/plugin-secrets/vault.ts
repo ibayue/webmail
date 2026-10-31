@@ -7,6 +7,7 @@ import { createHash } from 'node:crypto';
 import { readFile, writeFile, mkdir, rename, unlink } from 'node:fs/promises';
 import path from 'node:path';
 import { decryptPayload, encryptPayload } from '@/lib/auth/crypto';
+import { StoredDataUnreadableError } from '@/lib/stored-data-errors';
 import type { CredentialInject } from './credentials';
 
 export interface VaultUser {
@@ -56,18 +57,24 @@ function vaultPath(user: VaultUser): string {
   return file;
 }
 
+/**
+ * The user's credentials; {} when none are stored. A file that exists but
+ * can't be read or doesn't decrypt (another session secret) throws
+ * StoredDataUnreadableError, so no write lands on top of it.
+ */
 async function load(user: VaultUser): Promise<VaultData> {
   let raw: string;
   try {
     raw = await readFile(vaultPath(user), 'utf8');
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') return {};
-    throw error;
+    throw new StoredDataUnreadableError('plugin credentials', { cause: error });
   }
   const payload = decryptPayload(raw, 'plugin-secrets');
+  if (!payload) throw new StoredDataUnreadableError('plugin credentials');
   // Bound to this user: a file copied over from another account's name
   // decrypts, but carries the other account's key and is ignored.
-  if (!payload || payload.u !== userKey(user)) return {};
+  if (payload.u !== userKey(user)) return {};
   const data = payload.d;
   return data && typeof data === 'object' ? (data as VaultData) : {};
 }

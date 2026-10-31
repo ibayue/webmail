@@ -4,6 +4,7 @@ import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { logger } from '@/lib/logger';
 import { getSessionSecret } from '@/lib/auth/session-secret';
+import { StoredDataUnreadableError } from '@/lib/stored-data-errors';
 
 const ALGORITHM = 'aes-256-gcm';
 const IV_LENGTH = 12;
@@ -52,14 +53,30 @@ export async function saveUserSettings(username: string, serverUrl: string, sett
   await rename(tmpPath, targetPath);
 }
 
+/**
+ * The user's stored settings, or null when none are stored. A file that
+ * exists but can't be read or decrypted (another session secret, cut short)
+ * throws StoredDataUnreadableError: treating it as "nothing stored" would
+ * let the next save overwrite the user's real settings.
+ */
 export async function loadUserSettings(username: string, serverUrl: string): Promise<Record<string, unknown> | null> {
   const filePath = getSettingsPath(username, serverUrl);
 
+  let data: Buffer;
   try {
-    const data = await readFile(filePath);
-    if (data.length < IV_LENGTH + TAG_LENGTH) return null;
+    data = await readFile(filePath);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null;
+    logger.warn('Failed to read user settings', { error: error instanceof Error ? error.message : 'Unknown error' });
+    throw new StoredDataUnreadableError('settings', { cause: error });
+  }
+  return decryptSettings(data);
+}
 
-    const key = getKey();
+function decryptSettings(data: Buffer): Record<string, unknown> {
+  if (data.length < IV_LENGTH + TAG_LENGTH) throw new StoredDataUnreadableError('settings');
+  const key = getKey();
+  try {
     const iv = data.subarray(0, IV_LENGTH);
     const tag = data.subarray(IV_LENGTH, IV_LENGTH + TAG_LENGTH);
     const encrypted = data.subarray(IV_LENGTH + TAG_LENGTH);
@@ -70,9 +87,8 @@ export async function loadUserSettings(username: string, serverUrl: string): Pro
     const decrypted = Buffer.concat([decipher.update(encrypted), decipher.final()]);
     return JSON.parse(decrypted.toString('utf8'));
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null;
-    logger.warn('Failed to load user settings', { error: error instanceof Error ? error.message : 'Unknown error' });
-    return null;
+    logger.warn('Failed to decrypt user settings', { error: error instanceof Error ? error.message : 'Unknown error' });
+    throw new StoredDataUnreadableError('settings', { cause: error });
   }
 }
 

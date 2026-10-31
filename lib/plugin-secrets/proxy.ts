@@ -12,6 +12,7 @@ import { DisallowedUrlError, fetchPublicUrl } from '@/lib/security/url-guard';
 import { authHeaderFor, credentialOrigin, privateProxyOrigins, type CredentialInject, type CredentialSpec } from './credentials';
 import { getUserCredential, setUserCredentialSecret, userKey, type VaultUser } from './vault';
 import { declaredUserCredential } from './known-plugins';
+import { isStoredDataUnavailable } from '@/lib/stored-data-errors';
 
 /** Largest request body the proxy forwards (one upload chunk). */
 export const MAX_PROXY_REQUEST_BYTES = 100 * 1024 * 1024;
@@ -269,7 +270,15 @@ export async function proxyRequest(input: ProxyInput): Promise<Response> {
   const method = input.method.toUpperCase();
   if (!PROXY_METHODS.has(method)) throw new ProxyError(`Method ${method} is not allowed`, 405, 'bad_method');
 
-  const credential = await resolveCredential(input.user, input.pluginId, input.credentialId);
+  let credential: ResolvedCredential | null;
+  try {
+    credential = await resolveCredential(input.user, input.pluginId, input.credentialId);
+  } catch (error) {
+    if (isStoredDataUnavailable(error)) {
+      throw Object.assign(new ProxyError('The connected accounts could not be read right now', 503, 'store_unavailable'), { retryAfter: 10 });
+    }
+    throw error;
+  }
   if (!credential) throw new ProxyError('No such credential', 404, 'no_credential');
 
   let target: URL;
@@ -380,6 +389,12 @@ export async function proxyRequest(input: ProxyInput): Promise<Response> {
     if (error instanceof ProxyError) {
       audit(error.status, 0, error.code);
       throw error;
+    }
+    // A captured secret that couldn't be stored: the vault doesn't read,
+    // or the shared store is down. Nothing was written.
+    if (isStoredDataUnavailable(error)) {
+      audit(503, 0, 'store unavailable');
+      throw Object.assign(new ProxyError('The connected accounts could not be read or saved right now', 503, 'store_unavailable'), { retryAfter: 10 });
     }
     if (error instanceof DisallowedUrlError) {
       audit(403, 0, 'blocked address');

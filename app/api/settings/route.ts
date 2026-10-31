@@ -12,6 +12,7 @@ import { hasSessionSecret } from '@/lib/auth/session-secret';
 import { MAX_ACCOUNT_SLOTS } from '@/lib/account-utils';
 import { mergeStoredTemplates } from '@/lib/template-merge';
 import { mergeStoredSubscriptions } from '@/lib/calendar-subscription-sync';
+import { storedDataUnavailableResponse } from '@/lib/stored-data-errors';
 
 /** Largest settings blob a client may store (templates and signatures included). */
 const SETTINGS_MAX_BYTES = 2 * 1024 * 1024;
@@ -141,6 +142,8 @@ export async function GET(request: NextRequest) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     const code = (error as NodeJS.ErrnoException).code;
     logger.error('Settings load error', { error: message, code });
+    const unavailable = storedDataUnavailableResponse(error);
+    if (unavailable) return unavailable;
     const classified = classifyError(error);
     return NextResponse.json({ error: classified.message }, { status: classified.status });
   }
@@ -221,6 +224,10 @@ export async function POST(request: NextRequest) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     const code = (error as NodeJS.ErrnoException).code;
     logger.error('Settings save error', { error: message, code });
+    // Stored settings that don't decrypt, or no store: write nothing, so
+    // the user's real settings survive and the client keeps its copy.
+    const unavailable = storedDataUnavailableResponse(error);
+    if (unavailable) return unavailable;
     const classified = classifyError(error);
     return NextResponse.json({ error: classified.message }, { status: classified.status });
   }
@@ -252,6 +259,8 @@ export async function DELETE(request: NextRequest) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     const code = (error as NodeJS.ErrnoException).code;
     logger.error('Settings delete error', { error: message, code });
+    const unavailable = storedDataUnavailableResponse(error);
+    if (unavailable) return unavailable;
     const classified = classifyError(error);
     return NextResponse.json({ error: classified.message }, { status: classified.status });
   }
