@@ -20,7 +20,8 @@ async function pruneExpired(dir: string, nowMs: number): Promise<void> {
 }
 
 /**
- * Record an impersonation token's jti as used; false when it was used before.
+ * Record an impersonation token's jti as used; false when it was used before
+ * or the use can't be recorded.
  *
  * The in-process cache alone forgot every jti on restart and knew nothing of
  * other replicas, so a captured handoff link could be redeemed again within
@@ -45,11 +46,12 @@ export async function consumeImpersonationJti(
     return true;
   } catch (err) {
     if ((err as NodeJS.ErrnoException).code === 'EEXIST') return false;
-    // The state directory is documented as always writable; if it is not,
-    // keep impersonation working on the in-process cache.
-    logger.warn('Impersonation replay store unavailable, using the in-process cache only', {
+    // Without the marker a restart or another replica would accept the
+    // token again, so it is refused rather than trusted to this process's
+    // memory.
+    logger.error('Impersonation replay store unavailable, refusing the token', {
       error: err instanceof Error ? err.message : 'Unknown',
     });
-    return true;
+    return false;
   }
 }

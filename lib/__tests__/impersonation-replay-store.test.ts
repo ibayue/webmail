@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { mkdtempSync, readdirSync, rmSync, utimesSync } from 'node:fs';
+import { mkdtempSync, readdirSync, rmSync, utimesSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -42,6 +42,14 @@ describe('consumeImpersonationJti', () => {
     expect(await consumeImpersonationJti('jti-1', exp, now)).toBe(true);
     impersonationReplayCache.clear();
     expect(await consumeImpersonationJti('jti-1', exp, now)).toBe(false);
+  });
+
+  it('refuses the token when its marker cannot be written', async () => {
+    // A state "dir" that is a file: the marker dir can't be created.
+    const blocked = path.join(stateDir, 'not-a-dir');
+    writeFileSync(blocked, '');
+    process.env.ADMIN_STATE_DIR = blocked;
+    expect(await consumeImpersonationJti('jti-unrecorded', exp, now)).toBe(false);
   });
 
   it('prunes markers once their token can no longer verify', async () => {
