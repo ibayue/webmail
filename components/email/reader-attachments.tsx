@@ -202,7 +202,7 @@ export function ReaderAttachments<T extends ReaderAttachmentItem>({
           </span>
         </button>
         {/* Over the preview, never over the name. Always shown where there is no hover. */}
-        <div className="absolute end-2 top-2 z-10 flex items-center gap-0.5 rounded-lg border border-border bg-background/90 p-0.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100">
+        <div className="absolute end-2 top-2 z-10 flex items-center gap-0.5 rounded-lg border border-border bg-background/90 p-0.5 opacity-0 pointer-events-none transition-opacity group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto [@media(hover:none)]:opacity-100 [@media(hover:none)]:pointer-events-auto">
           {onSaveToFiles && attachment.blobId && (
             <IconButton label={t("save_to_files.title")} onClick={() => onSaveToFiles(attachment)}>
               <FolderInput className="h-4 w-4" />
