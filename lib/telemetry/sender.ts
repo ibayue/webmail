@@ -1,4 +1,5 @@
 import { logger } from '@/lib/logger';
+import { isSharedMode } from '@/lib/shared-store';
 import { announceChange } from '@/lib/shared-store/changes';
 import {
   effectiveConsent, endpointEnabled, loadState, loadStateVersioned, saveStateIfUnchanged, updateState,
@@ -12,6 +13,12 @@ const JITTER_MS = 2 * 60 * 60 * 1000; // ± 2 hours
 const FIRST_DELAY_MS = 60 * 60 * 1000;  // 1 hour after consent
 /** A send this long before a scheduled slot already counts for that slot. */
 const SLOT_SLACK_MS = 60 * 1000;
+/**
+ * With a shared store, a scheduled heartbeat this recent means the day's is
+ * done. A new leader computes its own slot when the old one stalled past its
+ * slot or died before storing the next one, so the slot alone can't tell.
+ */
+const SCHEDULED_GAP_MS = 20 * 60 * 60 * 1000;
 
 // On globalThis: Next loads this module once per bundle (instrumentation,
 // each route), and a reschedule from a route must clear the timer the
@@ -34,7 +41,9 @@ function jitteredDelay(base: number): number {
   return Math.max(60_000, base + j);
 }
 
-type Claim = { claimed: true; previous: string | null; at: string } | { claimed: false };
+type Claim =
+  | { claimed: true; previous: string | null; previousScheduled: string | null | undefined; at: string; shared: boolean }
+  | { claimed: false };
 
 /**
  * Take the scheduled send for `slot` (its nextScheduledAt): set lastSentAt
@@ -44,14 +53,20 @@ type Claim = { claimed: true; previous: string | null; at: string } | { claimed:
  */
 async function claimSlot(slot: string): Promise<Claim> {
   const slotMs = new Date(slot).getTime();
+  const shared = isSharedMode();
   for (let attempt = 0; attempt < 5; attempt++) {
     const { state, version } = await loadStateVersioned();
     if (version === null) return { claimed: false };
     const last = state.lastSentAt ? new Date(state.lastSentAt).getTime() : NaN;
     if (!Number.isNaN(last) && last >= slotMs - SLOT_SLACK_MS) return { claimed: false };
+    if (shared && state.lastScheduledSentAt) {
+      const scheduled = new Date(state.lastScheduledSentAt).getTime();
+      if (!Number.isNaN(scheduled) && Date.now() - scheduled < SCHEDULED_GAP_MS) return { claimed: false };
+    }
     const at = new Date().toISOString();
-    if (await saveStateIfUnchanged({ ...state, lastSentAt: at }, version)) {
-      return { claimed: true, previous: state.lastSentAt, at };
+    const next = shared ? { ...state, lastSentAt: at, lastScheduledSentAt: at } : { ...state, lastSentAt: at };
+    if (await saveStateIfUnchanged(next, version)) {
+      return { claimed: true, previous: state.lastSentAt, previousScheduled: state.lastScheduledSentAt, at, shared };
     }
   }
   return { claimed: false };
@@ -61,6 +76,7 @@ async function claimSlot(slot: string): Promise<Claim> {
 async function releaseSlot(claim: Extract<Claim, { claimed: true }>): Promise<void> {
   await updateState((state) => {
     if (state.lastSentAt === claim.at) state.lastSentAt = claim.previous;
+    if (claim.shared && state.lastScheduledSentAt === claim.at) state.lastScheduledSentAt = claim.previousScheduled ?? null;
   }).catch(() => {});
 }
 

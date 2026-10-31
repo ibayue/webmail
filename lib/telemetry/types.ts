@@ -41,6 +41,11 @@ export interface TelemetryStateFile {
   endpoint: string;
   consentedAt: string | null;
   lastSentAt: string | null;
+  /**
+   * With a shared store only: when the last scheduled heartbeat went out.
+   * Unlike lastSentAt, the admin's "send now" doesn't set it.
+   */
+  lastScheduledSentAt?: string | null;
   nextScheduledAt: string | null;
 }
 

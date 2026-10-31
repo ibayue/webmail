@@ -245,6 +245,40 @@ describe('scheduler leader with a shared store', () => {
     expect(sent).toHaveBeenCalledTimes(1);
   });
 
+  it('sends once when the old leader stalled past its slot and the new one picked a later slot', async () => {
+    const oldSlot = new Date(Date.now() - 1000).toISOString();
+    await consentOn(oldSlot);
+    // The new leader found the slot passed and scheduled an hour out.
+    const newSlot = new Date(Date.now() + 60 * MIN).toISOString();
+    // The stalled leader wakes up and sends for its slot first.
+    expect((await sendOnce({ reason: 'scheduled', slot: oldSlot })).ok).toBe(true);
+    vi.advanceTimersByTime(61 * MIN);
+    expect((await sendOnce({ reason: 'scheduled', slot: newSlot })).ok).toBe(false);
+    expect(sent).toHaveBeenCalledTimes(1);
+  });
+
+  it('sends once when a leader died after sending but before storing the next slot', async () => {
+    const slot = new Date(Date.now() - 1000).toISOString();
+    await consentOn(slot);
+    expect((await sendOnce({ reason: 'scheduled', slot })).ok).toBe(true);
+    // nextScheduledAt still names the slot just sent; the next leader
+    // finds it passed and fires an hour later.
+    vi.advanceTimersByTime(60 * MIN);
+    expect((await sendOnce({ reason: 'scheduled', slot: new Date().toISOString() })).ok).toBe(false);
+    expect(sent).toHaveBeenCalledTimes(1);
+  });
+
+  it('still sends the next scheduled heartbeat after a manual "send now"', async () => {
+    const slot = new Date(Date.now() - 1000).toISOString();
+    await consentOn(slot);
+    expect((await sendOnce({ reason: 'scheduled', slot })).ok).toBe(true);
+    vi.advanceTimersByTime(20 * 60 * MIN);
+    expect((await sendOnce({ reason: 'admin-manual' })).ok).toBe(true);
+    vi.advanceTimersByTime(2 * 60 * MIN);
+    expect((await sendOnce({ reason: 'scheduled', slot: new Date().toISOString() })).ok).toBe(true);
+    expect(sent).toHaveBeenCalledTimes(3);
+  });
+
   it('gives the slot back when the send fails', async () => {
     const slot = new Date(Date.now() - 1000).toISOString();
     await consentOn(slot);
@@ -288,6 +322,16 @@ describe('scheduler leader with a shared store', () => {
 });
 
 describe('scheduler leader on a single instance', () => {
+  it('sends a scheduled heartbeat an hour after the last one, as before', async () => {
+    setStoreForTests(null);
+    const slot = new Date(Date.now() - 1000).toISOString();
+    await consentOn(slot);
+    expect((await sendOnce({ reason: 'scheduled', slot })).ok).toBe(true);
+    vi.advanceTimersByTime(60 * MIN);
+    expect((await sendOnce({ reason: 'scheduled', slot: new Date().toISOString() })).ok).toBe(true);
+    expect((await loadState()).lastScheduledSentAt).toBeUndefined();
+  });
+
   it('leads at once and restarts the heartbeat when consent changes in this process', async () => {
     setStoreForTests(null);
     await startSchedulerLeader(jobs);
