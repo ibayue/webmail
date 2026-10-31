@@ -193,9 +193,10 @@ export async function POST(request: NextRequest) {
     await configManager.ensureLoaded();
 
     if (host) {
-      const current = parseDomainBranding(configManager.get<unknown>('domainBranding', []));
-      const next = mergeDomainEntry(current, host, { [slot]: servedUrl });
-      await configManager.setAdminConfig({ domainBranding: next });
+      // Built on the stored list, so a save of another domain at the same
+      // time (here or on another instance) stays.
+      await configManager.updateAdminConfig<unknown>('domainBranding', (current) =>
+        mergeDomainEntry(parseDomainBranding(current), host, { [slot]: servedUrl }), []);
     } else {
       await configManager.setAdminConfig({ [slot]: servedUrl });
     }
@@ -269,9 +270,8 @@ export async function DELETE(request: NextRequest) {
 
     await configManager.ensureLoaded();
     if (host) {
-      const current = parseDomainBranding(configManager.get<unknown>('domainBranding', []));
-      const next = clearDomainKeys(current, host, [slot as BrandingOverrideKey]);
-      await configManager.setAdminConfig({ domainBranding: next });
+      await configManager.updateAdminConfig<unknown>('domainBranding', (current) =>
+        clearDomainKeys(parseDomainBranding(current), host, [slot as BrandingOverrideKey]), []);
     } else {
       await configManager.removeAdminOverride(slot);
     }
