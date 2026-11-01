@@ -383,8 +383,10 @@ export interface IJMAPClient {
   moveMailboxContents(fromMailboxId: string, toMailboxId: string, accountId?: string, markAsRead?: boolean): Promise<number>;
   markMailboxAsRead(mailboxId: string, accountId?: string): Promise<number>;
   markAllAsRead(excludeMailboxIds?: string[], accountId?: string): Promise<number>;
-  markAsSpam(emailId: string, accountId?: string, markAsRead?: boolean): Promise<void>;
-  undoSpam(emailId: string, originalMailboxId: string, accountId?: string): Promise<void>;
+  /** `keywords`: more keywords set with the move ($phishing). */
+  markAsSpam(emailId: string, accountId?: string, markAsRead?: boolean, keywords?: string[]): Promise<void>;
+  /** `clearKeywords`: more keywords removed with the move back ($phishing). */
+  undoSpam(emailId: string, originalMailboxId: string, accountId?: string, clearKeywords?: string[]): Promise<void>;
 
   // ── Threads ───────────────────────────────────────────────────
   getThread(threadId: string, accountId?: string): Promise<Thread | null>;
@@ -448,8 +450,9 @@ export interface IJMAPClient {
     // and need the matching `submissionExtensions` entry (see
     // supportsSubmissionExtension).
     // `draftAccountId`: the account `draftId` lives in, so the sent draft is
-    // destroyed there (default: the primary account).
-    options?: { requestReadReceipt?: boolean; requestDsn?: boolean; requireTls?: boolean; priority?: MessagePriority; headers?: Record<string, string>; draftAccountId?: string },
+    // destroyed there (default: the primary account). `noSentCopy`: no copy
+    // stays in Sent (a phishing report).
+    options?: { requestReadReceipt?: boolean; requestDsn?: boolean; requireTls?: boolean; priority?: MessagePriority; headers?: Record<string, string>; draftAccountId?: string; noSentCopy?: boolean },
   ): Promise<SendEmailResult>;
   /** Whether the submission account advertises an SMTP extension ("DSN", "REQUIRETLS", …). */
   supportsSubmissionExtension?(extension: string, accountId?: string): boolean;

@@ -883,6 +883,23 @@
     "send_anyway": "Vẫn gửi",
     "back": "Quay lại"
   },
+  "phishing_report": {
+    "action": "Báo cáo lừa đảo…",
+    "confirm_title": "Báo cáo lừa đảo?",
+    "confirm_message": "{count, plural, =1 {Thư sẽ được gửi đến {address} và chuyển vào Thư rác.} other {Mỗi thư trong số # thư sẽ được gửi đến {address} thành một báo cáo riêng và chuyển vào Thư rác.}}",
+    "confirm": "Báo cáo",
+    "cancel": "Hủy",
+    "sending": "Đang báo cáo…",
+    "done": "{count, plural, =1 {Đã báo cáo đến {address} và chuyển vào Thư rác.} other {Đã báo cáo # thư đến {address} và chuyển vào Thư rác.}}",
+    "not_moved": "{count, plural, =1 {Đã báo cáo đến {address}, nhưng không thể chuyển thư vào Thư rác.} other {Đã báo cáo đến {address}, nhưng không thể chuyển # thư vào Thư rác.}}",
+    "failed": "{count, plural, =1 {Không thể báo cáo thư.} other {Không thể báo cáo # thư.}}",
+    "undo": "Hoàn tác",
+    "undone": "{count, plural, =1 {Đã chuyển về. Báo cáo đã được gửi trước đó.} other {Đã chuyển về. Các báo cáo đã được gửi trước đó.}}",
+    "undo_failed": "Không thể chuyển về.",
+    "banner": "Bạn đã báo cáo thư này là lừa đảo. Các liên kết trong thư đã bị tắt.",
+    "link_off": "đã tắt liên kết",
+    "no_subject": "(không có tiêu đề)"
+  },
   "email_composer": {
     "select_from_directory": "Chọn từ danh bạ",
     "minimize": "Thu nhỏ",

@@ -32,6 +32,8 @@ import { ContextMenu } from "@/components/ui/context-menu";
 import { useContextMenu, type UseContextMenuReturn } from "@/hooks/use-context-menu";
 import { EmailContextMenu } from "./email-context-menu";
 import { useMessageActionList, type MessageActionEntry, type MessageActionKey, type MessageActionOptions, type MessageSubmenuKey } from "./message-actions";
+import { PhishingMarkBanner } from "./phishing-mark-banner";
+import { isPhishingMarked, turnOffLinks } from "@/lib/phishing-links";
 import { useCopyToAccount, useEmailExport, usePrintRequestStore } from "@/hooks/use-message-file-actions";
 import { useBottomControls } from "@/hooks/use-bottom-controls";
 import { useComposingSurface } from "@/hooks/use-composing-surface";
@@ -2647,10 +2649,15 @@ export function EmailViewer({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [email, externalContentPolicy, allowExternalContent, remoteHeldBack]);
 
+  // Reported as phishing ($phishing): a banner, its links turned off and
+  // no cards (a phishing mail's "booking" is the lure).
+  const phishingMarked = isPhishingMarked(email);
+  const tPhishing = useTranslations('phishing_report');
+
   // Booking, parcel and order cards of the message itself (never of an
   // unwrapped attached .eml); empty unless the sender is verified and the
   // admin gate is on.
-  const structuredCards = useStructuredMail(email, blobSource);
+  const structuredCards = useStructuredMail(phishingMarked ? null : email, blobSource);
 
   // Sanitize and prepare email HTML content
   const emailContent = useMemo(() => {
@@ -2807,14 +2814,14 @@ export function EmailViewer({
     return text?.trim() ? text : htmlToReadableText(decodedEmailContent.html);
   }, [decodedEmailContent, emailContent, email]);
   const effectiveEmailContent = useMemo(() => {
-    if (!plainView || !decodedEmailContent.isHtml) return decodedEmailContent;
-    return {
+    const shown = !plainView || !decodedEmailContent.isHtml ? decodedEmailContent : {
       html: collapsePlainTextQuotes(plainTextToSafeHtml(readableText()), { show: t('show_quoted_text'), hide: t('hide_quoted_text') }),
       isHtml: false,
       hasStyleTag: false,
       externalBlocked: false,
     };
-  }, [plainView, decodedEmailContent, readableText, t]);
+    return phishingMarked ? { ...shown, html: turnOffLinks(shown.html, tPhishing('link_off')) } : shown;
+  }, [plainView, decodedEmailContent, readableText, t, phishingMarked, tPhishing]);
   // Reader view: the message full screen in the app's own look.
   const [readerViewOpen, setReaderViewOpen] = useState(false);
   // Reading mask: dims the body except a band that follows pointer and caret.
@@ -2822,8 +2829,9 @@ export function EmailViewer({
   const bodyWrapRef = useRef<HTMLDivElement>(null);
   const readerViewHtml = useMemo(() => {
     if (!readerViewOpen) return '';
-    return decodedEmailContent.isHtml ? plainTextToSafeHtml(readableText()) : decodedEmailContent.html;
-  }, [readerViewOpen, decodedEmailContent, readableText]);
+    const html = decodedEmailContent.isHtml ? plainTextToSafeHtml(readableText()) : decodedEmailContent.html;
+    return phishingMarked ? turnOffLinks(html, tPhishing('link_off')) : html;
+  }, [readerViewOpen, decodedEmailContent, readableText, phishingMarked, tPhishing]);
 
   const resolveAttachmentName = useCallback(
     (attachment: EffectiveAttachment) => {
@@ -5603,6 +5611,8 @@ export function EmailViewer({
             </div>
           </div>
         )}
+
+        {phishingMarked && <PhishingMarkBanner />}
 
         {/* Draft Banner: a scheduled message has its own. */}
         {isDraft && !isScheduled && (

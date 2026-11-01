@@ -68,6 +68,8 @@ import { emailToReadView } from "@/lib/plugin-projection";
 import { AttachmentPluginMenu, ReaderAboveQuoteSlot } from "./reader-plugin-surfaces";
 import { useRemoteContentBlockedByOrg, useRemoteContentHeldBack } from "@/hooks/use-third-party-mode";
 import { ConversationHeaderActions, type ConversationActions } from "./conversation-header-actions";
+import { PhishingMarkBanner } from "./phishing-mark-banner";
+import { isPhishingMarked, turnOffLinks } from "@/lib/phishing-links";
 
 export type ConversationAttachmentHandler = (
   blobId: string, name: string, type: string | undefined, source: EmailBlobContext,
@@ -572,8 +574,11 @@ export function ConversationEmailBody({
   const fallbackSource = useEmailStore(useShallow(() => resolveEmailBlobContext(email, client)));
   const source = blobSource ?? fallbackSource;
   const { client: blobClient, accountId } = source;
+  // Reported as phishing: a banner, links off, no cards (as in the reader).
+  const phishingMarked = isPhishingMarked(email);
+  const tPhishing = useTranslations('phishing_report');
   // Booking, parcel and order cards; only an expanded message mounts this body.
-  const structuredCards = useStructuredMail(email, source);
+  const structuredCards = useStructuredMail(phishingMarked ? null : email, source);
   // Local CID URLs belong to a particular client/owner/message/part list.
   // Hide the previous set during render, before the new fetch's effect runs.
   const cidRequest = useMemo(() => ({ blobClient, accountId, emailId: email.id, attachments: email.attachments }),
@@ -740,7 +745,7 @@ export function ConversationEmailBody({
   // "Show mail as plain text" (Settings > Accessibility): the message's own
   // text/plain part, or a readable conversion of the HTML.
   const mailViewMode = useSettingsStore((state) => state.mailViewMode);
-  const emailContent = useMemo(() => {
+  const shownContent = useMemo(() => {
     if (mailViewMode !== 'plain' || !formattedContent.isHtml) return formattedContent;
     const textPart = !pluginBody.html ? email.textBody?.[0] : undefined;
     let text = textPart?.partId && textPart.partId !== email.htmlBody?.[0]?.partId && (textPart.type || 'text/plain').toLowerCase() === 'text/plain'
@@ -755,6 +760,10 @@ export function ConversationEmailBody({
       isHtml: false,
     };
   }, [mailViewMode, formattedContent, pluginBody.html, email, t]);
+  const emailContent = useMemo(
+    () => (phishingMarked ? { ...shownContent, html: turnOffLinks(shownContent.html, tPhishing('link_off')) } : shownContent),
+    [shownContent, phishingMarked, tPhishing],
+  );
 
   // Parts the body embeds via cid: stay out of the attachment row while the
   // user hides inline images - the desktop viewer's rule, shared through
@@ -897,6 +906,7 @@ export function ConversationEmailBody({
 
   return (
     <div className={className}>
+      {phishingMarked && <PhishingMarkBanner className="px-4" />}
       {/* External content warning */}
       {hasBlockedContent && !allowExternal && emailContent.isHtml && (
         <div className="px-4 py-2 bg-muted/50 flex items-center justify-between text-sm" data-testid="external-content-notice">
