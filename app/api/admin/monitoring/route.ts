@@ -4,13 +4,14 @@ import { logger } from '@/lib/logger';
 import { readErrors, summarizeDay, utcDay } from '@/lib/error-reporting/aggregate';
 import { shouldCollectErrors } from '@/lib/error-reporting/settings';
 import { storedDataUnavailableResponse } from '@/lib/stored-data-errors';
+import { metricsEnabled } from '@/lib/metrics';
 
 export const dynamic = 'force-dynamic';
 
 /**
  * GET /api/admin/monitoring: what System > Monitoring shows besides the
  * config keys (those come from /api/admin/config): whether errors are being
- * counted and today's counts.
+ * counted, today's counts and whether the metrics endpoint is on.
  */
 export async function GET(request: NextRequest) {
   try {
@@ -20,7 +21,8 @@ export async function GET(request: NextRequest) {
     const collecting = await shouldCollectErrors();
     const today = utcDay();
     const errorsToday = summarizeDay(await readErrors(), today);
-    return NextResponse.json({ collecting, day: today, errorsToday }, { headers: { 'Cache-Control': 'no-store' } });
+    const metrics = { enabled: metricsEnabled() };
+    return NextResponse.json({ collecting, day: today, errorsToday, metrics }, { headers: { 'Cache-Control': 'no-store' } });
   } catch (err) {
     logger.error('monitoring GET error', { error: err instanceof Error ? err.message : 'unknown' });
     const unavailable = storedDataUnavailableResponse(err);

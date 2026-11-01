@@ -179,6 +179,8 @@ export function mailFrameAncestors(allowed: string | undefined): string {
   return sources.join(" ");
 }
 
+const PROBE_PATHS = new Set(["/api/health", "/api/health/live", "/api/health/ready", "/api/ready", "/api/metrics"]);
+
 function isSetupPath(pathname: string): boolean {
   return (
     pathname === "/setup" ||
@@ -189,9 +191,10 @@ function isSetupPath(pathname: string): boolean {
 
 export async function proxy(request: NextRequest) {
   // The probes answer without config or store, so a replica that is still
-  // starting (or lost its shared store) can say so (#1066).
+  // starting (or lost its shared store) can say so (#1066). The metrics
+  // endpoint, too: a scrape shouldn't fail while a replica boots.
   const probePath = routePathOf(request.nextUrl.pathname);
-  if (probePath === "/api/health" || probePath === "/api/ready") {
+  if (PROBE_PATHS.has(probePath)) {
     const probe = NextResponse.next();
     probe.headers.set("X-Content-Type-Options", "nosniff");
     probe.headers.set("X-Frame-Options", "DENY");

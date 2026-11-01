@@ -17,6 +17,14 @@ const pkg = JSON.parse(
 const current: string = pkg.version ?? "0.0.0";
 logger.info(`Bulwark Webmail v${current}`, { version: current });
 
+// Prometheus metrics, only with METRICS_TOKEN(_FILE): count every request
+// from the first one on. https://bulwarkmail.org/docs/admin/monitoring#metrics
+if (process.env.METRICS_TOKEN?.trim() || process.env.METRICS_TOKEN_FILE?.trim()) {
+  void import("./lib/metrics/http").then(({ installHttpMetrics }) => {
+    if (installHttpMetrics()) logger.info("Metrics endpoint on at /api/metrics");
+  });
+}
+
 // With REDIS_URL every replica shares one store (#1066). Without it,
 // everything below runs exactly as it always has.
 const shared = sharedStoreUrl() !== null;

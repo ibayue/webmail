@@ -253,6 +253,8 @@ export const ADMIN_PAGES: readonly AdminPageDef[] = [
     sections: [
       { id: 'errors', title: 'Error reporting', keywords: 'dsn sentry bugsink glitchtip sample rate environment' },
       { id: 'errors-today', title: 'Errors today', keywords: 'count fingerprint top' },
+      { id: 'metrics', title: 'Metrics', keywords: 'prometheus scrape token grafana' },
+      { id: 'health', title: 'Health checks', keywords: 'liveness readiness probe kubernetes docker' },
     ],
   },
   {

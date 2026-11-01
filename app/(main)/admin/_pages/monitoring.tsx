@@ -31,6 +31,7 @@ interface MonitoringState {
   collecting: boolean;
   day: string;
   errorsToday: { total: number; top: ErrorEntry[] };
+  metrics?: { enabled: boolean };
 }
 
 const PAGE = adminPageDef('monitoring');
@@ -160,6 +161,25 @@ export function MonitoringPage() {
               </ul>
             </div>
           )}
+        </SettingsSection>
+
+        <SettingsSection id="metrics" title="Metrics">
+          <p className="text-sm">
+            {state?.metrics?.enabled
+              ? <>On. Prometheus scrapes <code className="font-mono">/api/metrics</code> on each replica with the token as a bearer token.</>
+              : <>Off. Set <code className="font-mono">METRICS_TOKEN</code> (or <code className="font-mono">METRICS_TOKEN_FILE</code>) in the environment to turn on <code className="font-mono">/api/metrics</code>.</>}
+          </p>
+          <ConfigNote>
+            Requests per route group, sign-ins, calls to Stalwart and other services, browser errors, memory and
+            event-loop lag. <a className="underline" href={`${DOCS}#metrics`} target="_blank" rel="noreferrer">Metric list and scrape config</a>
+          </ConfigNote>
+        </SettingsSection>
+
+        <SettingsSection id="health" title="Health checks">
+          <ul className="space-y-1 text-sm">
+            <li><code className="font-mono">/api/health/live</code>: the process answers. For liveness probes and the Docker health check.</li>
+            <li><code className="font-mono">/api/health/ready</code>: config loaded, data dirs writable, Stalwart reachable. For readiness probes.</li>
+          </ul>
         </SettingsSection>
       </div>
 

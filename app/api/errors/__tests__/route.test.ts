@@ -15,6 +15,7 @@ vi.mock('@/lib/admin/config-manager', () => ({
 
 import { POST } from '../route';
 import { flushErrors, readErrors, resetAggregateForTests, utcDay } from '@/lib/error-reporting/aggregate';
+import { metrics, resetMetricsForTests } from '@/lib/metrics';
 
 const DSN = 'https://6f0b9c79ed3a4315b76595bc2536ac40@bugsink.example.org/3';
 const SUBJECT = 'Merger plans for Acme Q3';
@@ -69,6 +70,20 @@ describe('POST /api/errors', () => {
     const [entry] = Object.values((await readErrors())[utcDay()]);
     expect(entry).toMatchObject({ name: 'TypeError', runtime: 'browser', version: '1.20.0', count: 1 });
     expect(entry.frames).toEqual([{ path: '/_next/static/chunks/1.js', line: 2, column: 30, fn: 'Ab' }]);
+  });
+
+  it('counts while only the metrics endpoint is on, for the browser errors metric', async () => {
+    process.env.METRICS_TOKEN = 'scrape-secret-0123456789';
+    resetMetricsForTests();
+    try {
+      expect((await POST(post(report))).status).toBe(204);
+      await flushErrors();
+      expect(Object.keys((await readErrors())[utcDay()] ?? {})).toHaveLength(1);
+      expect(await metrics().registry.metrics()).toContain('bulwark_browser_errors_total 1');
+    } finally {
+      delete process.env.METRICS_TOKEN;
+      resetMetricsForTests();
+    }
   });
 
   it('ignores a name or code that is not an identifier or fixed code', async () => {

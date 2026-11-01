@@ -56,6 +56,7 @@ RUN apk upgrade --no-cache && \
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
+COPY --from=builder /app/scripts/healthcheck.mjs ./healthcheck.mjs
 # Every data dir exists up front and belongs to the runtime user, so a fresh
 # volume on /app/data (Docker copies these into it) or on any one of them is
 # writable. plugin-secrets holds users' plugin credentials, version-check the
@@ -68,4 +69,9 @@ USER nextjs
 EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
+# The health check needs the base path the bundle was built with.
+ARG NEXT_PUBLIC_BASE_PATH=
+ENV BULWARK_BASE_PATH=$NEXT_PUBLIC_BASE_PATH
+# Liveness only (/api/health/live); readiness is /api/health/ready.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 CMD ["node", "healthcheck.mjs"]
 CMD ["node", "server.js"]

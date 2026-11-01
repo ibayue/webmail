@@ -6,6 +6,7 @@ import { appVersion, isErrorCode } from '@/lib/error-reporting/envelope';
 import { scrubName } from '@/lib/error-reporting/scrub';
 import { shouldCollectErrors } from '@/lib/error-reporting/settings';
 import { sanitizeFrames } from '@/lib/error-reporting/stack';
+import { countBrowserError } from '@/lib/metrics';
 
 export const dynamic = 'force-dynamic';
 
@@ -66,5 +67,6 @@ export async function POST(request: NextRequest) {
     // old one, and its frames point into that); the server's when absent.
     typeof body.version === 'string' && /^\d+\.\d+\.\d+(?:[-+][\w.-]{1,40})?$/.test(body.version) ? body.version : appVersion(),
   );
+  countBrowserError();
   return new NextResponse(null, { status: 204, headers: NO_STORE });
 }
