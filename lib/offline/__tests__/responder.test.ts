@@ -28,7 +28,10 @@ beforeEach(async () => {
     { id: 'b', threadId: 't1', mailboxIds: { inbox: true }, keywords: { $flagged: true }, receivedAt: at(1), subject: 'Newer' },
     { id: 'c', threadId: 't2', mailboxIds: { archive: true }, keywords: {}, receivedAt: at(2), subject: 'Archived' },
   ]);
-  await putMisc('acc', 'mailboxes', { j1: [{ id: 'inbox', name: 'Inbox', role: 'inbox' }, { id: 'archive', name: 'Archive', role: 'archive' }] });
+  await putMisc('acc', 'mailboxes', { j1: [
+    { id: 'inbox', name: 'Inbox', role: 'inbox', totalEmails: 2, unreadEmails: 1 },
+    { id: 'archive', name: 'Archive', role: 'archive', totalEmails: 1, unreadEmails: 1 },
+  ] });
 });
 
 describe('answering a folder list offline', () => {
@@ -90,6 +93,13 @@ describe('changes made offline', () => {
     expect(index.get(emailKey('acc', 'j1', 'a'))?.keywords).toEqual({ $seen: true, $flagged: true });
     const inbox = await answerOffline(ctx, [['Email/query', { filter: { inMailbox: 'inbox' } }, '0']]);
     expect(inbox!.methodResponses[0][1].ids).toEqual(['b', 'c', 'a']);
+  });
+
+  it('keeps the folder counts in step', async () => {
+    await answerOffline(ctx, [['Email/set', { update: { a: { 'keywords/$seen': true }, c: { 'mailboxIds/archive': null, 'mailboxIds/inbox': true } } }, '0']]);
+    const boxes = (await answerOffline(ctx, [['Mailbox/get', {}, '0']]))!.methodResponses[0][1].list;
+    expect(boxes.find((b: { id: string }) => b.id === 'inbox')).toMatchObject({ totalEmails: 3, unreadEmails: 1 });
+    expect(boxes.find((b: { id: string }) => b.id === 'archive')).toMatchObject({ totalEmails: 0, unreadEmails: 0 });
   });
 
   it('refuses deleting for good and emptying a folder', async () => {

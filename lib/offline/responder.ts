@@ -8,9 +8,12 @@
  * good, emptying a folder and everything else that would change the server
  * is refused, as are calls the cache can't answer (search, changes since a
  * state): the whole request then fails as it would without offline mode.
+ *
+ * Answers carry no state strings: a made-up one would end up in an
+ * Email/changes once the server is back, which refuses it.
  */
 
-import { emailIndex, getBody, getMisc, patchEmails, type CachedEmail } from './cache';
+import { emailIndex, getBody, getMisc, patchEmails, putMisc, type CachedEmail } from './cache';
 import type { OfflineMethodCall, OfflineResponse } from '@/lib/jmap/offline-hooks';
 
 export type MethodResult = Record<string, unknown>;
@@ -172,7 +175,6 @@ async function emailQuery(ctx: ResponderContext, args: Record<string, unknown>):
   const limit = typeof args.limit === 'number' ? args.limit : list.length;
   return {
     accountId: jmap,
-    queryState: 'offline',
     canCalculateChanges: false,
     position,
     ids: list.slice(position, position + limit).map((email) => email.id),
@@ -212,7 +214,7 @@ async function emailGet(ctx: ResponderContext, args: Record<string, unknown>): P
     }
     list.push(pick({ ...(body ?? {}), ...meta }, properties));
   }
-  return { accountId: jmap, state: 'offline', list, notFound };
+  return { accountId: jmap, list, notFound };
 }
 
 async function threadGet(ctx: ResponderContext, args: Record<string, unknown>): Promise<MethodResult> {
@@ -226,7 +228,7 @@ async function threadGet(ctx: ResponderContext, args: Record<string, unknown>): 
       .sort((a, b) => (Date.parse(String(a.receivedAt)) || 0) - (Date.parse(String(b.receivedAt)) || 0))
       .map((email) => email.id),
   }));
-  return { accountId: jmap, state: 'offline', list: list.filter((t) => t.emailIds.length > 0), notFound: list.filter((t) => t.emailIds.length === 0).map((t) => t.id) };
+  return { accountId: jmap, list: list.filter((t) => t.emailIds.length > 0), notFound: list.filter((t) => t.emailIds.length === 0).map((t) => t.id) };
 }
 
 async function listGet(ctx: ResponderContext, args: Record<string, unknown>, name: 'mailboxes' | 'identities'): Promise<MethodResult> {
@@ -238,7 +240,6 @@ async function listGet(ctx: ResponderContext, args: Record<string, unknown>, nam
   const chosen = ids ? list.filter((item) => ids.has(item.id as string)) : list;
   return {
     accountId: jmap,
-    state: 'offline',
     list: chosen.map((item) => pick(item, args.properties)),
     notFound: ids ? [...ids].filter((id) => !list.some((item) => item.id === id)) : [],
   };
@@ -274,13 +275,53 @@ async function emailSet(ctx: ResponderContext, args: Record<string, unknown>): P
     }
   }
   await ctx.queuePatch(jmap, update);
+  const before = new Map(Object.keys(update).map((id) => [id, index.get(`${ctx.account}\u0001${jmap}\u0001${id}`)]));
   await patchEmails(ctx.account, jmap, update);
+  await adjustFolderCounts(ctx, jmap, before, index);
   return {
     accountId: jmap,
-    oldState: 'offline',
-    newState: 'offline',
     updated: Object.fromEntries(Object.keys(update).map((id) => [id, null])),
   };
+}
+
+/** The folder counts kept with the folder list follow a change made offline (read state, moves). */
+async function adjustFolderCounts(
+  ctx: ResponderContext,
+  jmap: string,
+  before: Map<string, CachedEmail | undefined>,
+  index: Map<string, CachedEmail>,
+): Promise<void> {
+  const delta = new Map<string, { total: number; unread: number }>();
+  const bump = (box: string, total: number, unread: number) => {
+    const d = delta.get(box) ?? { total: 0, unread: 0 };
+    d.total += total;
+    d.unread += unread;
+    delta.set(box, d);
+  };
+  for (const [id, old] of before) {
+    const now = index.get(`${ctx.account}\u0001${jmap}\u0001${id}`);
+    if (!old || !now) continue;
+    const wasUnread = !old.keywords?.$seen ? 1 : 0;
+    const isUnread = !now.keywords?.$seen ? 1 : 0;
+    const oldBoxes = new Set(Object.keys(old.mailboxIds ?? {}));
+    const newBoxes = new Set(Object.keys(now.mailboxIds ?? {}));
+    for (const box of oldBoxes) if (!newBoxes.has(box)) bump(box, -1, -wasUnread);
+    for (const box of newBoxes) {
+      if (!oldBoxes.has(box)) bump(box, 1, isUnread);
+      else if (wasUnread !== isUnread) bump(box, 0, isUnread - wasUnread);
+    }
+  }
+  if (delta.size === 0) return;
+  const all = await getMisc<Record<string, Array<Record<string, unknown>>>>(ctx.account, 'mailboxes');
+  const list = all?.[jmap];
+  if (!all || !list) return;
+  all[jmap] = list.map((box) => {
+    const d = delta.get(box.id as string);
+    if (!d) return box;
+    const count = (key: string, by: number) => (typeof box[key] === 'number' ? Math.max(0, (box[key] as number) + by) : box[key]);
+    return { ...box, totalEmails: count('totalEmails', d.total), unreadEmails: count('unreadEmails', d.unread), totalThreads: count('totalThreads', d.total), unreadThreads: count('unreadThreads', d.unread) };
+  });
+  await putMisc(ctx.account, 'mailboxes', all);
 }
 
 /**

@@ -234,6 +234,27 @@ function enqueueRecord(account: string, task: () => Promise<void>): void {
 // ---- Hooks for the JMAP client ----
 
 let networkWasDown = false;
+let probing = false;
+
+/**
+ * A request failed on the network. Browsers report a refusal without CORS
+ * headers (Stalwart answering "too many requests at once") the same way as
+ * no network at all, so the server is asked once more without CORS: only
+ * when that fails too is the server counted as gone, and sends go to the
+ * outbox.
+ */
+async function probeServer(client: OfflineClientRef): Promise<void> {
+  if (probing) return;
+  probing = true;
+  try {
+    await fetch(`${client.getServerUrl().replace(/\/+$/, '')}/.well-known/jmap`, { mode: 'no-cors', cache: 'no-store', credentials: 'omit' });
+  } catch {
+    networkWasDown = true;
+    if (!useOfflineStore.getState().networkDown) useOfflineStore.setState({ networkDown: true });
+  } finally {
+    probing = false;
+  }
+}
 
 const hooks: OfflineHooks = {
   skipNetwork(client) {
@@ -270,8 +291,7 @@ const hooks: OfflineHooks = {
         scheduleFlushAll(500);
       }
     } else {
-      networkWasDown = true;
-      if (!useOfflineStore.getState().networkDown) useOfflineStore.setState({ networkDown: true });
+      void probeServer(client);
     }
   },
   async blob(client, blobId, jmap) {
