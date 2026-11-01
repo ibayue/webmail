@@ -898,6 +898,7 @@
     "undo_failed": "Konnte nicht zurückverschoben werden.",
     "banner": "Sie haben diese Nachricht als Phishing gemeldet. Die Links darin sind deaktiviert.",
     "link_off": "Link deaktiviert",
+    "link_off_note": "(Link deaktiviert)",
     "no_subject": "(kein Betreff)"
   },
   "classification": {

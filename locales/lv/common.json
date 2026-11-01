@@ -898,6 +898,7 @@
     "undo_failed": "Neizdevās pārvietot atpakaļ.",
     "banner": "Jūs ziņojāt par šo ziņojumu kā par pikšķerēšanu. Tā saites ir izslēgtas.",
     "link_off": "saite izslēgta",
+    "link_off_note": "(saite izslēgta)",
     "no_subject": "(bez temata)"
   },
   "classification": {

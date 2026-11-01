@@ -16,8 +16,14 @@ export function isPhishingMarked(email: Pick<Email, 'keywords'> | null | undefin
 
 const LINK_OFF_STYLE = 'color:inherit !important;text-decoration:underline dotted !important;cursor:not-allowed !important';
 
-/** `html` with every link turned off; `label` is what a turned-off link says it is. */
-export function turnOffLinks(html: string, label: string): string {
+/** What a turned-off link says: its tooltip, and the note a screen reader hears after its text. */
+export interface LinksOffText {
+  title: string;
+  note: string;
+}
+
+/** `html` with every link turned off. */
+export function turnOffLinks(html: string, text: LinksOffText): string {
   if (!html || typeof DOMParser === 'undefined') return html;
   if (!/<(a|area)\b/i.test(html)) return html;
   const doc = new DOMParser().parseFromString(html, 'text/html');
@@ -27,7 +33,7 @@ export function turnOffLinks(html: string, label: string): string {
     for (const name of ['href', 'xlink:href', 'target', 'rel', 'ping', 'download', 'tabindex']) link.removeAttribute(name);
     link.setAttribute('data-link-off', '');
     link.setAttribute('aria-disabled', 'true');
-    link.setAttribute('title', label);
+    link.setAttribute('title', text.title);
     if (link.tagName === 'A') {
       // Looks like text that was a link; a screen reader hears the note.
       const style = link.getAttribute('style');
@@ -35,7 +41,7 @@ export function turnOffLinks(html: string, label: string): string {
       const note = doc.createElement('span');
       note.setAttribute('data-link-off-note', '');
       note.setAttribute('style', 'position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap');
-      note.textContent = ` (${label})`;
+      note.textContent = ` ${text.note}`;
       link.appendChild(note);
     }
   });

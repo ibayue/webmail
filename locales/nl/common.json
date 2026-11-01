@@ -896,8 +896,9 @@
     "undo": "Ongedaan maken",
     "undone": "{count, plural, one {Teruggezet. De melding was al verstuurd.} other {Teruggezet. De meldingen waren al verstuurd.}}",
     "undo_failed": "Kon niet worden teruggezet.",
-    "banner": "U hebt dit bericht als phishing gemeld. De links erin zijn uitgeschakeld.",
+    "banner": "Je hebt dit bericht als phishing gemeld. De links erin zijn uitgeschakeld.",
     "link_off": "link uitgeschakeld",
+    "link_off_note": "(link uitgeschakeld)",
     "no_subject": "(geen onderwerp)"
   },
   "classification": {

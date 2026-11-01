@@ -898,6 +898,7 @@
     "undo_failed": "元に戻せませんでした。",
     "banner": "このメールをフィッシングとして報告しました。メール内のリンクは無効になっています。",
     "link_off": "リンクは無効です",
+    "link_off_note": "（リンク無効）",
     "no_subject": "(件名なし)"
   },
   "classification": {

@@ -115,7 +115,7 @@ export const ClassificationLabelPicker = forwardRef<ClassificationPickerHandle, 
         onClick={() => setOpen((v) => !v)}
         aria-haspopup="dialog"
         aria-expanded={open}
-        aria-label={selected ? t('chip_label', { name: selected.name }) : `${t('picker_label')}: ${name}`}
+        aria-label={t('chip_label', { name })}
         aria-invalid={invalid || undefined}
         data-testid="composer-classification-trigger"
         className={cn(

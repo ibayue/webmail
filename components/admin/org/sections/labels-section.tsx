@@ -42,7 +42,7 @@ function VsNfdWarning() {
       <p>
         A label only marks the message. It doesn&apos;t make mail meet the VS-NfD handling rules (VSA § 50, § 55): that
         needs approved IT and BSI-approved encryption. Bulwark&apos;s S/MIME and PGP plugins and Stalwart are not
-        approved products. A received label can be forged by anyone: Bulwark shows it, it never relaxes anything because of it.
+        BSI-approved products. Anyone can forge a received label, so Bulwark only shows it and never relaxes anything because of it.
       </p>
     </div>
   );
@@ -203,7 +203,7 @@ export function LabelsSection({ draft }: { draft: OrgPolicyDraft }) {
     <SettingsSection
       id="labels"
       title="Classification labels"
-      description="Users pick a label in the composer. Bulwark writes it into the SIO-Label header (RFC 7444), the Sensitivity header Outlook reads when the label sets one, and your extra header, and adds the subject prefix once. Received mail with a known label shows it. No labels turns this off."
+      description="Users pick a label in the composer, and sent mail carries it in its headers and subject. Received mail with a known label shows it. No labels turns this off."
     >
       <div className="space-y-4">
         <VsNfdWarning />

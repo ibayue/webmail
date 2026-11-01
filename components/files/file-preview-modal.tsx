@@ -14,7 +14,7 @@ import { FilePreviewPluginSection } from "@/components/files/file-preview-plugin
 import { canOpenUrlInNewWindow } from "@/lib/standalone-display";
 import { stripBidiControls } from "@/lib/bidi";
 import { emailIframeCsp, sanitizeEmailBodyForIframe } from "@/lib/email-sanitization";
-import { turnOffLinks } from "@/lib/phishing-links";
+import { turnOffLinks, type LinksOffText } from "@/lib/phishing-links";
 import { useSettingsStore } from "@/stores/settings-store";
 import { useCloseOnBack } from "@/hooks/use-close-on-back";
 import type { FileResourceView } from "@/lib/plugin-types";
@@ -30,10 +30,10 @@ import { useRemoteContentHeldBackAnywhere } from "@/hooks/use-third-party-mode";
  * (the mechanism of GHSA-xvjh-v9c6-qcvc), while nothing sanitised it or
  * stopped its remote images and meta refreshes.
  */
-export function htmlAttachmentDocument(html: string, blockRemote: boolean, linksOffLabel?: string): string {
+export function htmlAttachmentDocument(html: string, blockRemote: boolean, linksOff?: LinksOffText): string {
   const clean = sanitizeEmailBodyForIframe(html, blockRemote).html;
   // An attachment of a message reported as phishing: its links are off too.
-  const body = linksOffLabel ? turnOffLinks(clean, linksOffLabel) : clean;
+  const body = linksOff ? turnOffLinks(clean, linksOff) : clean;
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="${emailIframeCsp(blockRemote)}"><meta name="referrer" content="no-referrer"></head><body>${body}</body></html>`;
 }
 
@@ -152,7 +152,10 @@ function processInline(text: string): React.ReactNode {
 export function FilePreviewModal({ name, onClose, onDownload, getFileContent, file, neighbours, linksOff }: FilePreviewModalProps) {
   const t = useTranslations("files");
   const tPhishing = useTranslations("phishing_report");
-  const linksOffLabel = linksOff ? tPhishing("link_off") : undefined;
+  const linksOffText = useMemo<LinksOffText | undefined>(
+    () => (linksOff ? { title: tPhishing("link_off"), note: tPhishing("link_off_note") } : undefined),
+    [linksOff, tPhishing],
+  );
   const [content, setContent] = useState<string | null>(null);
   const [objectUrl, setObjectUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -234,7 +237,7 @@ export function FilePreviewModal({ name, onClose, onDownload, getFileContent, fi
           // Sanitised text in a srcdoc frame, like the .eml preview; never a
           // blob: URL of the sender's bytes (see htmlAttachmentDocument).
           const text = await blob.text();
-          if (!cancelled) setHtmlDoc(htmlAttachmentDocument(text, blockRemote, linksOffLabel));
+          if (!cancelled) setHtmlDoc(htmlAttachmentDocument(text, blockRemote, linksOffText));
         } else if (previewType === "eml") {
           // Parse the embedded message (postal-mime, dynamic-imported so it
           // stays off the bundle) and render it like an email via EmlPreview.
@@ -278,7 +281,7 @@ export function FilePreviewModal({ name, onClose, onDownload, getFileContent, fi
         URL.revokeObjectURL(revokeUrl);
       }
     };
-  }, [getFileContent, name, blockRemote, linksOffLabel]);
+  }, [getFileContent, name, blockRemote, linksOffText]);
 
   const openEmlAttachment = (att: EmlAttachment) => {
     if (!att.content) return;

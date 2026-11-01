@@ -898,6 +898,7 @@
     "undo_failed": "Kunne ikke flyttes tilbage.",
     "banner": "Du har rapporteret denne besked som phishing. Links i den er slået fra.",
     "link_off": "link slået fra",
+    "link_off_note": "(link slået fra)",
     "no_subject": "(intet emne)"
   },
   "classification": {

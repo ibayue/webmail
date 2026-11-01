@@ -5,7 +5,7 @@
  *
  * Headers written:
  * - `SIO-Label` (RFC 7444) in the marking-only form with colours, as a raw
- *   header: `marking="CONFIDENTIAL"; fgcolor=#ffffff; bgcolor=#d97706`.
+ *   header: `marking="CONFIDENTIAL"; fgcolor=#000000; bgcolor=#d97706`.
  *   A marking with non-ASCII characters uses RFC 2231
  *   (`marking*=utf-8''VS-NUR%20F%C3%9CR...`): an RFC 2047 encoded word
  *   inside a quoted parameter is invalid (RFC 2047 §5), which is what the

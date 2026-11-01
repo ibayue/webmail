@@ -898,6 +898,7 @@
     "undo_failed": "Kunne ikke flytte den tilbake.",
     "banner": "Du har rapportert denne meldingen som nettfisking. Lenkene i den er slått av.",
     "link_off": "lenke slått av",
+    "link_off_note": "(lenke slått av)",
     "no_subject": "(uten emne)"
   },
   "classification": {

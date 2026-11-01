@@ -112,7 +112,7 @@ describe('the focus after the dialog', () => {
 
 describe('links elsewhere in a reported message', () => {
   it('are off in an attachment preview', () => {
-    const doc = htmlAttachmentDocument('<a href="https://phish.example/x">go</a>', true, 'link turned off');
+    const doc = htmlAttachmentDocument('<a href="https://phish.example/x">go</a>', true, { title: 'link turned off', note: '(link turned off)' });
     expect(doc).not.toContain('https://phish.example/x');
     expect(htmlAttachmentDocument('<a href="https://ok.example/x">go</a>', true)).toContain('https://ok.example/x');
   });

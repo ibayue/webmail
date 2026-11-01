@@ -60,7 +60,7 @@ describe('Classification section', () => {
     const warning = screen.getByTestId('org-labels-vsnfd-warning').textContent ?? '';
     expect(warning).toContain('VSA § 50, § 55');
     expect(warning).toContain('BSI-approved encryption');
-    expect(warning).toContain('are not approved products');
+    expect(warning).toContain('are not BSI-approved products');
   });
 
   it('starts from the generic preset and saves it with the default', async () => {

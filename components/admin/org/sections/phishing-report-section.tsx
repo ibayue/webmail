@@ -133,9 +133,8 @@ export function PhishingReportSection({ draft }: { draft: OrgPolicyDraft }) {
       <div className="mt-3 flex items-start gap-2 rounded-md border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
         <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
         <p>
-          Reports skip the confirm for recipients outside the organisation, the organisation signature and disclaimer,
-          classification labels and plugin send checks: the address is yours. A message with the phishing mark shows a
-          banner and its links are turned off.{' '}
+          Reports go out without the organisation signature, disclaimer, label or plugin checks. A reported message
+          shows a banner and its links are turned off.{' '}
           <a href={DOCS_URL} target="_blank" rel="noopener noreferrer" className="font-medium text-primary underline-offset-2 hover:underline">
             How reporting works
           </a>

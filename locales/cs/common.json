@@ -898,6 +898,7 @@
     "undo_failed": "Nepodařilo se vrátit zpět.",
     "banner": "Tuto zprávu jste nahlásili jako phishing. Odkazy v ní jsou vypnuté.",
     "link_off": "odkaz vypnut",
+    "link_off_note": "(odkaz vypnut)",
     "no_subject": "(bez předmětu)"
   },
   "classification": {

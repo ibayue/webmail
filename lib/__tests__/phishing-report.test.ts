@@ -99,7 +99,7 @@ describe('which messages can be reported', () => {
 describe('links of a reported message', () => {
   it('are turned off: no address, not reachable by Tab, and say so', () => {
     const html = '<p>Hi <a href="https://phish.example/login" target="_blank" rel="noopener">log in</a> <map><area href="https://x.example" alt="x"></map></p>';
-    const out = turnOffLinks(html, 'link turned off');
+    const out = turnOffLinks(html, { title: 'link turned off', note: '(link turned off)' });
     expect(out).not.toContain('href=');
     expect(out).not.toContain('phish.example');
     expect(out).toContain('data-link-off');

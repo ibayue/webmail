@@ -763,7 +763,7 @@ export function ConversationEmailBody({
     };
   }, [mailViewMode, formattedContent, pluginBody.html, email, t]);
   const emailContent = useMemo(
-    () => (phishingMarked ? { ...shownContent, html: turnOffLinks(shownContent.html, tPhishing('link_off')) } : shownContent),
+    () => (phishingMarked ? { ...shownContent, html: turnOffLinks(shownContent.html, { title: tPhishing('link_off'), note: tPhishing('link_off_note') }) } : shownContent),
     [shownContent, phishingMarked, tPhishing],
   );
 

@@ -898,6 +898,7 @@
     "undo_failed": "Não foi possível devolver ao lugar.",
     "banner": "Você reportou esta mensagem como phishing. Os links dela estão desativados.",
     "link_off": "link desativado",
+    "link_off_note": "(link desativado)",
     "no_subject": "(sem assunto)"
   },
   "classification": {

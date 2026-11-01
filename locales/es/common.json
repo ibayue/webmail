@@ -896,8 +896,9 @@
     "undo": "Deshacer",
     "undone": "{count, plural, one {Devuelto a su sitio. El reporte ya se había enviado.} other {Devueltos a su sitio. Los reportes ya se habían enviado.}}",
     "undo_failed": "No se pudo devolver a su sitio.",
-    "banner": "Ha reportado este mensaje como phishing. Sus enlaces están desactivados.",
+    "banner": "Has reportado este mensaje como phishing. Sus enlaces están desactivados.",
     "link_off": "enlace desactivado",
+    "link_off_note": "(enlace desactivado)",
     "no_subject": "(sin asunto)"
   },
   "classification": {

@@ -898,6 +898,7 @@
     "undo_failed": "Nie udało się przenieść z powrotem.",
     "banner": "Ta wiadomość została zgłoszona jako phishing. Linki w niej są wyłączone.",
     "link_off": "link wyłączony",
+    "link_off_note": "(link wyłączony)",
     "no_subject": "(brak tematu)"
   },
   "classification": {

@@ -898,6 +898,7 @@
     "undo_failed": "Tagasi tõstmine ei õnnestunud.",
     "banner": "Teatasid sellest kirjast kui õngitsusest. Selle lingid on välja lülitatud.",
     "link_off": "link välja lülitatud",
+    "link_off_note": "(link välja lülitatud)",
     "no_subject": "(teema puudub)"
   },
   "classification": {

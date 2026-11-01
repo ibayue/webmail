@@ -898,6 +898,7 @@
     "undo_failed": "Nem sikerült visszahelyezni.",
     "banner": "Ezt az üzenetet adathalászatként jelentetted. A benne lévő linkek ki vannak kapcsolva.",
     "link_off": "link kikapcsolva",
+    "link_off_note": "(link kikapcsolva)",
     "no_subject": "(nincs tárgy)"
   },
   "classification": {

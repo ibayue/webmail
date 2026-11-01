@@ -68,7 +68,7 @@ export function EmlPreview({ message, onOpenAttachment, linksOff }: {
   // the direction, matching the main viewer.
   const body = message.html
     ? `<div dir="auto">${linksOff
-      ? turnOffLinks(sanitizeEmailBodyForIframe(message.html, blockRemote).html, tPhishing("link_off"))
+      ? turnOffLinks(sanitizeEmailBodyForIframe(message.html, blockRemote).html, { title: tPhishing("link_off"), note: tPhishing("link_off_note") })
       : sanitizeEmailBodyForIframe(message.html, blockRemote).html}</div>`
     : message.text
       ? `<pre dir="auto" style="white-space:pre-wrap;word-break:break-word;font-family:ui-monospace,monospace;margin:0;padding:8px">${escapeHtml(message.text)}</pre>`

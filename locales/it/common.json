@@ -898,6 +898,7 @@
     "undo_failed": "Impossibile rimetterlo al suo posto.",
     "banner": "Hai segnalato questo messaggio come phishing. I suoi link sono disattivati.",
     "link_off": "link disattivato",
+    "link_off_note": "(link disattivato)",
     "no_subject": "(nessun oggetto)"
   },
   "classification": {

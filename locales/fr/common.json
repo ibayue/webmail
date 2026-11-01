@@ -898,6 +898,7 @@
     "undo_failed": "Impossible de le remettre à sa place.",
     "banner": "Vous avez signalé ce message comme hameçonnage. Ses liens sont désactivés.",
     "link_off": "lien désactivé",
+    "link_off_note": "(lien désactivé)",
     "no_subject": "(sans objet)"
   },
   "classification": {

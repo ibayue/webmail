@@ -898,6 +898,7 @@
     "undo_failed": "Geri taşınamadı.",
     "banner": "Bu iletiyi kimlik avı olarak bildirdiniz. İçindeki bağlantılar devre dışı.",
     "link_off": "bağlantı devre dışı",
+    "link_off_note": "(bağlantı devre dışı)",
     "no_subject": "(konu yok)"
   },
   "classification": {

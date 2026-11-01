@@ -898,6 +898,7 @@
     "undo_failed": "Couldn't move it back.",
     "banner": "You reported this message as phishing. Its links are turned off.",
     "link_off": "link turned off",
+    "link_off_note": "(link turned off)",
     "no_subject": "(no subject)"
   },
   "classification": {

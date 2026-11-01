@@ -2825,7 +2825,7 @@ export function EmailViewer({
       hasStyleTag: false,
       externalBlocked: false,
     };
-    return phishingMarked ? { ...shown, html: turnOffLinks(shown.html, tPhishing('link_off')) } : shown;
+    return phishingMarked ? { ...shown, html: turnOffLinks(shown.html, { title: tPhishing('link_off'), note: tPhishing('link_off_note') }) } : shown;
   }, [plainView, decodedEmailContent, readableText, t, phishingMarked, tPhishing]);
   // Reader view: the message full screen in the app's own look.
   const [readerViewOpen, setReaderViewOpen] = useState(false);
@@ -2835,7 +2835,7 @@ export function EmailViewer({
   const readerViewHtml = useMemo(() => {
     if (!readerViewOpen) return '';
     const html = decodedEmailContent.isHtml ? plainTextToSafeHtml(readableText()) : decodedEmailContent.html;
-    return phishingMarked ? turnOffLinks(html, tPhishing('link_off')) : html;
+    return phishingMarked ? turnOffLinks(html, { title: tPhishing('link_off'), note: tPhishing('link_off_note') }) : html;
   }, [readerViewOpen, decodedEmailContent, readableText, phishingMarked, tPhishing]);
 
   const resolveAttachmentName = useCallback(

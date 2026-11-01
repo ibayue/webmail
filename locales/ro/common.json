@@ -898,6 +898,7 @@
     "undo_failed": "Nu a putut fi mutat înapoi.",
     "banner": "Ați raportat acest mesaj ca phishing. Linkurile din el sunt dezactivate.",
     "link_off": "link dezactivat",
+    "link_off_note": "(link dezactivat)",
     "no_subject": "(fără subiect)"
   },
   "classification": {

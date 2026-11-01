@@ -898,6 +898,7 @@
     "undo_failed": "No s'ha pogut tornar al lloc.",
     "banner": "Heu denunciat aquest missatge com a pesca de credencials. Els enllaços estan desactivats.",
     "link_off": "enllaç desactivat",
+    "link_off_note": "(enllaç desactivat)",
     "no_subject": "(sense assumpte)"
   },
   "classification": {

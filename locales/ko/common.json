@@ -898,6 +898,7 @@
     "undo_failed": "되돌리지 못했어요.",
     "banner": "이 메시지를 피싱으로 신고했어요. 메시지의 링크는 꺼져 있어요.",
     "link_off": "링크 꺼짐",
+    "link_off_note": "(링크 꺼짐)",
     "no_subject": "(제목 없음)"
   },
   "classification": {

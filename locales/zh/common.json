@@ -898,6 +898,7 @@
     "undo_failed": "无法移回。",
     "banner": "您已将此邮件举报为网络钓鱼。其中的链接已停用。",
     "link_off": "链接已停用",
+    "link_off_note": "（链接已停用）",
     "no_subject": "（无主题）"
   },
   "classification": {

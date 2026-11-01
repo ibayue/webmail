@@ -898,6 +898,7 @@
     "undo_failed": "無法移回。",
     "banner": "您已將這封郵件回報為網路釣魚。其中的連結已停用。",
     "link_off": "連結已停用",
+    "link_off_note": "（連結已停用）",
     "no_subject": "（無主題）"
   },
   "classification": {

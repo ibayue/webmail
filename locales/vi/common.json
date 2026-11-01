@@ -898,6 +898,7 @@
     "undo_failed": "Không thể chuyển về.",
     "banner": "Bạn đã báo cáo thư này là lừa đảo. Các liên kết trong thư đã bị tắt.",
     "link_off": "đã tắt liên kết",
+    "link_off_note": "(đã tắt liên kết)",
     "no_subject": "(không có tiêu đề)"
   },
   "classification": {
