@@ -48,8 +48,10 @@ jobs:
           BULWARK_SOURCE_MAPS: "1"
         run: npm run build
 
+      # .next/server holds the server chunks' maps; standalone copies the
+      # chunks only. It doesn't ship, but its maps are needed for server frames.
       - name: Move source maps out of the build
-        run: node scripts/sourcemaps.mjs collect --out sourcemaps .next/static .next/standalone
+        run: node scripts/sourcemaps.mjs collect --out sourcemaps .next/static .next/standalone .next/server
 
       # Turbopack chunks were not checked for being the same on both
       # platforms, so each one uploads its own.
