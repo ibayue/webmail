@@ -1406,6 +1406,11 @@ function mailboxesInView(state: Pick<EmailStore, 'viewingAccountId' | 'accountMa
   return state.mailboxes;
 }
 
+/** The search scope `openMailboxId` starts with under the user's "Search in" setting (#1485). */
+function currentSearchScopeDefault(mailboxes: Mailbox[], openMailboxId: string | null | undefined): string {
+  return defaultSearchScopeFor(mailboxes, openMailboxId, useSettingsStore.getState().searchDefaultScope);
+}
+
 function resolveActionMailboxes(): Mailbox[] {
   return mailboxesInView(useEmailStore.getState());
 }
@@ -3362,7 +3367,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
     // the open folder moves to the new one.
     searchMailboxId: state.searchScopeFollowsFolder
       ? mailboxId
-      : defaultSearchScopeFor(
+      : currentSearchScopeDefault(
         accountId ? state.accountMailboxes[accountId] ?? [] : state.mailboxes,
         mailboxId,
       ),
@@ -3509,13 +3514,13 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
     // The folder's default search scope follows it (Spam and Trash search
     // themselves); a scope the user picked in the dropdown stays. The
     // unread badge's scope follows any real folder.
-    const scopeIsDefault = state.searchMailboxId === defaultSearchScopeFor(mailboxes, state.selectedMailbox);
+    const scopeIsDefault = state.searchMailboxId === currentSearchScopeDefault(mailboxes, state.selectedMailbox);
     const scopeFollows = state.searchScopeFollowsFolder && mailboxes.some(m => m.id === mailboxId);
     return {
       selectedMailbox: mailboxId,
       ...(scopeFollows
         ? { searchMailboxId: mailboxId }
-        : scopeIsDefault ? { searchMailboxId: defaultSearchScopeFor(mailboxes, mailboxId) } : {}),
+        : scopeIsDefault ? { searchMailboxId: currentSearchScopeDefault(mailboxes, mailboxId) } : {}),
       isLoadingMore: false,
       selectedEmail: null,
       selectedEmailKeys: new Set(),
@@ -3683,22 +3688,27 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
       const loadingPatch = isInitialLoad && mailboxes.length === 0
         ? { isLoading: false, mailboxSyncStates: fetched.states }
         : { mailboxSyncStates: fetched.states };
+      // Find inbox from PRIMARY account (not shared accounts)
+      const inboxMailbox = mailboxes.find(m => m.role === 'inbox' && !m.isShared);
+      const nextSelected = selectionValid ? currentSelectedMailbox : inboxMailbox?.id ?? '';
+      // A default search scope moves to the default of the folder now open:
+      // a folder opened before the list arrived, or the inbox picked here,
+      // only gets its scope once it is in the list (#1485). A scope naming a
+      // folder that is gone (e.g. the Spam/Trash the default scope followed)
+      // falls back to the default as well.
+      const { searchMailboxId: scope, searchScopeFollowsFolder } = get();
+      const nextInView = mailboxesInView({ ...get(), mailboxes });
+      const nextDefault = currentSearchScopeDefault(nextInView, nextSelected);
+      const scopeGone = !isAllFoldersSearchScope(scope) && !nextInView.some(m => m.id === scope);
+      const scopeWasDefault = !searchScopeFollowsFolder
+        && scope === currentSearchScopeDefault(mailboxesInView(get()), currentSelectedMailbox);
+      const scopePatch = (scopeGone || scopeWasDefault) && scope !== nextDefault
+        ? { searchMailboxId: nextDefault }
+        : {};
       if (!selectionValid) {
-        // A search scope naming a folder that is gone (e.g. the Spam/Trash
-        // the default scope followed) falls back to the default.
-        const scope = get().searchMailboxId;
-        const scopePatch = !isAllFoldersSearchScope(scope) && !mailboxes.some(m => m.id === scope)
-          ? { searchMailboxId: '' }
-          : {};
-        // Find inbox from PRIMARY account (not shared accounts)
-        const inboxMailbox = mailboxes.find(m => m.role === 'inbox' && !m.isShared);
-        if (inboxMailbox) {
-          set({ mailboxes, selectedMailbox: inboxMailbox.id, ...scopePatch, ...loadingPatch });
-        } else {
-          set({ mailboxes, selectedMailbox: '', ...scopePatch, ...loadingPatch });
-        }
+        set({ mailboxes, selectedMailbox: nextSelected, ...scopePatch, ...loadingPatch });
       } else {
-        set({ mailboxes, ...loadingPatch });
+        set({ mailboxes, ...scopePatch, ...loadingPatch });
       }
     } catch (error) {
       if (stale()) return;
@@ -5541,7 +5551,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
   clearSearchFilters: () => {
     set((state) => ({
       searchFilters: { ...DEFAULT_SEARCH_FILTERS },
-      searchMailboxId: defaultSearchScopeFor(mailboxesInView(state), state.selectedMailbox),
+      searchMailboxId: currentSearchScopeDefault(mailboxesInView(state), state.selectedMailbox),
       searchScopeFollowsFolder: false,
     }));
   },
@@ -8492,6 +8502,19 @@ useEmailStore.subscribe((state, prev) => {
   state.holdListRow(listRowKey(email, state.isScheduledView));
 });
 
+// Changing "Search in" moves the open folder's scope along with it, unless
+// the user picked a scope in the search panel (#1485). Otherwise the old
+// default would look like a picked scope and stick to every folder.
+useSettingsStore.subscribe((settings, prevSettings) => {
+  if (settings.searchDefaultScope === prevSettings.searchDefaultScope) return;
+  const state = useEmailStore.getState();
+  if (state.searchScopeFollowsFolder) return;
+  const mailboxes = mailboxesInView(state);
+  const before = defaultSearchScopeFor(mailboxes, state.selectedMailbox, prevSettings.searchDefaultScope);
+  const after = defaultSearchScopeFor(mailboxes, state.selectedMailbox, settings.searchDefaultScope);
+  if (state.searchMailboxId === before && before !== after) useEmailStore.setState({ searchMailboxId: after });
+});
+
 // A folder's remembered list follows what happens to it on screen - a message
 // read, archived or deleted here is shown that way when the folder is opened
 // again, rather than as it was when the folder was loaded.
@@ -8575,7 +8598,7 @@ if (typeof window !== 'undefined') {
         useEmailStore.setState({
           mailboxes: snap.mailboxes,
           selectedMailbox,
-          searchMailboxId: defaultSearchScopeFor(snap.mailboxes, selectedMailbox),
+          searchMailboxId: currentSearchScopeDefault(snap.mailboxes, selectedMailbox),
           ...(selectedMailbox === snapMailbox && Array.isArray(snap.emails) && snap.emails.length > 0
             ? {
                 emails: snap.emails,
