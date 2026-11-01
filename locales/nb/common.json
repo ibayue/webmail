@@ -461,7 +461,6 @@
     "view_in_light_mode": "Vis i lys modus",
     "export_email": "Eksporter som .eml",
     "forward_as_attachment": "Videresend som vedlegg",
-    "import_email": "Importer .eml eller .zip…",
     "keyboard_shortcuts": "Tastatursnarveier",
     "email_source": "Meldingskilde",
     "draft_banner": "Denne meldingen er et utkast",
@@ -1251,8 +1250,6 @@
     "templates_import_errors": "Noen maler kunne ikke importeres",
     "templates_import_empty": "Fant ingen maler i filen",
     "export_email_error": "Kunne ikke eksportere e-post",
-    "import_email_success": "E-posten er importert",
-    "import_email_error": "Kunne ikke importere e-post",
     "rule_created": "Regel opprettet",
     "rule_merged": "Lagt til i regelen «{name}»",
     "rule_already_covered": "Dekkes allerede av regelen «{name}»",
@@ -3556,7 +3553,6 @@
     "new_folder": "Ny mappe…",
     "rename": "Gi nytt navn…",
     "share": "Del…",
-    "import_email": "Importer .eml eller .zip…",
     "empty_folder": "Tøm mappe",
     "empty_folder_generic": "Tøm mappe",
     "delete_folder": "Slett mappe",
@@ -5383,10 +5379,10 @@
   "mail_import": {
     "menu_import": "Importer e-post…",
     "settings_label": "Importer e-post",
-    "settings_description": "Hent inn e-post fra .eml-, ZIP-, mbox- eller Outlook-.pst-filer.",
+    "settings_description": "Hent inn e-post fra .eml-, ZIP-, mbox- eller Outlook-.pst- og -.ost-filer.",
     "settings_button": "Importer…",
     "title": "Importer e-post",
-    "description": "Velg .eml-, .zip-, .mbox- eller Outlook-.pst-filer.",
+    "description": "Velg .eml-, .zip-, .mbox- eller Outlook-.pst- og -.ost-filer.",
     "choose_files": "Velg filer…",
     "chosen_files": "Valgte filer",
     "remove_file": "Fjern {name}",
@@ -5444,7 +5440,9 @@
     "keep_folders_top_hint": "På øverste nivå havner Innboks, Sendte elementer, Slettede elementer og lignende i dine egne.",
     "toast_done": "Import fullført. Importert: {imported}, mislyktes: {failed}.",
     "toast_stopped": "Importen stoppet.",
-    "toast_show": "Vis"
+    "toast_show": "Vis",
+    "section_title": "E-postfiler",
+    "section_description": "Hent inn e-post fra filer, eller lagre e-posten din som filer."
   },
   "mail_export": {
     "menu_export": "Eksporter mappe…",

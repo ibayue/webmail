@@ -461,7 +461,6 @@
     "view_in_light_mode": "Zobrazit v světlém režimu",
     "export_email": "Exportovat jako .eml",
     "forward_as_attachment": "Přeposlat jako přílohu",
-    "import_email": "Importovat .eml nebo .zip…",
     "keyboard_shortcuts": "Klávesové zkratky",
     "email_source": "Zdrojový kód zprávy",
     "draft_banner": "Tato zpráva je koncept",
@@ -1251,8 +1250,6 @@
     "templates_import_errors": "Některé šablony se nepodařilo importovat",
     "templates_import_empty": "V souboru nebyly nalezeny žádné šablony",
     "export_email_error": "Export zprávy selhal",
-    "import_email_success": "Zpráva byla úspěšně importována",
-    "import_email_error": "Import zprávy selhal",
     "rule_created": "Pravidlo vytvořeno",
     "rule_merged": "Přidáno do pravidla „{name}“",
     "rule_already_covered": "Už to pokrývá pravidlo „{name}“",
@@ -3556,7 +3553,6 @@
     "new_folder": "Nová složka…",
     "rename": "Přejmenovat…",
     "share": "Sdílet…",
-    "import_email": "Importovat .eml nebo .zip…",
     "empty_folder": "Vyprázdnit složku",
     "empty_folder_generic": "Vyprázdnit složku",
     "delete_folder": "Smazat složku",
@@ -5253,10 +5249,10 @@
   "mail_import": {
     "menu_import": "Importovat poštu…",
     "settings_label": "Importovat poštu",
-    "settings_description": "Přeneste poštu ze souborů .eml, ZIP, mbox nebo Outlook .pst.",
+    "settings_description": "Přeneste poštu ze souborů .eml, ZIP, mbox nebo Outlook .pst a .ost.",
     "settings_button": "Importovat…",
     "title": "Importovat poštu",
-    "description": "Vyberte soubory .eml, .zip, .mbox nebo Outlook .pst.",
+    "description": "Vyberte soubory .eml, .zip, .mbox nebo Outlook .pst a .ost.",
     "choose_files": "Vybrat soubory…",
     "chosen_files": "Vybrané soubory",
     "remove_file": "Odebrat {name}",
@@ -5314,7 +5310,9 @@
     "keep_folders_top_hint": "Na nejvyšší úrovni skončí Doručená pošta, Odeslaná pošta, Odstraněná pošta a podobné ve vašich vlastních.",
     "toast_done": "Import dokončen. Importováno: {imported}, selhalo: {failed}.",
     "toast_stopped": "Import se zastavil.",
-    "toast_show": "Zobrazit"
+    "toast_show": "Zobrazit",
+    "section_title": "Soubory s poštou",
+    "section_description": "Přeneste poštu ze souborů, nebo uložte svou poštu jako soubory."
   },
   "mail_export": {
     "menu_export": "Exportovat složku…",

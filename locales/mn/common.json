@@ -461,7 +461,6 @@
     "view_in_light_mode": "Цайвар горимд харах",
     "export_email": ".eml",
     "forward_as_attachment": "Хавсралт болгон дамжуулах",
-    "import_email": "Импорт .eml эсвэл .zip…",
     "keyboard_shortcuts": "Гарын товчлол",
     "email_source": "Имэйл эх сурвалж",
     "draft_banner": "Энэ зурвас нь ноорог байна",
@@ -1251,8 +1250,6 @@
     "templates_import_errors": "Зарим загварыг импортлох боломжгүй байна",
     "templates_import_empty": "Файлд ямар ч загвар олдсонгүй",
     "export_email_error": "Имэйл экспорт хийж чадсангүй",
-    "import_email_success": "Имэйл амжилттай импортлогдсон",
-    "import_email_error": "Имэйл импортлож чадсангүй",
     "rule_created": "Дүрэм үүслээ",
     "rule_merged": "“{name}” дүрэмд нэмлээ",
     "rule_already_covered": "“{name}” дүрэм үүнийг аль хэдийн хамарсан",
@@ -3556,7 +3553,6 @@
     "new_folder": "Шинэ хавтас…",
     "rename": "Нэр өөрчлөх…",
     "share": "Хуваалцах…",
-    "import_email": "Импорт .eml эсвэл .zip…",
     "empty_folder": "Хоосон хавтас",
     "empty_folder_generic": "Хоосон хавтас",
     "delete_folder": "Хавтас устгах",
@@ -5383,10 +5379,10 @@
   "mail_import": {
     "menu_import": "Шуудан импортлох…",
     "settings_label": "Шуудан импортлох",
-    "settings_description": ".eml, ZIP, mbox эсвэл Outlook-ийн .pst файлаас шуудан оруулна.",
+    "settings_description": ".eml, ZIP, mbox эсвэл Outlook-ийн .pst болон .ost файлаас шуудан оруулна.",
     "settings_button": "Импортлох…",
     "title": "Шуудан импортлох",
-    "description": ".eml, .zip, .mbox эсвэл Outlook-ийн .pst файл сонгоно уу.",
+    "description": ".eml, .zip, .mbox эсвэл Outlook-ийн .pst болон .ost файл сонгоно уу.",
     "choose_files": "Файл сонгох…",
     "chosen_files": "Сонгосон файлууд",
     "remove_file": "{name}-г хасах",
@@ -5444,7 +5440,9 @@
     "keep_folders_top_hint": "Дээд түвшинд Ирсэн, Илгээсэн, Устгасан болон түүнтэй адил хавтаснууд таны өөрийнх рүү орно.",
     "toast_done": "Импорт дууслаа. Импортолсон: {imported}, амжилтгүй: {failed}.",
     "toast_stopped": "Импорт зогслоо.",
-    "toast_show": "Харуулах"
+    "toast_show": "Харуулах",
+    "section_title": "Шуудангийн файлууд",
+    "section_description": "Файлаас шуудан оруулах, эсвэл шуудангаа файл болгон хадгална."
   },
   "mail_export": {
     "menu_export": "Хавтас экспортлох…",

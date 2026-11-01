@@ -461,7 +461,6 @@
     "view_in_light_mode": "Megjelenítés világos módban",
     "export_email": "Exportálás .eml-ként",
     "forward_as_attachment": "Továbbítás mellékletként",
-    "import_email": "Importálás .eml vagy .zip fájlból…",
     "keyboard_shortcuts": "Billentyűparancsok",
     "email_source": "E-mail forrás",
     "draft_banner": "Ez az üzenet egy piszkozat",
@@ -1251,8 +1250,6 @@
     "templates_import_errors": "Néhány sablon importálása sikertelen",
     "templates_import_empty": "Nem található sablon a fájlban",
     "export_email_error": "Nem sikerült exportálni az e-mailt",
-    "import_email_success": "E-mail sikeresen importálva",
-    "import_email_error": "Nem sikerült importálni az e-mailt",
     "rule_created": "Szabály létrehozva",
     "rule_merged": "Hozzáadva a(z) „{name}” szabályhoz",
     "rule_already_covered": "Ezt már lefedi a(z) „{name}” szabály",
@@ -3556,7 +3553,6 @@
     "new_folder": "Új mappa…",
     "rename": "Átnevezés…",
     "share": "Megosztás…",
-    "import_email": "Importálás .eml vagy .zip fájlból…",
     "empty_folder": "Mappa ürítése",
     "empty_folder_generic": "Mappa ürítése",
     "delete_folder": "Mappa törlése",
@@ -5383,10 +5379,10 @@
   "mail_import": {
     "menu_import": "Levelek importálása…",
     "settings_label": "Levelek importálása",
-    "settings_description": "Levelek behozása .eml, ZIP, mbox vagy Outlook .pst fájlokból.",
+    "settings_description": "Levelek behozása .eml, ZIP, mbox vagy Outlook .pst és .ost fájlokból.",
     "settings_button": "Importálás…",
     "title": "Levelek importálása",
-    "description": "Válasszon .eml, .zip, .mbox vagy Outlook .pst fájlokat.",
+    "description": "Válasszon .eml, .zip, .mbox vagy Outlook .pst és .ost fájlokat.",
     "choose_files": "Fájlok kiválasztása…",
     "chosen_files": "Kiválasztott fájlok",
     "remove_file": "{name} eltávolítása",
@@ -5444,7 +5440,9 @@
     "keep_folders_top_hint": "A legfelső szinten a Beérkezett üzenetek, az Elküldött elemek, a Törölt elemek és a hasonlók a saját mappáiba kerülnek.",
     "toast_done": "Az importálás befejeződött. Importált: {imported}, sikertelen: {failed}.",
     "toast_stopped": "Az importálás leállt.",
-    "toast_show": "Megjelenítés"
+    "toast_show": "Megjelenítés",
+    "section_title": "Levélfájlok",
+    "section_description": "Hozzon be leveleket fájlokból, vagy mentse a leveleit fájlokba."
   },
   "mail_export": {
     "menu_export": "Mappa exportálása…",

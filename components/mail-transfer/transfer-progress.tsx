@@ -42,6 +42,11 @@ export function TransferBar({ fraction, label, paused }: { fraction: number | nu
   );
 }
 
+/** A server limit in the server's own unit: Stalwart's 50000000 bytes are "50 MB" (not the 48 MB of a 1024-based size). */
+export function serverMegabytes(bytes: number): string {
+  return `${Math.round(bytes / 1_000_000)} MB`;
+}
+
 /** "14:00", or a date and time when the moment isn't today. */
 export function formatClock(ms: number, locale: string, now = Date.now()): string {
   const date = new Date(ms);

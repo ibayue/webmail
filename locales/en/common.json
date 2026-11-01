@@ -461,7 +461,6 @@
     "view_in_light_mode": "View in light mode",
     "export_email": "Export as .eml",
     "forward_as_attachment": "Forward as attachment",
-    "import_email": "Import .eml or .zip…",
     "keyboard_shortcuts": "Keyboard shortcuts",
     "email_source": "Email source",
     "draft_banner": "This message is a draft",
@@ -1251,8 +1250,6 @@
     "templates_import_errors": "Some templates could not be imported",
     "templates_import_empty": "No templates found in the file",
     "export_email_error": "Failed to export email",
-    "import_email_success": "Email imported successfully",
-    "import_email_error": "Failed to import email",
     "rule_created": "Rule created",
     "rule_merged": "Added to rule “{name}”",
     "rule_already_covered": "Already covered by rule “{name}”",
@@ -3556,7 +3553,6 @@
     "new_folder": "New folder…",
     "rename": "Rename…",
     "share": "Share…",
-    "import_email": "Import .eml or .zip…",
     "empty_folder": "Empty folder",
     "empty_folder_generic": "Empty folder",
     "delete_folder": "Delete folder",
@@ -5383,10 +5379,10 @@
   "mail_import": {
     "menu_import": "Import mail…",
     "settings_label": "Import mail",
-    "settings_description": "Bring in mail from .eml, ZIP, mbox or Outlook .pst files.",
+    "settings_description": "Bring in mail from .eml, ZIP, mbox or Outlook .pst and .ost files.",
     "settings_button": "Import…",
     "title": "Import mail",
-    "description": "Choose .eml, .zip, .mbox or Outlook .pst files.",
+    "description": "Choose .eml, .zip, .mbox or Outlook .pst and .ost files.",
     "choose_files": "Choose files…",
     "chosen_files": "Chosen files",
     "remove_file": "Remove {name}",
@@ -5444,7 +5440,9 @@
     "keep_folders_top_hint": "At the top level, Inbox, Sent Items, Deleted Items and the like go into your own.",
     "toast_done": "Import finished. Imported: {imported}, failed: {failed}.",
     "toast_stopped": "The import stopped.",
-    "toast_show": "Show"
+    "toast_show": "Show",
+    "section_title": "Mail files",
+    "section_description": "Bring mail in from files, or save your mail as files."
   },
   "mail_export": {
     "menu_export": "Export folder…",

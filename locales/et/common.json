@@ -461,7 +461,6 @@
     "view_in_light_mode": "Vaata heledas režiimis",
     "export_email": "Ekspordi .eml failina",
     "forward_as_attachment": "Saada edasi manusena",
-    "import_email": "Impordi .eml või .zip…",
     "keyboard_shortcuts": "Kiirklahvid",
     "email_source": "Kirja lähtekood",
     "draft_banner": "See kiri on mustand",
@@ -1251,8 +1250,6 @@
     "templates_import_errors": "Mõnda malli ei õnnestunud importida",
     "templates_import_empty": "Failist ei leitud ühtegi malli",
     "export_email_error": "E-kirja eksportimine ebaõnnestus",
-    "import_email_success": "E-kiri imporditi edukalt",
-    "import_email_error": "E-kirja importimine ebaõnnestus",
     "rule_created": "Reegel loodud",
     "rule_merged": "Lisatud reeglisse „{name}”",
     "rule_already_covered": "Juba kaetud reegliga „{name}”",
@@ -3556,7 +3553,6 @@
     "new_folder": "Uus kaust…",
     "rename": "Nimeta ümber…",
     "share": "Jaga…",
-    "import_email": "Impordi .eml või .zip…",
     "empty_folder": "Tühjenda kaust",
     "empty_folder_generic": "Tühjenda kaust",
     "delete_folder": "Kustuta kaust",
@@ -5383,10 +5379,10 @@
   "mail_import": {
     "menu_import": "Impordi kirju…",
     "settings_label": "Impordi kirju",
-    "settings_description": "Too kirjad sisse .eml-, ZIP-, mbox- või Outlooki .pst-failidest.",
+    "settings_description": "Too kirjad sisse .eml-, ZIP-, mbox- või Outlooki .pst- ja .ost-failidest.",
     "settings_button": "Impordi…",
     "title": "Impordi kirju",
-    "description": "Valige .eml-, .zip-, .mbox- või Outlooki .pst-failid.",
+    "description": "Valige .eml-, .zip-, .mbox- või Outlooki .pst- ja .ost-failid.",
     "choose_files": "Vali failid…",
     "chosen_files": "Valitud failid",
     "remove_file": "Eemalda {name}",
@@ -5444,7 +5440,9 @@
     "keep_folders_top_hint": "Ülemisel tasemel lähevad Sisendkaust, Saadetud, Kustutatud ja muud sellised teie omadesse.",
     "toast_done": "Import lõpetatud. Imporditud: {imported}, ebaõnnestunud: {failed}.",
     "toast_stopped": "Import peatus.",
-    "toast_show": "Näita"
+    "toast_show": "Näita",
+    "section_title": "Kirjafailid",
+    "section_description": "Tooge kirjad failidest sisse või salvestage oma kirjad failidena."
   },
   "mail_export": {
     "menu_export": "Ekspordi kaust…",

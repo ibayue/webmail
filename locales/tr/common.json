@@ -461,7 +461,6 @@
     "view_in_light_mode": "Açık modda görüntüle",
     "export_email": ".eml olarak dışa aktar",
     "forward_as_attachment": "Ek olarak ilet",
-    "import_email": ".eml veya .zip içe aktar…",
     "keyboard_shortcuts": "Klavye kısayolları",
     "email_source": "E-posta Kaynağı",
     "draft_banner": "Bu ileti bir taslaktır",
@@ -1251,8 +1250,6 @@
     "templates_import_errors": "Bazı şablonlar içe aktarılamadı",
     "templates_import_empty": "Dosyada şablon bulunamadı",
     "export_email_error": "E-posta dışa aktarılamadı",
-    "import_email_success": "E-posta başarıyla içe aktarıldı",
-    "import_email_error": "E-posta içe aktarılamadı",
     "rule_created": "Kural oluşturuldu",
     "rule_merged": "“{name}” kuralına eklendi",
     "rule_already_covered": "Zaten “{name}” kuralı kapsıyor",
@@ -3556,7 +3553,6 @@
     "new_folder": "Yeni klasör…",
     "rename": "Yeniden adlandır…",
     "share": "Paylaş…",
-    "import_email": ".eml veya .zip içe aktar…",
     "empty_folder": "Klasörü boşalt",
     "empty_folder_generic": "Klasörü boşalt",
     "delete_folder": "Klasörü sil",
@@ -5383,10 +5379,10 @@
   "mail_import": {
     "menu_import": "E-posta içe aktar…",
     "settings_label": "E-posta içe aktar",
-    "settings_description": ".eml, ZIP, mbox veya Outlook .pst dosyalarından e-posta alın.",
+    "settings_description": ".eml, ZIP, mbox veya Outlook .pst ve .ost dosyalarından e-posta alın.",
     "settings_button": "İçe aktar…",
     "title": "E-posta içe aktar",
-    "description": ".eml, .zip, .mbox veya Outlook .pst dosyalarını seçin.",
+    "description": ".eml, .zip, .mbox veya Outlook .pst ve .ost dosyalarını seçin.",
     "choose_files": "Dosya seç…",
     "chosen_files": "Seçilen dosyalar",
     "remove_file": "{name} öğesini kaldır",
@@ -5444,7 +5440,9 @@
     "keep_folders_top_hint": "En üst düzeyde Gelen Kutusu, Gönderilmiş Öğeler, Silinmiş Öğeler ve benzerleri sizinkilere gider.",
     "toast_done": "İçe aktarım tamamlandı. İçe aktarılan: {imported}, başarısız: {failed}.",
     "toast_stopped": "İçe aktarım durdu.",
-    "toast_show": "Göster"
+    "toast_show": "Göster",
+    "section_title": "E-posta dosyaları",
+    "section_description": "Dosyalardan e-posta alın veya e-postalarınızı dosya olarak kaydedin."
   },
   "mail_export": {
     "menu_export": "Klasörü dışa aktar…",

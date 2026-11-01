@@ -461,7 +461,6 @@
     "view_in_light_mode": "라이트 모드로 보기",
     "export_email": ".eml 파일로 내보내기",
     "forward_as_attachment": "첨부 파일로 전달",
-    "import_email": ".eml 또는 .zip 가져오기…",
     "keyboard_shortcuts": "단축키",
     "email_source": "메일 원본",
     "draft_banner": "작성 중인 임시보관 메일이에요",
@@ -1251,8 +1250,6 @@
     "templates_import_errors": "일부 템플릿을 가져오지 못했어요",
     "templates_import_empty": "파일에서 템플릿을 찾을 수 없어요",
     "export_email_error": "메일 내보내기에 실패했어요",
-    "import_email_success": "메일을 성공적으로 가져왔어요",
-    "import_email_error": "메일 가져오기에 실패했어요",
     "rule_created": "규칙을 만들었어요",
     "rule_merged": "“{name}” 규칙에 추가했어요",
     "rule_already_covered": "이미 “{name}” 규칙에 포함되어 있어요",
@@ -3556,7 +3553,6 @@
     "new_folder": "새 폴더…",
     "rename": "이름 바꾸기…",
     "share": "공유…",
-    "import_email": ".eml 또는 .zip 가져오기…",
     "empty_folder": "폴더 비우기",
     "empty_folder_generic": "폴더 비우기",
     "delete_folder": "폴더 삭제",
@@ -5253,10 +5249,10 @@
   "mail_import": {
     "menu_import": "메일 가져오기…",
     "settings_label": "메일 가져오기",
-    "settings_description": ".eml, ZIP, mbox 또는 Outlook .pst 파일에서 메일을 가져옵니다.",
+    "settings_description": ".eml, ZIP, mbox 또는 Outlook .pst 및 .ost 파일에서 메일을 가져옵니다.",
     "settings_button": "가져오기…",
     "title": "메일 가져오기",
-    "description": ".eml, .zip, .mbox 또는 Outlook .pst 파일을 선택하세요.",
+    "description": ".eml, .zip, .mbox 또는 Outlook .pst 및 .ost 파일을 선택하세요.",
     "choose_files": "파일 선택…",
     "chosen_files": "선택한 파일",
     "remove_file": "{name} 제거",
@@ -5314,7 +5310,9 @@
     "keep_folders_top_hint": "최상위에서는 받은 편지함, 보낸 편지함, 지운 편지함 등이 사용자의 폴더로 들어갑니다.",
     "toast_done": "가져오기 완료. 가져옴: {imported}, 실패: {failed}.",
     "toast_stopped": "가져오기가 멈췄습니다.",
-    "toast_show": "보기"
+    "toast_show": "보기",
+    "section_title": "메일 파일",
+    "section_description": "파일에서 메일을 가져오거나 메일을 파일로 저장합니다."
   },
   "mail_export": {
     "menu_export": "폴더 내보내기…",

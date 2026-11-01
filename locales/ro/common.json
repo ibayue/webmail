@@ -461,7 +461,6 @@
     "view_in_light_mode": "Vizualizare în modul luminos",
     "export_email": "Exportați ca fișier .eml",
     "forward_as_attachment": "Redirecționează ca atașament",
-    "import_email": "Importați fișiere .eml sau .zip…",
     "keyboard_shortcuts": "Comenzi rapide de la tastatură",
     "email_source": "Sursa e-mailului",
     "draft_banner": "Acest mesaj este o schiță",
@@ -1251,8 +1250,6 @@
     "templates_import_errors": "Unele șabloane nu au putut fi importate",
     "templates_import_empty": "Nu s-au găsit șabloane în fișier",
     "export_email_error": "Nu s-a putut exporta e-mailul",
-    "import_email_success": "E-mailul a fost importat cu succes",
-    "import_email_error": "Importul e-mailului a eșuat",
     "rule_created": "Regula a fost creată",
     "rule_merged": "Adăugat la regula „{name}”",
     "rule_already_covered": "Deja acoperit de regula „{name}”",
@@ -3556,7 +3553,6 @@
     "new_folder": "Dosar nou…",
     "rename": "Redenumire…",
     "share": "Partajează…",
-    "import_email": "Importați fișiere .eml sau .zip…",
     "empty_folder": "Folder gol",
     "empty_folder_generic": "Folder gol",
     "delete_folder": "Șterge dosarul",
@@ -5383,10 +5379,10 @@
   "mail_import": {
     "menu_import": "Importă e-mailuri…",
     "settings_label": "Importă e-mailuri",
-    "settings_description": "Aduceți e-mailuri din fișiere .eml, ZIP, mbox sau Outlook .pst.",
+    "settings_description": "Aduceți e-mailuri din fișiere .eml, ZIP, mbox sau Outlook .pst și .ost.",
     "settings_button": "Importă…",
     "title": "Importă e-mailuri",
-    "description": "Alegeți fișiere .eml, .zip, .mbox sau Outlook .pst.",
+    "description": "Alegeți fișiere .eml, .zip, .mbox sau Outlook .pst și .ost.",
     "choose_files": "Alege fișiere…",
     "chosen_files": "Fișiere alese",
     "remove_file": "Elimină {name}",
@@ -5444,7 +5440,9 @@
     "keep_folders_top_hint": "La nivelul de sus, Inbox, Elemente trimise, Elemente șterse și altele asemenea ajung în ale dumneavoastră.",
     "toast_done": "Import încheiat. Importate: {imported}, eșuate: {failed}.",
     "toast_stopped": "Importul s-a oprit.",
-    "toast_show": "Afișează"
+    "toast_show": "Afișează",
+    "section_title": "Fișiere de e-mail",
+    "section_description": "Aduceți e-mailuri din fișiere sau salvați e-mailurile ca fișiere."
   },
   "mail_export": {
     "menu_export": "Exportă dosarul…",

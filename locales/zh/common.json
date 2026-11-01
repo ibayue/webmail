@@ -461,7 +461,6 @@
     "view_in_light_mode": "浅色模式查看",
     "export_email": "导出为 .eml",
     "forward_as_attachment": "作为附件转发",
-    "import_email": "导入 .eml 或 .zip…",
     "keyboard_shortcuts": "键盘快捷键",
     "email_source": "邮件源码",
     "draft_banner": "这是一封草稿邮件",
@@ -1251,8 +1250,6 @@
     "templates_import_errors": "部分模板无法导入",
     "templates_import_empty": "文件中未找到模板",
     "export_email_error": "导出邮件失败",
-    "import_email_success": "邮件导入成功",
-    "import_email_error": "导入邮件失败",
     "rule_created": "规则已创建",
     "rule_merged": "已添加到规则“{name}”",
     "rule_already_covered": "规则“{name}”已涵盖此项",
@@ -3556,7 +3553,6 @@
     "new_folder": "新建文件夹…",
     "rename": "重命名…",
     "share": "共享…",
-    "import_email": "导入 .eml 或 .zip…",
     "empty_folder": "清空文件夹",
     "empty_folder_generic": "清空文件夹",
     "delete_folder": "删除文件夹",
@@ -5253,10 +5249,10 @@
   "mail_import": {
     "menu_import": "导入邮件…",
     "settings_label": "导入邮件",
-    "settings_description": "从 .eml、ZIP、mbox 或 Outlook .pst 文件导入邮件。",
+    "settings_description": "从 .eml、ZIP、mbox 或 Outlook .pst 和 .ost 文件导入邮件。",
     "settings_button": "导入…",
     "title": "导入邮件",
-    "description": "请选择 .eml、.zip、.mbox 或 Outlook .pst 文件。",
+    "description": "请选择 .eml、.zip、.mbox 或 Outlook .pst 和 .ost 文件。",
     "choose_files": "选择文件…",
     "chosen_files": "已选文件",
     "remove_file": "移除 {name}",
@@ -5314,7 +5310,9 @@
     "keep_folders_top_hint": "在顶层，收件箱、已发送邮件、已删除邮件等会进入您自己的文件夹。",
     "toast_done": "导入完成。已导入：{imported}，失败：{failed}。",
     "toast_stopped": "导入已停止。",
-    "toast_show": "显示"
+    "toast_show": "显示",
+    "section_title": "邮件文件",
+    "section_description": "从文件导入邮件，或把邮件保存为文件。"
   },
   "mail_export": {
     "menu_export": "导出文件夹…",

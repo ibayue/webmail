@@ -461,7 +461,6 @@
     "view_in_light_mode": "Afficher en mode clair",
     "export_email": "Exporter en .eml",
     "forward_as_attachment": "Transférer en pièce jointe",
-    "import_email": "Importer .eml ou .zip…",
     "keyboard_shortcuts": "Raccourcis clavier",
     "email_source": "Source de l'email",
     "draft_banner": "Ce message est un brouillon",
@@ -1251,8 +1250,6 @@
     "templates_import_errors": "Certains modèles n'ont pas pu être importés",
     "templates_import_empty": "Aucun modèle trouvé dans le fichier",
     "export_email_error": "Échec de l'exportation de l'e-mail",
-    "import_email_success": "E-mail importé avec succès",
-    "import_email_error": "Échec de l'importation de l'e-mail",
     "rule_created": "Règle créée",
     "rule_merged": "Ajouté à la règle « {name} »",
     "rule_already_covered": "Déjà couvert par la règle « {name} »",
@@ -3556,7 +3553,6 @@
     "new_folder": "Nouveau dossier…",
     "rename": "Renommer…",
     "share": "Partager…",
-    "import_email": "Importer .eml ou .zip…",
     "empty_folder": "Vider le dossier",
     "empty_folder_generic": "Vider le dossier",
     "delete_folder": "Supprimer le dossier",
@@ -5253,10 +5249,10 @@
   "mail_import": {
     "menu_import": "Importer des e-mails…",
     "settings_label": "Importer des e-mails",
-    "settings_description": "Importer des e-mails depuis des fichiers .eml, ZIP, mbox ou Outlook .pst.",
+    "settings_description": "Importer des e-mails depuis des fichiers .eml, ZIP, mbox ou Outlook .pst et .ost.",
     "settings_button": "Importer…",
     "title": "Importer des e-mails",
-    "description": "Choisissez des fichiers .eml, .zip, .mbox ou Outlook .pst.",
+    "description": "Choisissez des fichiers .eml, .zip, .mbox ou Outlook .pst et .ost.",
     "choose_files": "Choisir des fichiers…",
     "chosen_files": "Fichiers choisis",
     "remove_file": "Retirer {name}",
@@ -5314,7 +5310,9 @@
     "keep_folders_top_hint": "Au niveau supérieur, Boîte de réception, Éléments envoyés, Éléments supprimés et les autres vont dans les vôtres.",
     "toast_done": "Import terminé. Importés : {imported}, échecs : {failed}.",
     "toast_stopped": "L'import s'est arrêté.",
-    "toast_show": "Afficher"
+    "toast_show": "Afficher",
+    "section_title": "Fichiers de messagerie",
+    "section_description": "Importez des e-mails depuis des fichiers, ou enregistrez vos e-mails dans des fichiers."
   },
   "mail_export": {
     "menu_export": "Exporter le dossier…",

@@ -461,7 +461,6 @@
     "view_in_light_mode": "Im hellen Modus anzeigen",
     "export_email": "Als .eml exportieren",
     "forward_as_attachment": "Als Anhang weiterleiten",
-    "import_email": ".eml oder .zip importieren…",
     "keyboard_shortcuts": "Tastaturkürzel",
     "email_source": "E-Mail-Quelltext",
     "draft_banner": "Diese Nachricht ist ein Entwurf",
@@ -1251,8 +1250,6 @@
     "templates_import_errors": "Einige Vorlagen konnten nicht importiert werden",
     "templates_import_empty": "Keine Vorlagen in der Datei gefunden",
     "export_email_error": "Fehler beim Exportieren der E-Mail",
-    "import_email_success": "E-Mail erfolgreich importiert",
-    "import_email_error": "Fehler beim Importieren der E-Mail",
     "rule_created": "Regel erstellt",
     "rule_merged": "Zur Regel „{name}“ hinzugefügt",
     "rule_already_covered": "Bereits durch die Regel „{name}“ abgedeckt",
@@ -3556,7 +3553,6 @@
     "new_folder": "Neuer Ordner…",
     "rename": "Umbenennen…",
     "share": "Freigeben…",
-    "import_email": ".eml oder .zip importieren…",
     "empty_folder": "Ordner leeren",
     "empty_folder_generic": "Ordner leeren",
     "delete_folder": "Ordner löschen",
@@ -5253,10 +5249,10 @@
   "mail_import": {
     "menu_import": "E-Mails importieren…",
     "settings_label": "E-Mails importieren",
-    "settings_description": "E-Mails aus .eml-, ZIP-, mbox- oder Outlook-.pst-Dateien übernehmen.",
+    "settings_description": "E-Mails aus .eml-, ZIP-, mbox- oder Outlook-.pst- und -.ost-Dateien übernehmen.",
     "settings_button": "Importieren…",
     "title": "E-Mails importieren",
-    "description": "Wählen Sie .eml-, .zip-, .mbox- oder Outlook-.pst-Dateien.",
+    "description": "Wählen Sie .eml-, .zip-, .mbox- oder Outlook-.pst- und -.ost-Dateien.",
     "choose_files": "Dateien auswählen…",
     "chosen_files": "Ausgewählte Dateien",
     "remove_file": "{name} entfernen",
@@ -5314,7 +5310,9 @@
     "keep_folders_top_hint": "Auf oberster Ebene landen Posteingang, Gesendete Elemente, Gelöschte Elemente und Ähnliche in Ihren eigenen Ordnern.",
     "toast_done": "Import abgeschlossen. Importiert: {imported}, fehlgeschlagen: {failed}.",
     "toast_stopped": "Der Import wurde angehalten.",
-    "toast_show": "Anzeigen"
+    "toast_show": "Anzeigen",
+    "section_title": "E-Mail-Dateien",
+    "section_description": "E-Mails aus Dateien übernehmen oder Ihre E-Mails als Dateien sichern."
   },
   "mail_export": {
     "menu_export": "Ordner exportieren…",

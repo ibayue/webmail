@@ -461,7 +461,6 @@
     "view_in_light_mode": "Visualizza in modalità chiara",
     "export_email": "Esporta come .eml",
     "forward_as_attachment": "Inoltra come allegato",
-    "import_email": "Importa .eml o .zip…",
     "keyboard_shortcuts": "Scorciatoie da tastiera",
     "email_source": "Sorgente del messaggio",
     "draft_banner": "Questo messaggio è una bozza",
@@ -1251,8 +1250,6 @@
     "templates_import_errors": "Alcuni modelli non sono stati importati",
     "templates_import_empty": "Nessun modello trovato nel file",
     "export_email_error": "Impossibile esportare l'e-mail",
-    "import_email_success": "E-mail importata con successo",
-    "import_email_error": "Impossibile importare l'e-mail",
     "rule_created": "Regola creata",
     "rule_merged": "Aggiunto alla regola «{name}»",
     "rule_already_covered": "Già coperto dalla regola «{name}»",
@@ -3556,7 +3553,6 @@
     "new_folder": "Nuova cartella…",
     "rename": "Rinomina…",
     "share": "Condividi…",
-    "import_email": "Importa .eml o .zip…",
     "empty_folder": "Svuota cartella",
     "empty_folder_generic": "Svuota cartella",
     "delete_folder": "Elimina cartella",
@@ -5253,10 +5249,10 @@
   "mail_import": {
     "menu_import": "Importa posta…",
     "settings_label": "Importa posta",
-    "settings_description": "Importa la posta da file .eml, ZIP, mbox o Outlook .pst.",
+    "settings_description": "Importa la posta da file .eml, ZIP, mbox o Outlook .pst e .ost.",
     "settings_button": "Importa…",
     "title": "Importa posta",
-    "description": "Scegli file .eml, .zip, .mbox o Outlook .pst.",
+    "description": "Scegli file .eml, .zip, .mbox o Outlook .pst e .ost.",
     "choose_files": "Scegli file…",
     "chosen_files": "File scelti",
     "remove_file": "Rimuovi {name}",
@@ -5314,7 +5310,9 @@
     "keep_folders_top_hint": "Al livello principale, Posta in arrivo, Posta inviata, Elementi eliminati e simili finiscono nelle tue.",
     "toast_done": "Importazione completata. Importati: {imported}, non riusciti: {failed}.",
     "toast_stopped": "L'importazione si è fermata.",
-    "toast_show": "Mostra"
+    "toast_show": "Mostra",
+    "section_title": "File di posta",
+    "section_description": "Importa la posta da file o salva la tua posta come file."
   },
   "mail_export": {
     "menu_export": "Esporta cartella…",

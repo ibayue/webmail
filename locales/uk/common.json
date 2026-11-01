@@ -461,7 +461,6 @@
     "view_in_light_mode": "Перегляд у світлому режимі",
     "export_email": "Експортувати як .eml",
     "forward_as_attachment": "Переслати як вкладення",
-    "import_email": "Імпорт .eml або .zip…",
     "keyboard_shortcuts": "Комбінації клавіш",
     "email_source": "Джерело електронної пошти",
     "draft_banner": "Це повідомлення є чернеткою",
@@ -1251,8 +1250,6 @@
     "templates_import_errors": "Деякі шаблони не вдалося імпортувати",
     "templates_import_empty": "У файлі не знайдено шаблонів",
     "export_email_error": "Не вдалося експортувати електронну пошту",
-    "import_email_success": "Електронну пошту успішно імпортовано",
-    "import_email_error": "Не вдалося імпортувати електронну пошту",
     "rule_created": "Правило створено",
     "rule_merged": "Додано до правила «{name}»",
     "rule_already_covered": "Уже охоплено правилом «{name}»",
@@ -3556,7 +3553,6 @@
     "new_folder": "Нова папка…",
     "rename": "Перейменувати…",
     "share": "Поділитися…",
-    "import_email": "Імпортувати .eml або .zip…",
     "empty_folder": "Очистити папку",
     "empty_folder_generic": "Очистити папку",
     "delete_folder": "Видалити папку",
@@ -5253,10 +5249,10 @@
   "mail_import": {
     "menu_import": "Імпортувати пошту…",
     "settings_label": "Імпортувати пошту",
-    "settings_description": "Перенесіть пошту з файлів .eml, ZIP, mbox або Outlook .pst.",
+    "settings_description": "Перенесіть пошту з файлів .eml, ZIP, mbox або Outlook .pst і .ost.",
     "settings_button": "Імпортувати…",
     "title": "Імпорт пошти",
-    "description": "Виберіть файли .eml, .zip, .mbox або Outlook .pst.",
+    "description": "Виберіть файли .eml, .zip, .mbox або Outlook .pst і .ost.",
     "choose_files": "Вибрати файли…",
     "chosen_files": "Вибрані файли",
     "remove_file": "Прибрати {name}",
@@ -5314,7 +5310,9 @@
     "keep_folders_top_hint": "На верхньому рівні Вхідні, Надіслані, Видалені й подібні потрапляють до ваших власних.",
     "toast_done": "Імпорт завершено. Імпортовано: {imported}, не вдалося: {failed}.",
     "toast_stopped": "Імпорт зупинено.",
-    "toast_show": "Показати"
+    "toast_show": "Показати",
+    "section_title": "Поштові файли",
+    "section_description": "Перенесіть пошту з файлів або збережіть свою пошту у файли."
   },
   "mail_export": {
     "menu_export": "Експортувати теку…",

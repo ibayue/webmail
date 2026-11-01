@@ -461,7 +461,6 @@
     "view_in_light_mode": "淺色模式檢視",
     "export_email": "匯出為 .eml",
     "forward_as_attachment": "以附件形式轉寄",
-    "import_email": "匯入 .eml 或 .zip…",
     "keyboard_shortcuts": "鍵盤快速鍵",
     "email_source": "郵件原始碼",
     "draft_banner": "這是一封草稿郵件",
@@ -1251,8 +1250,6 @@
     "templates_import_errors": "部分範本無法匯入",
     "templates_import_empty": "檔案中找不到範本",
     "export_email_error": "無法匯出郵件",
-    "import_email_success": "郵件已成功匯入",
-    "import_email_error": "無法匯入郵件",
     "rule_created": "已建立規則",
     "rule_merged": "已加入規則「{name}」",
     "rule_already_covered": "規則「{name}」已涵蓋此項",
@@ -3556,7 +3553,6 @@
     "new_folder": "新增信件匣…",
     "rename": "重新命名…",
     "share": "共用…",
-    "import_email": "匯入 .eml 或 .zip…",
     "empty_folder": "清空信件匣",
     "empty_folder_generic": "清空信件匣",
     "delete_folder": "刪除信件匣",
@@ -5383,10 +5379,10 @@
   "mail_import": {
     "menu_import": "匯入郵件…",
     "settings_label": "匯入郵件",
-    "settings_description": "從 .eml、ZIP、mbox 或 Outlook .pst 檔案匯入郵件。",
+    "settings_description": "從 .eml、ZIP、mbox 或 Outlook .pst 和 .ost 檔案匯入郵件。",
     "settings_button": "匯入…",
     "title": "匯入郵件",
-    "description": "請選擇 .eml、.zip、.mbox 或 Outlook .pst 檔案。",
+    "description": "請選擇 .eml、.zip、.mbox 或 Outlook .pst 和 .ost 檔案。",
     "choose_files": "選擇檔案…",
     "chosen_files": "已選檔案",
     "remove_file": "移除 {name}",
@@ -5444,7 +5440,9 @@
     "keep_folders_top_hint": "在最上層，收件匣、寄件備份、刪除的郵件等會進入您自己的資料夾。",
     "toast_done": "匯入完成。已匯入：{imported}，失敗：{failed}。",
     "toast_stopped": "匯入已停止。",
-    "toast_show": "顯示"
+    "toast_show": "顯示",
+    "section_title": "郵件檔案",
+    "section_description": "從檔案匯入郵件，或把郵件儲存為檔案。"
   },
   "mail_export": {
     "menu_export": "匯出資料夾…",

@@ -14,7 +14,7 @@ import { hasFolders, sniffFormat, type ImportFormat, type SkipReason } from "@/l
 import type { ImportProgress } from "@/lib/mail-import/engine";
 import type { Mailbox } from "@/lib/jmap/types";
 import { formatFileSize, getMailboxPath } from "@/lib/utils";
-import { formatClock, TransferBar, useFocusOnStage } from "./transfer-progress";
+import { formatClock, serverMegabytes, TransferBar, useFocusOnStage } from "./transfer-progress";
 import { startImport } from "./start-import";
 
 const ACCEPT = ".eml,.zip,.mbox,.mbx,.pst,.ost,message/rfc822,application/zip,application/mbox";
@@ -288,7 +288,7 @@ function ProgressBody({ progress: p, t, locale, statusId }: { progress: ImportPr
   if (p.phase === "paused" && p.pausedUntil) {
     const time = formatClock(p.pausedUntil, locale);
     status = p.quota?.files && p.quota.bytes
-      ? t("paused", { time, files: p.quota.files, size: formatFileSize(p.quota.bytes) })
+      ? t("paused", { time, files: p.quota.files, size: serverMegabytes(p.quota.bytes) })
       : t("paused_generic", { time });
   } else if (running) {
     status = p.fileName ? t("reading_file", { name: p.fileName }) : t("running_title");

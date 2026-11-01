@@ -213,9 +213,9 @@ export function AboutDataSettings() {
           </>
         </SettingItem>
         )}
-
-        <MailBackupSettings />
       </SettingsSection>
+
+      <MailBackupSettings />
 
       <SettingsSection id="fix" title={t('sections.fix')} description={t('sections.fix_description')}>
         <SettingItem label={t('refresh_cache.label')} description={t('refresh_cache.description')} term="cache">

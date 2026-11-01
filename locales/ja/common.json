@@ -461,7 +461,6 @@
     "view_in_light_mode": "ライトモードで表示",
     "export_email": ".emlとしてエクスポート",
     "forward_as_attachment": "添付ファイルとして転送",
-    "import_email": ".eml または .zip をインポート…",
     "keyboard_shortcuts": "キーボードショートカット",
     "email_source": "メールソース",
     "draft_banner": "このメッセージは下書きです",
@@ -1251,8 +1250,6 @@
     "templates_import_errors": "一部のテンプレートをインポートできませんでした",
     "templates_import_empty": "ファイルにテンプレートが見つかりません",
     "export_email_error": "メールのエクスポートに失敗しました",
-    "import_email_success": "メールを正常にインポートしました",
-    "import_email_error": "メールのインポートに失敗しました",
     "rule_created": "ルールを作成しました",
     "rule_merged": "ルール「{name}」に追加しました",
     "rule_already_covered": "ルール「{name}」ですでに対象になっています",
@@ -3556,7 +3553,6 @@
     "new_folder": "新しいフォルダー…",
     "rename": "名前を変更…",
     "share": "共有…",
-    "import_email": ".eml または .zip をインポート…",
     "empty_folder": "フォルダーを空にする",
     "empty_folder_generic": "フォルダーを空にする",
     "delete_folder": "フォルダーを削除",
@@ -5253,10 +5249,10 @@
   "mail_import": {
     "menu_import": "メールをインポート…",
     "settings_label": "メールをインポート",
-    "settings_description": ".eml、ZIP、mbox、Outlook の .pst ファイルからメールを取り込みます。",
+    "settings_description": ".eml、ZIP、mbox、Outlook の .pst・.ost ファイルからメールを取り込みます。",
     "settings_button": "インポート…",
     "title": "メールをインポート",
-    "description": ".eml、.zip、.mbox、Outlook の .pst ファイルを選んでください。",
+    "description": ".eml、.zip、.mbox、Outlook の .pst・.ost ファイルを選んでください。",
     "choose_files": "ファイルを選択…",
     "chosen_files": "選択したファイル",
     "remove_file": "{name} を外す",
@@ -5314,7 +5310,9 @@
     "keep_folders_top_hint": "最上位では、受信トレイ、送信済みアイテム、削除済みアイテムなどはご自身のフォルダーに入ります。",
     "toast_done": "インポートが完了しました。インポート: {imported}、失敗: {failed}。",
     "toast_stopped": "インポートが止まりました。",
-    "toast_show": "表示"
+    "toast_show": "表示",
+    "section_title": "メールのファイル",
+    "section_description": "ファイルからメールを取り込んだり、メールをファイルとして保存したりします。"
   },
   "mail_export": {
     "menu_export": "フォルダーをエクスポート…",

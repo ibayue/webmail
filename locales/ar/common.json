@@ -461,7 +461,6 @@
     "view_in_light_mode": "عرض في الوضع الفاتح",
     "export_email": "تصدير كملف ‎.eml",
     "forward_as_attachment": "إعادة التوجيه كمرفق",
-    "import_email": "استيراد ملف ‎.eml أو ‎.zip…",
     "keyboard_shortcuts": "اختصارات لوحة المفاتيح",
     "email_source": "مصدر الرسالة",
     "draft_banner": "هذه الرسالة مسودة",
@@ -1251,8 +1250,6 @@
     "templates_import_errors": "تعذّر استيراد بعض القوالب",
     "templates_import_empty": "لم يتم العثور على قوالب في الملف",
     "export_email_error": "فشل تصدير الرسالة",
-    "import_email_success": "تم استيراد الرسالة بنجاح",
-    "import_email_error": "فشل استيراد الرسالة",
     "rule_created": "تم إنشاء القاعدة",
     "rule_merged": "تمت الإضافة إلى القاعدة «{name}»",
     "rule_already_covered": "تغطيها القاعدة «{name}» بالفعل",
@@ -3556,7 +3553,6 @@
     "new_folder": "مجلد جديد…",
     "rename": "إعادة تسمية…",
     "share": "مشاركة…",
-    "import_email": "استيراد ملف ‎.eml أو ‎.zip…",
     "empty_folder": "إفراغ المجلد",
     "empty_folder_generic": "إفراغ المجلد",
     "delete_folder": "حذف المجلد",
@@ -5383,10 +5379,10 @@
   "mail_import": {
     "menu_import": "استيراد البريد…",
     "settings_label": "استيراد البريد",
-    "settings_description": "استورد البريد من ملفات ‎.eml أو ZIP أو mbox أو ملفات Outlook ‏‎.pst.",
+    "settings_description": "استورد البريد من ملفات ‎.eml أو ZIP أو mbox أو ملفات Outlook ‏‎.pst و‎.ost.",
     "settings_button": "استيراد…",
     "title": "استيراد البريد",
-    "description": "اختر ملفات ‎.eml أو ‎.zip أو ‎.mbox أو ملفات Outlook ‏‎.pst.",
+    "description": "اختر ملفات ‎.eml أو ‎.zip أو ‎.mbox أو ملفات Outlook ‏‎.pst و‎.ost.",
     "choose_files": "اختيار ملفات…",
     "chosen_files": "الملفات المختارة",
     "remove_file": "إزالة {name}",
@@ -5444,7 +5440,9 @@
     "keep_folders_top_hint": "في المستوى الأعلى تذهب علبة الوارد والعناصر المرسلة والعناصر المحذوفة وما شابهها إلى مجلداتك.",
     "toast_done": "انتهى الاستيراد. المستورد: {imported}، الفاشل: {failed}.",
     "toast_stopped": "توقف الاستيراد.",
-    "toast_show": "عرض"
+    "toast_show": "عرض",
+    "section_title": "ملفات البريد",
+    "section_description": "استورد البريد من ملفات، أو احفظ بريدك كملفات."
   },
   "mail_export": {
     "menu_export": "تصدير المجلد…",

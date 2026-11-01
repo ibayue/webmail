@@ -461,7 +461,6 @@
     "view_in_light_mode": "Zobraziť v svetlom režime",
     "export_email": "Exportovať ako .eml",
     "forward_as_attachment": "Preposlať ako prílohu",
-    "import_email": "Importovať .eml alebo .zip…",
     "keyboard_shortcuts": "Klávesové skratky",
     "email_source": "Zdrojový kód e-mailu",
     "draft_banner": "Táto správa je koncept",
@@ -1251,8 +1250,6 @@
     "templates_import_errors": "Niektoré šablóny sa nepodarilo importovať",
     "templates_import_empty": "V súbore neboli nájdené žiadne šablóny",
     "export_email_error": "Export e-mailu zlyhal",
-    "import_email_success": "E-mail bol úspešne importovaný",
-    "import_email_error": "Import e-mailu zlyhal",
     "rule_created": "Pravidlo bolo vytvorené",
     "rule_merged": "Pridané do pravidla „{name}“",
     "rule_already_covered": "Už to pokrýva pravidlo „{name}“",
@@ -3556,7 +3553,6 @@
     "new_folder": "Nový priečinok…",
     "rename": "Premenovať…",
     "share": "Zdieľať…",
-    "import_email": "Importovať .eml alebo .zip…",
     "empty_folder": "Vyprázdniť priečinok",
     "empty_folder_generic": "Vyprázdniť priečinok",
     "delete_folder": "Zmazať priečinok",
@@ -5383,10 +5379,10 @@
   "mail_import": {
     "menu_import": "Importovať poštu…",
     "settings_label": "Importovať poštu",
-    "settings_description": "Preneste poštu zo súborov .eml, ZIP, mbox alebo Outlook .pst.",
+    "settings_description": "Preneste poštu zo súborov .eml, ZIP, mbox alebo Outlook .pst a .ost.",
     "settings_button": "Importovať…",
     "title": "Importovať poštu",
-    "description": "Vyberte súbory .eml, .zip, .mbox alebo Outlook .pst.",
+    "description": "Vyberte súbory .eml, .zip, .mbox alebo Outlook .pst a .ost.",
     "choose_files": "Vybrať súbory…",
     "chosen_files": "Vybrané súbory",
     "remove_file": "Odstrániť {name}",
@@ -5444,7 +5440,9 @@
     "keep_folders_top_hint": "Na najvyššej úrovni skončia Doručená pošta, Odoslaná pošta, Odstránená pošta a podobné vo vašich vlastných.",
     "toast_done": "Import dokončený. Importované: {imported}, zlyhalo: {failed}.",
     "toast_stopped": "Import sa zastavil.",
-    "toast_show": "Zobraziť"
+    "toast_show": "Zobraziť",
+    "section_title": "Súbory s poštou",
+    "section_description": "Preneste poštu zo súborov alebo uložte svoju poštu ako súbory."
   },
   "mail_export": {
     "menu_export": "Exportovať priečinok…",

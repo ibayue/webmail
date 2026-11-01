@@ -461,7 +461,6 @@
     "view_in_light_mode": "Ver em modo claro",
     "export_email": "Exportar como .eml",
     "forward_as_attachment": "Encaminhar como anexo",
-    "import_email": "Importar .eml ou .zip…",
     "keyboard_shortcuts": "Atalhos de teclado",
     "email_source": "Código-fonte do E-mail",
     "draft_banner": "Esta mensagem é um rascunho",
@@ -1251,8 +1250,6 @@
     "templates_import_errors": "Alguns modelos não puderam ser importados",
     "templates_import_empty": "Nenhum modelo encontrado no arquivo",
     "export_email_error": "Falha ao exportar o e-mail",
-    "import_email_success": "E-mail importado com sucesso",
-    "import_email_error": "Falha ao importar o e-mail",
     "rule_created": "Regra criada",
     "rule_merged": "Adicionado à regra “{name}”",
     "rule_already_covered": "Já coberto pela regra “{name}”",
@@ -3556,7 +3553,6 @@
     "new_folder": "Nova pasta…",
     "rename": "Renomear…",
     "share": "Partilhar…",
-    "import_email": "Importar .eml ou .zip…",
     "empty_folder": "Esvaziar pasta",
     "empty_folder_generic": "Esvaziar pasta",
     "delete_folder": "Excluir pasta",
@@ -5253,10 +5249,10 @@
   "mail_import": {
     "menu_import": "Importar e-mails…",
     "settings_label": "Importar e-mails",
-    "settings_description": "Trazer e-mails de arquivos .eml, ZIP, mbox ou Outlook .pst.",
+    "settings_description": "Trazer e-mails de arquivos .eml, ZIP, mbox ou Outlook .pst e .ost.",
     "settings_button": "Importar…",
     "title": "Importar e-mails",
-    "description": "Escolha arquivos .eml, .zip, .mbox ou Outlook .pst.",
+    "description": "Escolha arquivos .eml, .zip, .mbox ou Outlook .pst e .ost.",
     "choose_files": "Escolher arquivos…",
     "chosen_files": "Arquivos escolhidos",
     "remove_file": "Remover {name}",
@@ -5314,7 +5310,9 @@
     "keep_folders_top_hint": "No nível superior, Caixa de entrada, Itens enviados, Itens excluídos e similares vão para as suas.",
     "toast_done": "Importação concluída. Importados: {imported}, com falha: {failed}.",
     "toast_stopped": "A importação parou.",
-    "toast_show": "Mostrar"
+    "toast_show": "Mostrar",
+    "section_title": "Arquivos de e-mail",
+    "section_description": "Traga e-mails de arquivos ou salve seus e-mails como arquivos."
   },
   "mail_export": {
     "menu_export": "Exportar pasta…",

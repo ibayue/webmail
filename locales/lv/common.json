@@ -461,7 +461,6 @@
     "view_in_light_mode": "Skatīt gaišajā režīmā",
     "export_email": "Eksportēt kā .eml",
     "forward_as_attachment": "Pārsūtīt kā pielikumu",
-    "import_email": "Importēt .eml vai .zip…",
     "keyboard_shortcuts": "Īsinājumtaustiņi",
     "email_source": "Vēstules avota kods",
     "draft_banner": "Šī vēstule ir melnraksts",
@@ -1251,8 +1250,6 @@
     "templates_import_errors": "Dažas veidnes neizdevās importēt",
     "templates_import_empty": "Failā netika atrastas veidnes",
     "export_email_error": "Neizdevās eksportēt vēstuli",
-    "import_email_success": "Vēstule veiksmīgi importēta",
-    "import_email_error": "Neizdevās importēt vēstuli",
     "rule_created": "Noteikums izveidots",
     "rule_merged": "Pievienots noteikumam “{name}”",
     "rule_already_covered": "To jau aptver noteikums “{name}”",
@@ -3556,7 +3553,6 @@
     "new_folder": "Jauna mape…",
     "rename": "Pārsaukt…",
     "share": "Kopīgot…",
-    "import_email": "Importēt .eml vai .zip…",
     "empty_folder": "Iztukšot mapi",
     "empty_folder_generic": "Iztukšot mapi",
     "delete_folder": "Dzēst mapi",
@@ -5253,10 +5249,10 @@
   "mail_import": {
     "menu_import": "Importēt pastu…",
     "settings_label": "Importēt pastu",
-    "settings_description": "Ienesiet pastu no .eml, ZIP, mbox vai Outlook .pst failiem.",
+    "settings_description": "Ienesiet pastu no .eml, ZIP, mbox vai Outlook .pst un .ost failiem.",
     "settings_button": "Importēt…",
     "title": "Importēt pastu",
-    "description": "Izvēlieties .eml, .zip, .mbox vai Outlook .pst failus.",
+    "description": "Izvēlieties .eml, .zip, .mbox vai Outlook .pst un .ost failus.",
     "choose_files": "Izvēlēties failus…",
     "chosen_files": "Izvēlētie faili",
     "remove_file": "Noņemt {name}",
@@ -5314,7 +5310,9 @@
     "keep_folders_top_hint": "Augšējā līmenī Iesūtne, Nosūtītie, Dzēstie un līdzīgi nonāk jūsu pašu mapēs.",
     "toast_done": "Importēšana pabeigta. Importēti: {imported}, neizdevās: {failed}.",
     "toast_stopped": "Importēšana apstājās.",
-    "toast_show": "Rādīt"
+    "toast_show": "Rādīt",
+    "section_title": "Pasta faili",
+    "section_description": "Ienesiet pastu no failiem vai saglabājiet savu pastu kā failus."
   },
   "mail_export": {
     "menu_export": "Eksportēt mapi…",

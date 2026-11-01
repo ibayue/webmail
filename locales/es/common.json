@@ -461,7 +461,6 @@
     "view_in_light_mode": "Ver en modo claro",
     "export_email": "Exportar como .eml",
     "forward_as_attachment": "Reenviar como archivo adjunto",
-    "import_email": "Importar .eml o .zip…",
     "keyboard_shortcuts": "Atajos de teclado",
     "email_source": "Código Fuente del Correo",
     "draft_banner": "Este mensaje es un borrador",
@@ -1251,8 +1250,6 @@
     "templates_import_errors": "Algunas plantillas no se pudieron importar",
     "templates_import_empty": "No se encontraron plantillas en el archivo",
     "export_email_error": "Error al exportar el correo electrónico",
-    "import_email_success": "Correo electrónico importado correctamente",
-    "import_email_error": "Error al importar el correo electrónico",
     "rule_created": "Regla creada",
     "rule_merged": "Añadido a la regla «{name}»",
     "rule_already_covered": "Ya lo cubre la regla «{name}»",
@@ -3556,7 +3553,6 @@
     "new_folder": "Nueva carpeta…",
     "rename": "Renombrar…",
     "share": "Compartir…",
-    "import_email": "Importar .eml o .zip…",
     "empty_folder": "Vaciar carpeta",
     "empty_folder_generic": "Vaciar carpeta",
     "delete_folder": "Eliminar carpeta",
@@ -5253,10 +5249,10 @@
   "mail_import": {
     "menu_import": "Importar correo…",
     "settings_label": "Importar correo",
-    "settings_description": "Traer correo desde archivos .eml, ZIP, mbox u Outlook .pst.",
+    "settings_description": "Traer correo desde archivos .eml, ZIP, mbox u Outlook .pst y .ost.",
     "settings_button": "Importar…",
     "title": "Importar correo",
-    "description": "Elija archivos .eml, .zip, .mbox u Outlook .pst.",
+    "description": "Elija archivos .eml, .zip, .mbox u Outlook .pst y .ost.",
     "choose_files": "Elegir archivos…",
     "chosen_files": "Archivos elegidos",
     "remove_file": "Quitar {name}",
@@ -5314,7 +5310,9 @@
     "keep_folders_top_hint": "En el nivel superior, Bandeja de entrada, Elementos enviados, Elementos eliminados y similares van a las suyas.",
     "toast_done": "Importación terminada. Importados: {imported}, fallidos: {failed}.",
     "toast_stopped": "La importación se detuvo.",
-    "toast_show": "Mostrar"
+    "toast_show": "Mostrar",
+    "section_title": "Archivos de correo",
+    "section_description": "Traiga correo desde archivos o guarde su correo como archivos."
   },
   "mail_export": {
     "menu_export": "Exportar carpeta…",

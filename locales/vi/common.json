@@ -461,7 +461,6 @@
     "view_in_light_mode": "Xem ở chế độ sáng",
     "export_email": "Xuất dưới dạng .eml",
     "forward_as_attachment": "Chuyển tiếp dưới dạng tệp đính kèm",
-    "import_email": "Nhập .eml hoặc .zip…",
     "keyboard_shortcuts": "Phím tắt",
     "email_source": "Nguồn email",
     "draft_banner": "Thư này là một bản nháp",
@@ -1263,8 +1262,6 @@
     "templates_import_errors": "Không thể nhập một số mẫu",
     "templates_import_empty": "Không tìm thấy mẫu nào trong tệp",
     "export_email_error": "Không xuất được email",
-    "import_email_success": "Email được nhập thành công",
-    "import_email_error": "Không thể nhập email",
     "rule_created": "Đã tạo quy tắc",
     "rule_merged": "Đã thêm vào quy tắc “{name}”",
     "rule_already_covered": "Đã được áp dụng theo quy tắc “{name}”",
@@ -3568,7 +3565,6 @@
     "new_folder": "Thư mục mới…",
     "rename": "Đổi tên…",
     "share": "Chia sẻ…",
-    "import_email": "Nhập .eml hoặc .zip…",
     "empty_folder": "Làm trống thư mục",
     "empty_folder_generic": "Làm trống thư mục",
     "delete_folder": "Xóa thư mục",
@@ -5395,10 +5391,10 @@
   "mail_import": {
     "menu_import": "Nhập thư…",
     "settings_label": "Nhập thư",
-    "settings_description": "Đưa thư vào từ tệp .eml, ZIP, mbox hoặc .pst của Outlook.",
+    "settings_description": "Đưa thư vào từ tệp .eml, ZIP, mbox hoặc .pst và .ost của Outlook.",
     "settings_button": "Nhập…",
     "title": "Nhập thư",
-    "description": "Chọn tệp .eml, .zip, .mbox hoặc .pst của Outlook.",
+    "description": "Chọn tệp .eml, .zip, .mbox hoặc .pst và .ost của Outlook.",
     "choose_files": "Chọn tệp…",
     "chosen_files": "Tệp đã chọn",
     "remove_file": "Bỏ {name}",
@@ -5456,7 +5452,9 @@
     "keep_folders_top_hint": "Ở cấp cao nhất, Hộp thư đến, Thư đã gửi, Thư đã xóa và các thư mục tương tự sẽ vào thư mục của bạn.",
     "toast_done": "Đã nhập xong. Đã nhập: {imported}, thất bại: {failed}.",
     "toast_stopped": "Việc nhập đã dừng.",
-    "toast_show": "Hiện"
+    "toast_show": "Hiện",
+    "section_title": "Tệp thư",
+    "section_description": "Đưa thư vào từ tệp, hoặc lưu thư của bạn thành tệp."
   },
   "mail_export": {
     "menu_export": "Xuất thư mục…",

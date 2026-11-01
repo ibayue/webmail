@@ -461,7 +461,6 @@
     "view_in_light_mode": "Wyświetl w jasnym trybie",
     "export_email": "Eksportuj jako .eml",
     "forward_as_attachment": "Prześlij dalej jako załącznik",
-    "import_email": "Importuj .eml lub .zip…",
     "keyboard_shortcuts": "Skróty klawiszowe",
     "email_source": "Źródło wiadomości",
     "draft_banner": "Ta wiadomość jest szkicem",
@@ -1251,8 +1250,6 @@
     "templates_import_errors": "Niektóre szablony nie mogły zostać zaimportowane",
     "templates_import_empty": "Nie znaleziono szablonów w pliku",
     "export_email_error": "Nie udało się wyeksportować wiadomości",
-    "import_email_success": "Wiadomość zaimportowana pomyślnie",
-    "import_email_error": "Nie udało się zaimportować wiadomości",
     "rule_created": "Utworzono regułę",
     "rule_merged": "Dodano do reguły „{name}”",
     "rule_already_covered": "Już obejmuje to reguła „{name}”",
@@ -3556,7 +3553,6 @@
     "new_folder": "Nowy folder…",
     "rename": "Zmień nazwę…",
     "share": "Udostępnij…",
-    "import_email": "Importuj .eml lub .zip…",
     "empty_folder": "Opróżnij folder",
     "empty_folder_generic": "Opróżnij folder",
     "delete_folder": "Usuń folder",
@@ -5253,10 +5249,10 @@
   "mail_import": {
     "menu_import": "Importuj pocztę…",
     "settings_label": "Importuj pocztę",
-    "settings_description": "Przenieś pocztę z plików .eml, ZIP, mbox lub Outlook .pst.",
+    "settings_description": "Przenieś pocztę z plików .eml, ZIP, mbox lub Outlook .pst i .ost.",
     "settings_button": "Importuj…",
     "title": "Importuj pocztę",
-    "description": "Wybierz pliki .eml, .zip, .mbox lub Outlook .pst.",
+    "description": "Wybierz pliki .eml, .zip, .mbox lub Outlook .pst i .ost.",
     "choose_files": "Wybierz pliki…",
     "chosen_files": "Wybrane pliki",
     "remove_file": "Usuń {name}",
@@ -5314,7 +5310,9 @@
     "keep_folders_top_hint": "Na najwyższym poziomie Skrzynka odbiorcza, Elementy wysłane, Elementy usunięte i podobne trafiają do Twoich własnych.",
     "toast_done": "Import zakończony. Zaimportowano: {imported}, nie udało się: {failed}.",
     "toast_stopped": "Import się zatrzymał.",
-    "toast_show": "Pokaż"
+    "toast_show": "Pokaż",
+    "section_title": "Pliki poczty",
+    "section_description": "Przenieś pocztę z plików lub zapisz swoją pocztę jako pliki."
   },
   "mail_export": {
     "menu_export": "Eksportuj folder…",

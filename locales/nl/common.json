@@ -461,7 +461,6 @@
     "view_in_light_mode": "Weergeven in lichte modus",
     "export_email": "Exporteren als .eml",
     "forward_as_attachment": "Doorsturen als bijlage",
-    "import_email": ".eml of .zip importeren…",
     "keyboard_shortcuts": "Sneltoetsen",
     "email_source": "E-mailbron",
     "draft_banner": "Dit bericht is een concept",
@@ -1251,8 +1250,6 @@
     "templates_import_errors": "Sommige sjablonen konden niet worden geïmporteerd",
     "templates_import_empty": "Geen sjablonen gevonden in het bestand",
     "export_email_error": "Kan e-mail niet exporteren",
-    "import_email_success": "E-mail succesvol geïmporteerd",
-    "import_email_error": "Kan e-mail niet importeren",
     "rule_created": "Regel gemaakt",
     "rule_merged": "Toegevoegd aan regel ‘{name}’",
     "rule_already_covered": "Valt al onder regel ‘{name}’",
@@ -3556,7 +3553,6 @@
     "new_folder": "Nieuwe map…",
     "rename": "Hernoemen…",
     "share": "Delen…",
-    "import_email": ".eml of .zip importeren…",
     "empty_folder": "Map leegmaken",
     "empty_folder_generic": "Map leegmaken",
     "delete_folder": "Map verwijderen",
@@ -5253,10 +5249,10 @@
   "mail_import": {
     "menu_import": "E-mail importeren…",
     "settings_label": "E-mail importeren",
-    "settings_description": "Haal e-mail binnen uit .eml-, ZIP-, mbox- of Outlook-.pst-bestanden.",
+    "settings_description": "Haal e-mail binnen uit .eml-, ZIP-, mbox- of Outlook-.pst- en -.ost-bestanden.",
     "settings_button": "Importeren…",
     "title": "E-mail importeren",
-    "description": "Kies .eml-, .zip-, .mbox- of Outlook-.pst-bestanden.",
+    "description": "Kies .eml-, .zip-, .mbox- of Outlook-.pst- en -.ost-bestanden.",
     "choose_files": "Bestanden kiezen…",
     "chosen_files": "Gekozen bestanden",
     "remove_file": "{name} verwijderen",
@@ -5314,7 +5310,9 @@
     "keep_folders_top_hint": "Op het hoogste niveau gaan Postvak IN, Verzonden items, Verwijderde items en dergelijke naar die van u.",
     "toast_done": "Import voltooid. Geïmporteerd: {imported}, mislukt: {failed}.",
     "toast_stopped": "De import is gestopt.",
-    "toast_show": "Tonen"
+    "toast_show": "Tonen",
+    "section_title": "E-mailbestanden",
+    "section_description": "Haal e-mail binnen uit bestanden, of bewaar uw e-mail als bestanden."
   },
   "mail_export": {
     "menu_export": "Map exporteren…",

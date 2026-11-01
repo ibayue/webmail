@@ -461,7 +461,6 @@
     "view_in_light_mode": "نمایش در حالت روشن",
     "export_email": "خروجی .eml",
     "forward_as_attachment": "ارسال به‌عنوان پیوست",
-    "import_email": "وارد کردن .eml یا .zip…",
     "keyboard_shortcuts": "میانبرهای صفحه کلید",
     "email_source": "منبع ایمیل",
     "draft_banner": "این پیام یک پیش‌نویس است",
@@ -1251,8 +1250,6 @@
     "templates_import_errors": "برخی قالب‌ها وارد نشدند",
     "templates_import_empty": "قالبی در فایل یافت نشد",
     "export_email_error": "خروجی ایمیل ناموفق بود",
-    "import_email_success": "ایمیل با موفقیت وارد شد",
-    "import_email_error": "وارد کردن ایمیل ناموفق بود",
     "rule_created": "قانون ایجاد شد",
     "rule_merged": "به قانون «{name}» افزوده شد",
     "rule_already_covered": "قانون «{name}» از قبل این را پوشش می‌دهد",
@@ -3556,7 +3553,6 @@
     "new_folder": "پوشه جدید…",
     "rename": "تغییر نام…",
     "share": "اشتراک‌گذاری…",
-    "import_email": "وارد کردن .eml/.zip…",
     "empty_folder": "خالی کردن پوشه",
     "empty_folder_generic": "خالی کردن پوشه",
     "delete_folder": "حذف پوشه",
@@ -5383,10 +5379,10 @@
   "mail_import": {
     "menu_import": "درون‌ریزی نامه…",
     "settings_label": "درون‌ریزی نامه",
-    "settings_description": "نامه‌ها را از فایل‌های ‎.eml، ZIP، mbox یا ‎.pst اوت‌لوک بیاورید.",
+    "settings_description": "نامه‌ها را از فایل‌های ‎.eml، ZIP، mbox یا ‎.pst و ‎.ost اوت‌لوک بیاورید.",
     "settings_button": "درون‌ریزی…",
     "title": "درون‌ریزی نامه",
-    "description": "فایل‌های ‎.eml، ‎.zip، ‎.mbox یا ‎.pst اوت‌لوک را انتخاب کنید.",
+    "description": "فایل‌های ‎.eml، ‎.zip، ‎.mbox یا ‎.pst و ‎.ost اوت‌لوک را انتخاب کنید.",
     "choose_files": "انتخاب فایل‌ها…",
     "chosen_files": "فایل‌های انتخاب‌شده",
     "remove_file": "برداشتن {name}",
@@ -5444,7 +5440,9 @@
     "keep_folders_top_hint": "در بالاترین سطح، صندوق ورودی، موارد ارسال‌شده، موارد حذف‌شده و مانند آن‌ها به پوشه‌های خودتان می‌روند.",
     "toast_done": "درون‌ریزی تمام شد. درون‌ریزی‌شده: {imported}، ناموفق: {failed}.",
     "toast_stopped": "درون‌ریزی متوقف شد.",
-    "toast_show": "نمایش"
+    "toast_show": "نمایش",
+    "section_title": "فایل‌های نامه",
+    "section_description": "نامه‌ها را از فایل‌ها بیاورید، یا نامه‌های خود را در فایل ذخیره کنید."
   },
   "mail_export": {
     "menu_export": "برون‌بری پوشه…",

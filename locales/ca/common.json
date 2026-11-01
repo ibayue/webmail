@@ -461,7 +461,6 @@
     "view_in_light_mode": "Veure en mode clar",
     "export_email": "Exporta com a .eml",
     "forward_as_attachment": "Reenvia com a fitxer adjunt",
-    "import_email": "Importa .eml o .zip…",
     "keyboard_shortcuts": "Dreceres de teclat",
     "email_source": "Codi font del correu",
     "draft_banner": "Aquest missatge és un esborrany",
@@ -1251,8 +1250,6 @@
     "templates_import_errors": "Algunes plantilles no s'han pogut importar",
     "templates_import_empty": "No s'ha trobat cap plantilla al fitxer",
     "export_email_error": "No s'ha pogut exportar el correu",
-    "import_email_success": "Correu importat correctament",
-    "import_email_error": "No s'ha pogut importar el correu",
     "rule_created": "S'ha creat la regla",
     "rule_merged": "S'ha afegit a la regla «{name}»",
     "rule_already_covered": "Ja ho cobreix la regla «{name}»",
@@ -3556,7 +3553,6 @@
     "new_folder": "Carpeta nova…",
     "rename": "Canvia el nom…",
     "share": "Comparteix…",
-    "import_email": "Importa .eml o .zip…",
     "empty_folder": "Buida la carpeta",
     "empty_folder_generic": "Buida la carpeta",
     "delete_folder": "Suprimeix la carpeta",
@@ -5383,10 +5379,10 @@
   "mail_import": {
     "menu_import": "Importa correu…",
     "settings_label": "Importa correu",
-    "settings_description": "Porta correu des de fitxers .eml, ZIP, mbox o Outlook .pst.",
+    "settings_description": "Porta correu des de fitxers .eml, ZIP, mbox o Outlook .pst i .ost.",
     "settings_button": "Importa…",
     "title": "Importa correu",
-    "description": "Trieu fitxers .eml, .zip, .mbox o Outlook .pst.",
+    "description": "Trieu fitxers .eml, .zip, .mbox o Outlook .pst i .ost.",
     "choose_files": "Tria fitxers…",
     "chosen_files": "Fitxers triats",
     "remove_file": "Treu {name}",
@@ -5444,7 +5440,9 @@
     "keep_folders_top_hint": "Al nivell superior, Safata d'entrada, Elements enviats, Elements suprimits i similars van a les vostres.",
     "toast_done": "Importació acabada. Importats: {imported}, fallats: {failed}.",
     "toast_stopped": "La importació s'ha aturat.",
-    "toast_show": "Mostra"
+    "toast_show": "Mostra",
+    "section_title": "Fitxers de correu",
+    "section_description": "Porteu correu des de fitxers, o deseu el vostre correu com a fitxers."
   },
   "mail_export": {
     "menu_export": "Exporta la carpeta…",
