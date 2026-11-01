@@ -26,7 +26,8 @@ import type { CompanyFeed } from '@/lib/admin/organisation-policy';
 import { apiFetch } from '@/lib/browser-navigation';
 import { getActiveAccountSlotHeaders } from '@/lib/auth/active-account-slot';
 import { IS_LITE } from '@/lib/lite';
-import { onFullSignOut } from '@/lib/sign-out-cleanup';
+import { onBeforeSignOut, onFullSignOut } from '@/lib/sign-out-cleanup';
+import { useAccountStore } from '@/stores/account-store';
 import { debug } from '@/lib/debug';
 
 export const COMPANY_CALENDAR_PREFIX = '__company-calendar__:';
@@ -110,7 +111,9 @@ export interface FeedCacheEntry {
 
 // ── IndexedDB, per account ──────────────────────────────────────────
 
-const DB_NAME = 'bulwark-company-calendars';
+/** Also deleted by name in lib/sign-out-cleanup.ts, whether this module was loaded or not. */
+export const COMPANY_CALENDAR_DB = 'bulwark-company-calendars';
+const DB_NAME = COMPANY_CALENDAR_DB;
 const STORE = 'feeds';
 
 function openDb(): Promise<IDBDatabase | null> {
@@ -159,6 +162,27 @@ async function idbPut(key: string, value: FeedCacheEntry): Promise<void> {
   db.close();
 }
 
+async function idbDelete(match: (key: string) => boolean): Promise<void> {
+  const db = await openDb();
+  if (!db) return;
+  await new Promise<void>((resolve) => {
+    try {
+      const tx = db.transaction(STORE, 'readwrite');
+      const store = tx.objectStore(STORE);
+      const request = store.getAllKeys();
+      request.onsuccess = () => {
+        for (const key of request.result) if (typeof key === 'string' && match(key)) store.delete(key);
+      };
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => resolve();
+      tx.onabort = () => resolve();
+    } catch {
+      resolve();
+    }
+  });
+  db.close();
+}
+
 const memory = new Map<string, FeedCacheEntry>();
 
 /** Drop every cached feed: on a full sign-out the events are the organisation's. */
@@ -174,6 +198,28 @@ export function clearCompanyCalendarCache(): void {
 }
 
 onFullSignOut(clearCompanyCalendarCache);
+
+/** Drop one login's cached feeds (keys start with its address). */
+export async function forgetCompanyCalendarsOf(username: string): Promise<void> {
+  const prefix = `${username}|`;
+  for (const key of [...memory.keys()]) if (key.startsWith(prefix)) memory.delete(key);
+  await idbDelete((key) => key.startsWith(prefix));
+}
+
+// Signing one account out takes its cached feeds along.
+onBeforeSignOut(async (accountId) => {
+  if (accountId === 'all') return;
+  const username = useAccountStore.getState().getAccountById(accountId)?.username;
+  if (username) await forgetCompanyCalendarsOf(username);
+});
+
+/** The feed is gone for this user (removed, or no longer in their scope). */
+class FeedGoneError extends Error {
+  constructor(feedId: string) {
+    super(`Company calendar ${feedId} is gone`);
+    this.name = 'FeedGoneError';
+  }
+}
 
 async function sha256(text: string): Promise<string> {
   const subtle = globalThis.crypto?.subtle;
@@ -198,6 +244,7 @@ async function fetchFeedText(feed: CompanyFeed): Promise<string> {
         headers: { 'Content-Type': 'application/json', ...getActiveAccountSlotHeaders() },
         body: JSON.stringify({ feedId: feed.id }),
       });
+  if (response.status === 404 || response.status === 410) throw new FeedGoneError(feed.id);
   if (!response.ok) throw new Error(`Company calendar ${feed.id}: ${response.status}`);
   return response.text();
 }
@@ -235,6 +282,13 @@ export function loadFeedEvents(client: FeedClient, accountKey: string, feed: Com
       await idbPut(key, entry);
       return events;
     } catch (error) {
+      // A feed the server no longer gives this user takes its events along;
+      // one that is only down keeps showing what it had.
+      if (error instanceof Error && error.name === 'FeedGoneError') {
+        memory.delete(key);
+        await idbDelete((k) => k === key);
+        return [];
+      }
       debug.warn('calendar', 'Company calendar could not be refreshed', { feed: feed.id, error });
       return cached?.events ?? [];
     }

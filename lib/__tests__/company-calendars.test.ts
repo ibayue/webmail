@@ -16,7 +16,8 @@ vi.mock('@/lib/auth/active-account-slot', () => ({ getActiveAccountSlotHeaders: 
 import {
   companyCalendarId, createCompanyCalendar, isCompanyCalendarId, loadFeedEvents, resetCompanyCalendarMemory, toCompanyEvents,
 } from '../company-calendars';
-import { purgeSignedOutData } from '../sign-out-cleanup';
+import { purgeSignedOutData, runBeforeSignOut } from '../sign-out-cleanup';
+import { useAccountStore } from '@/stores/account-store';
 import type { CompanyFeed } from '@/lib/admin/organisation-policy';
 import type { CalendarEvent } from '@/lib/jmap/types';
 
@@ -116,5 +117,30 @@ describe('the company calendar and its events', () => {
     ]);
     expect(events).toHaveLength(1);
     expect(events[0]).toMatchObject({ calendarIds: { [companyCalendarId('hol')]: true }, participants: null, organizerCalendarAddress: null, title: 'Closed' });
+  });
+});
+
+describe('when a feed goes away or the user signs out', () => {
+  it('drops the events of a feed the server no longer gives the user, and keeps them through an outage', async () => {
+    const client = fakeClient();
+    await loadFeedEvents(client, 'alice|a', FEED, T0);
+    apiFetch.mockImplementation(async () => new Response('down', { status: 503 }));
+    expect(await loadFeedEvents(client, 'alice|a', FEED, T0 + 2 * HOUR)).toEqual(PARSED);
+    apiFetch.mockImplementation(async () => new Response('{"error":"Unknown calendar"}', { status: 404 }));
+    expect(await loadFeedEvents(client, 'alice|a', FEED, T0 + 3 * HOUR)).toEqual([]);
+    // Nothing kept: the next look asks the server again.
+    await loadFeedEvents(client, 'alice|a', FEED, T0 + 3 * HOUR + 1);
+    expect(apiFetch).toHaveBeenCalledTimes(4);
+  });
+
+  it('forgets one login\'s feeds when that account signs out', async () => {
+    const client = fakeClient();
+    await loadFeedEvents(client, 'alice@example.org|a', FEED, T0);
+    await loadFeedEvents(client, 'bob@example.org|b', FEED, T0);
+    useAccountStore.setState({ accounts: [{ id: 'acc-alice', username: 'alice@example.org' }] as never });
+    await runBeforeSignOut('acc-alice');
+    await loadFeedEvents(client, 'alice@example.org|a', FEED, T0 + 60_000);
+    await loadFeedEvents(client, 'bob@example.org|b', FEED, T0 + 60_000);
+    expect(apiFetch).toHaveBeenCalledTimes(3);
   });
 });
