@@ -619,11 +619,9 @@ function buildPluginApi(manifest: PluginManifest) {
     // The message being written. `composerId` comes from the composer: the
     // context of a click on a composer action, or a composer slot's props.
     composer: {
-      /** Capture own text and metadata for a conditional edit. Needs compose:read.
-       * 조건부 편집용 본문·메타데이터를 읽습니다. compose:read 권한이 필요합니다. */
+      /** Capture own text and metadata for a conditional edit. Needs compose:read. */
       getSnapshot: (composerId: string) => callApi('composer.getSnapshot', [composerId]) as Promise<ComposerSnapshot>,
-      /** Read a currently attached file. Needs email:blob-read.
-       * 현재 첨부된 파일을 읽습니다. email:blob-read 권한이 필요합니다. */
+      /** Read a currently attached file. Needs email:blob-read. */
       readAttachment: (composerId: string, attachmentId: string) => callApi('composer.readAttachment', [composerId, attachmentId]) as Promise<ComposerAttachmentData>,
       /** The user's own text (no signature, no quote) as { html, text }. Needs compose:read. */
       getBody: (composerId: string) =>
@@ -638,8 +636,7 @@ function buildPluginApi(manifest: PluginManifest) {
        */
       replaceSelection: (composerId: string, content: { text: string } | { html: string }, options?: { below?: boolean }) =>
         callApi('composer.replaceSelection', [composerId, content, options]) as Promise<boolean>,
-      /** Replace own text, optionally only at expectedRevision; signature and quote stay. Needs compose:write.
-       * 선택적으로 expectedRevision을 확인한 뒤 본문만 수정하며 서명·인용은 보존합니다. compose:write 권한이 필요합니다. */
+      /** Replace own text, optionally only at expectedRevision; signature and quote stay. Needs compose:write. */
       replaceBody: (composerId: string, content: { text: string } | { html: string }, options?: { expectedRevision: string }) =>
         callApi('composer.replaceBody', [composerId, content, options]) as Promise<boolean>,
       /** Attach a blob from jmap.uploadBlob. Needs email:blob-write. */

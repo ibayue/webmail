@@ -66,8 +66,7 @@ export function doComposerReplaceSelection(plugin: InstalledPlugin, id: unknown,
   return handle.replaceSelection(html, text, { below });
 }
 
-/** Optionally reject a stale revision before the synchronous editor transaction.
- * 선택적으로 오래된 리비전을 거부한 뒤 동기 편집 트랜잭션을 실행합니다. */
+/** Optionally reject a stale revision before the synchronous editor transaction. */
 export function doComposerReplaceBody(plugin: InstalledPlugin, id: unknown, content: unknown, options?: unknown): boolean {
   const method = 'composer.replaceBody';
   const handle = handleFor(method, id);
@@ -81,16 +80,14 @@ export function doComposerReplaceBody(plugin: InstalledPlugin, id: unknown, cont
   return handle.replaceBody(html, text);
 }
 
-/** Read a coherent draft snapshot without granting permission to send it.
- * 발송 권한 없이 일관된 작성창 스냅샷을 읽습니다. */
+/** Read a coherent draft snapshot without granting permission to send it. */
 export function doComposerGetSnapshot(_plugin: InstalledPlugin, id: unknown): ComposerSnapshot {
   const composerId = readId(id, 'composer.getSnapshot', 'composerId');
   handleFor('composer.getSnapshot', composerId);
   return captureComposer(composerId);
 }
 
-/** Bound bytes and membership before and after reading a composer's attachment.
- * 작성창 첨부를 읽기 전후에 바이트 크기와 소속을 확인합니다. */
+/** Bound bytes and membership before and after reading a composer's attachment. */
 export async function doComposerReadAttachment(_plugin: InstalledPlugin, id: unknown, attachmentId: unknown): Promise<ComposerAttachmentData> {
   const method = 'composer.readAttachment';
   const composerId = readId(id, method, 'composerId');

@@ -1344,8 +1344,7 @@ export interface PluginAttachmentUpload {
   size: number;
 }
 
-/** Own text and metadata of one open composer, with an opaque edit revision.
- * 열린 작성창 하나의 본문·메타데이터와 조건부 편집용 불투명 리비전입니다. */
+/** Own text and metadata of one open composer, with an opaque edit revision. */
 export type ComposerSnapshot = {
   revision: string;
   subject: string;
@@ -1357,8 +1356,7 @@ export type ComposerSnapshot = {
   pending: boolean;
 };
 
-/** Bytes of a file still attached to the selected composer.
- * 선택한 작성창에 계속 첨부되어 있는 파일의 바이트입니다. */
+/** Bytes of a file still attached to the selected composer. */
 export type ComposerAttachmentData = {
   name: string;
   type: string;

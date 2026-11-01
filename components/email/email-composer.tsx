@@ -2977,7 +2977,6 @@ export function EmailComposer({
   pluginAttachRef.current = handlePluginAttachmentAdd;
   const pluginAttachmentIdsRef = useRef(new WeakMap<ComposerAttachment, string>());
   // Read live draft data without re-registering the composer on every edit.
-  // 매번 작성창을 재등록하지 않고 최신 초안 데이터를 읽습니다.
   const pluginData = {
     readMetadata: () => {
       const draft = draftSnapshotRef.current();

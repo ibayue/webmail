@@ -33,10 +33,9 @@ export type ComposerMetadata = {
 };
 
 export interface ComposerHandle {
-  /** Read this composer's metadata; account and identity stay host-side.
-   * 이 작성창의 메타데이터만 읽으며 계정과 identity는 호스트에 남습니다. */
+  /** Read this composer's metadata; account and identity stay host-side. */
   readMetadata?(): ComposerMetadata;
-  /** Read a file currently attached to this composer. 현재 첨부된 파일만 읽습니다. */
+  /** Read a file currently attached to this composer. */
   readAttachment?(id: string): Promise<ComposerAttachmentData>;
   /** The user's own text, without the signature and the quote. */
   readBody(): ComposerContent;
@@ -52,8 +51,7 @@ export interface ComposerHandle {
 const handles = new Map<string, ComposerHandle>();
 const snapshots = new Map<string, { fingerprint: string; revision: string }>();
 
-/** Bind an opaque revision to the current body, recipients, files and account.
- * 현재 본문·수신인·첨부·계정에 불투명 리비전을 결합합니다. */
+/** Bind an opaque revision to the current body, recipients, files and account. */
 export function captureComposer(id: string): ComposerSnapshot {
   const handle = handles.get(id);
   if (!handle) throw new Error('composer is not open any more');
