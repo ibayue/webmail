@@ -36,9 +36,9 @@ const FORWARDER = plugin(['email:forward'], 'e-invoice');
 const SMIME = plugin(['email:raw-send'], 'smime');
 const call = (p: InstalledPlugin, method: string, ...args: unknown[]) => dispatchApiCall(p, method, args, { privileged: p.id === 'smime' });
 
-const original = (headers: Record<string, string>) => ({
+const original = (headers: Record<string, string>, sender = 'colleague@example.com') => ({
   id: 'E1', threadId: 'T1', mailboxIds: { inbox: true }, keywords: {}, size: 900, receivedAt: '2026-10-20T08:00:00Z',
-  from: [{ email: 'billing@supplier.example' }], to: [{ email: 'ann@example.com' }], subject: 'Invoice',
+  from: [{ email: sender }], to: [{ email: 'ann@example.com' }], subject: 'Invoice',
   textBody: [{ partId: '1', blobId: 'tb', size: 20, type: 'text/plain' }], bodyValues: { 1: { value: 'Hello' } },
   attachments: [], headers,
 }) as unknown as Email;
@@ -53,6 +53,7 @@ describe('labels on the plugin paths', () => {
   let sendEmail: ReturnType<typeof vi.fn>;
   let sendRawEmail: ReturnType<typeof vi.fn>;
   let headers: Record<string, string> = {};
+  let sender = 'colleague@example.com';
 
   beforeEach(() => {
     resetPluginRateLimits();
@@ -62,7 +63,7 @@ describe('labels on the plugin paths', () => {
     localStorage.setItem('plugin-forward-approvals', '{}');
     client = {
       getAccountId: vi.fn(() => 'own'),
-      getEmail: vi.fn(async () => original(headers)),
+      getEmail: vi.fn(async () => original(headers, sender)),
       getMailboxes: vi.fn(async () => []),
       resolveSendAccountId: vi.fn(async () => 'own'),
       copyBlobs: vi.fn(async () => ({})),
@@ -76,6 +77,7 @@ describe('labels on the plugin paths', () => {
     useAccountStore.setState({ activeAccountId: 'acct-1' });
     useEmailStore.setState({ sendEmail, sendRawEmail, emails: [], selectedEmail: null, mailboxes: [] } as never);
     useIdentityStore.setState({ identities: [{ id: 'id-a', name: 'Ann', email: 'ann@example.com' }] as never, preferredPrimaryId: 'id-a' });
+    useAuthStore.setState({ identities: [{ id: 'id-a', name: 'Ann', email: 'ann@example.com' }] } as never);
     useSettingsStore.setState({ sendDelaySeconds: 0 });
   });
   afterEach(() => {
@@ -84,6 +86,7 @@ describe('labels on the plugin paths', () => {
     usePolicyStore.setState({ policy: DEFAULT_POLICY, rawPolicy: DEFAULT_POLICY });
     resetLabelTakeovers();
     headers = {};
+    sender = 'colleague@example.com';
     vi.clearAllMocks();
   });
 
@@ -101,6 +104,16 @@ describe('labels on the plugin paths', () => {
     const args = sendEmail.mock.calls[0] as unknown[];
     expect(args[2]).toBe('[Confidential] Fwd: Invoice');
     expect((args[16] as { labelHeaders: Record<string, string> }).labelHeaders['header:SIO-Label:asRaw']).toContain('CONFIDENTIAL');
+  });
+
+  it('takes the default, not an outside sender’s label', async () => {
+    useLabels({ defaultId: 'internal' });
+    headers = { 'SIO-Label': ' marking="PUBLIC"' };
+    sender = 'billing@supplier.example';
+    expect(await forward()).toMatchObject({ sent: true });
+    expect((sendEmail.mock.calls[0] as unknown[])[2]).toBe('Fwd: Invoice');
+    const labelHeaders = ((sendEmail.mock.calls[0] as unknown[])[16] as { labelHeaders: Record<string, string> }).labelHeaders;
+    expect(labelHeaders['header:SIO-Label:asRaw']).toContain('INTERNAL');
   });
 
   it('refuses a forward that needs a label it has no way to get', async () => {

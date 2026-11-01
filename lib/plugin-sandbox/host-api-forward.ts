@@ -147,7 +147,7 @@ export async function doEmailForward(
   // The classification label: a required one that isn't there stops the
   // forward before anything is asked.
   await whenPolicySettled();
-  const label = automaticLabel({ email: identity.email }, email.headers);
+  const label = automaticLabel({ email: identity.email }, { headers: email.headers, from: email.from });
   if (label.missing) {
     toast.error(text(messages, 'classification.forward_needs_label'));
     return { sent: false, reason: 'stopped' };

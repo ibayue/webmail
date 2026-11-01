@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import type { ClassificationLabel } from '@/lib/admin/organisation-policy';
 import { useAccountSubjects } from '@/lib/org/account-subjects';
-import { labelsPolicyFor, resolveLabel, labelMissing } from '@/lib/outgoing/classification';
+import { labelsPolicyFor, resolveLabel, labelMissing, type OriginalMessage } from '@/lib/outgoing/classification';
 import type { LabelsPolicy } from '@/lib/classification/labels';
 import { usePolicyStore } from '@/stores/policy-store';
 
@@ -29,8 +29,8 @@ export interface ComposerClassification {
 export function useComposerClassification(input: {
   accountId: string | null | undefined;
   senderEmail: string | undefined;
-  /** The original's headers, for a reply or forward. */
-  originalHeaders?: Record<string, string | string[]> | null;
+  /** The original of a reply or forward. */
+  original?: OriginalMessage | null;
   initialChoice?: string | null;
 }): ComposerClassification {
   const policyState = usePolicyStore((s) => s.policy);
@@ -43,7 +43,7 @@ export function useComposerClassification(input: {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [input.senderEmail, input.accountId, policyState, rawPolicy, subjects],
   );
-  const label = useMemo(() => resolveLabel(policy, choice, input.originalHeaders), [policy, choice, input.originalHeaders]);
+  const label = useMemo(() => resolveLabel(policy, choice, input.original), [policy, choice, input.original]);
   return {
     policy,
     label,

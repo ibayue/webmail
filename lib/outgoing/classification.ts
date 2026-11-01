@@ -24,6 +24,8 @@ import type { ClassificationLabel } from '@/lib/admin/organisation-policy';
 import { DEFAULT_ORGANISATION_POLICY } from '@/lib/admin/organisation-policy';
 import { subjectForAccount } from '@/lib/org/account-subjects';
 import { policyForSender } from '@/lib/org/signature-state';
+import { activeExternalMailContext, contextInternalDomains, externalSenders, isOtherAccount } from '@/lib/external-mail';
+import { cachedIdentitiesForAccount } from '@/hooks/use-pro-multi-account-identities';
 import { usePolicyStore } from '@/stores/policy-store';
 import { generateUUID } from '@/lib/utils';
 import { withoutLabelHeaders } from './custom-headers';
@@ -31,6 +33,7 @@ import {
   applyLabelPrefix,
   labelHeaderLines,
   labelHeaderProperties,
+  draftLabelChoice,
   receivedLabel,
   type LabelsPolicy,
 } from '@/lib/classification/labels';
@@ -60,25 +63,81 @@ export function labelsPolicyFor(sender: LabelSender): LabelsPolicy {
   return policy.organisation?.labels ?? DEFAULT_ORGANISATION_POLICY.labels;
 }
 
+/** The message a reply or forward answers, as far as its label goes. */
+export interface OriginalMessage {
+  /** Its headers (labelSourceHeaders keeps the ones that matter). */
+  headers?: Record<string, string | string[]> | null;
+  from?: ReadonlyArray<{ email?: string | null }> | null;
+  /** The signed-in account it was received in; the active one when left out. */
+  accountId?: string | null;
+}
+
+/**
+ * Whether every From address of a message is inside the organisation of
+ * the account that received it (its identities' domains and the admin's
+ * organisation domains). False without a From or without known domains.
+ */
+export function senderIsInternal(
+  from: OriginalMessage['from'],
+  accountId?: string | null,
+): boolean {
+  if (!from || from.length === 0) return false;
+  const context = isOtherAccount(accountId)
+    ? {
+        policy: (usePolicyStore.getState().resolveFor(subjectForAccount(accountId)).organisation
+          ?? DEFAULT_ORGANISATION_POLICY).externalMail,
+        identityEmails: (cachedIdentitiesForAccount(accountId) ?? []).map((identity) => identity.email),
+      }
+    : activeExternalMailContext();
+  const internal = contextInternalDomains(context);
+  return internal.length > 0 && externalSenders(from, internal).length === 0;
+}
+
+/**
+ * The label a reply or forward takes over from its original: the
+ * original's known label, only when an internal sender set it (anyone
+ * outside can write the header) and never one below the default (the
+ * list runs from least to most protected).
+ */
+export function originalLabel(policy: LabelsPolicy, original: OriginalMessage | null | undefined): ClassificationLabel | null {
+  if (!original?.headers || policy.list.length === 0) return null;
+  const label = receivedLabel(original.headers, policy);
+  if (!label || !senderIsInternal(original.from, original.accountId)) return null;
+  const floor = policy.list.findIndex((l) => l.id === policy.defaultId);
+  return floor >= 0 && policy.list.indexOf(label) < floor ? null : label;
+}
+
 /**
  * The label a message goes out with. `choice`: the user's pick (an id),
  * null for "no label", undefined when they picked nothing, which takes the
- * original's label (a reply or forward of `originalHeaders`), else the
- * default. A pick that isn't in the list (another account's, an old one)
- * counts as nothing picked.
+ * original's label (originalLabel), else the default. A pick that isn't in
+ * the list (another account's, an old one) counts as nothing picked.
  */
 export function resolveLabel(
   policy: LabelsPolicy,
   choice: string | null | undefined,
-  originalHeaders?: Record<string, string | string[]> | null,
+  original?: OriginalMessage | null,
 ): ClassificationLabel | null {
   if (policy.list.length === 0) return null;
   if (choice === null) return null;
   const picked = choice ? policy.list.find((label) => label.id === choice) : undefined;
   if (picked) return picked;
-  const original = originalHeaders ? receivedLabel(originalHeaders, policy) : null;
-  if (original) return original;
-  return policy.list.find((label) => label.id === policy.defaultId) ?? null;
+  return originalLabel(policy, original) ?? policy.list.find((label) => label.id === policy.defaultId) ?? null;
+}
+
+/**
+ * The pick a message opened again in the composer starts with: a draft's
+ * X-Bulwark-Label, else the label its headers carry (a sent message
+ * brought back by Undo, "Cancel and edit" or edit-as-new carries SIO-Label
+ * only), read with the labels of the account it is in.
+ */
+export function reopenedLabelChoice(
+  headers: Record<string, string | string[]> | null | undefined,
+  accountId?: string | null,
+): string | null | undefined {
+  const marked = draftLabelChoice(headers);
+  if (marked !== undefined) return marked;
+  return receivedLabel(headers, labelsPolicyFor({ accountId }))?.id;
 }
 
 /** Whether sending needs a label that `label` doesn't give. */
@@ -114,13 +173,13 @@ export function classifyOutgoing(
   };
 }
 
-/** The label of a quick reply or a plugin's forward: the original's, else the default. */
+/** The label of a quick reply or a plugin's forward: the original's (originalLabel), else the default. */
 export function automaticLabel(
   sender: LabelSender,
-  originalHeaders?: Record<string, string | string[]> | null,
+  original?: OriginalMessage | null,
 ): { policy: LabelsPolicy; label: ClassificationLabel | null; missing: boolean } {
   const policy = labelsPolicyFor(sender);
-  const label = resolveLabel(policy, undefined, originalHeaders);
+  const label = resolveLabel(policy, undefined, original);
   return { policy, label, missing: labelMissing(policy, label) };
 }
 

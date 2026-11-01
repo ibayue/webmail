@@ -198,12 +198,22 @@ describe('composer: classification label', () => {
     const onSend = renderComposer({
       mode: 'reply',
       initialData: { ...DRAFT, mode: 'reply', subject: 'Re: [Confidential] Budget' },
-      replyTo: { subject: '[Confidential] Budget', headers: { 'SIO-Label': ' marking="CONFIDENTIAL"; bgcolor=#d97706' } },
+      replyTo: { subject: '[Confidential] Budget', from: [{ email: 'boss@example.com' }], headers: { 'SIO-Label': ' marking="CONFIDENTIAL"; bgcolor=#d97706' } },
     });
     expect(screen.getByTestId('composer-classification-trigger').textContent).toContain('Confidential');
     await send();
     await waitFor(() => expect(onSend).toHaveBeenCalledTimes(1));
     expect(onSend.mock.calls[0][0].subject).toBe('[Confidential] Re: Budget');
+  });
+
+  it('ignores a label an outside sender wrote, and starts with the default', async () => {
+    useLabels({ defaultId: 'internal' });
+    renderComposer({
+      mode: 'reply',
+      initialData: { ...DRAFT, mode: 'reply', subject: 'Re: Offer' },
+      replyTo: { subject: 'Offer', from: [{ email: 'shop@outside.example' }], headers: { 'SIO-Label': ' marking="PUBLIC"' } },
+    });
+    expect(screen.getByTestId('composer-classification-trigger').textContent).toContain('Internal');
   });
 
   it('lets the user take the label off when none is required', async () => {

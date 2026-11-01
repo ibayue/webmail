@@ -111,7 +111,7 @@ import type { EmailTemplate } from "@/lib/template-types";
 import { appendPlainTextSignature, getPlainTextSignature, plainTextBodyHasSignature, plainTextBodyWithoutSignature } from "@/lib/signature-utils";
 import { wantsSignatureSeparator } from "@/lib/signature-delimiter";
 import { finalizeOutgoing, runPreSendChecks, type OutgoingContext } from "@/lib/outgoing/send-pipeline";
-import { beginLabelTakeover, classifyOutgoing, endLabelTakeover, isLabelRequiredError, labelMissing, labelsPolicyFor, resolveLabel } from "@/lib/outgoing/classification";
+import { beginLabelTakeover, classifyOutgoing, endLabelTakeover, isLabelRequiredError, labelMissing, labelsPolicyFor, resolveLabel, type OriginalMessage } from "@/lib/outgoing/classification";
 import { whenPolicySettled } from "@/stores/policy-store";
 import { ClassificationLabelPicker, type ClassificationPickerHandle } from "./classification-label-picker";
 import { useComposerClassification } from "./use-composer-classification";
@@ -392,6 +392,8 @@ interface EmailComposerProps {
     quoteWrapInBlockquote?: boolean;
     /** The original's headers: a reply or forward starts with its classification label. */
     headers?: Record<string, string | string[]>;
+    /** The original's From, when `from` is left out (a forward as attachment): whether its label counts. */
+    originalFrom?: { email?: string; name?: string }[];
   };
 }
 
@@ -1121,10 +1123,16 @@ export function EmailComposer({
   // Classification label (enterprise pack): the labels of the account and
   // identity the message goes out from; replies and forwards start with
   // the original's label, re-opened drafts with theirs.
+  const labelOriginal = useMemo<OriginalMessage | null>(
+    () => (mode === 'compose' || !replyTo?.headers
+      ? null
+      : { headers: replyTo.headers, from: replyTo.from ?? replyTo.originalFrom, accountId: replyTo.accountId }),
+    [mode, replyTo?.headers, replyTo?.from, replyTo?.originalFrom, replyTo?.accountId],
+  );
   const classification = useComposerClassification({
     accountId: composingAccountId,
     senderEmail: currentIdentity?.email,
-    originalHeaders: mode === 'compose' ? null : replyTo?.headers,
+    original: labelOriginal,
     initialChoice: initialData?.classification,
   });
   const classificationRef = useRef(classification);
@@ -3367,7 +3375,7 @@ export function EmailComposer({
     {
       const labelSender = { email: currentIdentity?.email, accountId: composingAccountId };
       const labelPolicy = labelsPolicyFor(labelSender);
-      const label = resolveLabel(labelPolicy, classificationRef.current.choice, mode === 'compose' ? null : replyTo?.headers);
+      const label = resolveLabel(labelPolicy, classificationRef.current.choice, labelOriginal);
       if (labelMissing(labelPolicy, label)) {
         setLabelInvalid(true);
         toast.error(tClassification('required_toast'));
@@ -3637,7 +3645,7 @@ export function EmailComposer({
       const sealed = lastStage(finalHtmlBody, finalBody);
       // The label as it stands now, from the policy of the sending account.
       const labelPolicy = labelsPolicyFor({ email: currentIdentity?.email, accountId: composingAccountId });
-      const sendLabel = resolveLabel(labelPolicy, classificationRef.current.choice, mode === 'compose' ? null : replyTo?.headers);
+      const sendLabel = resolveLabel(labelPolicy, classificationRef.current.choice, labelOriginal);
       // A crypto plugin builds the MIME itself: it gets the labelled
       // subject, and its raw send gets the label's headers (keyed to the token).
       const takeoverLabelled = classifyOutgoing(labelPolicy, sendLabel, { subject });

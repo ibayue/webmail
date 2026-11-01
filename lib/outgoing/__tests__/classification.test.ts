@@ -1,4 +1,5 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { useAuthStore } from '@/stores/auth-store';
 import { DEFAULT_POLICY } from '@/lib/admin/types';
 import { DEFAULT_ORGANISATION_POLICY } from '@/lib/admin/organisation-policy';
 import { LABEL_PRESETS } from '@/lib/classification/presets';
@@ -13,6 +14,7 @@ import {
   isLabelRequiredError,
   labelSourceHeaders,
   resetLabelTakeovers,
+  reopenedLabelChoice,
   resolveLabel,
 } from '../classification';
 
@@ -25,17 +27,50 @@ const policy = { list: generic.list, defaultId: 'internal', required: false, ext
 const required = { ...policy, defaultId: '', required: true };
 const label = (id: string) => generic.list.find((l) => l.id === id)!;
 
+const fromColleague = (marking: string) => ({ headers: { 'SIO-Label': ` marking="${marking}"` }, from: [{ email: 'colleague@example.org' }] });
+const fromOutsider = (marking: string) => ({ headers: { 'SIO-Label': ` marking="${marking}"` }, from: [{ email: 'news@outside.example' }] });
+
+beforeEach(() => {
+  useAuthStore.setState({ identities: [{ id: 'id-me', name: 'Me', email: 'me@example.org' }] } as never);
+});
+
 afterEach(() => {
   usePolicyStore.setState({ policy: DEFAULT_POLICY, rawPolicy: DEFAULT_POLICY, subject: null });
+  useAuthStore.setState({ identities: [] } as never);
   resetLabelTakeovers();
+});
+
+describe('the label of the original', () => {
+  it('counts only when an internal sender set it: an outsider can write any header', () => {
+    expect(resolveLabel(policy, undefined, fromOutsider('PUBLIC'))?.id).toBe('internal');
+    expect(resolveLabel(policy, undefined, fromOutsider('CONFIDENTIAL'))?.id).toBe('internal');
+    expect(resolveLabel(policy, undefined, { headers: { 'SIO-Label': ' marking="CONFIDENTIAL"' } })?.id).toBe('internal');
+  });
+
+  it('never goes below the default', () => {
+    expect(resolveLabel(policy, undefined, fromColleague('PUBLIC'))?.id).toBe('internal');
+    expect(resolveLabel(policy, undefined, fromColleague('STRICTLY CONFIDENTIAL'))?.id).toBe('strictly-confidential');
+    // Without a default, an internal label counts whatever it is.
+    expect(resolveLabel({ ...policy, defaultId: '' }, undefined, fromColleague('PUBLIC'))?.id).toBe('public');
+  });
+});
+
+describe('a message opened again', () => {
+  it('keeps the label a sent copy went out with (Undo, Cancel and edit), a draft’s own pick first', () => {
+    usePolicyStore.setState({ policy: { ...DEFAULT_POLICY, organisation: { ...DEFAULT_ORGANISATION_POLICY, labels: policy } } });
+    expect(reopenedLabelChoice({ 'SIO-Label': 'marking="CONFIDENTIAL"; bgcolor=#d97706' })).toBe('confidential');
+    expect(reopenedLabelChoice({ 'X-Bulwark-Label': 'none', 'SIO-Label': 'marking="CONFIDENTIAL"' })).toBeNull();
+    expect(reopenedLabelChoice({ 'X-Bulwark-Label': 'public' })).toBe('public');
+    expect(reopenedLabelChoice({})).toBeUndefined();
+  });
 });
 
 describe('resolveLabel', () => {
   it('takes the pick, then the original’s label, then the default', () => {
     expect(resolveLabel(policy, 'public')?.id).toBe('public');
-    expect(resolveLabel(policy, undefined, { 'SIO-Label': ' marking="CONFIDENTIAL"' })?.id).toBe('confidential');
+    expect(resolveLabel(policy, undefined, fromColleague('CONFIDENTIAL'))?.id).toBe('confidential');
     expect(resolveLabel(policy, undefined)?.id).toBe('internal');
-    expect(resolveLabel(policy, null, { 'SIO-Label': ' marking="CONFIDENTIAL"' })).toBeNull();
+    expect(resolveLabel(policy, null, fromColleague('CONFIDENTIAL'))).toBeNull();
     // A pick that isn't in this account's list counts as nothing picked.
     expect(resolveLabel(policy, 'gone')?.id).toBe('internal');
   });
@@ -78,8 +113,10 @@ describe('the policy of the sending account', () => {
       policy: { ...DEFAULT_POLICY, organisation: { ...DEFAULT_ORGANISATION_POLICY, labels: required } },
       subject: { email: 'me@example.org', groups: [] },
     });
-    expect(automaticLabel({ email: 'me@example.org' }, { 'SIO-Label': ' marking="PUBLIC"' })).toMatchObject({ missing: false, label: { id: 'public' } });
-    expect(automaticLabel({ email: 'me@example.org' }, {})).toMatchObject({ missing: true, label: null });
+    expect(automaticLabel({ email: 'me@example.org' }, fromColleague('PUBLIC'))).toMatchObject({ missing: false, label: { id: 'public' } });
+    expect(automaticLabel({ email: 'me@example.org' }, { headers: {} })).toMatchObject({ missing: true, label: null });
+    // An outsider's label doesn't count: a required label is still missing.
+    expect(automaticLabel({ email: 'me@example.org' }, fromOutsider('PUBLIC'))).toMatchObject({ missing: true, label: null });
   });
 
   it('keeps only the headers a reply needs for its label', () => {

@@ -24,8 +24,7 @@ import { KEYWORD_PREFIX, KEYWORD_PREFIX_LEGACY, emailKeyFor } from "@/lib/thread
 import { cn } from "@/lib/utils";
 import { getDraftTextBody } from '@/lib/email-body-selection';
 import { messagePriorityFromHeaders } from '@/lib/message-priority';
-import { labelSourceHeaders } from '@/lib/outgoing/classification';
-import { draftLabelChoice } from '@/lib/classification/labels';
+import { labelSourceHeaders, reopenedLabelChoice } from '@/lib/outgoing/classification';
 import { useArchiveActionEnabled } from '@/lib/archive-gate';
 import { confirmMailRemoval } from '@/lib/mail-removal-confirm';
 import { useConfirmDialog } from '@/hooks/use-confirm-dialog';
@@ -291,6 +290,7 @@ export function ProEmailView({ emailId, client: clientOverride, clientAccountId,
         subject: email.subject,
         attachments: [payload.attachment],
         headers: labelSourceHeaders(email.headers),
+        originalFrom: email.from,
       },
       sourceEmailId: email.id,
       sourceEmailSource: writeSource,
@@ -471,7 +471,7 @@ export function ProEmailView({ emailId, client: clientOverride, clientAccountId,
         // composer without its files and the next save stripped them.
         attachments: email.attachments,
         priority: messagePriorityFromHeaders(email.headers),
-        classification: draftLabelChoice(email.headers),
+        classification: reopenedLabelChoice(email.headers, localAccountId),
       },
     }, { to: addresses(email.to), cc: addresses(email.cc), subject: draftSubject, body: bodyText }, onClose);
   }, [email, accountId, localAccountId, identities, multiAccountIdentities, openComposeTab, onClose, t]);

@@ -122,8 +122,7 @@ import { useWopiStatus, canWopiOpen } from "@/hooks/use-wopi-status";
 import { isFilePreviewable } from "@/lib/file-preview";
 import { prepareQuickReply, type QuickReplyQuestion } from "@/lib/outgoing/quick-reply";
 import { composerSendOptions } from "@/lib/outgoing/composer-send-options";
-import { automaticLabel, classifyOutgoing, labelSourceHeaders } from "@/lib/outgoing/classification";
-import { draftLabelChoice } from "@/lib/classification/labels";
+import { automaticLabel, classifyOutgoing, labelSourceHeaders, reopenedLabelChoice } from "@/lib/outgoing/classification";
 import enMessages from "@/locales/en/common.json";
 import { computeReplyThreadingHeaders } from "@/lib/email-threading";
 import { EML_IMPORT_ACCEPT, expandImportableEmails } from "@/lib/eml-import";
@@ -2501,7 +2500,9 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       inReplyTo: draft.inReplyTo ?? undefined,
       references: draft.references ?? undefined,
       priority: messagePriorityFromHeaders(draft.headers),
-      classification: draftLabelChoice(draft.headers),
+      // A sent message brought back (Undo, Cancel and edit) has no draft
+      // marker: its SIO-Label says which label it went out with.
+      classification: reopenedLabelChoice(draft.headers, localAccountId),
       // Existing server-side attachments must ride along, or the composer
       // starts empty and the next save/send silently rebuilds the draft
       // without them (#849).
@@ -2854,6 +2855,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
         subject: email.subject,
         attachments: [payload.attachment],
         headers: labelSourceHeaders(email.headers),
+        originalFrom: email.from,
       },
     });
     setComposerMode('forward');
@@ -4096,7 +4098,11 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     // default. A required label with neither: the full composer, with the
     // typed text, to pick one. Nothing is asked or sent before that.
     await whenPolicySettled();
-    const quickLabel = automaticLabel({ email: headerFromEmail }, selectedEmail.headers);
+    const quickLabel = automaticLabel({ email: headerFromEmail }, {
+      headers: selectedEmail.headers,
+      from: selectedEmail.from,
+      accountId: selectedEmail.sourceClientAccountId,
+    });
     if (quickLabel.missing) {
       toast.info(t('classification.quick_reply_needs_label'));
       await handleReply(body);
