@@ -4413,6 +4413,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     },
     onSidebarClose: () => setSidebarOpen(false),
     onAccountMailboxSelect: handleAccountMailboxSelect,
+    onLoginSharedMailboxSelect: handleLoginSharedMailboxSelect,
   });
 
   // Mail's commands in the palette (Ctrl/⌘+K), on the open message, plus a
@@ -5045,7 +5046,6 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
               multiAccountMode={isEmbedded}
               accountMailboxes={accountMailboxes}
               accountSharedMailboxes={accountSharedMailboxes}
-              onLoginSharedMailboxSelect={handleLoginSharedMailboxSelect}
               viewingAccountId={viewingAccountId}
             />
           </ErrorBoundary>
