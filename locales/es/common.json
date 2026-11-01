@@ -5311,7 +5311,10 @@
     "error_busy": "Estos archivos ya se están importando en otra pestaña.",
     "retry_hint": "Importe los mismos archivos en la misma carpeta otra vez para reintentar los que fallaron.",
     "skip_unreadable": "Ilegibles en el archivo de Outlook: {count}",
-    "keep_folders_top_hint": "En el nivel superior, Bandeja de entrada, Elementos enviados, Elementos eliminados y similares van a las suyas."
+    "keep_folders_top_hint": "En el nivel superior, Bandeja de entrada, Elementos enviados, Elementos eliminados y similares van a las suyas.",
+    "toast_done": "Importación terminada. Importados: {imported}, fallidos: {failed}.",
+    "toast_stopped": "La importación se detuvo.",
+    "toast_show": "Mostrar"
   },
   "mail_export": {
     "menu_export": "Exportar carpeta…",
@@ -5351,7 +5354,10 @@
     "download_again": "Descargar de nuevo",
     "too_large": "La exportación es mayor de lo que este navegador puede guardar en memoria. Use Chrome o Edge, o exporte carpeta por carpeta.",
     "close": "Cerrar",
-    "untitled": "(sin asunto)"
+    "untitled": "(sin asunto)",
+    "toast_done": "Exportación terminada: {name}",
+    "toast_stopped": "La exportación se detuvo.",
+    "toast_show": "Mostrar"
   },
   "recover_deleted": {
     "tab": "Recuperar elementos eliminados",

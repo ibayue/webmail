@@ -5441,7 +5441,10 @@
     "error_busy": "Bu dosyalar zaten başka bir sekmede içe aktarılıyor.",
     "retry_hint": "Başarısız olanları bir kez daha denemek için aynı dosyaları aynı klasöre yeniden içe aktarın.",
     "skip_unreadable": "Outlook dosyasında okunamayan: {count}",
-    "keep_folders_top_hint": "En üst düzeyde Gelen Kutusu, Gönderilmiş Öğeler, Silinmiş Öğeler ve benzerleri sizinkilere gider."
+    "keep_folders_top_hint": "En üst düzeyde Gelen Kutusu, Gönderilmiş Öğeler, Silinmiş Öğeler ve benzerleri sizinkilere gider.",
+    "toast_done": "İçe aktarım tamamlandı. İçe aktarılan: {imported}, başarısız: {failed}.",
+    "toast_stopped": "İçe aktarım durdu.",
+    "toast_show": "Göster"
   },
   "mail_export": {
     "menu_export": "Klasörü dışa aktar…",
@@ -5481,7 +5484,10 @@
     "download_again": "Yeniden indir",
     "too_large": "Dışa aktarım, bu tarayıcının bellekte tutabileceğinden büyük. Chrome veya Edge kullanın ya da klasör klasör dışa aktarın.",
     "close": "Kapat",
-    "untitled": "(konu yok)"
+    "untitled": "(konu yok)",
+    "toast_done": "Dışa aktarım tamamlandı: {name}",
+    "toast_stopped": "Dışa aktarım durdu.",
+    "toast_show": "Göster"
   },
   "recover_deleted": {
     "tab": "Silinen öğeleri kurtar",

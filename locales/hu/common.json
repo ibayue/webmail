@@ -5441,7 +5441,10 @@
     "error_busy": "Ezeket a fájlokat már importálja egy másik lap.",
     "retry_hint": "Importálja újra ugyanazokat a fájlokat ugyanabba a mappába, hogy a sikertelenekkel újra próbálkozzon.",
     "skip_unreadable": "Olvashatatlan az Outlook-fájlban: {count}",
-    "keep_folders_top_hint": "A legfelső szinten a Beérkezett üzenetek, az Elküldött elemek, a Törölt elemek és a hasonlók a saját mappáiba kerülnek."
+    "keep_folders_top_hint": "A legfelső szinten a Beérkezett üzenetek, az Elküldött elemek, a Törölt elemek és a hasonlók a saját mappáiba kerülnek.",
+    "toast_done": "Az importálás befejeződött. Importált: {imported}, sikertelen: {failed}.",
+    "toast_stopped": "Az importálás leállt.",
+    "toast_show": "Megjelenítés"
   },
   "mail_export": {
     "menu_export": "Mappa exportálása…",
@@ -5481,7 +5484,10 @@
     "download_again": "Letöltés újra",
     "too_large": "Az export nagyobb, mint amit ez a böngésző a memóriában tarthat. Használja a Chrome-ot vagy az Edge-et, vagy exportáljon mappánként.",
     "close": "Bezárás",
-    "untitled": "(nincs tárgy)"
+    "untitled": "(nincs tárgy)",
+    "toast_done": "Az exportálás befejeződött: {name}",
+    "toast_stopped": "Az exportálás leállt.",
+    "toast_show": "Megjelenítés"
   },
   "recover_deleted": {
     "tab": "Törölt elemek visszaállítása",

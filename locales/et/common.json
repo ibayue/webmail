@@ -5441,7 +5441,10 @@
     "error_busy": "Neid faile imporditakse juba teisel vahelehel.",
     "retry_hint": "Importige samad failid uuesti samasse kausta, et ebaõnnestunud kirju veel kord proovida.",
     "skip_unreadable": "Outlooki failis loetamatud: {count}",
-    "keep_folders_top_hint": "Ülemisel tasemel lähevad Sisendkaust, Saadetud, Kustutatud ja muud sellised teie omadesse."
+    "keep_folders_top_hint": "Ülemisel tasemel lähevad Sisendkaust, Saadetud, Kustutatud ja muud sellised teie omadesse.",
+    "toast_done": "Import lõpetatud. Imporditud: {imported}, ebaõnnestunud: {failed}.",
+    "toast_stopped": "Import peatus.",
+    "toast_show": "Näita"
   },
   "mail_export": {
     "menu_export": "Ekspordi kaust…",
@@ -5481,7 +5484,10 @@
     "download_again": "Laadi uuesti alla",
     "too_large": "Eksport on suurem, kui see brauser mälus hoida suudab. Kasutage Chrome'i või Edge'i või eksportige kaust kaupa.",
     "close": "Sulge",
-    "untitled": "(teemata)"
+    "untitled": "(teemata)",
+    "toast_done": "Eksport lõpetatud: {name}",
+    "toast_stopped": "Eksport peatus.",
+    "toast_show": "Näita"
   },
   "recover_deleted": {
     "tab": "Taasta kustutatud üksused",

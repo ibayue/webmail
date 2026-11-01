@@ -5311,7 +5311,10 @@
     "error_busy": "이 파일은 이미 다른 탭에서 가져오는 중입니다.",
     "retry_hint": "실패한 메시지를 다시 시도하려면 같은 파일을 같은 폴더로 다시 가져오세요.",
     "skip_unreadable": "Outlook 파일에서 읽을 수 없음: {count}",
-    "keep_folders_top_hint": "최상위에서는 받은 편지함, 보낸 편지함, 지운 편지함 등이 사용자의 폴더로 들어갑니다."
+    "keep_folders_top_hint": "최상위에서는 받은 편지함, 보낸 편지함, 지운 편지함 등이 사용자의 폴더로 들어갑니다.",
+    "toast_done": "가져오기 완료. 가져옴: {imported}, 실패: {failed}.",
+    "toast_stopped": "가져오기가 멈췄습니다.",
+    "toast_show": "보기"
   },
   "mail_export": {
     "menu_export": "폴더 내보내기…",
@@ -5351,7 +5354,10 @@
     "download_again": "다시 다운로드",
     "too_large": "내보내기가 이 브라우저가 메모리에 담을 수 있는 크기보다 큽니다. Chrome이나 Edge를 쓰거나 폴더별로 내보내세요.",
     "close": "닫기",
-    "untitled": "(제목 없음)"
+    "untitled": "(제목 없음)",
+    "toast_done": "내보내기 완료: {name}",
+    "toast_stopped": "내보내기가 멈췄습니다.",
+    "toast_show": "보기"
   },
   "recover_deleted": {
     "tab": "삭제된 항목 복구",

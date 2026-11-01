@@ -5453,7 +5453,10 @@
     "error_busy": "Các tệp này đang được nhập ở một thẻ khác.",
     "retry_hint": "Nhập lại cùng các tệp vào cùng thư mục để thử lại những thư không nhập được.",
     "skip_unreadable": "Không đọc được trong tệp Outlook: {count}",
-    "keep_folders_top_hint": "Ở cấp cao nhất, Hộp thư đến, Thư đã gửi, Thư đã xóa và các thư mục tương tự sẽ vào thư mục của bạn."
+    "keep_folders_top_hint": "Ở cấp cao nhất, Hộp thư đến, Thư đã gửi, Thư đã xóa và các thư mục tương tự sẽ vào thư mục của bạn.",
+    "toast_done": "Đã nhập xong. Đã nhập: {imported}, thất bại: {failed}.",
+    "toast_stopped": "Việc nhập đã dừng.",
+    "toast_show": "Hiện"
   },
   "mail_export": {
     "menu_export": "Xuất thư mục…",
@@ -5493,7 +5496,10 @@
     "download_again": "Tải xuống lại",
     "too_large": "Bản xuất lớn hơn mức trình duyệt này giữ được trong bộ nhớ. Hãy dùng Chrome hoặc Edge, hoặc xuất từng thư mục.",
     "close": "Đóng",
-    "untitled": "(không có tiêu đề)"
+    "untitled": "(không có tiêu đề)",
+    "toast_done": "Đã xuất xong: {name}",
+    "toast_stopped": "Việc xuất đã dừng.",
+    "toast_show": "Hiện"
   },
   "recover_deleted": {
     "tab": "Khôi phục các mục đã xóa",

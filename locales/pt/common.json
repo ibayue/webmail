@@ -5311,7 +5311,10 @@
     "error_busy": "Estes arquivos já estão sendo importados em outra aba.",
     "retry_hint": "Importe os mesmos arquivos na mesma pasta outra vez para tentar de novo os que falharam.",
     "skip_unreadable": "Ilegíveis no arquivo do Outlook: {count}",
-    "keep_folders_top_hint": "No nível superior, Caixa de entrada, Itens enviados, Itens excluídos e similares vão para as suas."
+    "keep_folders_top_hint": "No nível superior, Caixa de entrada, Itens enviados, Itens excluídos e similares vão para as suas.",
+    "toast_done": "Importação concluída. Importados: {imported}, com falha: {failed}.",
+    "toast_stopped": "A importação parou.",
+    "toast_show": "Mostrar"
   },
   "mail_export": {
     "menu_export": "Exportar pasta…",
@@ -5351,7 +5354,10 @@
     "download_again": "Baixar de novo",
     "too_large": "A exportação é maior do que este navegador consegue guardar na memória. Use o Chrome ou o Edge, ou exporte pasta por pasta.",
     "close": "Fechar",
-    "untitled": "(sem assunto)"
+    "untitled": "(sem assunto)",
+    "toast_done": "Exportação concluída: {name}",
+    "toast_stopped": "A exportação parou.",
+    "toast_show": "Mostrar"
   },
   "recover_deleted": {
     "tab": "Recuperar itens excluídos",

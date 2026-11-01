@@ -5311,7 +5311,10 @@
     "error_busy": "Ces fichiers sont déjà en cours d'import dans un autre onglet.",
     "retry_hint": "Importez à nouveau les mêmes fichiers dans le même dossier pour réessayer ceux qui ont échoué.",
     "skip_unreadable": "Illisibles dans le fichier Outlook : {count}",
-    "keep_folders_top_hint": "Au niveau supérieur, Boîte de réception, Éléments envoyés, Éléments supprimés et les autres vont dans les vôtres."
+    "keep_folders_top_hint": "Au niveau supérieur, Boîte de réception, Éléments envoyés, Éléments supprimés et les autres vont dans les vôtres.",
+    "toast_done": "Import terminé. Importés : {imported}, échecs : {failed}.",
+    "toast_stopped": "L'import s'est arrêté.",
+    "toast_show": "Afficher"
   },
   "mail_export": {
     "menu_export": "Exporter le dossier…",
@@ -5351,7 +5354,10 @@
     "download_again": "Télécharger à nouveau",
     "too_large": "L'export est plus grand que ce que ce navigateur peut garder en mémoire. Utilisez Chrome ou Edge, ou exportez dossier par dossier.",
     "close": "Fermer",
-    "untitled": "(sans objet)"
+    "untitled": "(sans objet)",
+    "toast_done": "Export terminé : {name}",
+    "toast_stopped": "L'export s'est arrêté.",
+    "toast_show": "Afficher"
   },
   "recover_deleted": {
     "tab": "Récupérer des éléments supprimés",

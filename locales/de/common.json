@@ -5311,7 +5311,10 @@
     "error_busy": "Diese Dateien werden bereits in einem anderen Tab importiert.",
     "retry_hint": "Importieren Sie dieselben Dateien erneut in denselben Ordner, um die fehlgeschlagenen noch einmal zu versuchen.",
     "skip_unreadable": "In der Outlook-Datei nicht lesbar: {count}",
-    "keep_folders_top_hint": "Auf oberster Ebene landen Posteingang, Gesendete Elemente, Gelöschte Elemente und Ähnliche in Ihren eigenen Ordnern."
+    "keep_folders_top_hint": "Auf oberster Ebene landen Posteingang, Gesendete Elemente, Gelöschte Elemente und Ähnliche in Ihren eigenen Ordnern.",
+    "toast_done": "Import abgeschlossen. Importiert: {imported}, fehlgeschlagen: {failed}.",
+    "toast_stopped": "Der Import wurde angehalten.",
+    "toast_show": "Anzeigen"
   },
   "mail_export": {
     "menu_export": "Ordner exportieren…",
@@ -5351,7 +5354,10 @@
     "download_again": "Erneut herunterladen",
     "too_large": "Der Export ist größer, als dieser Browser im Speicher halten kann. Nutzen Sie Chrome oder Edge, oder exportieren Sie Ordner für Ordner.",
     "close": "Schließen",
-    "untitled": "(kein Betreff)"
+    "untitled": "(kein Betreff)",
+    "toast_done": "Export abgeschlossen: {name}",
+    "toast_stopped": "Der Export wurde angehalten.",
+    "toast_show": "Anzeigen"
   },
   "recover_deleted": {
     "tab": "Gelöschte E-Mails",

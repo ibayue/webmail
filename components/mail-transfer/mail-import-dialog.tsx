@@ -14,7 +14,7 @@ import { hasFolders, sniffFormat, type ImportFormat, type SkipReason } from "@/l
 import type { ImportProgress } from "@/lib/mail-import/engine";
 import type { Mailbox } from "@/lib/jmap/types";
 import { formatFileSize, getMailboxPath } from "@/lib/utils";
-import { formatClock, TransferBar } from "./transfer-progress";
+import { formatClock, TransferBar, useFocusOnStage } from "./transfer-progress";
 import { startImport } from "./start-import";
 
 const ACCEPT = ".eml,.zip,.mbox,.mbx,.pst,.ost,message/rfc822,application/zip,application/mbox";
@@ -112,6 +112,8 @@ export function MailImportDialog({ request }: { request: ImportRequest }) {
   const formatName = (format: ImportFormat) => t(`format_${format}`);
   const progress = job?.kind === "import" ? job.progress : null;
   const active = isJobActive(job);
+  const stageButton = useRef<HTMLButtonElement>(null);
+  useFocusOnStage(stageButton, progress ? (active ? "running" : "ended") : "setup");
 
   const onStart = () => {
     if (picked.length === 0 || !accountId) return;
@@ -140,11 +142,11 @@ export function MailImportDialog({ request }: { request: ImportRequest }) {
         testId="mail-import-dialog"
         footer={active ? (
           <>
-            <Button variant="outline" onClick={hide}>{t("background")}</Button>
+            <Button ref={stageButton} variant="outline" onClick={hide}>{t("background")}</Button>
             <Button variant="destructive" onClick={() => cancelJob()} aria-describedby={`${id}-status`}>{t("cancel_import")}</Button>
           </>
         ) : (
-          <Button onClick={() => close()}>{t("close")}</Button>
+          <Button ref={stageButton} onClick={() => close()}>{t("close")}</Button>
         )}
       >
         <ProgressBody progress={progress} t={t} locale={locale} statusId={`${id}-status`} />

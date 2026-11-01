@@ -1,6 +1,22 @@
 "use client";
 
+import { useEffect, type RefObject } from "react";
 import { cn } from "@/lib/utils";
+
+/**
+ * Keeps the focus in the dialog when its buttons change under it: Import or
+ * Export turns into the progress view, then into the summary, and the button
+ * that had the focus is gone. `stage` names the view; `target` is the button
+ * to focus in it.
+ */
+export function useFocusOnStage(target: RefObject<HTMLElement | null>, stage: string): void {
+  useEffect(() => {
+    const el = target.current;
+    if (!el) return;
+    const dialog = el.closest('[role="dialog"], [role="alertdialog"]');
+    if (!dialog || !dialog.contains(document.activeElement)) el.focus();
+  }, [target, stage]);
+}
 
 /** The bar of an import or export, 0 to 1; indeterminate while nothing is known. */
 export function TransferBar({ fraction, label, paused }: { fraction: number | null; label: string; paused?: boolean }) {

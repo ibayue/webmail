@@ -5311,7 +5311,10 @@
     "error_busy": "Deze bestanden worden al in een ander tabblad geïmporteerd.",
     "retry_hint": "Importeer dezelfde bestanden opnieuw in dezelfde map om de mislukte nog eens te proberen.",
     "skip_unreadable": "Onleesbaar in het Outlook-bestand: {count}",
-    "keep_folders_top_hint": "Op het hoogste niveau gaan Postvak IN, Verzonden items, Verwijderde items en dergelijke naar die van u."
+    "keep_folders_top_hint": "Op het hoogste niveau gaan Postvak IN, Verzonden items, Verwijderde items en dergelijke naar die van u.",
+    "toast_done": "Import voltooid. Geïmporteerd: {imported}, mislukt: {failed}.",
+    "toast_stopped": "De import is gestopt.",
+    "toast_show": "Tonen"
   },
   "mail_export": {
     "menu_export": "Map exporteren…",
@@ -5351,7 +5354,10 @@
     "download_again": "Opnieuw downloaden",
     "too_large": "De export is groter dan deze browser in het geheugen kan houden. Gebruik Chrome of Edge, of exporteer map voor map.",
     "close": "Sluiten",
-    "untitled": "(geen onderwerp)"
+    "untitled": "(geen onderwerp)",
+    "toast_done": "Export voltooid: {name}",
+    "toast_stopped": "De export is gestopt.",
+    "toast_show": "Tonen"
   },
   "recover_deleted": {
     "tab": "Verwijderde items herstellen",

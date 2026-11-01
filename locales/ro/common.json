@@ -5441,7 +5441,10 @@
     "error_busy": "Aceste fișiere se importă deja în altă filă.",
     "retry_hint": "Importați din nou aceleași fișiere în același dosar pentru a reîncerca mesajele care au eșuat.",
     "skip_unreadable": "Ilizibile în fișierul Outlook: {count}",
-    "keep_folders_top_hint": "La nivelul de sus, Inbox, Elemente trimise, Elemente șterse și altele asemenea ajung în ale dumneavoastră."
+    "keep_folders_top_hint": "La nivelul de sus, Inbox, Elemente trimise, Elemente șterse și altele asemenea ajung în ale dumneavoastră.",
+    "toast_done": "Import încheiat. Importate: {imported}, eșuate: {failed}.",
+    "toast_stopped": "Importul s-a oprit.",
+    "toast_show": "Afișează"
   },
   "mail_export": {
     "menu_export": "Exportă dosarul…",
@@ -5481,7 +5484,10 @@
     "download_again": "Descarcă din nou",
     "too_large": "Exportul este mai mare decât poate ține acest browser în memorie. Folosiți Chrome sau Edge sau exportați dosar cu dosar.",
     "close": "Închide",
-    "untitled": "(fără subiect)"
+    "untitled": "(fără subiect)",
+    "toast_done": "Export încheiat: {name}",
+    "toast_stopped": "Exportul s-a oprit.",
+    "toast_show": "Afișează"
   },
   "recover_deleted": {
     "tab": "Recuperați elementele șterse",

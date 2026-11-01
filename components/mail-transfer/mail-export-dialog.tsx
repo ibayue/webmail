@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useId, useRef, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,7 @@ import type { ExportFormat, ExportProgress } from "@/lib/mail-export/engine";
 import { safeName } from "@/lib/mail-export/engine";
 import { canPickSaveFile, canWritePrivateFile, memorySink, pickSaveFile, privateFileSink, sweepPrivateExports, type ExportSink } from "@/lib/mail-export/sinks";
 import { formatFileSize } from "@/lib/utils";
-import { formatClock, TransferBar } from "./transfer-progress";
+import { formatClock, TransferBar, useFocusOnStage } from "./transfer-progress";
 import { startExport } from "./start-export";
 
 function today(): string {
@@ -44,6 +44,8 @@ export function MailExportDialog({ request }: { request: ExportRequest }) {
   const folder = !!request.mailboxId;
   const progress = job?.kind === "export" ? job.progress : null;
   const active = isJobActive(job);
+  const stageButton = useRef<HTMLButtonElement>(null);
+  useFocusOnStage(stageButton, progress ? (active ? "running" : "ended") : "setup");
 
   if (!visible) return null;
 
@@ -94,7 +96,7 @@ export function MailExportDialog({ request }: { request: ExportRequest }) {
         testId="mail-export-dialog"
         footer={active ? (
           <>
-            <Button variant="outline" onClick={hide}>{t("background")}</Button>
+            <Button ref={stageButton} variant="outline" onClick={hide}>{t("background")}</Button>
             <Button variant="destructive" onClick={() => cancelJob()} aria-describedby={`${id}-status`}>{t("cancel_export")}</Button>
           </>
         ) : (
@@ -102,7 +104,7 @@ export function MailExportDialog({ request }: { request: ExportRequest }) {
             {progress.phase === "done" && progress.file?.download && (
               <Button variant="outline" onClick={() => progress.file?.download?.()} data-testid="mail-export-download">{t("download_again")}</Button>
             )}
-            <Button onClick={() => close()}>{t("close")}</Button>
+            <Button ref={stageButton} onClick={() => close()}>{t("close")}</Button>
           </>
         )}
       >

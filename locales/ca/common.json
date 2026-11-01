@@ -5441,7 +5441,10 @@
     "error_busy": "Aquests fitxers ja s'estan important en una altra pestanya.",
     "retry_hint": "Torneu a importar els mateixos fitxers a la mateixa carpeta per tornar a provar els que han fallat.",
     "skip_unreadable": "Il·legibles al fitxer d'Outlook: {count}",
-    "keep_folders_top_hint": "Al nivell superior, Safata d'entrada, Elements enviats, Elements suprimits i similars van a les vostres."
+    "keep_folders_top_hint": "Al nivell superior, Safata d'entrada, Elements enviats, Elements suprimits i similars van a les vostres.",
+    "toast_done": "Importació acabada. Importats: {imported}, fallats: {failed}.",
+    "toast_stopped": "La importació s'ha aturat.",
+    "toast_show": "Mostra"
   },
   "mail_export": {
     "menu_export": "Exporta la carpeta…",
@@ -5481,7 +5484,10 @@
     "download_again": "Torna a baixar",
     "too_large": "L'exportació és més gran del que aquest navegador pot guardar a la memòria. Feu servir Chrome o Edge, o exporteu carpeta per carpeta.",
     "close": "Tanca",
-    "untitled": "(sense assumpte)"
+    "untitled": "(sense assumpte)",
+    "toast_done": "Exportació acabada: {name}",
+    "toast_stopped": "L'exportació s'ha aturat.",
+    "toast_show": "Mostra"
   },
   "recover_deleted": {
     "tab": "Recupera elements suprimits",

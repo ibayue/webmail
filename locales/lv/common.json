@@ -5311,7 +5311,10 @@
     "error_busy": "Šie faili jau tiek importēti citā cilnē.",
     "retry_hint": "Vēlreiz importējiet tos pašus failus tajā pašā mapē, lai vēlreiz mēģinātu neizdevušos.",
     "skip_unreadable": "Outlook failā nenolasāmi: {count}",
-    "keep_folders_top_hint": "Augšējā līmenī Iesūtne, Nosūtītie, Dzēstie un līdzīgi nonāk jūsu pašu mapēs."
+    "keep_folders_top_hint": "Augšējā līmenī Iesūtne, Nosūtītie, Dzēstie un līdzīgi nonāk jūsu pašu mapēs.",
+    "toast_done": "Importēšana pabeigta. Importēti: {imported}, neizdevās: {failed}.",
+    "toast_stopped": "Importēšana apstājās.",
+    "toast_show": "Rādīt"
   },
   "mail_export": {
     "menu_export": "Eksportēt mapi…",
@@ -5351,7 +5354,10 @@
     "download_again": "Lejupielādēt vēlreiz",
     "too_large": "Eksports ir lielāks, nekā šī pārlūkprogramma var noturēt atmiņā. Izmantojiet Chrome vai Edge vai eksportējiet pa mapei.",
     "close": "Aizvērt",
-    "untitled": "(bez temata)"
+    "untitled": "(bez temata)",
+    "toast_done": "Eksportēšana pabeigta: {name}",
+    "toast_stopped": "Eksportēšana apstājās.",
+    "toast_show": "Rādīt"
   },
   "recover_deleted": {
     "tab": "Atjaunot dzēstos vienumus",

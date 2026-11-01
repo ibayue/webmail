@@ -5311,7 +5311,10 @@
     "error_busy": "这些文件已在另一个标签页中导入。",
     "retry_hint": "把相同的文件再次导入同一个文件夹，即可重试失败的邮件。",
     "skip_unreadable": "Outlook 文件中无法读取：{count}",
-    "keep_folders_top_hint": "在顶层，收件箱、已发送邮件、已删除邮件等会进入您自己的文件夹。"
+    "keep_folders_top_hint": "在顶层，收件箱、已发送邮件、已删除邮件等会进入您自己的文件夹。",
+    "toast_done": "导入完成。已导入：{imported}，失败：{failed}。",
+    "toast_stopped": "导入已停止。",
+    "toast_show": "显示"
   },
   "mail_export": {
     "menu_export": "导出文件夹…",
@@ -5351,7 +5354,10 @@
     "download_again": "重新下载",
     "too_large": "导出内容超过了此浏览器能放在内存中的大小。请使用 Chrome 或 Edge，或逐个文件夹导出。",
     "close": "关闭",
-    "untitled": "（无主题）"
+    "untitled": "（无主题）",
+    "toast_done": "导出完成：{name}",
+    "toast_stopped": "导出已停止。",
+    "toast_show": "显示"
   },
   "recover_deleted": {
     "tab": "恢复已删除项目",

@@ -127,6 +127,32 @@ describe('MailImportDialog', () => {
     expect(screen.getByRole('heading', { name: 'running_title' })).toBeTruthy();
   });
 
+  it('says when a hidden import ends, with a way back to its summary', async () => {
+    const { useToastStore } = await import('@/stores/toast-store');
+    useToastStore.setState({ toasts: [] });
+    render(<MailTransferHost />);
+    act(() => {
+      openMailImport();
+      useMailTransferStore.getState().startJob({ kind: 'import', controller: new AbortController(), progress: progress() });
+      useMailTransferStore.getState().hide();
+    });
+    act(() => useMailTransferStore.getState().updateProgress(progress({ phase: 'done', imported: 12, failed: 1 })));
+    const toastShown = useToastStore.getState().toasts.find((x) => x.title === 'toast_done');
+    expect(toastShown?.action?.label).toBe('toast_show');
+    act(() => toastShown!.action!.onClick());
+    expect(screen.getByRole('heading', { name: 'done_title' })).toBeTruthy();
+  });
+
+  it('keeps the focus in the dialog when Import turns into the progress view and then the summary', async () => {
+    render(<MailTransferHost />);
+    act(() => openMailImport());
+    (document.activeElement as HTMLElement | null)?.blur();
+    act(() => useMailTransferStore.getState().startJob({ kind: 'import', controller: new AbortController(), progress: progress() }));
+    await waitFor(() => expect(document.activeElement?.textContent).toBe('background'));
+    act(() => useMailTransferStore.getState().updateProgress(progress({ phase: 'done' })));
+    await waitFor(() => expect(document.activeElement?.textContent).toBe('close'));
+  });
+
   it('lists what was skipped and what failed when it ends', () => {
     render(<MailTransferHost />);
     act(() => {

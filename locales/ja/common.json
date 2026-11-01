@@ -5311,7 +5311,10 @@
     "error_busy": "これらのファイルは別のタブですでにインポート中です。",
     "retry_hint": "失敗したものをもう一度試すには、同じファイルを同じフォルダーにもう一度インポートしてください。",
     "skip_unreadable": "Outlook ファイル内で読めないもの: {count}",
-    "keep_folders_top_hint": "最上位では、受信トレイ、送信済みアイテム、削除済みアイテムなどはご自身のフォルダーに入ります。"
+    "keep_folders_top_hint": "最上位では、受信トレイ、送信済みアイテム、削除済みアイテムなどはご自身のフォルダーに入ります。",
+    "toast_done": "インポートが完了しました。インポート: {imported}、失敗: {failed}。",
+    "toast_stopped": "インポートが止まりました。",
+    "toast_show": "表示"
   },
   "mail_export": {
     "menu_export": "フォルダーをエクスポート…",
@@ -5351,7 +5354,10 @@
     "download_again": "もう一度ダウンロード",
     "too_large": "エクスポートがこのブラウザーでメモリーに保持できる量を超えています。Chrome か Edge を使うか、フォルダーごとにエクスポートしてください。",
     "close": "閉じる",
-    "untitled": "（件名なし）"
+    "untitled": "（件名なし）",
+    "toast_done": "エクスポートが完了しました: {name}",
+    "toast_stopped": "エクスポートが止まりました。",
+    "toast_show": "表示"
   },
   "recover_deleted": {
     "tab": "削除済みアイテムの復元",

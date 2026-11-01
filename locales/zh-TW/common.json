@@ -5441,7 +5441,10 @@
     "error_busy": "這些檔案已在另一個分頁中匯入。",
     "retry_hint": "把相同的檔案再次匯入同一個資料夾，即可重試失敗的郵件。",
     "skip_unreadable": "Outlook 檔案中無法讀取：{count}",
-    "keep_folders_top_hint": "在最上層，收件匣、寄件備份、刪除的郵件等會進入您自己的資料夾。"
+    "keep_folders_top_hint": "在最上層，收件匣、寄件備份、刪除的郵件等會進入您自己的資料夾。",
+    "toast_done": "匯入完成。已匯入：{imported}，失敗：{failed}。",
+    "toast_stopped": "匯入已停止。",
+    "toast_show": "顯示"
   },
   "mail_export": {
     "menu_export": "匯出資料夾…",
@@ -5481,7 +5484,10 @@
     "download_again": "重新下載",
     "too_large": "匯出內容超過此瀏覽器能放在記憶體中的大小。請使用 Chrome 或 Edge，或逐一匯出資料夾。",
     "close": "關閉",
-    "untitled": "（無主旨）"
+    "untitled": "（無主旨）",
+    "toast_done": "匯出完成：{name}",
+    "toast_stopped": "匯出已停止。",
+    "toast_show": "顯示"
   },
   "recover_deleted": {
     "tab": "復原已刪除的項目",

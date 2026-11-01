@@ -5441,7 +5441,10 @@
     "error_busy": "These files are being imported in another tab already.",
     "retry_hint": "Import the same files into the same folder again to try the ones that failed once more.",
     "skip_unreadable": "Unreadable in the Outlook file: {count}",
-    "keep_folders_top_hint": "At the top level, Inbox, Sent Items, Deleted Items and the like go into your own."
+    "keep_folders_top_hint": "At the top level, Inbox, Sent Items, Deleted Items and the like go into your own.",
+    "toast_done": "Import finished. Imported: {imported}, failed: {failed}.",
+    "toast_stopped": "The import stopped.",
+    "toast_show": "Show"
   },
   "mail_export": {
     "menu_export": "Export folder…",
@@ -5481,7 +5484,10 @@
     "download_again": "Download again",
     "too_large": "The export is larger than this browser can keep in memory. Use Chrome or Edge, or export folder by folder.",
     "close": "Close",
-    "untitled": "(no subject)"
+    "untitled": "(no subject)",
+    "toast_done": "Export finished: {name}",
+    "toast_stopped": "The export stopped.",
+    "toast_show": "Show"
   },
   "recover_deleted": {
     "tab": "Recover deleted items",

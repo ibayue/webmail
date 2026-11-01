@@ -5311,7 +5311,10 @@
     "error_busy": "Te pliki są już importowane w innej karcie.",
     "retry_hint": "Zaimportuj te same pliki ponownie do tego samego folderu, aby jeszcze raz spróbować tych, które się nie udały.",
     "skip_unreadable": "Nieczytelne w pliku programu Outlook: {count}",
-    "keep_folders_top_hint": "Na najwyższym poziomie Skrzynka odbiorcza, Elementy wysłane, Elementy usunięte i podobne trafiają do Twoich własnych."
+    "keep_folders_top_hint": "Na najwyższym poziomie Skrzynka odbiorcza, Elementy wysłane, Elementy usunięte i podobne trafiają do Twoich własnych.",
+    "toast_done": "Import zakończony. Zaimportowano: {imported}, nie udało się: {failed}.",
+    "toast_stopped": "Import się zatrzymał.",
+    "toast_show": "Pokaż"
   },
   "mail_export": {
     "menu_export": "Eksportuj folder…",
@@ -5351,7 +5354,10 @@
     "download_again": "Pobierz ponownie",
     "too_large": "Eksport jest większy, niż ta przeglądarka może trzymać w pamięci. Użyj Chrome lub Edge albo eksportuj folder po folderze.",
     "close": "Zamknij",
-    "untitled": "(bez tematu)"
+    "untitled": "(bez tematu)",
+    "toast_done": "Eksport zakończony: {name}",
+    "toast_stopped": "Eksport się zatrzymał.",
+    "toast_show": "Pokaż"
   },
   "recover_deleted": {
     "tab": "Odzyskaj usunięte elementy",

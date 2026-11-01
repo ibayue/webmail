@@ -5441,7 +5441,10 @@
     "error_busy": "Disse filer importeres allerede i en anden fane.",
     "retry_hint": "Importér de samme filer til samme mappe igen for at prøve dem, der mislykkedes, en gang til.",
     "skip_unreadable": "Ulæselige i Outlook-filen: {count}",
-    "keep_folders_top_hint": "På øverste niveau havner Indbakke, Sendt post, Slettet post og lignende i dine egne."
+    "keep_folders_top_hint": "På øverste niveau havner Indbakke, Sendt post, Slettet post og lignende i dine egne.",
+    "toast_done": "Import færdig. Importeret: {imported}, mislykkedes: {failed}.",
+    "toast_stopped": "Importen stoppede.",
+    "toast_show": "Vis"
   },
   "mail_export": {
     "menu_export": "Eksportér mappe…",
@@ -5481,7 +5484,10 @@
     "download_again": "Download igen",
     "too_large": "Eksporten er større, end denne browser kan holde i hukommelsen. Brug Chrome eller Edge, eller eksportér mappe for mappe.",
     "close": "Luk",
-    "untitled": "(intet emne)"
+    "untitled": "(intet emne)",
+    "toast_done": "Eksport færdig: {name}",
+    "toast_stopped": "Eksporten stoppede.",
+    "toast_show": "Vis"
   },
   "recover_deleted": {
     "tab": "Gendan slettede elementer",

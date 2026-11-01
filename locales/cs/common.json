@@ -5311,7 +5311,10 @@
     "error_busy": "Tyto soubory se už importují v jiné kartě.",
     "retry_hint": "Importujte stejné soubory znovu do stejné složky, abyste zkusili neúspěšné ještě jednou.",
     "skip_unreadable": "V souboru Outlooku nečitelné: {count}",
-    "keep_folders_top_hint": "Na nejvyšší úrovni skončí Doručená pošta, Odeslaná pošta, Odstraněná pošta a podobné ve vašich vlastních."
+    "keep_folders_top_hint": "Na nejvyšší úrovni skončí Doručená pošta, Odeslaná pošta, Odstraněná pošta a podobné ve vašich vlastních.",
+    "toast_done": "Import dokončen. Importováno: {imported}, selhalo: {failed}.",
+    "toast_stopped": "Import se zastavil.",
+    "toast_show": "Zobrazit"
   },
   "mail_export": {
     "menu_export": "Exportovat složku…",
@@ -5351,7 +5354,10 @@
     "download_again": "Stáhnout znovu",
     "too_large": "Export je větší, než tento prohlížeč udrží v paměti. Použijte Chrome nebo Edge, nebo exportujte složku po složce.",
     "close": "Zavřít",
-    "untitled": "(bez předmětu)"
+    "untitled": "(bez předmětu)",
+    "toast_done": "Export dokončen: {name}",
+    "toast_stopped": "Export se zastavil.",
+    "toast_show": "Zobrazit"
   },
   "recover_deleted": {
     "tab": "Obnovit smazané položky",

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { Loader2, Pause } from "@/components/icons";
 import { isJobActive, useMailTransferStore } from "@/stores/mail-transfer-store";
@@ -8,6 +8,7 @@ import { onBeforeSignOut } from "@/lib/sign-out-cleanup";
 import { clearCheckpointsFor } from "@/lib/mail-import/checkpoints";
 import { sweepPrivateExports } from "@/lib/mail-export/sinks";
 import { useAuthStore } from "@/stores/auth-store";
+import { toast } from "@/stores/toast-store";
 import { MailImportDialog } from "./mail-import-dialog";
 import { MailExportDialog } from "./mail-export-dialog";
 import { formatClock } from "./transfer-progress";
@@ -48,6 +49,29 @@ export function MailTransferHost() {
   useEffect(() => {
     if (!isJobActive(useMailTransferStore.getState().job)) void sweepPrivateExports();
   }, [activeAccountId]);
+
+  // A job that ends while its dialog is hidden says so, with a way back to its summary.
+  const tImport = useTranslations("mail_import");
+  const tExport = useTranslations("mail_export");
+  const lastPhase = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    const phase = job?.progress.phase;
+    const was = lastPhase.current;
+    lastPhase.current = phase;
+    if (!job || visible || (was !== "running" && was !== "paused")) return;
+    if (phase !== "done" && phase !== "failed") return;
+    const action = { label: (job.kind === "import" ? tImport : tExport)("toast_show"), onClick: () => useMailTransferStore.getState().show() };
+    if (job.kind === "import") {
+      if (phase === "done") toast.success(tImport("toast_done", { imported: job.progress.imported, failed: job.progress.failed }), { action });
+      else toast.warning(tImport("toast_stopped"), { action });
+    } else if (phase === "done") {
+      toast.success(tExport("toast_done", { name: job.progress.file?.name ?? "" }), { action });
+    } else {
+      toast.warning(tExport("toast_stopped"), { action });
+    }
+    // The translators are new functions on every render in tests; the phase is what matters.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [job, visible]);
 
   return (
     <>
