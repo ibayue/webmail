@@ -27,6 +27,7 @@ import { makeBuildId, normalizeBasePath, parseLiteTarget, resolveRepoRoot, STALW
 import { runPrepare } from "./prepare.mjs";
 import { runPostbuild } from "./postbuild.mjs";
 import { verifyExport } from "./verify.mjs";
+import { buildPstWorker } from "../build-pst-worker.mjs";
 import { check as checkSourceMaps, collect as collectSourceMaps } from "../sourcemaps.mjs";
 
 const repoRoot = resolveRepoRoot(import.meta.url);
@@ -77,6 +78,10 @@ if (dryRun) {
 if (!argv.includes("--skip-prepare")) {
   runPrepare({ argv: argv.filter((a) => a === "--in-place"), env });
 }
+
+// The Outlook PST import worker is a file in public/, which the export copies.
+const pstWorker = await buildPstWorker();
+console.log(`[lite] PST import worker ${pstWorker.bytes} bytes`);
 
 const require = createRequire(import.meta.url);
 const nextBin = require.resolve("next/dist/bin/next", { paths: [repoRoot] });

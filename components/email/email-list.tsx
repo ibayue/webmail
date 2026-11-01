@@ -14,7 +14,8 @@ import { ViewSourceDialog } from "./view-source-dialog";
 import { useCopyToAccount, useEmailExport, requestPrint } from "@/hooks/use-message-file-actions";
 import { BatchTagButton } from "./batch-tag-button";
 import { cn, cleanPreview } from "@/lib/utils";
-import { Trash2, Mail, MailX, MailOpen, Loader2, SearchX, AlertTriangle, CalendarClock, ShieldCheck, ShieldAlert, Archive, MoreVertical, X, FolderX } from "@/components/icons";
+import { Trash2, Mail, MailX, MailOpen, Loader2, SearchX, AlertTriangle, CalendarClock, ShieldCheck, ShieldAlert, Archive, MoreVertical, X, FolderX, Fish } from "@/components/icons";
+import { usePhishingReport } from "@/hooks/use-phishing-report";
 import { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { IconButton } from "@/components/ui/icon-button";
@@ -54,7 +55,8 @@ import type { OpenableEmail } from "@/lib/plugin-sandbox/open-email";
 import { MvListSectionHeader } from "./mv-list-section-header";
 import { PluginSearchResults } from "./plugin-search-results";
 import { commonTagScope } from "@/hooks/use-account-tags";
-import { TrashRecoveryLink } from "./trash-recovery-link";
+import { FolderRetentionLine } from "./retention-notice";
+import { canExport, canPrint } from "@/lib/device-policy";
 
 interface EmailListProps {
   emails: Email[];
@@ -552,6 +554,9 @@ export function EmailList({
     () => (hasSelection ? resolveSelectedEmails({ emails, threadEmailsCache, selectedEmailKeys }) : []),
     [hasSelection, emails, threadEmailsCache, selectedEmailKeys],
   );
+  // Report phishing for the selection, one report per message (enterprise pack).
+  const selectionPhishing = usePhishingReport(selectedEmailsForRemoval, effectiveMailboxRole);
+  const tPhishing = useTranslations('phishing_report');
   const selectionCanLeaveFolder = selectedEmailsForRemoval.length > 0
     && selectedEmailsForRemoval.every((email) => canRemoveFromFolder(email, folderToLeave));
   const handleBatchRemoveFromFolder = async () => {
@@ -1058,6 +1063,16 @@ export function EmailList({
                 {effectiveMailboxRole === 'junk' ? <ShieldCheck /> : <ShieldAlert />}
               </IconButton>
             )}
+            {selectionPhishing.available && !batchNarrow && (
+              <IconButton
+                label={tPhishing('action')}
+                onClick={selectionPhishing.report}
+                disabled={isProcessing}
+                data-testid="batch-report-phishing"
+              >
+                <Fish />
+              </IconButton>
+            )}
             {!batchNarrow && (
               <>
                 <IconButton label={t('batch_actions.mark_read')} onClick={() => handleBatchMarkAsRead(true)} disabled={isProcessing}>
@@ -1135,8 +1150,8 @@ export function EmailList({
         />
       )}
 
-      {/* Recover deleted items, from the account's own Trash (mounted only there) */}
-      {currentMailbox?.role === 'trash' && <TrashRecoveryLink mailbox={currentMailbox} />}
+      {/* How long Trash and Junk keep mail, and Recover deleted items from the account's own Trash, on one line */}
+      {(currentMailbox?.role === 'trash' || currentMailbox?.role === 'junk') && <FolderRetentionLine mailbox={currentMailbox} />}
 
       {/* Empty Folder Banner for Junk/Trash */}
       {isEmptyableFolder && emails.length > 0 && !hasSelection && (
@@ -1353,7 +1368,8 @@ export function EmailList({
               : [contextMenuEmail!];
             await copyToAccount(emails, accountId, mailboxId);
           }}
-          onExport={() => {
+          // Export, print and View source follow the device policy of the row's own account.
+          onExport={contextMenuEmail && !canExport(contextMenuEmail) ? undefined : () => {
             const target = contextMenuEmail!;
             void exportEmail(target, {
               onArchive: onArchive ? () => onArchive(target) : undefined,
@@ -1361,13 +1377,13 @@ export function EmailList({
               archiveEnabled: archiveActionEnabled,
             });
           }}
-          onPrint={onEmailSelect ? () => {
+          onPrint={onEmailSelect && !(contextMenuEmail && !canPrint(contextMenuEmail)) ? () => {
             // The print window opens in the click; the reader fills it once
             // the message is open.
             const target = contextMenuEmail!;
-            if (requestPrint(emailKeyFor(target))) onEmailSelect(target);
+            if (requestPrint(emailKeyFor(target), target)) onEmailSelect(target);
           } : undefined}
-          onViewSource={() => setSourceEmail(contextMenuEmail)}
+          onViewSource={contextMenuEmail && !canExport(contextMenuEmail) ? undefined : () => setSourceEmail(contextMenuEmail)}
           onBatchMarkAsRead={(read) => markSelectionRead(read)}
           batchTagIds={selectionTags.all}
           batchPartialTagIds={selectionTags.some}

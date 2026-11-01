@@ -3,7 +3,7 @@
 import { Fragment, useState, useEffect, useLayoutEffect, useMemo, useRef, useCallback, useId } from "react";
 import { Email, ContactCard, Mailbox } from "@/lib/jmap/types";
 import { attachmentDownloadFilename, attachmentsBundleFilename, DEFAULT_ATTACHMENT_TEMPLATE } from "@/lib/download-filename";
-import { EML_IMPORT_ACCEPT, expandImportableEmails } from "@/lib/eml-import";
+import { openMailImport } from "@/stores/mail-transfer-store";
 import { TRANSPARENT_BLOCKED_PIXEL, applyNewTabToAnchor, emailIframeCsp, escapeHtml, isExternalResourceUrl, isOpenableLinkHref, plainTextToSafeHtml, sanitizeEmailBodyForIframe, sanitizeEmailHtml, sanitizePlainTextRenderedHtml } from "@/lib/email-sanitization";
 import { getRenderableHtmlBody } from "@/lib/email-body-selection";
 import { mailLanguage } from "@/lib/mail-language";
@@ -32,6 +32,9 @@ import { ContextMenu } from "@/components/ui/context-menu";
 import { useContextMenu, type UseContextMenuReturn } from "@/hooks/use-context-menu";
 import { EmailContextMenu } from "./email-context-menu";
 import { useMessageActionList, type MessageActionEntry, type MessageActionKey, type MessageActionOptions, type MessageSubmenuKey } from "./message-actions";
+import { PhishingMarkBanner } from "./phishing-mark-banner";
+import { turnOffLinks } from "@/lib/phishing-links";
+import { usePhishingMarked } from "@/hooks/use-phishing-report";
 import { useCopyToAccount, useEmailExport, usePrintRequestStore } from "@/hooks/use-message-file-actions";
 import { useBottomControls } from "@/hooks/use-bottom-controls";
 import { useComposingSurface } from "@/hooks/use-composing-surface";
@@ -132,6 +135,7 @@ import { useEmailStore, resolveEmailBlobContext, emailWriteSource, type EmailBlo
 import { useThemeStore } from "@/stores/theme-store";
 import { EmailIdentityBadge } from "./email-identity-badge";
 import { ExternalSenderChip } from "./external-sender-chip";
+import { ReceivedLabelChip } from "./received-label-chip";
 import { UnsubscribeBanner } from "./unsubscribe-banner";
 import { CalendarInvitationBanner } from "./calendar-invitation-banner";
 import { ReadReceiptBanner } from "./read-receipt-banner";
@@ -145,6 +149,11 @@ import { MailtoLink } from "@/components/ui/mailto-link";
 import { requestInternalMailto } from "@/lib/protocol-handlers/mailto";
 import { imageBlobUrl, inertBlobType, isFilePreviewable, isMimeTypeSafeForInlinePreview, toInertBlob } from "@/lib/file-preview";
 import { openPreviewInNewWindow } from "@/lib/standalone-display";
+import { downloadAllowed, saveBlobAs } from "@/lib/download-guard";
+import { useDevicePolicy } from "@/hooks/use-device-policy";
+import { Watermark, useWatermarkText } from "@/components/device/watermark";
+import { watermarkForPrint } from "@/lib/watermark";
+import { NO_SAVE_MEDIA_CSS, blockMediaSaving } from "@/lib/device-frame";
 import { FilePreviewModal } from "@/components/files/file-preview-modal";
 import { useWopiStatus, canWopiOpen } from "@/hooks/use-wopi-status";
 import { parseTnef, isTnefAttachment } from "@/lib/tnef";
@@ -165,12 +174,12 @@ import { usePluginSlotOffers } from "@/hooks/use-plugin-slot-offers";
 import { ResizeHandle } from "@/components/layout/resize-handle";
 import { emailHooks, renderHooks } from "@/lib/plugin-hooks";
 import { emitThreadExpand } from "@/lib/plugin-thread-expand";
-import { resolveExternalLink } from "@/lib/plugin-hook-result";
+import { gateLinkClick, linkCheckActive, linkText, resolveExternalLink } from "@/lib/plugin-hook-result";
 import type { AttachmentInfo, AttachmentPreview } from "@/lib/plugin-types";
 import { useAttachmentDrag, isDragOutSupported, type AttachmentDragSource } from "@/hooks/use-attachment-drag";
 import type { IJMAPClient } from "@/lib/jmap/client-interface";
 import { useArchiveActionEnabled } from "@/lib/archive-gate";
-import { useRemoteContentBlockedByOrg } from "@/hooks/use-third-party-mode";
+import { useRemoteContentBlockedByOrg, useRemoteContentHeldBack } from "@/hooks/use-third-party-mode";
 import { useSenderWarning } from "@/hooks/use-sender-warning";
 import { BrandVerifiedBadge } from "@/components/email/brand-verified-badge";
 
@@ -858,6 +867,7 @@ export function MvExpandedConversationCard({
             )}
             <BrandVerifiedBadge domain={brandIndicatorDomain(email)} />
             <ExternalSenderChip from={email.from} accountId={email.sourceClientAccountId} className="self-center" />
+            <ReceivedLabelChip email={email} className="self-center" />
             <span className="ms-auto ps-2 text-xs text-muted-foreground whitespace-nowrap">
               {compact ? formatDate(emailDisplayDate(email)) : mvSenderDate(emailDisplayDate(email), timeFormat)}
             </span>
@@ -1304,6 +1314,7 @@ export function EmailViewer({
   const archiveActionEnabled = useArchiveActionEnabled();
   const tComposer = useTranslations('email_composer');
   const tNotifications = useTranslations('notifications');
+  const tImport = useTranslations('mail_import');
   const tCommon = useTranslations('common');
   const tFiles = useTranslations('files');
   const tDemoWelcome = useTranslations('demo_welcome');
@@ -1313,11 +1324,26 @@ export function EmailViewer({
   const externalContentPolicy = useSettingsStore((state) => state.externalContentPolicy);
   // No third-party traffic (#903), or the organisation locked "block": remote
   // content never loads, whatever trust says, and nothing offers to load it.
-  const remoteBlockedByOrg = useRemoteContentBlockedByOrg();
+  // The policy of the message's own account: in the unified inbox or a Pro
+  // tab that may be another signed-in account than the active one.
+  const remoteBlockedByOrg = useRemoteContentBlockedByOrg(email?.sourceClientAccountId);
+  // Also true while the policy is still loading: trust can't unblock yet.
+  const remoteHeldBack = useRemoteContentHeldBack(email?.sourceClientAccountId);
   const tThirdParty = useTranslations('third_party');
   const messageSpacing = useSettingsStore((state) => state.messageSpacing);
   const plainTextFont = useSettingsStore((state) => state.plainTextFont);
   const mailAttachmentAction = useSettingsStore((state) => state.mailAttachmentAction);
+  // The device policies of the message's own account (Organisation >
+  // Devices): no downloads keeps previews and drops every way to save a
+  // copy; no export and no print drop those actions; the watermark lies over
+  // the body and the printout.
+  const devices = useDevicePolicy(email ?? undefined);
+  const downloadsOff = devices.noDownloads;
+  const downloadsOffRef = useRef(downloadsOff);
+  downloadsOffRef.current = downloadsOff;
+  const guardEmailRef = useRef(email);
+  guardEmailRef.current = email;
+  const watermark = useWatermarkText(email ?? undefined);
   // Office documents the built-in preview can't render still open in the
   // configured WOPI editor (#1047) - only blob-backed ones, the editor
   // fetches the content server-side.
@@ -1561,14 +1587,7 @@ export function EmailViewer({
   }, [inAppPreview]);
   const downloadInAppPreview = useCallback(() => {
     if (!inAppPreview) return;
-    const url = URL.createObjectURL(inAppPreview.blob);
-    const anchor = document.createElement('a');
-    anchor.href = url;
-    anchor.download = inAppPreview.downloadName;
-    document.body.appendChild(anchor);
-    anchor.click();
-    anchor.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    saveBlobAs(inAppPreview.blob, inAppPreview.downloadName, { kind: 'attachment', subject: guardEmailRef.current });
   }, [inAppPreview]);
   const [quickReplyText, setQuickReplyText] = useState("");
   const [isQuickReplyFocused, setIsQuickReplyFocused] = useState(false);
@@ -2630,7 +2649,7 @@ export function EmailViewer({
   //   'ask'   = block until the user allows this message or trusts the sender.
   const shouldBlockExternal = useMemo(() => {
     if (!email) return false;
-    if (remoteBlockedByOrg) return true;
+    if (remoteHeldBack) return true;
     const senderEmail = email.from?.[0]?.email?.toLowerCase();
     const senderIsTrusted = senderEmail
       ? isSenderTrusted(senderEmail) || (trustedSendersAddressBook && isTrustedAddressBookSender(senderEmail))
@@ -2643,12 +2662,17 @@ export function EmailViewer({
     // permission changes, so they're deliberately omitted from deps (matches
     // the srcDoc rebuild contract described on `emailContent`).
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [email, externalContentPolicy, allowExternalContent, remoteBlockedByOrg]);
+  }, [email, externalContentPolicy, allowExternalContent, remoteHeldBack]);
+
+  // Reported as phishing ($phishing): a banner, its links turned off and
+  // no cards (a phishing mail's "booking" is the lure).
+  const phishingMarked = usePhishingMarked(email);
+  const tPhishing = useTranslations('phishing_report');
 
   // Booking, parcel and order cards of the message itself (never of an
   // unwrapped attached .eml); empty unless the sender is verified and the
   // admin gate is on.
-  const structuredCards = useStructuredMail(email, blobSource);
+  const structuredCards = useStructuredMail(phishingMarked ? null : email, blobSource);
 
   // Sanitize and prepare email HTML content
   const emailContent = useMemo(() => {
@@ -2805,14 +2829,14 @@ export function EmailViewer({
     return text?.trim() ? text : htmlToReadableText(decodedEmailContent.html);
   }, [decodedEmailContent, emailContent, email]);
   const effectiveEmailContent = useMemo(() => {
-    if (!plainView || !decodedEmailContent.isHtml) return decodedEmailContent;
-    return {
+    const shown = !plainView || !decodedEmailContent.isHtml ? decodedEmailContent : {
       html: collapsePlainTextQuotes(plainTextToSafeHtml(readableText()), { show: t('show_quoted_text'), hide: t('hide_quoted_text') }),
       isHtml: false,
       hasStyleTag: false,
       externalBlocked: false,
     };
-  }, [plainView, decodedEmailContent, readableText, t]);
+    return phishingMarked ? { ...shown, html: turnOffLinks(shown.html, { title: tPhishing('link_off'), note: tPhishing('link_off_note') }) } : shown;
+  }, [plainView, decodedEmailContent, readableText, t, phishingMarked, tPhishing]);
   // Reader view: the message full screen in the app's own look.
   const [readerViewOpen, setReaderViewOpen] = useState(false);
   // Reading mask: dims the body except a band that follows pointer and caret.
@@ -2820,8 +2844,9 @@ export function EmailViewer({
   const bodyWrapRef = useRef<HTMLDivElement>(null);
   const readerViewHtml = useMemo(() => {
     if (!readerViewOpen) return '';
-    return decodedEmailContent.isHtml ? plainTextToSafeHtml(readableText()) : decodedEmailContent.html;
-  }, [readerViewOpen, decodedEmailContent, readableText]);
+    const html = decodedEmailContent.isHtml ? plainTextToSafeHtml(readableText()) : decodedEmailContent.html;
+    return phishingMarked ? turnOffLinks(html, { title: tPhishing('link_off'), note: tPhishing('link_off_note') }) : html;
+  }, [readerViewOpen, decodedEmailContent, readableText, phishingMarked, tPhishing]);
 
   const resolveAttachmentName = useCallback(
     (attachment: EffectiveAttachment) => {
@@ -2837,8 +2862,9 @@ export function EmailViewer({
     // Blob URLs inherit our origin; script-bearing MIME types (text/html,
     // image/svg+xml, etc.) would execute as the webmail origin if opened
     // top-level. Force the download path for anything not on the inert allowlist.
+    // With downloads turned off, a click previews whatever can be previewed.
     const opensPreview = isPreviewable
-      && mailAttachmentAction === 'preview'
+      && (mailAttachmentAction === 'preview' || downloadsOff)
       && isMimeTypeSafeForInlinePreview(attachment.type);
 
     const downloadName = resolveAttachmentName(attachment);
@@ -2868,17 +2894,12 @@ export function EmailViewer({
 
       if (opensPreview) {
         const transformed = await emailHooks.onAttachmentPreview.transform({ previewUrl: objectUrl } as AttachmentPreview, info);
-        if (!openPreviewInNewWindow(transformed.previewUrl || objectUrl)) {
+        if (!openPreviewInNewWindow(transformed.previewUrl || objectUrl, email)) {
           setInAppPreview({ name: attachment.name || downloadName, downloadName, blob, contentType: blob.type });
         }
-      } else {
+      } else if (downloadAllowed('attachment', email)) {
         emailHooks.onAttachmentDownload.emit(info);
-        const anchor = document.createElement('a');
-        anchor.href = objectUrl;
-        anchor.download = downloadName;
-        document.body.appendChild(anchor);
-        anchor.click();
-        anchor.remove();
+        saveBlobAs(objectUrl, downloadName, { kind: 'attachment', subject: email });
       }
 
       setTimeout(() => URL.revokeObjectURL(objectUrl), 60000);
@@ -2900,23 +2921,19 @@ export function EmailViewer({
 
     if (opensPreview) {
       const transformed = await emailHooks.onAttachmentPreview.transform({ previewUrl: objectUrl } as AttachmentPreview, info);
-      if (!openPreviewInNewWindow(transformed.previewUrl || objectUrl)) {
+      if (!openPreviewInNewWindow(transformed.previewUrl || objectUrl, email)) {
         setInAppPreview({ name: attachment.name || downloadName, downloadName, blob, contentType: blob.type });
       }
-    } else {
+    } else if (downloadAllowed('attachment', email)) {
       emailHooks.onAttachmentDownload.emit(info);
-      const anchor = document.createElement('a');
-      anchor.href = objectUrl;
-      anchor.download = downloadName;
-      document.body.appendChild(anchor);
-      anchor.click();
-      anchor.remove();
+      saveBlobAs(objectUrl, downloadName, { kind: 'attachment', subject: email });
     }
 
     setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
-  }, [mailAttachmentAction, onDownloadAttachment, email, resolveAttachmentName]);
+  }, [mailAttachmentAction, downloadsOff, onDownloadAttachment, email, resolveAttachmentName]);
 
   const handleEffectiveAttachmentDownload = useCallback((attachment: EffectiveAttachment) => {
+    if (!downloadAllowed('attachment', email)) return;
     const downloadName = resolveAttachmentName(attachment);
     const info: AttachmentInfo = {
       name: attachment.name || '',
@@ -2937,14 +2954,7 @@ export function EmailViewer({
         attachment.tnefData.byteOffset + attachment.tnefData.byteLength,
       ) as ArrayBuffer;
       const blob = new Blob([buffer], { type: attachment.type || 'application/octet-stream' });
-      const objectUrl = URL.createObjectURL(blob);
-      const anchor = document.createElement('a');
-      anchor.href = objectUrl;
-      anchor.download = downloadName;
-      document.body.appendChild(anchor);
-      anchor.click();
-      anchor.remove();
-      setTimeout(() => URL.revokeObjectURL(objectUrl), 60000);
+      saveBlobAs(blob, downloadName, { kind: 'attachment', subject: email });
       return;
     }
 
@@ -2953,15 +2963,8 @@ export function EmailViewer({
     if (!bytes || bytes.byteLength === 0) return;
     const buffer = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
     const blob = new Blob([buffer], { type: attachment.type || 'application/octet-stream' });
-    const objectUrl = URL.createObjectURL(blob);
-    const anchor = document.createElement('a');
-    anchor.href = objectUrl;
-    anchor.download = downloadName;
-    document.body.appendChild(anchor);
-    anchor.click();
-    anchor.remove();
-    setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
-  }, [onDownloadAttachment, email?.id, resolveAttachmentName]);
+    saveBlobAs(blob, downloadName, { kind: 'attachment', subject: email });
+  }, [onDownloadAttachment, email, resolveAttachmentName]);
 
   // Bundle every attachment of this email into a single .zip and download it.
   // Fetches blob-backed attachments through the JMAP client and reuses already
@@ -2969,6 +2972,7 @@ export function EmailViewer({
   // failures are skipped so a single bad blob doesn't sink the whole archive.
   const handleDownloadAllAttachments = useCallback(async () => {
     if (isDownloadingAll || effectiveAttachments.length === 0) return;
+    if (!downloadAllowed('attachment', email)) return;
     setIsDownloadingAll(true);
     try {
       const { default: JSZip } = await import('jszip');
@@ -3018,14 +3022,8 @@ export function EmailViewer({
       }
 
       const zipBlob = await zip.generateAsync({ type: 'blob', mimeType: 'application/zip' });
-      const objectUrl = URL.createObjectURL(zipBlob);
-      const anchor = document.createElement('a');
-      anchor.href = objectUrl;
-      anchor.download = attachmentsBundleFilename(email);
-      document.body.appendChild(anchor);
-      anchor.click();
-      anchor.remove();
-      setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
+      // The policy may have changed while the attachments were fetched.
+      if (!saveBlobAs(zipBlob, attachmentsBundleFilename(email), { kind: 'attachment', subject: email })) return;
       const omitted = effectiveAttachments.length - added;
       if (omitted > 0) toast.warning(t('download_all_partial', { count: omitted }));
     } catch (error) {
@@ -3041,15 +3039,17 @@ export function EmailViewer({
   const readerAttachmentProps = {
     attachments: effectiveAttachments,
     thumbUrls: imageThumbUrls,
-    opensPreview: (attachment: EffectiveAttachment) => isAttachmentPreviewable(attachment) && mailAttachmentAction === 'preview',
+    opensPreview: (attachment: EffectiveAttachment) => isAttachmentPreviewable(attachment) && (mailAttachmentAction === 'preview' || downloadsOff),
     onOpen: handleEffectiveAttachmentOpen,
     onDownload: handleEffectiveAttachmentDownload,
     onDownloadAll: handleDownloadAllAttachments,
     downloadingAll: isDownloadingAll,
-    onSaveToFiles: canSaveToFiles ? setSaveToFilesTarget : undefined,
+    downloadsOff,
+    // Save to Files would get around the policy: Files downloads are off too, but the copy would stay.
+    onSaveToFiles: canSaveToFiles && !downloadsOff ? setSaveToFilesTarget : undefined,
     pluginMenu: (attachment: EffectiveAttachment) => <AttachmentPluginMenu emailId={email?.id} attachment={attachment} className="p-2 rounded-md" />,
     renderItem: (attachment: EffectiveAttachment, tile: (drag: AttachmentDragProps) => React.ReactNode) => (
-      <DraggableAttachmentChip attachment={attachment} client={blobClient} accountId={blobAccountId} enabled={dragOutActive} downloadName={resolveAttachmentName(attachment)}>
+      <DraggableAttachmentChip attachment={attachment} client={blobClient} accountId={blobAccountId} enabled={dragOutActive && !downloadsOff} downloadName={resolveAttachmentName(attachment)}>
         {(dragProps) => (<>
           {tile(dragProps)}
           <AttachmentPluginFrames emailId={email?.id} attachment={attachment} />
@@ -3257,8 +3257,8 @@ export function EmailViewer({
   pre { white-space: pre-wrap; word-wrap: break-word; }
   ${wordHtmlCSS}
   ${darkModeCSS}
-</style></head><body dir="auto">${resolveColorSchemeMedia(effectiveEmailContent.html, recolorDark)}<style>html,body{height:auto!important;min-height:0!important;max-height:none!important}body{overflow-y:hidden!important}</style>${reading.frameCss ? `<style>${reading.frameCss}</style>` : ''}</body></html>`;
-  }, [effectiveEmailContent.html, effectiveEmailContent.isHtml, effectiveEmailContent.hasStyleTag, effectiveEmailContent.externalBlocked, recolorDark, emailHasNativeDarkMode, messageSpacing, bodyLanguage, reading.frameKey, reading.frameCss, appFontSources]);
+</style>${devices.noPrint ? '<style>@media print{html,body{display:none!important}}</style>' : ''}${devices.noDownloads ? `<style>${NO_SAVE_MEDIA_CSS}</style>` : ''}</head><body dir="auto">${resolveColorSchemeMedia(effectiveEmailContent.html, recolorDark)}<style>html,body{height:auto!important;min-height:0!important;max-height:none!important}body{overflow-y:hidden!important}</style>${reading.frameCss ? `<style>${reading.frameCss}</style>` : ''}</body></html>`;
+  }, [effectiveEmailContent.html, effectiveEmailContent.isHtml, effectiveEmailContent.hasStyleTag, effectiveEmailContent.externalBlocked, recolorDark, emailHasNativeDarkMode, messageSpacing, bodyLanguage, reading.frameKey, reading.frameCss, appFontSources, devices.noPrint, devices.noDownloads]);
 
   // Unblocking external content is handled by rebuilding the iframe srcDoc:
   // toggling allowExternalContent (both "Load images" and "Trust sender" set
@@ -3363,18 +3363,13 @@ export function EmailViewer({
       && mailAttachmentActionRef.current === 'preview'
       && isFilePreviewable(part.name, part.type)
       && isMimeTypeSafeForInlinePreview(part.type);
-    if (opensPreview) {
-      if (!openPreviewInNewWindow(href)) {
+    if (opensPreview || (part && downloadsOffRef.current && isFilePreviewable(part.name, part.type) && isMimeTypeSafeForInlinePreview(part.type))) {
+      if (!openPreviewInNewWindow(href, guardEmailRef.current)) {
         setInAppPreview({ name: part.name, downloadName: part.name, blob: part.blob, contentType: part.type || part.blob.type });
       }
       return;
     }
-    const anchor = document.createElement('a');
-    anchor.href = href;
-    anchor.download = part?.name || 'download';
-    document.body.appendChild(anchor);
-    anchor.click();
-    anchor.remove();
+    saveBlobAs(href, part?.name || 'download', { kind: 'attachment', subject: guardEmailRef.current });
   }, []);
 
   const handleIframeLoad = useCallback(() => {
@@ -3505,7 +3500,10 @@ export function EmailViewer({
         // Plugin intercept: let plugins cancel or rewrite external links inside
         // the email body before navigation happens. Bound on the iframe doc so
         // it survives later DOM mutations.
-        const onLinkClick = async (ev: Event) => {
+        const onLinkClick = async (ev: MouseEvent) => {
+          // A middle-click opens a link too, through the link check while one
+          // listens; other buttons are left alone.
+          if (ev.type === 'auxclick' && (ev.button !== 1 || !linkCheckActive())) return;
           const targetEl = (ev.target as Element | null)?.closest?.('a[href], area[href]') as HTMLAnchorElement | HTMLAreaElement | null;
           if (!targetEl) return;
           const href = targetEl.getAttribute('href') || '';
@@ -3551,6 +3549,7 @@ export function EmailViewer({
             href,
             target: targetEl.getAttribute('target') ?? undefined,
             emailId: email?.id,
+            text: linkText(targetEl),
           };
           // A plugin returns false to stop the link or { href } to send it
           // somewhere else (a web address only).
@@ -3559,9 +3558,12 @@ export function EmailViewer({
           window.open(target, '_blank', 'noopener,noreferrer');
         };
         doc.addEventListener('click', onLinkClick, true);
+        doc.addEventListener('auxclick', onLinkClick, true);
         // A press in the body closes a mention's card. The page never sees
         // it: the focus is already inside the iframe, so there is no blur.
         doc.addEventListener('mousedown', () => setBodyMention(null), true);
+        // "No downloads": the message's own pictures can't be saved or dragged out either.
+        blockMediaSaving(doc, () => downloadsOffRef.current);
         // Selected text, for the side panel, the onTextSelectionChange hook
         // and the right-click menu plugins may add entries to.
         watchBodySelection(doc, iframe, {
@@ -3599,63 +3601,25 @@ export function EmailViewer({
   // Export email as .eml file; the row's menu exports the same way.
   const exportEmail = useEmailExport();
   const handleExportEmail = async () => {
-    if (!email) return;
+    if (!email || devices.noExport) return;
     // With the Archive action off a stored 'archive' keeps the message.
     await exportEmail(email, { onArchive, onDelete, archiveEnabled: archiveActionEnabled }, blobSource ?? { client, accountId: undefined });
   };
 
-  // Import email from .eml file or .zip archive containing .eml files
+  // Import mail into the open folder: the import dialog (lib/mail-import) does the rest.
   const handleImportEmail = () => {
-    if (!client) return;
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = EML_IMPORT_ACCEPT;
-    input.multiple = true;
-    input.onchange = async (e) => {
-      const files = Array.from((e.target as HTMLInputElement).files ?? []);
-      if (files.length === 0) return;
-      const { selectedMailbox, mailboxes, fetchEmails } = useEmailStore.getState();
-      const mailbox = mailboxes.find(mb => mb.id === selectedMailbox);
-      const mailboxId = mailbox?.originalId || selectedMailbox;
-      if (!mailboxId) {
-        toast.error(tNotifications('import_email_error'));
-        return;
-      }
-
-      let emails;
-      try {
-        emails = await expandImportableEmails(files);
-      } catch {
-        toast.error(tNotifications('import_email_error'));
-        return;
-      }
-
-      let imported = 0;
-      let failed = 0;
-      for (const { blob, receivedAt } of emails) {
-        try {
-          await client.importRawEmail(blob, { [mailboxId]: true }, { '$seen': true }, undefined, receivedAt);
-          imported++;
-        } catch {
-          failed++;
-        }
-      }
-
-      if (imported > 0) {
-        toast.success(tNotifications('import_email_success'));
-        await fetchEmails(client);
-      }
-      if (failed > 0 || emails.length === 0) {
-        toast.error(tNotifications('import_email_error'));
-      }
-    };
-    input.click();
+    openMailImport({ mailboxId: useEmailStore.getState().selectedMailbox || undefined });
   };
 
   // Print only the email content in a new window. A print asked for from
   // the list's row menu brings its own window, opened in that click.
   const handlePrint = (openedWindow?: Window) => {
     if (!email) return;
+    if (devices.noPrint) {
+      openedWindow?.close();
+      return;
+    }
+    const printWatermark = watermark ? watermarkForPrint(watermark) : null;
     const printSender = email.from?.[0];
     const date = formatDateTime(emailDisplayDate(email), timeFormat, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
     const formatRecipient = (r: { name?: string | null; email: string }) =>
@@ -3706,7 +3670,8 @@ export function EmailViewer({
   .body img[style*="max-width"] { max-width: 100%; }
   .body img { height: auto !important; }
   @media print { body { margin: 20px; } }
-</style></head><body dir="auto">
+</style>${printWatermark ? printWatermark.style : ''}</head><body dir="auto">
+${printWatermark ? printWatermark.html : ''}
 <div class="header">
   <div class="subject">${escapeHtml(subjectText)}</div>
   <div class="meta">
@@ -3740,7 +3705,8 @@ export function EmailViewer({
     return extractListHeaders(email.headers);
   }, [email?.headers]);
 
-  const shouldShowUnsubBanner =
+  // Not for a reported message: its unsubscribe link is the phisher's.
+  const shouldShowUnsubBanner = !phishingMarked &&
     listHeaders?.listUnsubscribe?.preferred &&
     !dismissedUnsubBanners.has(email?.messageId || '');
 
@@ -4129,7 +4095,7 @@ export function EmailViewer({
     ...(effectiveEmailContent.isHtml
       ? [{ kind: 'item' as const, key: 'extra:view_mode' as const, icon: isDark ? Sun : Moon, label: isDark ? t('view_in_light_mode') : t('view_in_dark_mode'), run: toggleViewMode }]
       : []),
-    { kind: 'item', key: 'extra:import', icon: Upload, label: t('import_email'), run: handleImportEmail },
+    { kind: 'item', key: 'extra:import', icon: Upload, label: tImport('menu_import'), run: handleImportEmail },
     ...(onShowShortcuts && !isMobile
       ? [{ kind: 'item' as const, key: 'extra:shortcuts' as const, icon: Keyboard, label: t('keyboard_shortcuts'), run: onShowShortcuts }]
       : []),
@@ -4152,9 +4118,10 @@ export function EmailViewer({
     onRemoveFromFolder,
     onMarkAsSpam,
     onUndoSpam,
-    onExport: () => void handleExportEmail(),
-    onPrint: () => handlePrint(),
-    onViewSource: () => setShowSourceModal(true),
+    // Hidden by the device policies of the message's account.
+    onExport: devices.noExport ? undefined : () => void handleExportEmail(),
+    onPrint: devices.noPrint ? undefined : () => handlePrint(),
+    onViewSource: devices.noExport ? undefined : () => setShowSourceModal(true),
     omit: readerMenuOmit,
     extras: readerExtras.filter((entry) => entry.kind !== 'item' || !readerMenuOmit.has(entry.key)),
   };
@@ -4446,7 +4413,7 @@ export function EmailViewer({
 
         {/* Print - hidden on mobile, overflows to More menu. Mountain View
             has it on the subject line. */}
-        {!mvViewer && (
+        {!mvViewer && !devices.noPrint && (
         <Button
           variant="ghost"
           size="sm"
@@ -4780,6 +4747,7 @@ export function EmailViewer({
             {/* Mountain View: print and full screen at the end of the subject line. */}
             {mvViewer && (
               <div className="hidden lg:flex items-center flex-shrink-0 -me-2" data-mv-subject-actions="">
+                {!devices.noPrint && (
                 <button
                   type="button"
                   onClick={() => handlePrint()}
@@ -4789,6 +4757,7 @@ export function EmailViewer({
                 >
                   <Printer className="w-5 h-5" />
                 </button>
+                )}
                 {onToggleFullscreen && (
                   <button
                     type="button"
@@ -4912,6 +4881,7 @@ export function EmailViewer({
                     )}
                     <BrandVerifiedBadge domain={brandIndicatorDomain(email)} />
                     <ExternalSenderChip from={email.from} accountId={email.sourceClientAccountId} />
+                    <ReceivedLabelChip email={email} />
                     <EmailIdentityBadge email={email} identities={identities} />
                     {shouldShowUnsubBanner && listHeaders?.listUnsubscribe && (
                       <UnsubscribeBanner
@@ -5093,6 +5063,7 @@ export function EmailViewer({
                 )}
                 <BrandVerifiedBadge domain={brandIndicatorDomain(email)} />
                 <ExternalSenderChip from={email.from} accountId={email.sourceClientAccountId} />
+                <ReceivedLabelChip email={email} />
                 <EmailIdentityBadge email={email} identities={identities} />
                 {shouldShowUnsubBanner && listHeaders?.listUnsubscribe && (
                   <UnsubscribeBanner
@@ -5313,6 +5284,7 @@ export function EmailViewer({
                         />
                         <BrandVerifiedBadge domain={brandIndicatorDomain(email)} />
                         <ExternalSenderChip from={email.from} accountId={email.sourceClientAccountId} />
+                        <ReceivedLabelChip email={email} />
                         {senderVerification && (
                           <span
                             className={cn(
@@ -5602,6 +5574,8 @@ export function EmailViewer({
           </div>
         )}
 
+        {phishingMarked && <PhishingMarkBanner />}
+
         {/* Draft Banner: a scheduled message has its own. */}
         {isDraft && !isScheduled && (
           <div className="border-b border-border bg-warning/10">
@@ -5647,7 +5621,9 @@ export function EmailViewer({
                 )}
 
                 {/* External Content Controls */}
-                {!plainView && hasBlockedContent && (remoteBlockedByOrg || (!allowExternalContent && externalContentPolicy !== 'allow')) && (
+                {/* shouldBlockExternal: gone once trust applies (e.g. the
+                    policy finished loading after the first paint). */}
+                {!plainView && hasBlockedContent && shouldBlockExternal && (remoteBlockedByOrg || (!allowExternalContent && externalContentPolicy !== 'allow')) && (
                   <div className="flex items-start gap-3 py-1" data-testid="external-content-notice">
                     <div className="w-10 h-10 rounded-full bg-info/15 text-info flex items-center justify-center flex-shrink-0 shadow-sm">
                       <Image className="w-5 h-5" />
@@ -5761,6 +5737,7 @@ export function EmailViewer({
           )}
           style={isDark ? { backgroundColor: '#121212' } : undefined}>
             <ReadAloudBar state={readAloud.state} onPause={readAloud.pause} onResume={readAloud.resume} onStop={readAloud.stop} />
+            <Watermark text={watermark} />
             {readingMaskOn && !isBodyLoading && (
               <ReadingMask
                 containerRef={bodyWrapRef}
@@ -5817,6 +5794,10 @@ export function EmailViewer({
                 data-plugin-source="email-body"
                 data-email-id={email?.id}
                 onContextMenu={(e) => selectionMenu.onElementContextMenu(e, email?.id)}
+                // A plain-text body renders in the page, not the iframe: its
+                // links go through the link check here.
+                onClick={(e) => gateLinkClick(e, { emailId: email?.id })}
+                onAuxClick={(e) => gateLinkClick(e, { emailId: email?.id })}
                 dangerouslySetInnerHTML={plainBodyHtml}
                 style={{
                   ...(plainTextFont === 'mono' && { fontFamily: 'ui-monospace, "SF Mono", Consolas, monospace' }),
@@ -6134,6 +6115,8 @@ export function EmailViewer({
         onClose={() => setInAppPreview(null)}
         onDownload={downloadInAppPreview}
         getFileContent={getInAppPreviewContent}
+        linksOff={phishingMarked}
+        policyAccount={email ?? undefined}
       />
     )}
     </>

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { IconButton } from "@/components/ui/icon-button";
 import { Input } from "@/components/ui/input";
 import { useAuthStore, consumeSignedOut, SESSION_EXPIRED_DRAFTS_UNSAVED_KEY } from "@/stores/auth-store";
+import { consumeLost } from "@/lib/offline/lost";
 import { useAccountStore } from "@/stores/account-store";
 import { useThemeStore } from "@/stores/theme-store";
 import { usePolicyStore } from "@/stores/policy-store";
@@ -183,6 +184,7 @@ function LoginPageContent() {
   const router = useRouter();
   const t = useTranslations("login");
   const tSessionLimits = useTranslations("session_limits");
+  const tOffline = useTranslations("offline");
   const tTheme = useTranslations("settings.appearance.theme");
   const params = useParams();
   const searchParams = useSearchParams();
@@ -269,6 +271,11 @@ function LoginPageContent() {
   const [sessionExpired, setSessionExpired] = useState(false);
   // Signed out by the organisation's idle timeout or maximum session length.
   const [sessionEnd, setSessionEnd] = useState<SessionEndReason | null>(null);
+  // Offline outbox messages a sign-out deleted unsent (#523), named once.
+  const [outboxLost, setOutboxLost] = useState<string[]>([]);
+  useEffect(() => {
+    setOutboxLost(consumeLost());
+  }, []);
   const [expiredDraftsUnsaved, setExpiredDraftsUnsaved] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [shakeError, setShakeError] = useState(false);
@@ -1398,6 +1405,12 @@ function LoginPageContent() {
 
           {/* Form section */}
           <div className="px-8 pb-8">
+            {outboxLost.length > 0 && (
+              <div className="mb-5 p-3 rounded-xl border border-warning/30 bg-warning/5 text-sm text-foreground [overflow-wrap:anywhere]" role="status" data-testid="session-outbox-lost">
+                {tOffline("signout.lost", { subjects: outboxLost.map((s) => s || tOffline("outbox.no_subject")).join(", ") })}
+              </div>
+            )}
+
             {/* Session Expired Banner */}
             {sessionExpired && (
               <div

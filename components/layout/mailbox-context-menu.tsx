@@ -21,6 +21,7 @@ import {
   FolderX,
   RefreshCw,
   Upload,
+  Download,
   Users,
   EyeOff,
   Bell,
@@ -28,6 +29,8 @@ import {
   RotateCcw,
 } from "@/components/icons";
 import { FolderRulesSubMenu } from "@/components/email/rules-menu";
+import { openMailExport } from "@/stores/mail-transfer-store";
+import { useDevicePolicy } from "@/hooks/use-device-policy";
 
 interface Position {
   x: number;
@@ -140,6 +143,10 @@ export function MailboxContextMenu({
   notifications,
 }: MailboxContextMenuProps) {
   const t = useTranslations("mailbox_context_menu");
+  const tImport = useTranslations("mail_import");
+  const tExport = useTranslations("mail_export");
+  // Organisation > Devices > No export hides it; import stays.
+  const exportOff = useDevicePolicy().noExport;
 
   const handleAction = (action: () => void) => {
     action();
@@ -317,10 +324,19 @@ export function MailboxContextMenu({
 
       <ContextMenuItem
         icon={Upload}
-        label={t("import_email")}
+        label={tImport("menu_import")}
         onClick={() => handleAction(() => onImportEmail?.(mailbox.id))}
         disabled={!onImportEmail || !canAddItems}
       />
+      {!exportOff && (
+        <ContextMenuItem
+          icon={Download}
+          label={tExport("menu_export")}
+          onClick={() => handleAction(() => openMailExport({ mailboxId: mailbox.id }))}
+          disabled={mailbox.totalEmails === 0 || mailbox.myRights?.mayReadItems === false}
+          testId="mailbox-export"
+        />
+      )}
       <ContextMenuItem
         icon={RefreshCw}
         label={t("refresh")}

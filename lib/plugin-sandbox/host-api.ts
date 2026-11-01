@@ -3,8 +3,13 @@
 // structured-cloneable data back to the iframe.
 
 import type { AppInfoView, InstalledPlugin, Permission } from '../plugin-types';
+import { labelRawSend } from '@/lib/outgoing/classification-raw';
+import { completesComposeTakeover } from '@/lib/outgoing/compose-takeover';
+import { getOutboxHooks } from '@/lib/offline/outbox-hooks';
 import { fetchConfig } from '@/hooks/use-config';
 import { IS_LITE } from '../lite';
+import { downloadAllowed, saveBlobAs } from '../download-guard';
+import '../device-policy';
 import { doAppGetSettings, doAppSearchSettings } from './host-api-app';
 import { mayOfferSlot, pluginHasPermission } from './permissions';
 import { proxyAccounts, proxyCancel, proxyConnect, proxyDisconnect, proxyFetch, type StreamSink } from './proxy-client';
@@ -66,7 +71,9 @@ import { requestPanel } from './panel-requests';
 import { requestPageNavigation } from './page-navigation';
 import { requestOpenEmail } from './open-email';
 import { doComposerAttach, doComposerGetBody, doComposerGetSelection, doComposerReplaceBody, doComposerReplaceSelection } from './host-api-composer';
-import { pluginAllowed, wkdAllowed } from '../outgoing-hosts';
+import { wkdAllowed } from '../outgoing-hosts';
+import { noThirdPartyTraffic } from '../third-party-mode';
+import { openExternalLink } from '../plugin-hook-result';
 
 /**
  * Methods only callable from the privileged (same-origin) tier. These expose
@@ -696,8 +703,9 @@ async function readCapped(res: Response, limit: number): Promise<ArrayBuffer> {
 
 async function doHttpFetch(plugin: InstalledPlugin, rawUrl: string, init?: PluginFetchInit) {
   // Such a plugin isn't started in the no-third-party mode; this is the
-  // second lock in case one runs anyway (#903).
-  if (!pluginAllowed(plugin)) throw new Error('Outside requests are off: this server does not contact outside services');
+  // second lock in case one runs anyway (#903). A plugin the mode lets run
+  // (admin-entered servers through the proxy) has no outside fetch either.
+  if (noThirdPartyTraffic()) throw new Error('Outside requests are off: this server does not contact outside services');
   if (typeof rawUrl !== 'string') throw new Error('url must be a string');
   let url: URL;
   try { url = new URL(rawUrl); } catch { throw new Error('url must be absolute https://'); }
@@ -800,6 +808,8 @@ async function doJmapUploadBlob(content: unknown, name: unknown, type: unknown):
 interface JmapSubmitRawOptions {
   delayedUntil?: string;
   envelopeRecipients?: string[];
+  /** The `labelToken` of the onComposeSend request this send completes. */
+  labelToken?: string;
 }
 
 /**
@@ -811,6 +821,7 @@ async function doJmapSendRaw(
   rawBytes: ArrayBuffer | ArrayBufferView,
   identityId: string,
   opts?: JmapSubmitRawOptions,
+  pluginId = '',
 ): Promise<unknown> {
   if (typeof identityId !== 'string' || !identityId) throw new Error('jmap.sendRaw: identityId required');
   const { client } = useAuthStore.getState();
@@ -822,13 +833,18 @@ async function doJmapSendRaw(
   // ArrayBuffer (not SharedArrayBuffer) — also detaches from the caller's view.
   const copy = new Uint8Array(view.byteLength);
   copy.set(view);
-  const blob = new Blob([copy.buffer], { type: 'message/rfc822' });
+  // The classification label goes into the top-level header block, outside
+  // what the plugin signed or encrypted (lib/outgoing/classification-raw.ts).
+  const labelled = labelRawSend(copy, identityId, opts?.labelToken);
+  const blob = new Blob([labelled.buffer as ArrayBuffer], { type: 'message/rfc822' });
   return useEmailStore.getState().sendRawEmail(
     client,
     blob,
     identityId,
     opts?.delayedUntil,
     opts?.envelopeRecipients,
+    // Completing the composer's send: offline mode may keep it (#523).
+    { outbox: completesComposeTakeover(pluginId, identityId) },
   );
 }
 
@@ -840,6 +856,7 @@ async function doJmapSubmitRaw(
   rawBytes: ArrayBuffer | ArrayBufferView,
   identityId: string,
   opts?: JmapSubmitRawOptions,
+  pluginId = '',
 ): Promise<unknown> {
   if (typeof identityId !== 'string' || !identityId) {
     throw new Error('jmap.submitRaw: identityId required');
@@ -856,7 +873,14 @@ async function doJmapSubmitRaw(
   
   const copy = new Uint8Array(view.byteLength);
   copy.set(view);
-  const blob = new Blob([copy.buffer], { type: 'message/rfc822' });
+  const labelled = labelRawSend(copy, identityId, opts?.labelToken);
+  const blob = new Blob([labelled.buffer as ArrayBuffer], { type: 'message/rfc822' });
+
+  // Completing the composer's send while offline: kept in the outbox (#523).
+  const outbox = completesComposeTakeover(pluginId, identityId) ? getOutboxHooks() : null;
+  if (outbox?.shouldQueue(client)) {
+    return outbox.queueRaw(client, blob, { identityId, delayedUntil: opts?.delayedUntil, envelopeRecipients: opts?.envelopeRecipients, submitOnly: true });
+  }
 
   return client.submitRawEmail(
     blob,
@@ -1307,16 +1331,14 @@ async function downloadFile(args: { content: string | ArrayBuffer | Uint8Array; 
   if (typeof content !== 'string' && !(content instanceof ArrayBuffer) && !(content instanceof Uint8Array)) {
     throw new Error('ui.downloadFile: content must be a string or bytes');
   }
-  const url = URL.createObjectURL(new Blob([content as BlobPart], { type: contentType }));
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  a.rel = 'noopener';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  // Revoking at once can cancel the download in some browsers.
-  setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  // A plugin that can read attachments or raw mail could hand them out
+  // here: refused while any signed-in account's device policy turns
+  // downloads or export off (Organisation > Devices).
+  if (!downloadAllowed('attachment') || !downloadAllowed('export')) {
+    throw new Error('ui.downloadFile: downloads are turned off by the organisation');
+  }
+  // Revoking at once can cancel the download in some browsers (saveBlobAs waits a minute).
+  saveBlobAs(new Blob([content as BlobPart], { type: contentType }), filename, { kind: 'attachment' });
 }
 
 // ─── Email keyword mutations ──────────────────────────────────
@@ -1884,8 +1906,14 @@ async function doSieveRegenerate(): Promise<void> {
 
 // ─── admin config (same as before) ────────────────────────────
 
+/**
+ * The plugin's admin settings without its secrets, also when this browser
+ * holds an admin session: the route hands an admin every field, and a
+ * plugin read the Safe Browsing key that way. Secrets go only to the server
+ * proxy (api.proxy), never into a plugin frame.
+ */
 async function adminGetAll(pluginId: string): Promise<Record<string, unknown>> {
-  const res = await apiFetch(`/api/admin/plugins/${encodeURIComponent(pluginId)}/config`);
+  const res = await apiFetch(`/api/admin/plugins/${encodeURIComponent(pluginId)}/config?public=1`);
   if (!res.ok) return {};
   return res.json();
 }
@@ -1926,6 +1954,18 @@ async function adminSet(pluginId: string, key: string, value: unknown): Promise<
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ key, value }),
   }));
+}
+
+/**
+ * A server address an admin types for a credential (`originKey`) is what
+ * stays reachable with no third-party traffic: the plugin itself may not
+ * write it, or it could point its proxy at a host of its choosing.
+ */
+function refuseServerField(plugin: InstalledPlugin, key: unknown, method: string): void {
+  const serverFields = Object.values(plugin.credentials ?? {}).flatMap((spec) => (spec.scope === 'admin' && spec.originKey ? [spec.originKey] : []));
+  if (typeof key === 'string' && serverFields.includes(key)) {
+    throw new Error(`${method}: "${key}" is a server address only an administrator can set, on the plugin's admin page`);
+  }
 }
 
 /** A failed admin config write used to look like success to the plugin. */
@@ -2040,12 +2080,14 @@ export async function dispatchApiCall(
     case 'jmap.sendRaw':   return doJmapSendRaw(
       args[0] as ArrayBuffer | ArrayBufferView,
       args[1] as string,
-      args[2] as { delayedUntil?: string; envelopeRecipients?: string[] } | undefined,
+      args[2] as JmapSubmitRawOptions | undefined,
+      plugin.id,
     );
     case 'jmap.submitRaw': return doJmapSubmitRaw(
       args[0] as ArrayBuffer | ArrayBufferView,
       args[1] as string,
-      args[2] as { delayedUntil?: string; envelopeRecipients?: string[] } | undefined,
+      args[2] as JmapSubmitRawOptions | undefined,
+      plugin.id,
     );
     case 'jmap.importRaw': return doJmapImportRaw(
       args[0] as ArrayBuffer | ArrayBufferView,
@@ -2115,8 +2157,8 @@ export async function dispatchApiCall(
     case 'admin.getConfig':    return adminGet(plugin.id, args[0] as string);
     case 'admin.getAllConfig': return adminGetAll(plugin.id);
     case 'plugin.getConfig':   return publicConfig(plugin.id);
-    case 'admin.setConfig':    await adminSet(plugin.id, args[0] as string, args[1]); return undefined;
-    case 'admin.deleteConfig': await adminDelete(plugin.id, args[0] as string); return undefined;
+    case 'admin.setConfig':    refuseServerField(plugin, args[0], 'admin.setConfig'); await adminSet(plugin.id, args[0] as string, args[1]); return undefined;
+    case 'admin.deleteConfig': refuseServerField(plugin, args[0], 'admin.deleteConfig'); await adminDelete(plugin.id, args[0] as string); return undefined;
 
     case 'ui.confirm': {
       const opts = (args[0] ?? {}) as { title?: string; message?: string; confirmLabel?: string; cancelLabel?: string; danger?: boolean };
@@ -2204,9 +2246,12 @@ export async function dispatchApiCall(
       if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
         throw new Error(`ui.openExternalUrl: ${parsed.protocol} not allowed`);
       }
-      // Always open in a new tab; plugins must not be able to navigate the
+      // Other plugins' link checks (onBeforeExternalLink) see it like a
+      // click in a message; the plugin's own handler isn't asked again, so a
+      // link check opens the link after its dialog.
+      // Always opens in a new tab; plugins must not be able to navigate the
       // host window (_self/_top/_parent) to an attacker-controlled origin.
-      window.open(parsed.toString(), '_blank', 'noopener,noreferrer');
+      await openExternalLink({ href: parsed.toString(), target: '_blank' }, { skipPluginId: plugin.id });
       return undefined;
     }
     case 'ui.print': return doUiPrint(plugin, args[0]);

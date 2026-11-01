@@ -12,6 +12,7 @@ import { useEmailStore } from "@/stores/email-store";
 import { useSettingsStore } from "@/stores/settings-store";
 import { useDeviceDetection } from "@/hooks/use-media-query";
 import { EmbeddedContext } from "@/hooks/use-is-embedded";
+import { OrgAnnouncement } from "@/components/org/org-announcement";
 import { PaneSizeContext } from "@/hooks/use-pane-size";
 import { PaneIdContext, ProTabFocusContext } from "@/hooks/use-pane-context";
 import { useDeepLinkUrl } from "@/hooks/use-deep-link-url";
@@ -511,6 +512,8 @@ export default function ProHome() {
   return (
     <EmbeddedContext.Provider value={true}>
       <div className="flex flex-col h-dvh bg-background overflow-hidden pt-[env(safe-area-inset-top)]">
+        {/* Once for the whole shell: email and folder tabs have no app strip, and split panes would show it twice. */}
+        <OrgAnnouncement />
         <div className="flex flex-1 overflow-hidden">
           {/* Leftmost Navigation Rail - identical to the standard layout */}
           <div
