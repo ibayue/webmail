@@ -97,7 +97,7 @@ describe('Classification section', () => {
     await renderSection();
     const field = screen.getByTestId('org-labels-extra-header');
     fireEvent.change(field, { target: { value: 'Sensitivity' } });
-    expect(screen.getAllByRole('alert').some((el) => el.textContent?.includes('not a header Bulwark writes itself'))).toBe(true);
+    expect(screen.getAllByRole('alert').some((el) => el.textContent?.includes('Bulwark writes this one itself'))).toBe(true);
     expect(latest!.orgValue('labels', 'extraHeader').value).toBe('');
     fireEvent.change(field, { target: { value: 'X-Classification' } });
     expect(latest!.orgValue('labels', 'extraHeader').value).toBe('X-Classification');

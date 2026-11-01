@@ -302,7 +302,7 @@ export function LabelsSection({ draft }: { draft: OrgPolicyDraft }) {
                   />
                   {headerInvalid && (
                     <p className="text-xs text-red-600 dark:text-red-400" role="alert">
-                      Letters, digits and dashes only, and not a header Bulwark writes itself.
+                      A header name has no spaces or colons. Bulwark writes this one itself, or the mail server won't take it.
                     </p>
                   )}
                 </div>

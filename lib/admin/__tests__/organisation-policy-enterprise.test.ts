@@ -59,6 +59,15 @@ describe('enterprise sections: defaults and sanitising', () => {
     }
   });
 
+  it('takes any RFC 5322 header name, msip_labels too, but not one the server refuses', () => {
+    expect(sanitizeOrganisationPolicy({ labels: { extraHeader: 'msip_labels' } }).labels.extraHeader).toBe('msip_labels');
+    expect(isLabelExtraHeaderName('msip_labels')).toBe(true);
+    for (const name of ['Content-Classification', 'List-Id', 'Resent-From', 'ARC-Seal', 'Auto-Submitted', 'X:Bad', 'X Bad']) {
+      expect(isLabelExtraHeaderName(name)).toBe(false);
+      expect(sanitizeOrganisationPolicy({ labels: { extraHeader: name } }).labels.extraHeader).toBe('');
+    }
+  });
+
   it('refuses the header Bulwark keeps the label of a draft in', () => {
     expect(sanitizeOrganisationPolicy({ labels: { extraHeader: 'X-Bulwark-Label' } }).labels.extraHeader).toBe('');
     expect(isLabelExtraHeaderName('X-Bulwark-Label')).toBe(false);

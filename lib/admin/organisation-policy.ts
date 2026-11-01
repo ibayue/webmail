@@ -280,14 +280,17 @@ const EMAIL_RE = /^[^\s@<>"(),;:]+@[^\s@<>"(),;:]+\.[^\s@<>"(),;:]+$/;
 const COLOR_RE = /^#[0-9a-f]{6}$/i;
 const ID_RE = /^[A-Za-z0-9._-]{1,64}$/;
 const LOCALE_RE = /^[a-z]{2,3}(-[A-Za-z]{2,4})?$/;
-const HEADER_NAME_RE = /^[A-Za-z0-9][A-Za-z0-9-]{0,75}$/;
+// RFC 5322 field-name: printable ASCII but the colon (msip_labels has an underscore).
+const HEADER_NAME_RE = /^[\x21-\x39\x3b-\x7e]{1,76}$/;
+// Prefixes JMAP refuses at the top level or that say how mail travelled.
+const RESERVED_HEADER_PREFIXES = ['content-', 'list-', 'resent-', 'arc-'];
 // Headers the extra classification header may not be: they carry the
 // message itself, or the labels Bulwark writes anyway.
 const RESERVED_HEADERS = new Set([
   'from', 'to', 'cc', 'bcc', 'subject', 'date', 'message-id', 'sender', 'reply-to', 'in-reply-to',
   'references', 'mime-version', 'content-type', 'content-transfer-encoding', 'content-disposition',
   'received', 'return-path', 'dkim-signature', 'arc-seal', 'arc-message-signature', 'authentication-results',
-  'sio-label', 'sio-label-history', 'sensitivity', 'x-bulwark-label', 'importance', 'x-priority', 'disposition-notification-to',
+  'sio-label', 'sio-label-history', 'sensitivity', 'x-bulwark-label', 'auto-submitted', 'precedence', 'importance', 'x-priority', 'disposition-notification-to',
 ]);
 const MAX_LABELS = 50;
 const MAX_FEEDS = 50;
@@ -367,17 +370,22 @@ function sanitizeLabels(value: unknown): ClassificationLabel[] | undefined {
   });
 }
 
+function reservedHeader(name: string): boolean {
+  const lower = name.toLowerCase();
+  return RESERVED_HEADERS.has(lower) || RESERVED_HEADER_PREFIXES.some((prefix) => lower.startsWith(prefix));
+}
+
 /** Whether the admin page may store this as `labels.extraHeader` (the sanitiser's rule). */
 export function isLabelExtraHeaderName(value: string): boolean {
   const v = value.trim();
-  return HEADER_NAME_RE.test(v) && !RESERVED_HEADERS.has(v.toLowerCase());
+  return HEADER_NAME_RE.test(v) && !reservedHeader(v);
 }
 
 function headerName(value: unknown): string | undefined {
   if (typeof value !== 'string') return undefined;
   const v = value.trim();
   if (v === '') return '';
-  return HEADER_NAME_RE.test(v) && !RESERVED_HEADERS.has(v.toLowerCase()) ? v : undefined;
+  return HEADER_NAME_RE.test(v) && !reservedHeader(v) ? v : undefined;
 }
 
 function sanitizeLocaleText(value: unknown): Record<string, string> | undefined {
