@@ -9,7 +9,7 @@ import { addParagraphSpacing, addTrailingParagraphBreaks } from "@/components/em
 import { buildSignatureBlock } from "@/components/email/signature-block";
 import { parkRemoteResources, restoreRemoteResources, sanitizeComposerIslandHtml } from "@/lib/email-sanitization";
 import { useSettingsStore } from "@/stores/settings-store";
-import { remoteContentHeldBack } from "@/hooks/use-third-party-mode";
+import { remoteContentHeldBackAnywhere } from "@/hooks/use-third-party-mode";
 
 // Marker attribute that identifies the quoted-original wrapper in serialized
 // HTML, so parseHTML can recognise it on the way back in.
@@ -170,7 +170,9 @@ export const QuotedHtml = TiptapNode.create({
       // A draft re-opened after the organisation blocked remote content (or
       // before its policy loaded) keeps its quote parked, whatever the
       // wrapper remembered from when the draft was started.
-      const blockRemote = remoteContentHeldBack()
+      // The draft doesn't say which account it quotes: held back in any
+      // signed-in account keeps it parked.
+      const blockRemote = remoteContentHeldBackAnywhere()
         || (!node.attrs.remoteAllowed && useSettingsStore.getState().externalContentPolicy !== "allow");
       let renderedHtml = "";
       const render = (html: string) => {
@@ -257,6 +259,10 @@ export const QuotedHtml = TiptapNode.create({
  */
 export function serializeEditorContent(editor: Editor): string {
   const serializer = DOMSerializer.fromSchema(editor.schema);
+  // Built in an inert document: an <img> made in the app document starts
+  // loading at once, so serialising (on every change) fired every remote
+  // image of the content, also while remote content is blocked.
+  const inert = document.implementation.createHTMLDocument("");
   const parts: string[] = [];
   // Empty paragraphs at the very end (the editor keeps one after a quote)
   // stay invisible; every other empty line gets a <br> so it keeps its
@@ -280,8 +286,8 @@ export function serializeEditorContent(editor: Editor): string {
       parts.push(buildSignatureBlock((node.attrs.html as string) || ""));
       return;
     }
-    const fragment = serializer.serializeNode(node);
-    const tmp = document.createElement("div");
+    const fragment = serializer.serializeNode(node, { document: inert });
+    const tmp = inert.createElement("div");
     tmp.appendChild(fragment);
     if (index <= lastLine) addTrailingParagraphBreaks(tmp);
     addParagraphSpacing(tmp);

@@ -18,6 +18,12 @@ interface PolicyState {
   rawPolicy: SettingsPolicy;
   /** The account `policy` was resolved for; null before one is known. */
   subject: PolicySubject | null;
+  /**
+   * The active account's subject is being worked out (signed in, its groups
+   * not known yet). Until it is, a group scope's lock may not be applied yet.
+   */
+  subjectPending: boolean;
+  setSubjectPending: (pending: boolean) => void;
   /** Ids of the scopes that apply to `subject`. */
   matchedScopes: string[];
   /** What set each non-default value of `policy` (see ResolvedPolicy.sources). */
@@ -150,6 +156,7 @@ const INITIAL = resolved({ ...DEFAULT_POLICY }, null);
 export const usePolicyStore = create<PolicyState>()((set, get) => ({
   ...INITIAL,
   subject: null,
+  subjectPending: false,
   scopeDomains: null,
   loaded: false,
   fetching: false,
@@ -210,7 +217,10 @@ export const usePolicyStore = create<PolicyState>()((set, get) => ({
     }
   },
 
+  setSubjectPending: (pending) => { if (get().subjectPending !== pending) set({ subjectPending: pending }); },
+
   setPolicySubject: (subject) => {
+    if (get().subjectPending) set({ subjectPending: false });
     if (sameSubject(subject, get().subject)) return;
     set({ ...resolved(get().rawPolicy, subject), subject });
   },

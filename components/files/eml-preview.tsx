@@ -7,7 +7,7 @@ import { getEffectiveTimeZone } from "@/lib/timezone";
 import { stripBidiControls } from "@/lib/bidi";
 import { isFilePreviewable } from "@/lib/file-preview";
 import { useSettingsStore } from "@/stores/settings-store";
-import { useNoThirdPartyTraffic } from "@/hooks/use-third-party-mode";
+import { useRemoteContentHeldBackAnywhere } from "@/hooks/use-third-party-mode";
 
 // A parsed message/rfc822 (.eml), as produced by postal-mime. Only the fields
 // this preview renders are typed.
@@ -53,8 +53,10 @@ export function EmlPreview({ message, onOpenAttachment }: {
   onOpenAttachment?: (attachment: EmlAttachment) => void;
 }) {
   const t = useTranslations("email_viewer");
-  // Always blocked with no third-party traffic (#903).
-  const remoteBlockedByOrg = useNoThirdPartyTraffic();
+  // Always blocked with no third-party traffic (#903), while an
+  // organisation locks "block" in any signed-in account (the attachment's
+  // account isn't known here), and until the policy is known.
+  const remoteBlockedByOrg = useRemoteContentHeldBackAnywhere();
   const blockRemote = useSettingsStore((state) => state.externalContentPolicy) !== "allow" || remoteBlockedByOrg;
   const tFiles = useTranslations("files");
 

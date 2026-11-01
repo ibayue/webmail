@@ -17,7 +17,7 @@ import { emailIframeCsp, sanitizeEmailBodyForIframe } from "@/lib/email-sanitiza
 import { useSettingsStore } from "@/stores/settings-store";
 import { useCloseOnBack } from "@/hooks/use-close-on-back";
 import type { FileResourceView } from "@/lib/plugin-types";
-import { useNoThirdPartyTraffic } from "@/hooks/use-third-party-mode";
+import { useRemoteContentHeldBackAnywhere } from "@/hooks/use-third-party-mode";
 
 /**
  * An HTML attachment as a document for a fully locked frame (sandbox="",
@@ -163,8 +163,10 @@ export function FilePreviewModal({ name, onClose, onDownload, getFileContent, fi
   // open-in-new-tab fallback use.
   const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
   const [htmlDoc, setHtmlDoc] = useState<string | null>(null);
-  // Always blocked with no third-party traffic (#903).
-  const remoteBlockedByOrg = useNoThirdPartyTraffic();
+  // Always blocked with no third-party traffic (#903), while an
+  // organisation locks "block" in any signed-in account (the attachment's
+  // account isn't known here), and until the policy is known.
+  const remoteBlockedByOrg = useRemoteContentHeldBackAnywhere();
   const blockRemote = useSettingsStore((state) => state.externalContentPolicy) !== "allow" || remoteBlockedByOrg;
   // An attachment of the previewed .eml, shown in a preview of its own in
   // place of this one. It holds a Back entry of its own, so Escape and Back

@@ -1317,9 +1317,11 @@ export function EmailViewer({
   const externalContentPolicy = useSettingsStore((state) => state.externalContentPolicy);
   // No third-party traffic (#903), or the organisation locked "block": remote
   // content never loads, whatever trust says, and nothing offers to load it.
-  const remoteBlockedByOrg = useRemoteContentBlockedByOrg();
+  // The policy of the message's own account: in the unified inbox or a Pro
+  // tab that may be another signed-in account than the active one.
+  const remoteBlockedByOrg = useRemoteContentBlockedByOrg(email?.sourceClientAccountId);
   // Also true while the policy is still loading: trust can't unblock yet.
-  const remoteHeldBack = useRemoteContentHeldBack();
+  const remoteHeldBack = useRemoteContentHeldBack(email?.sourceClientAccountId);
   const tThirdParty = useTranslations('third_party');
   const messageSpacing = useSettingsStore((state) => state.messageSpacing);
   const plainTextFont = useSettingsStore((state) => state.plainTextFont);
