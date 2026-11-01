@@ -12,7 +12,7 @@ import { onSharedChange } from '@/lib/shared-store/changes';
  * On globalThis: one set of caches per process, whichever module copy asks.
  */
 
-export const MAX_ENTRIES = 32;
+export const MAX_ENTRIES = 256;
 
 export interface RenderCache {
   has(key: string): boolean;
