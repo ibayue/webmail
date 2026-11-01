@@ -102,6 +102,19 @@ describe('openPstSource', () => {
     expect(FakeWorker.instances[0].terminated).toBe(true);
   });
 
+  it('gives up on a worker that stops answering (killed for memory sends no error)', async () => {
+    class SilentWorker {
+      onmessage: unknown = null;
+      onerror: unknown = null;
+      terminated = false;
+      postMessage() {}
+      terminate() { this.terminated = true; }
+    }
+    vi.stubGlobal('Worker', SilentWorker);
+    const source = openPstSource(new File(['!BDN'], 'x.pst'), { skipBefore: 0, maxMessageBytes: 1e9 }, { watchdogMs: 30 });
+    await expect(source.next()).rejects.toMatchObject({ name: 'PstReadError', code: 'unreadable' });
+  });
+
   it('turns a worker error into a coded failure', async () => {
     vi.stubGlobal('Worker', FakeWorker);
     FakeWorker.failWith = { code: 'encrypted', message: 'PSTFile::open PST is encrypted' };

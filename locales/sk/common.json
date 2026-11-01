@@ -5397,7 +5397,7 @@
     "target_label": "Importovať do",
     "target_top": "Najvyššia úroveň",
     "keep_folders": "Znovu vytvoriť priečinky zo súboru",
-    "keep_folders_hint": "Priečinky s rovnakým názvom sa použijú znova. Doručená pošta, Odoslaná pošta a Odstránená pošta na najvyššej úrovni skončia vo vašich vlastných.",
+    "keep_folders_hint": "Priečinky s rovnakým názvom sa použijú znova.",
     "resume": "Pokračovať tam, kde sa posledný import týchto súborov zastavil (už hotové správy: {count})",
     "quota_note": "Mnohé servery prijímajú od jedného používateľa len asi 1000 správ alebo 50 MB za hodinu. Väčší import sa pozastaví a potom pokračuje sám.",
     "start": "Importovať",
@@ -5439,7 +5439,9 @@
     "error_failures": "Príliš veľa správ za sebou zlyhalo, preto sa import zastavil. Importujte rovnaké súbory neskôr znova do rovnakého priečinka, aby ste pokračovali.",
     "error_network": "Spojenie so serverom opakovane zlyhalo, preto sa import zastavil. Importujte rovnaké súbory znova do rovnakého priečinka, aby ste pokračovali.",
     "error_busy": "Tieto súbory sa už importujú na inej karte.",
-    "retry_hint": "Importujte rovnaké súbory znova do rovnakého priečinka, aby ste skúsili neúspešné ešte raz."
+    "retry_hint": "Importujte rovnaké súbory znova do rovnakého priečinka, aby ste skúsili neúspešné ešte raz.",
+    "skip_unreadable": "V súbore Outlooku nečitateľné: {count}",
+    "keep_folders_top_hint": "Na najvyššej úrovni skončia Doručená pošta, Odoslaná pošta, Odstránená pošta a podobné vo vašich vlastných."
   },
   "mail_export": {
     "menu_export": "Exportovať priečinok…",

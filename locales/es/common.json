@@ -5267,7 +5267,7 @@
     "target_label": "Importar en",
     "target_top": "Nivel superior",
     "keep_folders": "Recrear las carpetas del archivo",
-    "keep_folders_hint": "Las carpetas con el mismo nombre se reutilizan. Bandeja de entrada, Elementos enviados y Elementos eliminados en el nivel superior van a las suyas.",
+    "keep_folders_hint": "Las carpetas con el mismo nombre se reutilizan.",
     "resume": "Seguir donde se detuvo la última importación de estos archivos (mensajes ya procesados: {count})",
     "quota_note": "Muchos servidores solo aceptan unos 1000 mensajes o 50 MB por hora de cada usuario. Una importación mayor se pausa y luego sigue sola.",
     "start": "Importar",
@@ -5309,7 +5309,9 @@
     "error_failures": "Fallaron demasiados mensajes seguidos, así que la importación se detuvo. Importe los mismos archivos en la misma carpeta más tarde para seguir.",
     "error_network": "La conexión con el servidor falló varias veces, así que la importación se detuvo. Importe los mismos archivos en la misma carpeta otra vez para seguir.",
     "error_busy": "Estos archivos ya se están importando en otra pestaña.",
-    "retry_hint": "Importe los mismos archivos en la misma carpeta otra vez para reintentar los que fallaron."
+    "retry_hint": "Importe los mismos archivos en la misma carpeta otra vez para reintentar los que fallaron.",
+    "skip_unreadable": "Ilegibles en el archivo de Outlook: {count}",
+    "keep_folders_top_hint": "En el nivel superior, Bandeja de entrada, Elementos enviados, Elementos eliminados y similares van a las suyas."
   },
   "mail_export": {
     "menu_export": "Exportar carpeta…",

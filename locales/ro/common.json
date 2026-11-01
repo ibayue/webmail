@@ -5397,7 +5397,7 @@
     "target_label": "Importă în",
     "target_top": "Nivelul de sus",
     "keep_folders": "Recreează dosarele din fișier",
-    "keep_folders_hint": "Dosarele cu același nume sunt refolosite. Inbox, Elemente trimise și Elemente șterse de la nivelul de sus ajung în ale dumneavoastră.",
+    "keep_folders_hint": "Dosarele cu același nume sunt refolosite.",
     "resume": "Continuă de unde s-a oprit ultimul import al acestor fișiere (mesaje deja procesate: {count})",
     "quota_note": "Multe servere acceptă de la un utilizator doar circa 1000 de mesaje sau 50 MB pe oră. Un import mai mare face o pauză și apoi continuă singur.",
     "start": "Importă",
@@ -5439,7 +5439,9 @@
     "error_failures": "Prea multe mesaje la rând au eșuat, așa că importul s-a oprit. Importați mai târziu aceleași fișiere în același dosar pentru a continua.",
     "error_network": "Conexiunea la server a eșuat de mai multe ori, așa că importul s-a oprit. Importați din nou aceleași fișiere în același dosar pentru a continua.",
     "error_busy": "Aceste fișiere se importă deja în altă filă.",
-    "retry_hint": "Importați din nou aceleași fișiere în același dosar pentru a reîncerca mesajele care au eșuat."
+    "retry_hint": "Importați din nou aceleași fișiere în același dosar pentru a reîncerca mesajele care au eșuat.",
+    "skip_unreadable": "Ilizibile în fișierul Outlook: {count}",
+    "keep_folders_top_hint": "La nivelul de sus, Inbox, Elemente trimise, Elemente șterse și altele asemenea ajung în ale dumneavoastră."
   },
   "mail_export": {
     "menu_export": "Exportă dosarul…",

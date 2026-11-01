@@ -13,6 +13,7 @@ export type PstItem =
       receivedAt?: string;
       label: string;
       embeddedSkipped: number;
+      folderRole?: string;
     }
   | { kind: "skipped"; index: number; reason: SkipReason; label?: string };
 
@@ -37,15 +38,25 @@ export function walkPst(pst: any, options: { skipBefore: number; skipAlso?: Set<
     let index = 0;
     for (const ref of folders) {
       if (!(Number(ref.folder.contentCount) > 0)) continue;
+      const count = Number(ref.folder.contentCount) || 0;
+      let read = 0;
       for (;;) {
         let child: any;
         try {
           child = ref.folder.getNextChild();
         } catch {
-          // A broken item ends this folder's list in pst-extractor; go on with the next folder.
+          // A broken item ends this folder's list in pst-extractor: count what is
+          // left of the folder as unreadable and go on with the next folder.
+          for (let left = count - read; left > 0; left--) {
+            const i = index++;
+            yield i < options.skipBefore || options.skipAlso?.has(i)
+              ? { kind: "skipped", index: i, reason: "resumed" }
+              : { kind: "skipped", index: i, reason: "unreadable" };
+          }
           break;
         }
         if (!child) break;
+        read++;
         const i = index++;
         if (i < options.skipBefore || options.skipAlso?.has(i)) {
           yield { kind: "skipped", index: i, reason: "resumed" };
@@ -58,10 +69,14 @@ export function walkPst(pst: any, options: { skipBefore: number; skipAlso?: Set<
           continue;
         }
         let mime: Uint8Array;
-        let read;
+        let message;
         try {
-          read = readPstMessage(child);
-          mime = buildMime(read.mail, { boundarySeed: options.boundarySeed });
+          message = readPstMessage(child, options.maxMessageBytes);
+          if (message.tooLarge) {
+            yield { kind: "skipped", index: i, reason: "too_large", label };
+            continue;
+          }
+          mime = buildMime(message.mail, { boundarySeed: options.boundarySeed });
         } catch {
           yield { kind: "skipped", index: i, reason: "other", label };
           continue;
@@ -75,10 +90,11 @@ export function walkPst(pst: any, options: { skipBefore: number; skipAlso?: Set<
           index: i,
           folder: ref.path,
           mime,
-          keywords: read.keywords,
-          receivedAt: utcDate(read.receivedAt),
+          keywords: message.keywords,
+          receivedAt: utcDate(message.receivedAt),
           label,
-          embeddedSkipped: read.embedded,
+          embeddedSkipped: message.embedded,
+          folderRole: ref.topRole,
         };
       }
     }

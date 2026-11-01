@@ -148,6 +148,17 @@ function textPart(text: string, subtype: "plain" | "html"): Part {
   return leaf(`text/${subtype}; charset=utf-8`, encoder.encode(text.replace(/\r?\n/g, CRLF)));
 }
 
+/** A message id from the PST as `<id>`, or undefined: no line breaks or spaces can get into the header. */
+function msgId(value: string | undefined): string | undefined {
+  const id = (value ?? "").replace(/[\r\n]/g, "").trim().replace(/^<|>$/g, "");
+  return /^[^<>\s]+$/.test(id) ? `<${id}>` : undefined;
+}
+
+/** A Content-ID without anything that could end the header or the angle brackets. */
+function cid(value: string): string {
+  return value.replace(/[<>\s]/g, "");
+}
+
 export interface MimeOptions {
   /** Makes boundaries reproducible (tests). */
   boundarySeed?: string;
@@ -179,7 +190,7 @@ export function buildMime(mail: PstMailData, options: MimeOptions = {}): Uint8Ar
     body = multipart("related", [body, ...inline.map((a) => leaf(
       `${a.mimeType}${fileParams(a.filename)}`,
       a.data,
-      [`Content-ID: <${a.contentId}>`, `Content-Disposition: inline${fileParams(a.filename).replace(/; name/g, "; filename")}`],
+      [`Content-ID: <${cid(a.contentId!)}>`, `Content-Disposition: inline${fileParams(a.filename).replace(/; name/g, "; filename")}`],
     ))]);
   }
   const extra: Part[] = attached.map((a) => leaf(
@@ -203,8 +214,10 @@ export function buildMime(mail: PstMailData, options: MimeOptions = {}): Uint8Ar
   // Only sent mail and drafts have Bcc recipients; a received header block never names them.
   if (!mail.headers && mail.bcc.length > 0) header.push(`Bcc: ${addressList(mail.bcc)}`);
   if (!has("subject")) header.push(`Subject: ${encodeHeaderText(mail.subject)}`);
-  if (!has("message-id") && mail.messageId) header.push(`Message-ID: ${mail.messageId}`);
-  if (!has("in-reply-to") && mail.inReplyTo) header.push(`In-Reply-To: ${mail.inReplyTo}`);
+  const messageId = msgId(mail.messageId);
+  const inReplyTo = msgId(mail.inReplyTo);
+  if (!has("message-id") && messageId) header.push(`Message-ID: ${messageId}`);
+  if (!has("in-reply-to") && inReplyTo) header.push(`In-Reply-To: ${inReplyTo}`);
   if (!has("importance") && mail.importance === 2) header.push("Importance: high");
   if (!has("importance") && mail.importance === 0) header.push("Importance: low");
   header.push("MIME-Version: 1.0");

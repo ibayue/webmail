@@ -5397,7 +5397,7 @@
     "target_label": "Importér til",
     "target_top": "Øverste niveau",
     "keep_folders": "Genskab mapperne fra filen",
-    "keep_folders_hint": "Mapper med samme navn bruges igen. Indbakke, Sendt post og Slettet post på øverste niveau havner i dine egne.",
+    "keep_folders_hint": "Mapper med samme navn bruges igen.",
     "resume": "Fortsæt, hvor den sidste import af disse filer stoppede (beskeder allerede klaret: {count})",
     "quota_note": "Mange servere tager kun imod omkring 1000 beskeder eller 50 MB i timen fra én bruger. En større import holder pause og fortsætter derefter af sig selv.",
     "start": "Importér",
@@ -5439,7 +5439,9 @@
     "error_failures": "For mange beskeder i træk mislykkedes, så importen stoppede. Importér de samme filer til samme mappe igen senere for at fortsætte.",
     "error_network": "Forbindelsen til serveren svigtede gentagne gange, så importen stoppede. Importér de samme filer til samme mappe igen for at fortsætte.",
     "error_busy": "Disse filer importeres allerede i en anden fane.",
-    "retry_hint": "Importér de samme filer til samme mappe igen for at prøve dem, der mislykkedes, en gang til."
+    "retry_hint": "Importér de samme filer til samme mappe igen for at prøve dem, der mislykkedes, en gang til.",
+    "skip_unreadable": "Ulæselige i Outlook-filen: {count}",
+    "keep_folders_top_hint": "På øverste niveau havner Indbakke, Sendt post, Slettet post og lignende i dine egne."
   },
   "mail_export": {
     "menu_export": "Eksportér mappe…",

@@ -43,7 +43,10 @@ type WorkerMessage =
 /** Messages asked for ahead of the import, so the worker keeps busy without filling memory. */
 const AHEAD = 4;
 
-export async function* openPstSource(file: File, options: SourceOptions): ItemSource {
+/** How long the worker may stay silent while a message is awaited before the import gives up (it may have run out of memory). */
+const WATCHDOG_MS = 120_000;
+
+export async function* openPstSource(file: File, options: SourceOptions, tuning: { watchdogMs?: number } = {}): ItemSource {
   const worker = new Worker(pstWorkerUrl());
   const queue: WorkerMessage[] = [];
   let wake: (() => void) | null = null;
@@ -58,8 +61,16 @@ export async function* openPstSource(file: File, options: SourceOptions): ItemSo
   };
   const onAbort = () => push({ type: "abort" });
   options.signal?.addEventListener("abort", onAbort, { once: true });
+  // A worker killed for memory sends no error: don't wait for it forever.
   const next = async (): Promise<WorkerMessage> => {
-    while (queue.length === 0) await new Promise<void>((resolve) => { wake = resolve; });
+    while (queue.length === 0) {
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      await new Promise<void>((resolve) => {
+        wake = resolve;
+        timer = setTimeout(() => push({ type: "error", code: "unreadable", message: "The PST reader stopped answering" }), tuning.watchdogMs ?? WATCHDOG_MS);
+      });
+      clearTimeout(timer);
+    }
     wake = null;
     return queue.shift()!;
   };
@@ -100,6 +111,7 @@ export async function* openPstSource(file: File, options: SourceOptions): ItemSo
           receivedAt: item.receivedAt,
           label: item.label,
           embeddedSkipped: item.embeddedSkipped,
+          folderRole: item.folderRole,
         };
       } else {
         out = item;

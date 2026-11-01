@@ -1,12 +1,12 @@
 // @vitest-environment node
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
 import PostalMime from 'postal-mime';
 import { PSTFile } from 'pst-extractor';
 import { walkPst, type PstItem } from '@/lib/mail-import/pst/items';
 import { buildMime, encodeHeaderText, keptHeaders, type PstMailData } from '@/lib/mail-import/pst/mime';
-import { itemKind, pstFolders } from '@/lib/mail-import/pst/extract';
+import { itemKind, pstFolders, readPstMessage } from '@/lib/mail-import/pst/extract';
 import { registerPstFile, openSync, readSync } from '@/lib/mail-import/pst/shims/fs';
 
 // Aspose's Outlook.pst (MIT, see fixtures/Outlook.pst.LICENSE).
@@ -148,6 +148,68 @@ describe('pstFolders without an IPM subtree entry (OST files)', () => {
     };
     const out = [...pstFolders(pst)].map((f) => `${f.path.join('/')}${f.mail ? '' : ' (not mail)'}`);
     expect(out).toEqual(['', '', '', 'Inbox', 'Inbox/Projects', 'Calendar (not mail)']);
+  });
+});
+
+describe('PST special folders', () => {
+  it('knows Sent Items and Deleted Items from the store\'s entry IDs, whatever their names', () => {
+    const roles = Object.fromEntries([...pstFolders(new PSTFile(fs.readFileSync(FIXTURE)))].map((r) => [r.path.join('/'), r.topRole]));
+    expect(roles['Sent Items']).toBe('sent');
+    expect(roles['Deleted Items']).toBe('trash');
+    expect(roles['Inbox']).toBeUndefined();
+  });
+
+  it('gives every message the role of its top folder', () => {
+    const items = [...walkPst(new PSTFile(fs.readFileSync(FIXTURE)), { skipBefore: 0, maxMessageBytes: 50_000_000 }).items];
+    const sent = items.filter((i) => i.kind === 'message' && i.folder[0] === 'Sent Items');
+    expect(sent.length).toBeGreaterThan(0);
+    expect(sent.every((i) => i.kind === 'message' && i.folderRole === 'sent')).toBe(true);
+  });
+});
+
+describe('PST safety', () => {
+  const stream = (length: number) => ({ length, readCompletely: vi.fn() });
+  const message = (attachments: unknown[]) => ({
+    subject: 'big', numberOfAttachments: attachments.length, getAttachment: (i: number) => attachments[i], numberOfRecipients: 0,
+  });
+
+  it('skips a message whose attachments are too big before reading any of them', () => {
+    const big = stream(900_000_000);
+    const read = readPstMessage(message([{ attachMethod: 1, fileInputStream: big, filename: 'a.iso' }]), 50_000_000);
+    expect(read.tooLarge).toBe(true);
+    expect(big.readCompletely).not.toHaveBeenCalled();
+  });
+
+  it('counts what is left of a folder after a broken item as unreadable', () => {
+    let n = 0;
+    const folder = {
+      displayName: 'Inbox', containerClass: 'IPF.Note', descriptorNodeId: 9, hasSubfolders: false, contentCount: 5,
+      getNextChild: () => { if (++n > 2) throw new Error('broken block'); return { messageClass: 'IPM.Contact', subject: `c${n}` }; },
+    };
+    const pst = {
+      getMessageStore: () => ({ getBinaryItem: () => null }),
+      getRootFolder: () => ({ displayName: '', descriptorNodeId: 1, hasSubfolders: true, getSubFolders: () => [folder] }),
+    };
+    const items = [...walkPst(pst, { skipBefore: 0, maxMessageBytes: 1e9 }).items];
+    expect(items.map((i) => (i.kind === 'skipped' ? i.reason : 'message'))).toEqual(['contact', 'contact', 'unreadable', 'unreadable', 'unreadable']);
+    expect(items.map((i) => i.index)).toEqual([0, 1, 2, 3, 4]);
+  });
+
+  it('keeps line breaks and spaces out of the ids it writes into headers', () => {
+    const text = new TextDecoder().decode(buildMime({
+      subject: 's', to: [], cc: [], bcc: [], text: 'x',
+      messageId: '<a@b>\r\nBcc: victim@example.org', inReplyTo: 'c@d',
+      html: '<img src="cid:img1">',
+      attachments: [{ filename: 'i.png', mimeType: 'image/png', contentId: 'img1', data: new Uint8Array([1]) }],
+    }));
+    expect(text).not.toMatch(/^Bcc:/m);
+    expect(text).not.toMatch(/^Message-ID:/m);
+    expect(text).toMatch(/^In-Reply-To: <c@d>\r$/m);
+    const evil = new TextDecoder().decode(buildMime({
+      subject: 's', to: [], cc: [], bcc: [], text: 'x', html: '<img src="cid:x>\r\nX-Evil: 1">',
+      attachments: [{ filename: 'i.png', mimeType: 'image/png', contentId: 'x>\r\nX-Evil: 1', data: new Uint8Array([1]) }],
+    }));
+    expect(evil).not.toMatch(/^X-Evil:/m);
   });
 });
 

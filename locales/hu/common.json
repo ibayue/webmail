@@ -5397,7 +5397,7 @@
     "target_label": "Importálás ide",
     "target_top": "Legfelső szint",
     "keep_folders": "A fájl mappáinak újbóli létrehozása",
-    "keep_folders_hint": "Az azonos nevű mappák újra felhasználódnak. A legfelső szinten lévő Beérkezett üzenetek, Elküldött elemek és Törölt elemek a saját mappáiba kerülnek.",
+    "keep_folders_hint": "Az azonos nevű mappák újra felhasználódnak.",
     "resume": "Folytatás ott, ahol e fájlok legutóbbi importálása megállt (már kész üzenetek: {count})",
     "quota_note": "Sok szerver felhasználónként óránként csak körülbelül 1000 üzenetet vagy 50 MB-ot fogad. A nagyobb importálás szünetel, majd magától folytatódik.",
     "start": "Importálás",
@@ -5439,7 +5439,9 @@
     "error_failures": "Túl sok üzenet hiúsult meg egymás után, ezért az importálás leállt. Később importálja újra ugyanazokat a fájlokat ugyanabba a mappába a folytatáshoz.",
     "error_network": "A kapcsolat a szerverrel többször megszakadt, ezért az importálás leállt. Importálja újra ugyanazokat a fájlokat ugyanabba a mappába a folytatáshoz.",
     "error_busy": "Ezeket a fájlokat már importálja egy másik lap.",
-    "retry_hint": "Importálja újra ugyanazokat a fájlokat ugyanabba a mappába, hogy a sikertelenekkel újra próbálkozzon."
+    "retry_hint": "Importálja újra ugyanazokat a fájlokat ugyanabba a mappába, hogy a sikertelenekkel újra próbálkozzon.",
+    "skip_unreadable": "Olvashatatlan az Outlook-fájlban: {count}",
+    "keep_folders_top_hint": "A legfelső szinten a Beérkezett üzenetek, az Elküldött elemek, a Törölt elemek és a hasonlók a saját mappáiba kerülnek."
   },
   "mail_export": {
     "menu_export": "Mappa exportálása…",

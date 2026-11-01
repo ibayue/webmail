@@ -5409,7 +5409,7 @@
     "target_label": "Nhập vào",
     "target_top": "Cấp cao nhất",
     "keep_folders": "Tạo lại các thư mục từ tệp",
-    "keep_folders_hint": "Thư mục cùng tên sẽ được dùng lại. Hộp thư đến, Thư đã gửi và Thư đã xóa ở cấp cao nhất sẽ vào thư mục của bạn.",
+    "keep_folders_hint": "Thư mục cùng tên sẽ được dùng lại.",
     "resume": "Tiếp tục từ chỗ lần nhập trước của các tệp này dừng lại (thư đã xử lý: {count})",
     "quota_note": "Nhiều máy chủ chỉ nhận khoảng 1000 thư hoặc 50 MB mỗi giờ từ một người dùng. Lần nhập lớn hơn sẽ tạm dừng rồi tự tiếp tục.",
     "start": "Nhập",
@@ -5451,7 +5451,9 @@
     "error_failures": "Quá nhiều thư liên tiếp không nhập được nên việc nhập đã dừng. Hãy nhập lại cùng các tệp vào cùng thư mục sau để tiếp tục.",
     "error_network": "Kết nối tới máy chủ liên tục thất bại nên việc nhập đã dừng. Hãy nhập lại cùng các tệp vào cùng thư mục để tiếp tục.",
     "error_busy": "Các tệp này đang được nhập ở một thẻ khác.",
-    "retry_hint": "Nhập lại cùng các tệp vào cùng thư mục để thử lại những thư không nhập được."
+    "retry_hint": "Nhập lại cùng các tệp vào cùng thư mục để thử lại những thư không nhập được.",
+    "skip_unreadable": "Không đọc được trong tệp Outlook: {count}",
+    "keep_folders_top_hint": "Ở cấp cao nhất, Hộp thư đến, Thư đã gửi, Thư đã xóa và các thư mục tương tự sẽ vào thư mục của bạn."
   },
   "mail_export": {
     "menu_export": "Xuất thư mục…",

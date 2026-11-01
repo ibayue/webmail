@@ -21,6 +21,9 @@ const SYSTEM_FOLDERS = new Set([
 const ROOT_NAMES = new Set(["top of personal folders", "top of outlook data file", "root - mailbox", "ipm_subtree", "root - public"]);
 
 const PR_IPM_SUBTREE_ENTRYID = 0x35e0;
+const PR_IPM_WASTEBASKET_ENTRYID = 0x35e3;
+const PR_IPM_SENTMAIL_ENTRYID = 0x35e4;
+const PR_IPM_DRAFTS_ENTRYID = 0x36d7;
 const PR_FLAG_STATUS = 0x1090;
 const PR_SENDER_SMTP_ADDRESS = 0x5d01;
 const PR_SENT_REPRESENTING_SMTP_ADDRESS = 0x5d02;
@@ -46,6 +49,8 @@ function isMailFolder(folder: PstObject): boolean {
 export interface PstFolderRef {
   folder: PstObject;
   path: string[];
+  /** What the PST says the top folder of `path` is (sent, trash, drafts), whatever its name in the user's language. */
+  topRole?: string;
   /** A calendar, contacts or other non-mail folder: its items are counted, not imported. */
   mail: boolean;
 }
@@ -76,7 +81,25 @@ export function* pstFolders(pst: PstObject): Generator<PstFolderRef> {
     top = null;
   }
 
-  function* walk(folder: PstObject, path: string[], depth: number): Generator<PstFolderRef> {
+  // Special folders by their entry IDs: the message store names Sent Items and
+  // Deleted Items, the top folder names Drafts. The Inbox is found by name.
+  const roles = new Map<number, string>();
+  const nidOf = (entry: { length: number; readUInt32LE(at: number): number } | null | undefined) =>
+    entry && entry.length >= 24 ? entry.readUInt32LE(20) : null;
+  try {
+    const store = pst.getMessageStore();
+    for (const [id, role] of [[PR_IPM_SENTMAIL_ENTRYID, "sent"], [PR_IPM_WASTEBASKET_ENTRYID, "trash"]] as const) {
+      const nid = nidOf(store.getBinaryItem?.(id));
+      if (nid !== null) roles.set(nid, role);
+    }
+    const drafts = nidOf((top ?? root).getBinaryItem?.(PR_IPM_DRAFTS_ENTRYID));
+    if (drafts !== null) roles.set(drafts, "drafts");
+  } catch {
+    /* names are the fallback */
+  }
+  const nidOfFolder = (folder: PstObject): number => Number(folder.descriptorNodeId?.toNumber?.() ?? folder.descriptorNodeId);
+
+  function* walk(folder: PstObject, path: string[], depth: number, topRole?: string): Generator<PstFolderRef> {
     if (!folder.hasSubfolders) return;
     for (const child of folder.getSubFolders()) {
       const name = String(child.displayName || "").trim();
@@ -84,8 +107,9 @@ export function* pstFolders(pst: PstObject): Generator<PstFolderRef> {
       // Outside the IPM subtree only what sits next to the mailbox's top counts as system data.
       if (!top && path.length === 0 && SYSTEM_FOLDERS.has(lower)) continue;
       const childPath = !top && ROOT_NAMES.has(lower) && path.length === 0 ? path : [...path, name || "Folder"];
-      yield { folder: child, path: childPath, mail: isMailFolder(child) };
-      yield* walk(child, childPath, depth + 1);
+      const role = childPath.length === 1 && path.length === 0 ? roles.get(nidOfFolder(child)) : topRole;
+      yield { folder: child, path: childPath, mail: isMailFolder(child), topRole: role };
+      yield* walk(child, childPath, depth + 1, role);
     }
   }
 
@@ -175,13 +199,38 @@ export interface PstMessage {
   receivedAt?: Date;
   /** Attached messages pst-extractor can't read. */
   embedded: number;
+  /** Bigger than the server takes: nothing was read in. */
+  tooLarge?: boolean;
 }
 
-/** A mail item's properties, its attachments read in, as data for buildMime. */
-export function readPstMessage(m: PstObject): PstMessage {
+function streamLength(stream: PstObject): number {
+  return typeof stream?.length === "number" ? stream.length : Number(stream?.length?.toNumber?.() ?? 0);
+}
+
+/**
+ * A mail item's properties, its attachments read in, as data for buildMime.
+ * A message whose attachments alone would be bigger than `maxBytes` once in
+ * base64 is reported `tooLarge` before anything is read: a 1 GB attachment
+ * would take several GB in the worker.
+ */
+export function readPstMessage(m: PstObject, maxBytes = Number.POSITIVE_INFINITY): PstMessage {
   const attachments: PstAttachmentData[] = [];
   let embedded = 0;
   const count = Number(m.numberOfAttachments) || 0;
+  if (Number.isFinite(maxBytes)) {
+    let declared = 0;
+    for (let i = 0; i < count; i++) {
+      try {
+        const a = m.getAttachment(i);
+        if (a && a.attachMethod !== ATTACH_EMBEDDED_MSG) declared += streamLength(a.fileInputStream);
+      } catch {
+        /* read below, or skipped there */
+      }
+    }
+    if (Math.ceil(declared / 3) * 4 > maxBytes) {
+      return { mail: { subject: str(m.subject), to: [], cc: [], bcc: [], attachments: [] }, keywords: {}, embedded: 0, tooLarge: true };
+    }
+  }
   for (let i = 0; i < count; i++) {
     let a: PstObject;
     try { a = m.getAttachment(i); } catch { continue; }
@@ -189,7 +238,7 @@ export function readPstMessage(m: PstObject): PstMessage {
     if (a.attachMethod === ATTACH_EMBEDDED_MSG) { embedded++; continue; }
     const stream = a.fileInputStream;
     if (!stream) continue;
-    const length = typeof stream.length === "number" ? stream.length : Number(stream.length?.toNumber?.() ?? 0);
+    const length = streamLength(stream);
     const buffer = new Uint8Array(length);
     try {
       // pst-extractor wants a Buffer; one over our bytes fills them in place.

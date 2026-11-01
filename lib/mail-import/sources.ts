@@ -25,6 +25,8 @@ export type SkipReason =
   | "other"
   /** Messages attached to a PST message, which pst-extractor can't read. */
   | "embedded"
+  /** PST items after a broken one in the same folder, which pst-extractor can't reach. */
+  | "unreadable"
   /** Imported by an earlier run of the same import. */
   | "resumed";
 

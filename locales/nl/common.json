@@ -5267,7 +5267,7 @@
     "target_label": "Importeren in",
     "target_top": "Hoogste niveau",
     "keep_folders": "De mappen uit het bestand overnemen",
-    "keep_folders_hint": "Mappen met dezelfde naam worden opnieuw gebruikt. Postvak IN, Verzonden items en Verwijderde items op het hoogste niveau gaan naar die van u.",
+    "keep_folders_hint": "Mappen met dezelfde naam worden opnieuw gebruikt.",
     "resume": "Doorgaan waar de laatste import van deze bestanden stopte (al verwerkte berichten: {count})",
     "quota_note": "Veel servers nemen per gebruiker maar ongeveer 1000 berichten of 50 MB per uur aan. Een grotere import pauzeert en gaat daarna vanzelf verder.",
     "start": "Importeren",
@@ -5309,7 +5309,9 @@
     "error_failures": "Te veel berichten na elkaar zijn mislukt, dus de import is gestopt. Importeer dezelfde bestanden later opnieuw in dezelfde map om verder te gaan.",
     "error_network": "De verbinding met de server mislukte steeds, dus de import is gestopt. Importeer dezelfde bestanden opnieuw in dezelfde map om verder te gaan.",
     "error_busy": "Deze bestanden worden al in een ander tabblad geïmporteerd.",
-    "retry_hint": "Importeer dezelfde bestanden opnieuw in dezelfde map om de mislukte nog eens te proberen."
+    "retry_hint": "Importeer dezelfde bestanden opnieuw in dezelfde map om de mislukte nog eens te proberen.",
+    "skip_unreadable": "Onleesbaar in het Outlook-bestand: {count}",
+    "keep_folders_top_hint": "Op het hoogste niveau gaan Postvak IN, Verzonden items, Verwijderde items en dergelijke naar die van u."
   },
   "mail_export": {
     "menu_export": "Map exporteren…",

@@ -5397,7 +5397,7 @@
     "target_label": "Şuraya aktar",
     "target_top": "En üst düzey",
     "keep_folders": "Dosyadaki klasörleri yeniden oluştur",
-    "keep_folders_hint": "Aynı adlı klasörler yeniden kullanılır. En üst düzeydeki Gelen Kutusu, Gönderilmiş Öğeler ve Silinmiş Öğeler sizinkilere gider.",
+    "keep_folders_hint": "Aynı adlı klasörler yeniden kullanılır.",
     "resume": "Bu dosyaların son içe aktarımının durduğu yerden devam et (zaten işlenen iletiler: {count})",
     "quota_note": "Birçok sunucu bir kullanıcıdan saatte yalnızca yaklaşık 1000 ileti veya 50 MB kabul eder. Daha büyük bir içe aktarım duraklar ve sonra kendiliğinden devam eder.",
     "start": "İçe aktar",
@@ -5439,7 +5439,9 @@
     "error_failures": "Arka arkaya çok fazla ileti başarısız olduğundan içe aktarım durdu. Devam etmek için aynı dosyaları daha sonra aynı klasöre yeniden içe aktarın.",
     "error_network": "Sunucuya bağlantı tekrar tekrar başarısız olduğundan içe aktarım durdu. Devam etmek için aynı dosyaları aynı klasöre yeniden içe aktarın.",
     "error_busy": "Bu dosyalar zaten başka bir sekmede içe aktarılıyor.",
-    "retry_hint": "Başarısız olanları bir kez daha denemek için aynı dosyaları aynı klasöre yeniden içe aktarın."
+    "retry_hint": "Başarısız olanları bir kez daha denemek için aynı dosyaları aynı klasöre yeniden içe aktarın.",
+    "skip_unreadable": "Outlook dosyasında okunamayan: {count}",
+    "keep_folders_top_hint": "En üst düzeyde Gelen Kutusu, Gönderilmiş Öğeler, Silinmiş Öğeler ve benzerleri sizinkilere gider."
   },
   "mail_export": {
     "menu_export": "Klasörü dışa aktar…",

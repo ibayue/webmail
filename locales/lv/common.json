@@ -5267,7 +5267,7 @@
     "target_label": "Importēt mapē",
     "target_top": "Augšējais līmenis",
     "keep_folders": "Atjaunot mapes no faila",
-    "keep_folders_hint": "Mapes ar tādu pašu nosaukumu tiek izmantotas atkārtoti. Augšējā līmeņa Iesūtne, Nosūtītie un Dzēstie nonāk jūsu pašu mapēs.",
+    "keep_folders_hint": "Mapes ar tādu pašu nosaukumu tiek izmantotas atkārtoti.",
     "resume": "Turpināt no vietas, kur šo failu pēdējā importēšana apstājās (jau apstrādāti ziņojumi: {count})",
     "quota_note": "Daudzi serveri no viena lietotāja pieņem tikai aptuveni 1000 ziņojumu vai 50 MB stundā. Lielāka importēšana apstājas un pēc tam turpinās pati.",
     "start": "Importēt",
@@ -5309,7 +5309,9 @@
     "error_failures": "Pārāk daudz ziņojumu pēc kārtas neizdevās, tāpēc importēšana apstājās. Vēlāk vēlreiz importējiet tos pašus failus tajā pašā mapē, lai turpinātu.",
     "error_network": "Savienojums ar serveri atkārtoti neizdevās, tāpēc importēšana apstājās. Vēlreiz importējiet tos pašus failus tajā pašā mapē, lai turpinātu.",
     "error_busy": "Šie faili jau tiek importēti citā cilnē.",
-    "retry_hint": "Vēlreiz importējiet tos pašus failus tajā pašā mapē, lai vēlreiz mēģinātu neizdevušos."
+    "retry_hint": "Vēlreiz importējiet tos pašus failus tajā pašā mapē, lai vēlreiz mēģinātu neizdevušos.",
+    "skip_unreadable": "Outlook failā nenolasāmi: {count}",
+    "keep_folders_top_hint": "Augšējā līmenī Iesūtne, Nosūtītie, Dzēstie un līdzīgi nonāk jūsu pašu mapēs."
   },
   "mail_export": {
     "menu_export": "Eksportēt mapi…",

@@ -5267,7 +5267,7 @@
     "target_label": "Importieren in",
     "target_top": "Oberste Ebene",
     "keep_folders": "Ordner aus der Datei übernehmen",
-    "keep_folders_hint": "Ordner mit gleichem Namen werden wiederverwendet. Posteingang, Gesendete Elemente und Gelöschte Elemente auf oberster Ebene landen in Ihren eigenen.",
+    "keep_folders_hint": "Ordner mit gleichem Namen werden wiederverwendet.",
     "resume": "Dort weitermachen, wo der letzte Import dieser Dateien aufgehört hat (bereits erledigte Nachrichten: {count})",
     "quota_note": "Viele Server nehmen pro Benutzer nur etwa 1000 Nachrichten oder 50 MB pro Stunde an. Ein größerer Import pausiert und läuft dann von selbst weiter.",
     "start": "Importieren",
@@ -5309,7 +5309,9 @@
     "error_failures": "Zu viele Nachrichten sind nacheinander fehlgeschlagen, daher wurde der Import angehalten. Importieren Sie dieselben Dateien später erneut in denselben Ordner, um weiterzumachen.",
     "error_network": "Die Verbindung zum Server ist wiederholt fehlgeschlagen, daher wurde der Import angehalten. Importieren Sie dieselben Dateien erneut in denselben Ordner, um weiterzumachen.",
     "error_busy": "Diese Dateien werden bereits in einem anderen Tab importiert.",
-    "retry_hint": "Importieren Sie dieselben Dateien erneut in denselben Ordner, um die fehlgeschlagenen noch einmal zu versuchen."
+    "retry_hint": "Importieren Sie dieselben Dateien erneut in denselben Ordner, um die fehlgeschlagenen noch einmal zu versuchen.",
+    "skip_unreadable": "In der Outlook-Datei nicht lesbar: {count}",
+    "keep_folders_top_hint": "Auf oberster Ebene landen Posteingang, Gesendete Elemente, Gelöschte Elemente und Ähnliche in Ihren eigenen Ordnern."
   },
   "mail_export": {
     "menu_export": "Ordner exportieren…",

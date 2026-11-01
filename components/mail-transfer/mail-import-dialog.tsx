@@ -19,7 +19,7 @@ import { startImport } from "./start-import";
 
 const ACCEPT = ".eml,.zip,.mbox,.mbx,.pst,.ost,message/rfc822,application/zip,application/mbox";
 const TOP = "\u0000top";
-const SKIP_ORDER: SkipReason[] = ["too_large", "deleted", "embedded", "contact", "calendar", "other"];
+const SKIP_ORDER: SkipReason[] = ["too_large", "deleted", "embedded", "unreadable", "contact", "calendar", "other"];
 
 interface Picked {
   file: File;
@@ -236,7 +236,10 @@ export function MailImportDialog({ request }: { request: ImportRequest }) {
             />
             <span>
               {t("keep_folders")}
-              <span id={`${id}-keep-hint`} className="block text-xs text-muted-foreground">{t("keep_folders_hint")}</span>
+              <span id={`${id}-keep-hint`} className="block text-xs text-muted-foreground">
+                {t("keep_folders_hint")}
+                {target === TOP && <> {t("keep_folders_top_hint")}</>}
+              </span>
             </span>
           </label>
         )}

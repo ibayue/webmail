@@ -5267,7 +5267,7 @@
     "target_label": "Importuj do",
     "target_top": "Najwyższy poziom",
     "keep_folders": "Odtwórz foldery z pliku",
-    "keep_folders_hint": "Foldery o tej samej nazwie są używane ponownie. Skrzynka odbiorcza, Elementy wysłane i Elementy usunięte na najwyższym poziomie trafiają do Twoich własnych.",
+    "keep_folders_hint": "Foldery o tej samej nazwie są używane ponownie.",
     "resume": "Kontynuuj tam, gdzie zatrzymał się ostatni import tych plików (wiadomości już zrobione: {count})",
     "quota_note": "Wiele serwerów przyjmuje od jednego użytkownika tylko około 1000 wiadomości lub 50 MB na godzinę. Większy import robi przerwę, a potem sam działa dalej.",
     "start": "Importuj",
@@ -5309,7 +5309,9 @@
     "error_failures": "Zbyt wiele wiadomości z rzędu się nie udało, więc import się zatrzymał. Zaimportuj te same pliki później ponownie do tego samego folderu, aby kontynuować.",
     "error_network": "Połączenie z serwerem wielokrotnie zawiodło, więc import się zatrzymał. Zaimportuj te same pliki ponownie do tego samego folderu, aby kontynuować.",
     "error_busy": "Te pliki są już importowane w innej karcie.",
-    "retry_hint": "Zaimportuj te same pliki ponownie do tego samego folderu, aby jeszcze raz spróbować tych, które się nie udały."
+    "retry_hint": "Zaimportuj te same pliki ponownie do tego samego folderu, aby jeszcze raz spróbować tych, które się nie udały.",
+    "skip_unreadable": "Nieczytelne w pliku programu Outlook: {count}",
+    "keep_folders_top_hint": "Na najwyższym poziomie Skrzynka odbiorcza, Elementy wysłane, Elementy usunięte i podobne trafiają do Twoich własnych."
   },
   "mail_export": {
     "menu_export": "Eksportuj folder…",

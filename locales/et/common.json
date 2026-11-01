@@ -5397,7 +5397,7 @@
     "target_label": "Impordi kausta",
     "target_top": "Ülemine tase",
     "keep_folders": "Loo failist kaustad uuesti",
-    "keep_folders_hint": "Sama nimega kaustu kasutatakse uuesti. Ülemise taseme Sisendkaust, Saadetud ja Kustutatud lähevad teie omadesse.",
+    "keep_folders_hint": "Sama nimega kaustu kasutatakse uuesti.",
     "resume": "Jätka sealt, kus nende failide viimane import peatus (juba tehtud kirju: {count})",
     "quota_note": "Paljud serverid võtavad ühelt kasutajalt vastu ainult umbes 1000 kirja või 50 MB tunnis. Suurem import teeb pausi ja jätkab siis ise.",
     "start": "Impordi",
@@ -5439,7 +5439,9 @@
     "error_failures": "Liiga palju kirju järjest ebaõnnestus, seega import peatus. Importige samad failid hiljem uuesti samasse kausta, et jätkata.",
     "error_network": "Ühendus serveriga katkes korduvalt, seega import peatus. Importige samad failid uuesti samasse kausta, et jätkata.",
     "error_busy": "Neid faile imporditakse juba teisel vahelehel.",
-    "retry_hint": "Importige samad failid uuesti samasse kausta, et ebaõnnestunud kirju veel kord proovida."
+    "retry_hint": "Importige samad failid uuesti samasse kausta, et ebaõnnestunud kirju veel kord proovida.",
+    "skip_unreadable": "Outlooki failis loetamatud: {count}",
+    "keep_folders_top_hint": "Ülemisel tasemel lähevad Sisendkaust, Saadetud, Kustutatud ja muud sellised teie omadesse."
   },
   "mail_export": {
     "menu_export": "Ekspordi kaust…",

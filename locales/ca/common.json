@@ -5397,7 +5397,7 @@
     "target_label": "Importa a",
     "target_top": "Nivell superior",
     "keep_folders": "Recrea les carpetes del fitxer",
-    "keep_folders_hint": "Les carpetes amb el mateix nom es tornen a fer servir. Safata d'entrada, Elements enviats i Elements suprimits al nivell superior van a les vostres.",
+    "keep_folders_hint": "Les carpetes amb el mateix nom es tornen a fer servir.",
     "resume": "Continua on es va aturar l'última importació d'aquests fitxers (missatges ja fets: {count})",
     "quota_note": "Molts servidors només accepten uns 1000 missatges o 50 MB per hora de cada usuari. Una importació més gran fa una pausa i després continua sola.",
     "start": "Importa",
@@ -5439,7 +5439,9 @@
     "error_failures": "Han fallat massa missatges seguits, així que la importació s'ha aturat. Torneu a importar els mateixos fitxers a la mateixa carpeta més tard per continuar.",
     "error_network": "La connexió amb el servidor ha fallat diverses vegades, així que la importació s'ha aturat. Torneu a importar els mateixos fitxers a la mateixa carpeta per continuar.",
     "error_busy": "Aquests fitxers ja s'estan important en una altra pestanya.",
-    "retry_hint": "Torneu a importar els mateixos fitxers a la mateixa carpeta per tornar a provar els que han fallat."
+    "retry_hint": "Torneu a importar els mateixos fitxers a la mateixa carpeta per tornar a provar els que han fallat.",
+    "skip_unreadable": "Il·legibles al fitxer d'Outlook: {count}",
+    "keep_folders_top_hint": "Al nivell superior, Safata d'entrada, Elements enviats, Elements suprimits i similars van a les vostres."
   },
   "mail_export": {
     "menu_export": "Exporta la carpeta…",

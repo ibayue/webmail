@@ -5397,7 +5397,7 @@
     "target_label": "Import into",
     "target_top": "Top level",
     "keep_folders": "Recreate the folders from the file",
-    "keep_folders_hint": "Folders with the same name are used again. Inbox, Sent Items and Deleted Items at the top go into your own.",
+    "keep_folders_hint": "Folders with the same name are used again.",
     "resume": "Continue where the last import of these files stopped (messages already done: {count})",
     "quota_note": "Many servers take only about 1000 messages or 50 MB an hour from one user. A larger import pauses and then goes on by itself.",
     "start": "Import",
@@ -5439,7 +5439,9 @@
     "error_failures": "Too many messages failed in a row, so the import stopped. Import the same files into the same folder again later to go on.",
     "error_network": "The connection to the server kept failing, so the import stopped. Import the same files into the same folder again to go on.",
     "error_busy": "These files are being imported in another tab already.",
-    "retry_hint": "Import the same files into the same folder again to try the ones that failed once more."
+    "retry_hint": "Import the same files into the same folder again to try the ones that failed once more.",
+    "skip_unreadable": "Unreadable in the Outlook file: {count}",
+    "keep_folders_top_hint": "At the top level, Inbox, Sent Items, Deleted Items and the like go into your own."
   },
   "mail_export": {
     "menu_export": "Export folder…",

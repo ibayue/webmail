@@ -5397,7 +5397,7 @@
     "target_label": "Importer til",
     "target_top": "Øverste nivå",
     "keep_folders": "Gjenskap mappene fra filen",
-    "keep_folders_hint": "Mapper med samme navn brukes på nytt. Innboks, Sendte elementer og Slettede elementer på øverste nivå havner i dine egne.",
+    "keep_folders_hint": "Mapper med samme navn brukes på nytt.",
     "resume": "Fortsett der forrige import av disse filene stoppet (meldinger allerede ferdige: {count})",
     "quota_note": "Mange servere tar bare imot rundt 1000 meldinger eller 50 MB i timen fra én bruker. En større import tar en pause og fortsetter så av seg selv.",
     "start": "Importer",
@@ -5439,7 +5439,9 @@
     "error_failures": "For mange meldinger på rad mislyktes, så importen stoppet. Importer de samme filene til samme mappe igjen senere for å fortsette.",
     "error_network": "Tilkoblingen til serveren mislyktes gang på gang, så importen stoppet. Importer de samme filene til samme mappe igjen for å fortsette.",
     "error_busy": "Disse filene importeres allerede i en annen fane.",
-    "retry_hint": "Importer de samme filene til samme mappe igjen for å prøve de som mislyktes, på nytt."
+    "retry_hint": "Importer de samme filene til samme mappe igjen for å prøve de som mislyktes, på nytt.",
+    "skip_unreadable": "Uleselige i Outlook-filen: {count}",
+    "keep_folders_top_hint": "På øverste nivå havner Innboks, Sendte elementer, Slettede elementer og lignende i dine egne."
   },
   "mail_export": {
     "menu_export": "Eksporter mappe…",

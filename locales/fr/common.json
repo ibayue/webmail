@@ -5267,7 +5267,7 @@
     "target_label": "Importer dans",
     "target_top": "Niveau supérieur",
     "keep_folders": "Recréer les dossiers du fichier",
-    "keep_folders_hint": "Les dossiers du même nom sont réutilisés. Boîte de réception, Éléments envoyés et Éléments supprimés au niveau supérieur vont dans les vôtres.",
+    "keep_folders_hint": "Les dossiers du même nom sont réutilisés.",
     "resume": "Reprendre là où le dernier import de ces fichiers s'est arrêté (messages déjà traités : {count})",
     "quota_note": "Beaucoup de serveurs n'acceptent qu'environ 1000 messages ou 50 Mo par heure et par utilisateur. Un import plus grand se met en pause puis reprend tout seul.",
     "start": "Importer",
@@ -5309,7 +5309,9 @@
     "error_failures": "Trop de messages ont échoué à la suite, l'import s'est donc arrêté. Importez à nouveau les mêmes fichiers dans le même dossier plus tard pour reprendre.",
     "error_network": "La connexion au serveur a échoué plusieurs fois, l'import s'est donc arrêté. Importez à nouveau les mêmes fichiers dans le même dossier pour reprendre.",
     "error_busy": "Ces fichiers sont déjà en cours d'import dans un autre onglet.",
-    "retry_hint": "Importez à nouveau les mêmes fichiers dans le même dossier pour réessayer ceux qui ont échoué."
+    "retry_hint": "Importez à nouveau les mêmes fichiers dans le même dossier pour réessayer ceux qui ont échoué.",
+    "skip_unreadable": "Illisibles dans le fichier Outlook : {count}",
+    "keep_folders_top_hint": "Au niveau supérieur, Boîte de réception, Éléments envoyés, Éléments supprimés et les autres vont dans les vôtres."
   },
   "mail_export": {
     "menu_export": "Exporter le dossier…",

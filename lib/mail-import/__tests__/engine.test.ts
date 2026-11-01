@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { runImport, uploadWindowEnd, quotaFrom, type ImportProgress, type ImportOptions } from '@/lib/mail-import/engine';
+import { runImport, uploadWindowEnd, quotaFrom, FolderResolver, type ImportProgress, type ImportOptions } from '@/lib/mail-import/engine';
 import { checkpointKey, deleteCheckpoint, readCheckpoint } from '@/lib/mail-import/checkpoints';
 import type { IJMAPClient, UploadedEmailImport } from '@/lib/jmap/client-interface';
 import type { Mailbox } from '@/lib/jmap/types';
@@ -361,6 +361,17 @@ describe('runImport', () => {
     await runImport(options(fake.client, [new File(parts as BlobPart[], 'e.zip')]));
     expect(fake.created).toEqual([]);
     expect(Object.keys(fake.imported[0].mailboxIds)).toEqual(['target']);
+  });
+
+  it('puts a top folder into the special folder the file names, in any language', async () => {
+    const mailboxes = [mailbox('in', 'Posteingang', { role: 'inbox' }), mailbox('sent', 'Gesendet', { role: 'sent' }), mailbox('bin', 'Papierkorb', { role: 'trash' })];
+    const client = { getMailboxes: async () => mailboxes, createMailbox: vi.fn() } as unknown as IJMAPClient;
+    const folders = new FolderResolver(client, 'acc', null);
+    // A Spanish PST whose store says this is Sent Items.
+    await expect(folders.resolve(['Elementos enviados'], 'sent')).resolves.toBe('sent');
+    // Names in the languages Outlook ships most often.
+    await expect(folders.resolve(['Éléments supprimés'])).resolves.toBe('bin');
+    await expect(folders.resolve(['Bandeja de entrada'])).resolves.toBe('in');
   });
 
   it('reads the hour window and the quota from the server', () => {
