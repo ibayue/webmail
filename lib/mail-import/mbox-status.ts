@@ -86,3 +86,64 @@ export function mboxState(headerBlock: string): MboxState {
   addKeywords(keywords, fields.get("x-mozilla-keys"));
   return { keywords, expunged };
 }
+
+const STATE_HEADER = /^(status|x-status|x-keywords|x-mozilla-status|x-mozilla-status2|x-mozilla-keys)$/i;
+/** How far into a message the header block is looked for. */
+const HEADER_LIMIT = 256 * 1024;
+
+/**
+ * The message without the mbox state headers read above: their state is now
+ * in JMAP keywords, and a stale copy in the stored message would only
+ * contradict it (and differ from what was exported). Everything else,
+ * the body included, stays byte for byte.
+ */
+export function withoutStateHeaders(parts: Uint8Array[]): Uint8Array[] {
+  // Find the end of the header block (the empty line) within the first parts.
+  let end = -1;
+  let offset = 0;
+  let lineHasText = false;
+  outer: for (const p of parts) {
+    for (let i = 0; i < p.length; i++) {
+      const b = p[i];
+      if (b === 0x0a) {
+        if (!lineHasText) { end = offset + i + 1; break outer; }
+        lineHasText = false;
+      } else if (b !== 0x0d) {
+        lineHasText = true;
+      }
+    }
+    offset += p.length;
+    if (offset > HEADER_LIMIT) break;
+  }
+  const headerEnd = end === -1 ? Math.min(offset, parts.reduce((n, p) => n + p.length, 0)) : end;
+  // The header bytes, copied, and the rest as it is.
+  const head = new Uint8Array(headerEnd);
+  const rest: Uint8Array[] = [];
+  let at = 0;
+  for (const p of parts) {
+    if (at >= headerEnd) { rest.push(p); continue; }
+    const take = Math.min(p.length, headerEnd - at);
+    head.set(p.subarray(0, take), at);
+    if (take < p.length) rest.push(p.subarray(take));
+    at += take;
+  }
+  const kept: Uint8Array[] = [];
+  let skipping = false;
+  let found = false;
+  let start = 0;
+  for (let i = 0; i <= head.length; i++) {
+    if (i < head.length && head[i] !== 0x0a) continue;
+    const line = head.subarray(start, Math.min(head.length, i + 1));
+    start = i + 1;
+    if (line.length === 0) continue;
+    const folded = line[0] === 0x20 || line[0] === 0x09;
+    if (!folded) {
+      const colon = line.indexOf(0x3a);
+      const name = colon > 0 ? String.fromCharCode(...line.subarray(0, colon)).trim() : "";
+      skipping = STATE_HEADER.test(name);
+      if (skipping) found = true;
+    }
+    if (!skipping) kept.push(line);
+  }
+  return found ? [...kept, ...rest] : parts;
+}

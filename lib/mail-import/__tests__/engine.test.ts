@@ -106,6 +106,21 @@ describe('runImport', () => {
     expect(fake.imported[0].text.startsWith('Subject: m0\n')).toBe(true);
   });
 
+  it('takes the arrival time from the envelope line and leaves the state headers out of the stored message', async () => {
+    const fake = fakeClient();
+    const raw = 'From a@example.org Sat Jan  2 03:04:05 2021\nStatus: RO\nX-Mozilla-Status: 0001\nSubject: s\nDate: Tue, 5 May 2020 10:00:00 +0000\n\nbody\n';
+    await runImport(options(fake.client, [file(raw)]));
+    expect(fake.imported[0].receivedAt).toBe('2021-01-02T03:04:05Z');
+    expect(fake.imported[0].text).toBe('Subject: s\nDate: Tue, 5 May 2020 10:00:00 +0000\n\nbody\n');
+    expect(fake.imported[0].keywords).toEqual({ $seen: true });
+  });
+
+  it('falls back to the Date header when the envelope line has no usable date', async () => {
+    const fake = fakeClient();
+    await runImport(options(fake.client, [file('From MAILER-DAEMON Thu Jan  1 00:00:00 1970\nSubject: s\nDate: Tue, 5 May 2020 10:00:00 +0000\n\nb\n')]));
+    expect(fake.imported[0].receivedAt).toBe('2020-05-05T10:00:00Z');
+  });
+
   it('puts several messages in one Email/import and keeps uploads within the server limit', async () => {
     const fake = fakeClient({ uploadConcurrency: 4 });
     await runImport(options(fake.client, [file(mbox(45))]));

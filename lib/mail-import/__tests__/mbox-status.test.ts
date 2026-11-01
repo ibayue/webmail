@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { mboxState } from '@/lib/mail-import/mbox-status';
+import { mboxState, withoutStateHeaders } from '@/lib/mail-import/mbox-status';
 
 describe('mboxState', () => {
   it('imports a message without any state header as read, as before', () => {
@@ -40,3 +40,19 @@ describe('mboxState', () => {
     expect(mboxState('subject: a\r\nx-status:\r\n F\r\nSTATUS: O').keywords).toEqual({ $flagged: true });
   });
 });
+
+describe('withoutStateHeaders', () => {
+  const enc = new TextEncoder();
+  const text = (parts: Uint8Array[]) => parts.map((p) => new TextDecoder().decode(p)).join('');
+  it('drops the state headers, folded lines too, and keeps the rest byte for byte', () => {
+    const raw = 'Status: RO\r\nSubject: hi\r\nX-Keywords: a\r\n b\r\nX-Mozilla-Status: 0001\r\nFrom: x@example.org\r\n\r\nStatus: in the body\r\n';
+    // Split in odd places, as the mbox splitter hands them over.
+    const parts = [enc.encode(raw.slice(0, 7)), enc.encode(raw.slice(7, 40)), enc.encode(raw.slice(40))];
+    expect(text(withoutStateHeaders(parts))).toBe('Subject: hi\r\nFrom: x@example.org\r\n\r\nStatus: in the body\r\n');
+  });
+  it('leaves a message without them as it was', () => {
+    const parts = [enc.encode('Subject: hi\n\nbody\n')];
+    expect(withoutStateHeaders(parts)).toBe(parts);
+  });
+});
+

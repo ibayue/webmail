@@ -1,6 +1,6 @@
 import { dateFromHeaderBlock } from "@/lib/eml-import";
 import { MboxSplitter, envelopeDate, readHeaderBlock, type MboxMessage } from "./mbox";
-import { mboxState } from "./mbox-status";
+import { mboxState, withoutStateHeaders } from "./mbox-status";
 import { listZipEntries, readZipEntry, streamZipEntry } from "./zip-reader";
 
 /**
@@ -143,6 +143,13 @@ export async function* emlSource(file: File, options: SourceOptions): ItemSource
   options.onProgress?.(1);
 }
 
+/** A date between 1980 and a day from now, else undefined. */
+function plausible(date: string | undefined, now = Date.now()): string | undefined {
+  if (!date) return undefined;
+  const t = Date.parse(date);
+  return t >= Date.UTC(1980, 0, 1) && t - now <= 24 * 60 * 60 * 1000 ? date : undefined;
+}
+
 function mboxItem(message: MboxMessage, index: number, folder: string[]): ImportItem {
   const label = message.tooLarge ? message.fromLine : "";
   if (message.tooLarge) return { kind: "skipped", index, reason: "too_large", label };
@@ -150,14 +157,17 @@ function mboxItem(message: MboxMessage, index: number, folder: string[]): Import
   const state = mboxState(headers);
   const subject = subjectOf(headers);
   if (state.expunged) return { kind: "skipped", index, reason: "deleted", label: subject };
+  const parts = withoutStateHeaders(message.parts);
   return {
     kind: "message",
     index,
     folder,
-    data: new Blob(message.parts as BlobPart[], { type: MIME }),
-    size: message.size,
+    data: new Blob(parts as BlobPart[], { type: MIME }),
+    size: parts.reduce((n, p) => n + p.length, 0),
     keywords: state.keywords,
-    receivedAt: dateFromHeaderBlock(headers) ?? envelopeDate(message.fromLine),
+    // The envelope line holds when the message arrived (Bulwark's export writes
+    // receivedAt there); the Date header, when it was written, comes second.
+    receivedAt: plausible(envelopeDate(message.fromLine)) ?? dateFromHeaderBlock(headers),
     label: subject,
   };
 }
