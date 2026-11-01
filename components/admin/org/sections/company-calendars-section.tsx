@@ -171,8 +171,9 @@ export function CompanyCalendarsSection({ draft }: { draft: OrgPolicyDraft }) {
           </p>
           <p>
             Bulwark Lite has no server: the browser fetches the feed itself, so the feed host must send CORS headers
-            (Access-Control-Allow-Origin), a Lite build without third-party traffic must list the host in its connect-src, and
-            policy.json is a public file there, so don&apos;t put tokens in the addresses.{' '}
+            (Access-Control-Allow-Origin), and policy.json is a public file there, so don&apos;t put tokens in the addresses. A
+            Lite build without third-party traffic only reaches the mail server: put the feed on the same host as Lite or the
+            mail server.{' '}
             <a href={DOCS_URL} target="_blank" rel="noopener noreferrer" className="font-medium text-primary underline-offset-2 hover:underline">
               How to set it up
             </a>
