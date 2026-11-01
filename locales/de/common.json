@@ -1301,6 +1301,13 @@
     "tag_removed_count": "{count, plural, one {Markierung von # E-Mail entfernt} other {Markierung von # E-Mails entfernt}}",
     "new_mail_count": "{count, plural, one {# neue Nachricht} other {# neue Nachrichten}}"
   },
+  "org_notice": {
+    "label": "Mitteilung",
+    "dismiss": "Mitteilung schließen",
+    "severity_info": "Information",
+    "severity_warning": "Warnung",
+    "severity_critical": "Wichtig"
+  },
   "third_party": {
     "push_needs_relay": "Push-Benachrichtigungen brauchen ein Push-Relay Ihrer Organisation, und es ist keines eingerichtet. Neue E-Mails werden weiterhin angezeigt, solange die App geöffnet ist.",
     "relay_desc": "Es werden nur die eigenen Relays Ihrer Organisation angeboten, weil dieser Server keine externen Dienste kontaktiert.",

@@ -1301,6 +1301,13 @@
     "tag_removed_count": "{count, plural, one {Eticheta a fost eliminată de pe # e-mail} few {Eticheta a fost eliminată de pe # e-mailuri} other {Eticheta a fost eliminată de pe # de e-mailuri}}",
     "new_mail_count": "{count, plural, one {# mesaj nou} few {# mesaje noi} other {# de mesaje noi}}"
   },
+  "org_notice": {
+    "label": "Anunț",
+    "dismiss": "Închide anunțul",
+    "severity_info": "Informație",
+    "severity_warning": "Avertisment",
+    "severity_critical": "Important"
+  },
   "third_party": {
     "push_needs_relay": "Notificările push au nevoie de un releu push administrat de organizația dvs., iar niciunul nu este configurat. E-mailurile noi apar în continuare cât timp aplicația este deschisă.",
     "relay_desc": "Sunt oferite doar releele proprii ale organizației dvs., deoarece acest server nu contactează servicii externe.",

@@ -1301,6 +1301,13 @@
     "tag_removed_count": "{count, plural, one {Štítok odstránený z # e-mailu} few {Štítok odstránený z # e-mailov} other {Štítok odstránený z # e-mailov}}",
     "new_mail_count": "{count, plural, one {# nová správa} few {# nové správy} other {# nových správ}}"
   },
+  "org_notice": {
+    "label": "Oznámenie",
+    "dismiss": "Zavrieť oznámenie",
+    "severity_info": "Informácia",
+    "severity_warning": "Upozornenie",
+    "severity_critical": "Dôležité"
+  },
   "third_party": {
     "push_needs_relay": "Push oznámenia potrebujú push relay prevádzkovaný vašou organizáciou a žiadny nie je nastavený. Nová pošta sa naďalej zobrazuje, kým je aplikácia otvorená.",
     "relay_desc": "Ponúkajú sa iba vlastné relaye vašej organizácie, pretože tento server nekontaktuje externé služby.",

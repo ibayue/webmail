@@ -1301,6 +1301,13 @@
     "tag_removed_count": "{count, plural, other {Címke eltávolítva # e-mailről}}",
     "new_mail_count": "{count, plural, other {# új üzenet}}"
   },
+  "org_notice": {
+    "label": "Közlemény",
+    "dismiss": "Közlemény bezárása",
+    "severity_info": "Információ",
+    "severity_warning": "Figyelmeztetés",
+    "severity_critical": "Fontos"
+  },
   "third_party": {
     "push_needs_relay": "A push-értesítésekhez a szervezeted által üzemeltetett push relé kell, és nincs beállítva egy sem. Az új levelek továbbra is megjelennek, amíg az alkalmazás nyitva van.",
     "relay_desc": "Csak a szervezeted saját reléi választhatók, mert ez a szerver nem kapcsolódik külső szolgáltatásokhoz.",

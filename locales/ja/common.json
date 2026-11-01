@@ -1301,6 +1301,13 @@
     "tag_removed_count": "{count, plural, other {#件のメールからタグを外しました}}",
     "new_mail_count": "{count, plural, other {新着メッセージ #件}}"
   },
+  "org_notice": {
+    "label": "お知らせ",
+    "dismiss": "お知らせを閉じる",
+    "severity_info": "情報",
+    "severity_warning": "警告",
+    "severity_critical": "重要"
+  },
   "third_party": {
     "push_needs_relay": "プッシュ通知には組織が運用するプッシュリレーが必要ですが、設定されていません。アプリを開いている間は、新着メールが引き続き表示されます。",
     "relay_desc": "このサーバーは外部サービスに接続しないため、組織独自のリレーのみが表示されます。",

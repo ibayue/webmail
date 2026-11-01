@@ -1301,6 +1301,13 @@
     "tag_removed_count": "{count, plural, one {Usunięto etykietę z # wiadomości} few {Usunięto etykietę z # wiadomości} many {Usunięto etykietę z # wiadomości} other {Usunięto etykietę z # wiadomości}}",
     "new_mail_count": "{count, plural, one {# nowa wiadomość} few {# nowe wiadomości} many {# nowych wiadomości} other {# nowych wiadomości}}"
   },
+  "org_notice": {
+    "label": "Ogłoszenie",
+    "dismiss": "Zamknij ogłoszenie",
+    "severity_info": "Informacja",
+    "severity_warning": "Ostrzeżenie",
+    "severity_critical": "Ważne"
+  },
   "third_party": {
     "push_needs_relay": "Powiadomienia push wymagają przekaźnika push prowadzonego przez Twoją organizację, a żaden nie jest skonfigurowany. Nowe wiadomości nadal pojawiają się, gdy aplikacja jest otwarta.",
     "relay_desc": "Dostępne są tylko własne przekaźniki Twojej organizacji, ponieważ ten serwer nie łączy się z usługami zewnętrznymi.",

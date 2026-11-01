@@ -1301,6 +1301,13 @@
     "tag_removed_count": "{count, plural, one {Tag removed from # email} other {Tag removed from # emails}}",
     "new_mail_count": "{count, plural, one {# new message} other {# new messages}}"
   },
+  "org_notice": {
+    "label": "Announcement",
+    "dismiss": "Close announcement",
+    "severity_info": "Information",
+    "severity_warning": "Warning",
+    "severity_critical": "Important"
+  },
   "third_party": {
     "push_needs_relay": "Push notifications need a push relay run by your organisation, and none is set up. New mail still shows while the app is open.",
     "relay_desc": "Only your organisation's own relays are offered, because this server doesn't contact outside services.",

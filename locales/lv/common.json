@@ -1301,6 +1301,13 @@
     "tag_removed_count": "{count, plural, zero {Tags noņemts # vēstulēm} one {Tags noņemts # vēstulei} other {Tags noņemts # vēstulēm}}",
     "new_mail_count": "{count, plural, zero {# jaunas vēstules} one {# jauna vēstule} other {# jaunas vēstules}}"
   },
+  "org_notice": {
+    "label": "Paziņojums",
+    "dismiss": "Aizvērt paziņojumu",
+    "severity_info": "Informācija",
+    "severity_warning": "Brīdinājums",
+    "severity_critical": "Svarīgi"
+  },
   "third_party": {
     "push_needs_relay": "Push paziņojumiem vajadzīgs jūsu organizācijas uzturēts push relejs, un neviens nav iestatīts. Jauns pasts joprojām tiek rādīts, kamēr lietotne ir atvērta.",
     "relay_desc": "Tiek piedāvāti tikai jūsu organizācijas pašas releji, jo šis serveris nesazinās ar ārējiem pakalpojumiem.",

@@ -1301,6 +1301,13 @@
     "tag_removed_count": "{count, plural, one {Etichetta rimossa da # email} other {Etichetta rimossa da # email}}",
     "new_mail_count": "{count, plural, one {# nuovo messaggio} other {# nuovi messaggi}}"
   },
+  "org_notice": {
+    "label": "Avviso",
+    "dismiss": "Chiudi l'avviso",
+    "severity_info": "Informazione",
+    "severity_warning": "Attenzione",
+    "severity_critical": "Importante"
+  },
   "third_party": {
     "push_needs_relay": "Le notifiche push richiedono un relay push gestito dalla tua organizzazione, e non ne è configurato nessuno. La nuova posta compare comunque finché l'app è aperta.",
     "relay_desc": "Vengono proposti solo i relay della tua organizzazione, perché questo server non contatta servizi esterni.",

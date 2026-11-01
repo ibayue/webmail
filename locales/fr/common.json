@@ -1301,6 +1301,13 @@
     "tag_removed_count": "{count, plural, one {Étiquette retirée de # e-mail} other {Étiquette retirée de # e-mails}}",
     "new_mail_count": "{count, plural, one {# nouveau message} other {# nouveaux messages}}"
   },
+  "org_notice": {
+    "label": "Annonce",
+    "dismiss": "Fermer l'annonce",
+    "severity_info": "Information",
+    "severity_warning": "Avertissement",
+    "severity_critical": "Important"
+  },
   "third_party": {
     "push_needs_relay": "Les notifications push nécessitent un relais push géré par votre organisation, et aucun n'est configuré. Les nouveaux messages s'affichent toujours tant que l'application est ouverte.",
     "relay_desc": "Seuls les relais de votre organisation sont proposés, car ce serveur ne contacte pas de services extérieurs.",

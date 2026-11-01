@@ -1266,6 +1266,13 @@
     "tag_removed_count": "{count, plural, one {התגית הוסרה מהודעה אחת} other {התגית הוסרה מ-# הודעות}}",
     "new_mail_count": "{count, plural, one {הודעה חדשה אחת} other {# הודעות חדשות}}"
   },
+  "org_notice": {
+    "label": "הודעה",
+    "dismiss": "סגירת ההודעה",
+    "severity_info": "מידע",
+    "severity_warning": "אזהרה",
+    "severity_critical": "חשוב"
+  },
   "third_party": {
     "push_needs_relay": "התראות Push דורשות ממסר Push שהארגון שלך מפעיל, ולא הוגדר אף אחד. דואר חדש עדיין מוצג כל עוד האפליקציה פתוחה.",
     "relay_desc": "מוצעים רק הממסרים של הארגון שלך, כי השרת הזה לא פונה לשירותים חיצוניים.",

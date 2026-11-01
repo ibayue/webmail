@@ -1,10 +1,11 @@
-import { render } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // The banner slot hands plugins `impersonated`, so a plugin like
 // impersonation-notice can tell an admin's handoff session apart: since
 // 1.11.1 its username is the plain mailbox, without the old `%master` part.
 const slotProps = vi.hoisted(() => ({ current: null as Record<string, unknown> | null }));
+vi.mock('@/components/org/org-announcement', () => ({ OrgAnnouncement: () => <div data-testid="org-announcement" /> }));
 vi.mock('@/components/plugins/plugin-slot', () => ({
   PluginSlot: ({ extraProps }: { extraProps: Record<string, unknown> }) => {
     slotProps.current = extraProps;
@@ -38,5 +39,11 @@ describe('AppTopBannerSlot', () => {
     useAccountStore.setState({ accounts: [account], activeAccountId: account.id });
     render(<AppTopBannerSlot />);
     expect(slotProps.current?.impersonated).toBe(false);
+  });
+
+  it('shows the organisation announcement above the plugin banners', () => {
+    useAccountStore.setState({ accounts: [account], activeAccountId: account.id });
+    render(<AppTopBannerSlot />);
+    expect(screen.getByTestId('org-announcement')).toBeTruthy();
   });
 });

@@ -1301,6 +1301,13 @@
     "tag_removed_count": "{count, plural, one {Tag fjernet fra # e-mail} other {Tag fjernet fra # e-mails}}",
     "new_mail_count": "{count, plural, one {# ny besked} other {# nye beskeder}}"
   },
+  "org_notice": {
+    "label": "Meddelelse",
+    "dismiss": "Luk meddelelse",
+    "severity_info": "Information",
+    "severity_warning": "Advarsel",
+    "severity_critical": "Vigtigt"
+  },
   "third_party": {
     "push_needs_relay": "Push-notifikationer kræver et push-relæ, som din organisation driver, og der er ikke sat noget op. Ny mail vises stadig, mens appen er åben.",
     "relay_desc": "Kun din organisations egne relæer tilbydes, fordi denne server ikke kontakter eksterne tjenester.",

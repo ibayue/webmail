@@ -1301,6 +1301,13 @@
     "tag_removed_count": "{count, plural, one {Label verwijderd van # e-mail} other {Label verwijderd van # e-mails}}",
     "new_mail_count": "{count, plural, one {# nieuw bericht} other {# nieuwe berichten}}"
   },
+  "org_notice": {
+    "label": "Mededeling",
+    "dismiss": "Mededeling sluiten",
+    "severity_info": "Informatie",
+    "severity_warning": "Waarschuwing",
+    "severity_critical": "Belangrijk"
+  },
   "third_party": {
     "push_needs_relay": "Pushmeldingen hebben een pushrelay van je organisatie nodig, en er is er geen ingesteld. Nieuwe e-mail wordt nog steeds getoond zolang de app open is.",
     "relay_desc": "Alleen de eigen relays van je organisatie worden aangeboden, omdat deze server geen externe diensten benadert.",

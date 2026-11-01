@@ -1301,6 +1301,13 @@
     "tag_removed_count": "{count, plural, one {S'ha tret l'etiqueta de # correu} other {S'ha tret l'etiqueta de # correus}}",
     "new_mail_count": "{count, plural, one {# missatge nou} other {# missatges nous}}"
   },
+  "org_notice": {
+    "label": "Avís",
+    "dismiss": "Tanca l'avís",
+    "severity_info": "Informació",
+    "severity_warning": "Advertència",
+    "severity_critical": "Important"
+  },
   "third_party": {
     "push_needs_relay": "Les notificacions push necessiten un repetidor push gestionat per la vostra organització, i no n'hi ha cap de configurat. El correu nou es continua mostrant mentre l'aplicació està oberta.",
     "relay_desc": "Només s'ofereixen els repetidors propis de la vostra organització, perquè aquest servidor no contacta amb serveis externs.",

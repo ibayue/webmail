@@ -1301,6 +1301,13 @@
     "tag_removed_count": "{count, plural, other {# e-postadan etiket kaldırıldı}}",
     "new_mail_count": "{count, plural, other {# yeni ileti}}"
   },
+  "org_notice": {
+    "label": "Duyuru",
+    "dismiss": "Duyuruyu kapat",
+    "severity_info": "Bilgi",
+    "severity_warning": "Uyarı",
+    "severity_critical": "Önemli"
+  },
   "third_party": {
     "push_needs_relay": "Anlık bildirimler için kuruluşunuzun işlettiği bir push rölesi gerekir ve hiçbiri ayarlanmamış. Uygulama açıkken yeni postalar yine de görünür.",
     "relay_desc": "Bu sunucu dış hizmetlerle bağlantı kurmadığı için yalnızca kuruluşunuzun kendi röleleri sunulur.",

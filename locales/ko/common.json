@@ -1301,6 +1301,13 @@
     "tag_removed_count": "{count, plural, other {메일 #개에서 태그를 뺐어요}}",
     "new_mail_count": "{count, plural, other {새 메시지 #개}}"
   },
+  "org_notice": {
+    "label": "공지",
+    "dismiss": "공지 닫기",
+    "severity_info": "정보",
+    "severity_warning": "경고",
+    "severity_critical": "중요"
+  },
   "third_party": {
     "push_needs_relay": "푸시 알림을 받으려면 조직에서 운영하는 푸시 릴레이가 필요한데, 설정된 릴레이가 없어요. 앱이 열려 있는 동안에는 새 메일이 계속 표시돼요.",
     "relay_desc": "이 서버는 외부 서비스에 연결하지 않으므로 조직 자체 릴레이만 표시돼요.",

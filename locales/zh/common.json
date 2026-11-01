@@ -1301,6 +1301,13 @@
     "tag_removed_count": "{count, plural, other {已从 # 封邮件移除标签}}",
     "new_mail_count": "{count, plural, other {# 封新邮件}}"
   },
+  "org_notice": {
+    "label": "公告",
+    "dismiss": "关闭公告",
+    "severity_info": "信息",
+    "severity_warning": "警告",
+    "severity_critical": "重要"
+  },
   "third_party": {
     "push_needs_relay": "推送通知需要由您的组织运行的推送中继，但尚未设置。应用打开时，新邮件仍会显示。",
     "relay_desc": "由于此服务器不连接外部服务，因此只提供您组织自己的中继。",

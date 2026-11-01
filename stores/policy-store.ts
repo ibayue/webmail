@@ -91,6 +91,8 @@ interface PolicyState {
 }
 
 let policyRequest = 0;
+/** The body of the last server answer that landed. */
+let lastServerJson: string | null = null;
 
 /**
  * The last full policy the server sent, kept so a failed fetch (network
@@ -201,6 +203,16 @@ export const usePolicyStore = create<PolicyState>()((set, get) => ({
         const partial = res.headers?.get?.(POLICY_SCOPE_HEADER) === 'public';
         const domainsHeader = res.headers?.get?.(POLICY_DOMAINS_HEADER);
         const scopeDomains = typeof domainsHeader === 'string' ? domainsHeader.split(',').filter(Boolean) : null;
+        // A refetch that brings nothing new (the periodic one, hooks/use-policy-refresh.ts)
+        // keeps the resolved objects, so nothing that reads the policy re-runs.
+        const json = JSON.stringify(data);
+        const current = get();
+        if (current.source === 'server' && lastServerJson === json && current.partial === partial
+          && (current.scopeDomains ?? []).join(',') === (scopeDomains ?? []).join(',')) {
+          set({ loaded: true });
+          return;
+        }
+        lastServerJson = json;
         set({ ...resolved(IS_LITE ? applyLitePolicy(data) : data, get().subject), loaded: true, source: 'server', partial, scopeDomains });
         if (!partial) writeCachedPolicy(data);
       } else if (IS_LITE && res.status === 404) {

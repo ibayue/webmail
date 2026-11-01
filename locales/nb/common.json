@@ -1301,6 +1301,13 @@
     "tag_removed_count": "{count, plural, one {Etikett fjernet fra # e-post} other {Etikett fjernet fra # e-poster}}",
     "new_mail_count": "{count, plural, one {# ny melding} other {# nye meldinger}}"
   },
+  "org_notice": {
+    "label": "Kunngjøring",
+    "dismiss": "Lukk kunngjøringen",
+    "severity_info": "Informasjon",
+    "severity_warning": "Advarsel",
+    "severity_critical": "Viktig"
+  },
   "third_party": {
     "push_needs_relay": "Push-varsler trenger et push-relé som organisasjonen din driver, og det er ikke satt opp noe. Ny e-post vises fortsatt mens appen er åpen.",
     "relay_desc": "Bare organisasjonens egne reléer tilbys, fordi denne serveren ikke kontakter eksterne tjenester.",

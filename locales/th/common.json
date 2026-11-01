@@ -649,6 +649,13 @@
     "tag_removed_count": "{count, plural, other {นำป้ายกำกับออกจากอีเมล # ฉบับแล้ว}}",
     "new_mail_count": "{count, plural, other {ข้อความใหม่ # ฉบับ}}"
   },
+  "org_notice": {
+    "label": "ประกาศ",
+    "dismiss": "ปิดประกาศ",
+    "severity_info": "ข้อมูล",
+    "severity_warning": "คำเตือน",
+    "severity_critical": "สำคัญ"
+  },
   "third_party": {
     "push_needs_relay": "การแจ้งเตือนแบบพุชต้องใช้ push relay ที่องค์กรของคุณดูแล แต่ยังไม่ได้ตั้งค่าไว้ อีเมลใหม่จะยังแสดงขณะที่เปิดแอปอยู่",
     "relay_desc": "มีให้เลือกเฉพาะรีเลย์ขององค์กรคุณเอง เนื่องจากเซิร์ฟเวอร์นี้ไม่ติดต่อบริการภายนอก",

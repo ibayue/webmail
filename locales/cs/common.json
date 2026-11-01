@@ -1301,6 +1301,13 @@
     "tag_removed_count": "{count, plural, one {Štítek odebrán z # zprávy} few {Štítek odebrán ze # zpráv} other {Štítek odebrán z # zpráv}}",
     "new_mail_count": "{count, plural, one {# nová zpráva} few {# nové zprávy} other {# nových zpráv}}"
   },
+  "org_notice": {
+    "label": "Oznámení",
+    "dismiss": "Zavřít oznámení",
+    "severity_info": "Informace",
+    "severity_warning": "Upozornění",
+    "severity_critical": "Důležité"
+  },
   "third_party": {
     "push_needs_relay": "Push oznámení potřebují push relay provozovaný vaší organizací a žádný není nastaven. Nová pošta se dál zobrazuje, dokud je aplikace otevřená.",
     "relay_desc": "Nabízejí se jen vlastní relaye vaší organizace, protože tento server nekontaktuje externí služby.",
