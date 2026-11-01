@@ -1,6 +1,6 @@
 import { test, expect, type Browser, type BrowserContext, type Page } from '@playwright/test';
 import { JMAP_URL } from './helpers/config';
-import { accountSwitcher, addAccount, driveEntry, emailItem, folderRow, neutralizeDevOverlay, openCalendar, openFiles } from './helpers/app';
+import { accountSwitcher, addAccount, driveEntry, emailItem, folderRow, neutralizeDevOverlay, openCalendar, openFiles, switchAccount } from './helpers/app';
 import {
   ENT,
   ENT_PASSWORD,
@@ -201,7 +201,9 @@ test('item 10: it goes away at its end time without a reload', async ({ browser 
   await setPolicy(browser, { organisation: { announcement: { id: `end-${RUN}`, severity: 'critical', text: { en: `Outage until soon ${RUN}` }, fallbackLocale: 'en', startsAt: '', endsAt, dismissible: true } } });
   const alice = await userPage(browser, ENT.alice);
   await expect(banner(alice)).toContainText(`Outage until soon ${RUN}`, { timeout: 30_000 });
-  await expect(banner(alice)).toHaveAttribute('role', 'alert');
+  // Read out through a live region that fills a moment after the strip appears.
+  await expect(alice.getByTestId('org-announcement-live')).toHaveAttribute('role', 'alert');
+  await expect(alice.getByTestId('org-announcement-live')).toContainText(`Outage until soon ${RUN}`);
   await expect(banner(alice)).toHaveCount(0, { timeout: 120_000 });
   await alice.context().close();
 });
@@ -225,7 +227,9 @@ test('item 10: at 390 px the text wraps and the close button is 44 px', async ({
   await expect(banner(alice)).toBeVisible({ timeout: 30_000 });
   const box = await banner(alice).boundingBox();
   expect(box!.width).toBeLessThanOrEqual(390);
-  expect(box!.height).toBeGreaterThan(44);
+  // At least two lines of text: it wraps rather than running off the side.
+  const lines = await banner(alice).locator('p').evaluate((p) => p.getBoundingClientRect().height / parseFloat(getComputedStyle(p).lineHeight));
+  expect(lines).toBeGreaterThanOrEqual(2);
   const close = await alice.getByTestId('org-announcement-dismiss').boundingBox();
   expect(close!.width).toBeGreaterThanOrEqual(44);
   expect(close!.height).toBeGreaterThanOrEqual(44);
@@ -318,10 +322,19 @@ test('item 13: no downloads, no export and no print hold in the reader, with the
   await setPolicy(browser, { organisation: devices({ noDownloads: true, noExport: true, noPrint: true, watermark: true }) });
   await deliverWithFiles(ENT.bob, ENT.alice, subject);
   const alice = await userPage(browser, ENT.alice);
+  const downloads: string[] = [];
+  alice.on('download', (d) => downloads.push(d.suggestedFilename()));
+  // The list row's attachment chip opens nothing either.
+  await emailItem(alice, subject).first().getByText('figures.zip').click().catch(() => {});
   await openMessage(alice, subject);
   const attachments = alice.getByTestId('reader-attachments').first();
   await expect(attachments).toBeVisible();
   await expect(attachments.getByText('Download all')).toHaveCount(0);
+  await attachments.getByRole('button', { name: /figures\.zip/ }).click({ modifiers: ['Control'], force: true });
+  // aria-disabled: Playwright would wait for it to be enabled; a user can still click it.
+  await attachments.getByRole('button', { name: /figures\.zip/ }).click({ force: true });
+  await alice.waitForTimeout(2000);
+  expect(downloads, 'no download started').toEqual([]);
   await expect(attachments.getByRole('button', { name: /^Download / })).toHaveCount(0);
   await expect(alice.getByTestId('attachments-downloads-off').first()).toBeVisible();
   // The ZIP opens nothing; the picture previews, without Download or a new tab.
@@ -478,9 +491,78 @@ test('item 13: in a unified inbox with two accounts each message follows its own
   await openMessage(page, forCarol);
   await expect(page.getByTestId('reader-attachments').first().getByText('Download all')).toBeVisible();
   await expect(page.locator('.email-content-wrapper [data-testid="watermark"]')).toHaveCount(0);
+  // The download detector of the blocked cases does see a real download.
+  const download = page.waitForEvent('download', { timeout: 30_000 });
+  await page.getByTestId('reader-attachments').first().getByText('Download all').click();
+  expect((await download).suggestedFilename()).toMatch(/\.zip$/);
   await shot(page, 'd-devices-unified');
   // What isn't about one message follows the strictest account: Ctrl+P is still allowed here.
   await context.close();
+});
+
+test('item 13: in the Pro shell another account\u2019s folder opened from the sidebar follows that account', async ({ browser }) => {
+  const forAlice = `Sidebar alice ${RUN}`;
+  await setPolicy(browser, {
+    organisation: { announcement: { id: `pro-${RUN}`, severity: 'info', text: { en: `Pro notice ${RUN}` }, fallbackLocale: 'en', startsAt: '', endsAt: '', dismissible: true } },
+    scopes: [{ id: 'team-devices', label: 'Team', match: { groups: [ENT.team] }, policy: { organisation: devices({ noDownloads: true, noPrint: true, watermark: true }) } }],
+  });
+  await deliverWithFiles(ENT.bob, ENT.alice, forAlice);
+  const context: BrowserContext = await browser.newContext(contextOptions());
+  const page = await context.newPage();
+  await neutralizeDevOverlay(page);
+  await page.addInitScript(() => {
+    if (!sessionStorage.getItem('ent-seeded')) {
+      localStorage.setItem('settings-storage', JSON.stringify({ state: { proInterface: true, advancedSettings: true }, version: 7 }));
+      sessionStorage.setItem('ent-seeded', '1');
+    }
+  });
+  await page.goto('/');
+  await page.fill('#username', ENT.carol);
+  await page.fill('#password', ENT_PASSWORD);
+  await page.click('button[type="submit"]');
+  await accountSwitcher(page).waitFor({ state: 'visible', timeout: 60_000 });
+  await addAccount(page, { user: 'ent-alice', email: ENT.alice, password: ENT_PASSWORD });
+  await switchAccount(page, ENT.carol);
+  await page.goto('/pro').catch(() => {});
+  await accountSwitcher(page).waitFor({ state: 'visible', timeout: 60_000 }).catch(() => {});
+  // One announcement for the whole shell, however many panes.
+  await expect(banner(page)).toHaveCount(1, { timeout: 30_000 });
+  // ent-carol is active; ent-alice's Inbox is the other one in the sidebar.
+  await folderRow(page, { role: 'inbox' }).and(page.locator(':not([data-selected="true"])')).first().click({ timeout: 60_000 });
+  await openMessage(page, forAlice);
+  const attachments = page.getByTestId('reader-attachments').first();
+  await expect(attachments).toBeVisible();
+  await expect(attachments.getByText('Download all')).toHaveCount(0);
+  await expect(page.locator('.email-content-wrapper [data-testid="watermark"]').first()).toContainText(ENT.alice);
+  await page.getByRole('button', { name: 'More actions' }).first().click();
+  await expect(page.getByRole('menuitem', { name: 'Print' })).toHaveCount(0);
+  await page.keyboard.press('Escape');
+  await shot(page, 'd-devices-pro-sidebar');
+  await context.close();
+});
+
+test('item 10 and 13: a tab left open picks up an announcement and a device policy when the user comes back', async ({ browser }) => {
+  test.setTimeout(300_000);
+  const subject = `Mid session ${RUN}`;
+  await setPolicy(browser, {});
+  await deliverWithFiles(ENT.bob, ENT.alice, subject);
+  const alice = await userPage(browser, ENT.alice);
+  const opened = Date.now();
+  await openMessage(alice, subject);
+  await expect(alice.getByTestId('reader-attachments').first().getByText('Download all')).toBeVisible();
+  // Saved while the tab is open; it starts after the tab opened and before the user comes back.
+  await setPolicy(browser, {
+    organisation: {
+      announcement: { id: `mid-${RUN}`, severity: 'warning', text: { en: `Started meanwhile ${RUN}` }, fallbackLocale: 'en', startsAt: new Date(opened + 20_000).toISOString(), endsAt: '', dismissible: true },
+      ...devices({ noDownloads: true }),
+    },
+  });
+  // Coming back to the tab fetches the policy again (at most once a minute).
+  await alice.waitForTimeout(Math.max(0, opened + 65_000 - Date.now()));
+  await alice.evaluate(() => window.dispatchEvent(new Event('focus')));
+  await expect(banner(alice)).toContainText(`Started meanwhile ${RUN}`, { timeout: 20_000 });
+  await expect(alice.getByTestId('reader-attachments').first().getByText('Download all')).toHaveCount(0);
+  await alice.context().close();
 });
 
 test('admin pages at 390 px', async ({ browser }) => {
