@@ -278,7 +278,8 @@ test('the progress dialog cancels an import, keeps what came in, and continues l
   // Slow uploads down so Cancel lands in the middle.
   await page.route(/\/jmap\/upload\//, async (route) => {
     await new Promise((r) => setTimeout(r, 500));
-    await route.continue();
+    // Cancel aborts uploads that are still held here.
+    await route.continue().catch(() => {});
   });
   const dialog = await importFromFolderMenu(page, folderName, onDisk);
   await page.getByTestId('mail-import-start').click();
