@@ -27,6 +27,7 @@ import { PushNotificationPrompt } from "@/components/push-notification-prompt";
 import { AccountArchiveRestorePrompt } from "@/components/account-archive-prompt";
 import { SessionTimeoutGuard } from "@/components/session/session-timeout-guard";
 import { AccountTemplateSync } from "@/components/templates/account-template-sync";
+import { FreeBusyAutoShare } from "@/components/calendar/free-busy-auto-share";
 import { IS_LITE } from "@/lib/lite";
 import { setRequestLocale } from "next-intl/server";
 import { locales } from "@/i18n/routing";
@@ -76,6 +77,7 @@ export default async function LocaleLayout({
                   <PushBindingsHost />
                   <SessionTimeoutGuard />
                   <AccountTemplateSync />
+                  <FreeBusyAutoShare />
                   {children}
                   <PluginDialogHost />
                   <ExternalRecipientConfirmHost />
