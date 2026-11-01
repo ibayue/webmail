@@ -5440,7 +5440,12 @@
     "failure_invalid": "không phải thư hợp lệ",
     "untitled": "(không có tiêu đề)",
     "cancelled_hint": "Để tiếp tục sau, hãy nhập lại cùng các tệp vào cùng thư mục.",
-    "close": "Đóng"
+    "close": "Đóng",
+    "pst_note": "Từ tệp Outlook chỉ nhập thư. Danh bạ, mục lịch và công việc được đếm rồi bỏ qua.",
+    "pst_error_encrypted": "Tệp Outlook này dùng mã hóa mạnh mà Bulwark không đọc được. Trong Outlook, hãy xuất thư sang một tệp .pst mới không mã hóa.",
+    "pst_error_not_pst": "Tệp này không phải tệp dữ liệu Outlook mà Bulwark đọc được.",
+    "pst_error_unreadable": "Bulwark không đọc được tệp Outlook này.",
+    "pst_error_worker": "Không tải được trình đọc tệp Outlook. Hãy tải lại trang rồi thử lại."
   },
   "recover_deleted": {
     "tab": "Khôi phục các mục đã xóa",

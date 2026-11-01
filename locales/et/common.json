@@ -5428,7 +5428,12 @@
     "failure_invalid": "pole kehtiv kiri",
     "untitled": "(teemata)",
     "cancelled_hint": "Hiljem jätkamiseks importige samad failid uuesti samasse kausta.",
-    "close": "Sulge"
+    "close": "Sulge",
+    "pst_note": "Outlooki failidest tulevad ainult kirjad. Kontaktid, kalendrikirjed ja ülesanded loendatakse ja jäetakse välja.",
+    "pst_error_encrypted": "See Outlooki fail kasutab tugevat krüpteerimist, mida Bulwark lugeda ei saa. Eksportige kirjad Outlookis uude krüpteerimata .pst-faili.",
+    "pst_error_not_pst": "See fail pole Outlooki andmefail, mida Bulwark lugeda oskab.",
+    "pst_error_unreadable": "Bulwark ei saanud seda Outlooki faili lugeda.",
+    "pst_error_worker": "Outlooki failide lugeja ei laadinud. Laadige leht uuesti ja proovige veel kord."
   },
   "recover_deleted": {
     "tab": "Taasta kustutatud üksused",

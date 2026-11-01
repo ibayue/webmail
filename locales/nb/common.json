@@ -5428,7 +5428,12 @@
     "failure_invalid": "ikke en gyldig melding",
     "untitled": "(uten emne)",
     "cancelled_hint": "Importer de samme filene til samme mappe igjen for å fortsette senere.",
-    "close": "Lukk"
+    "close": "Lukk",
+    "pst_note": "Fra Outlook-filer kommer bare e-post med. Kontakter, kalenderelementer og oppgaver telles og hoppes over.",
+    "pst_error_encrypted": "Denne Outlook-filen bruker høy kryptering, som Bulwark ikke kan lese. Eksporter e-posten i Outlook til en ny .pst-fil uten kryptering.",
+    "pst_error_not_pst": "Denne filen er ikke en Outlook-datafil som Bulwark kan lese.",
+    "pst_error_unreadable": "Bulwark kunne ikke lese denne Outlook-filen.",
+    "pst_error_worker": "Leseren for Outlook-filer ble ikke lastet. Last inn siden på nytt og prøv igjen."
   },
   "recover_deleted": {
     "tab": "Gjenopprett slettede elementer",

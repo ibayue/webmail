@@ -5428,7 +5428,12 @@
     "failure_invalid": "not a valid message",
     "untitled": "(no subject)",
     "cancelled_hint": "To go on later, import the same files into the same folder again.",
-    "close": "Close"
+    "close": "Close",
+    "pst_note": "Only mail comes in from Outlook files. Contacts, calendar items and tasks are counted and left out.",
+    "pst_error_encrypted": "This Outlook file uses high encryption, which Bulwark can't read. In Outlook, export the mail to a new .pst file without encryption.",
+    "pst_error_not_pst": "This file isn't an Outlook data file Bulwark can read.",
+    "pst_error_unreadable": "Bulwark couldn't read this Outlook file.",
+    "pst_error_worker": "The Outlook file reader didn't load. Reload the page and try again."
   },
   "recover_deleted": {
     "tab": "Recover deleted items",

@@ -5298,7 +5298,12 @@
     "failure_invalid": "올바른 메시지가 아님",
     "untitled": "(제목 없음)",
     "cancelled_hint": "나중에 계속하려면 같은 파일을 같은 폴더로 다시 가져오세요.",
-    "close": "닫기"
+    "close": "닫기",
+    "pst_note": "Outlook 파일에서는 메일만 가져옵니다. 연락처, 캘린더 항목, 작업은 개수만 세고 건너뜁니다.",
+    "pst_error_encrypted": "이 Outlook 파일은 Bulwark가 읽을 수 없는 강력한 암호화를 사용합니다. Outlook에서 메일을 암호화하지 않은 새 .pst 파일로 내보내세요.",
+    "pst_error_not_pst": "이 파일은 Bulwark가 읽을 수 있는 Outlook 데이터 파일이 아닙니다.",
+    "pst_error_unreadable": "Bulwark가 이 Outlook 파일을 읽지 못했습니다.",
+    "pst_error_worker": "Outlook 파일 읽기 도구를 불러오지 못했습니다. 페이지를 새로 고친 뒤 다시 시도하세요."
   },
   "recover_deleted": {
     "tab": "삭제된 항목 복구",

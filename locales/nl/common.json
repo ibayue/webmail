@@ -5298,7 +5298,12 @@
     "failure_invalid": "geen geldig bericht",
     "untitled": "(geen onderwerp)",
     "cancelled_hint": "Importeer later dezelfde bestanden opnieuw in dezelfde map om verder te gaan.",
-    "close": "Sluiten"
+    "close": "Sluiten",
+    "pst_note": "Uit Outlook-bestanden komt alleen e-mail mee. Contacten, agenda-items en taken worden geteld en overgeslagen.",
+    "pst_error_encrypted": "Dit Outlook-bestand gebruikt sterke versleuteling, die Bulwark niet kan lezen. Exporteer de e-mail in Outlook naar een nieuw .pst-bestand zonder versleuteling.",
+    "pst_error_not_pst": "Dit bestand is geen Outlook-gegevensbestand dat Bulwark kan lezen.",
+    "pst_error_unreadable": "Bulwark kon dit Outlook-bestand niet lezen.",
+    "pst_error_worker": "De lezer voor Outlook-bestanden is niet geladen. Laad de pagina opnieuw en probeer het nog eens."
   },
   "recover_deleted": {
     "tab": "Verwijderde items herstellen",

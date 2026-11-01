@@ -5428,7 +5428,12 @@
     "failure_invalid": "ليست رسالة صالحة",
     "untitled": "(بلا موضوع)",
     "cancelled_hint": "للمتابعة لاحقًا، استورد الملفات نفسها إلى المجلد نفسه مرة أخرى.",
-    "close": "إغلاق"
+    "close": "إغلاق",
+    "pst_note": "لا يُستورد من ملفات Outlook إلا البريد. تُعدّ جهات الاتصال وعناصر التقويم والمهام وتُترك.",
+    "pst_error_encrypted": "يستخدم ملف Outlook هذا تشفيرًا عاليًا لا يستطيع Bulwark قراءته. صدّر البريد في Outlook إلى ملف ‎.pst جديد بلا تشفير.",
+    "pst_error_not_pst": "هذا الملف ليس ملف بيانات Outlook يستطيع Bulwark قراءته.",
+    "pst_error_unreadable": "تعذّر على Bulwark قراءة ملف Outlook هذا.",
+    "pst_error_worker": "لم يُحمَّل قارئ ملفات Outlook. أعد تحميل الصفحة وحاول مرة أخرى."
   },
   "recover_deleted": {
     "tab": "استعادة العناصر المحذوفة",

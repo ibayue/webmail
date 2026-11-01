@@ -5428,7 +5428,12 @@
     "failure_invalid": "不是有效的郵件",
     "untitled": "（無主旨）",
     "cancelled_hint": "如需稍後繼續，請再次把相同的檔案匯入到同一個資料夾。",
-    "close": "關閉"
+    "close": "關閉",
+    "pst_note": "Outlook 檔案中只匯入郵件。聯絡人、行事曆項目和工作會被計數並略過。",
+    "pst_error_encrypted": "此 Outlook 檔案使用了 Bulwark 無法讀取的高強度加密。請在 Outlook 中把郵件匯出到一個不加密的新 .pst 檔案。",
+    "pst_error_not_pst": "此檔案不是 Bulwark 能讀取的 Outlook 資料檔。",
+    "pst_error_unreadable": "Bulwark 無法讀取此 Outlook 檔案。",
+    "pst_error_worker": "Outlook 檔案讀取元件未能載入。請重新載入頁面後再試。"
   },
   "recover_deleted": {
     "tab": "復原已刪除的項目",

@@ -5428,7 +5428,12 @@
     "failure_invalid": "no és un missatge vàlid",
     "untitled": "(sense assumpte)",
     "cancelled_hint": "Per continuar més tard, torneu a importar els mateixos fitxers a la mateixa carpeta.",
-    "close": "Tanca"
+    "close": "Tanca",
+    "pst_note": "Dels fitxers d'Outlook només s'importa el correu. Els contactes, elements del calendari i tasques es compten i es deixen fora.",
+    "pst_error_encrypted": "Aquest fitxer d'Outlook fa servir xifratge alt, que Bulwark no pot llegir. A Outlook, exporteu el correu a un fitxer .pst nou sense xifratge.",
+    "pst_error_not_pst": "Aquest fitxer no és un fitxer de dades d'Outlook que Bulwark pugui llegir.",
+    "pst_error_unreadable": "Bulwark no ha pogut llegir aquest fitxer d'Outlook.",
+    "pst_error_worker": "El lector de fitxers d'Outlook no s'ha carregat. Torneu a carregar la pàgina i proveu-ho de nou."
   },
   "recover_deleted": {
     "tab": "Recupera elements suprimits",

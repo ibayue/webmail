@@ -232,6 +232,7 @@ export function MailImportDialog({ request }: { request: ImportRequest }) {
           </label>
         )}
 
+        {picked.some((p) => p.format === "pst") && <p className="text-xs text-muted-foreground">{t("pst_note")}</p>}
         <p className="text-xs text-muted-foreground">{t("quota_note")}</p>
       </div>
     </Dialog>
@@ -239,6 +240,14 @@ export function MailImportDialog({ request }: { request: ImportRequest }) {
 }
 
 type T = ReturnType<typeof useTranslations>;
+
+const PST_ERRORS = ["encrypted", "not_pst", "unreadable", "worker"];
+
+/** The PST reader's errors in words; anything else as the server or browser said it. */
+function errorText(t: T, error: string): string {
+  const code = /^pst:(\w+):/.exec(error)?.[1];
+  return code && PST_ERRORS.includes(code) ? t(`pst_error_${code}`) : error;
+}
 
 function progressTitle(t: T, p: ImportProgress): string {
   if (p.phase === "done") return t("done_title");
@@ -292,7 +301,7 @@ function ProgressBody({ progress: p, t, locale, statusId }: { progress: ImportPr
             </div>
           )}
           {p.phase === "cancelled" && <p className="text-muted-foreground">{t("cancelled_hint")}</p>}
-          {p.phase === "failed" && p.error && <p className="text-destructive break-words">{p.error}</p>}
+          {p.phase === "failed" && p.error && <p className="text-destructive break-words">{errorText(t, p.error)}</p>}
         </div>
       )}
     </div>

@@ -5428,7 +5428,12 @@
     "failure_invalid": "nu este un mesaj valid",
     "untitled": "(fără subiect)",
     "cancelled_hint": "Pentru a continua mai târziu, importați din nou aceleași fișiere în același dosar.",
-    "close": "Închide"
+    "close": "Închide",
+    "pst_note": "Din fișierele Outlook vin doar e-mailurile. Contactele, elementele de calendar și sarcinile sunt numărate și lăsate deoparte.",
+    "pst_error_encrypted": "Acest fișier Outlook folosește criptare puternică, pe care Bulwark nu o poate citi. În Outlook, exportați e-mailurile într-un fișier .pst nou, fără criptare.",
+    "pst_error_not_pst": "Acest fișier nu este un fișier de date Outlook pe care Bulwark îl poate citi.",
+    "pst_error_unreadable": "Bulwark nu a putut citi acest fișier Outlook.",
+    "pst_error_worker": "Cititorul de fișiere Outlook nu s-a încărcat. Reîncărcați pagina și încercați din nou."
   },
   "recover_deleted": {
     "tab": "Recuperați elementele șterse",

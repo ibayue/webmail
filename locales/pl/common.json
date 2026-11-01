@@ -5298,7 +5298,12 @@
     "failure_invalid": "to nie jest poprawna wiadomość",
     "untitled": "(bez tematu)",
     "cancelled_hint": "Aby kontynuować później, zaimportuj te same pliki ponownie do tego samego folderu.",
-    "close": "Zamknij"
+    "close": "Zamknij",
+    "pst_note": "Z plików programu Outlook przenoszona jest tylko poczta. Kontakty, elementy kalendarza i zadania są liczone i pomijane.",
+    "pst_error_encrypted": "Ten plik programu Outlook używa silnego szyfrowania, którego Bulwark nie potrafi odczytać. W programie Outlook wyeksportuj pocztę do nowego pliku .pst bez szyfrowania.",
+    "pst_error_not_pst": "Ten plik nie jest plikiem danych programu Outlook, który Bulwark potrafi odczytać.",
+    "pst_error_unreadable": "Bulwark nie mógł odczytać tego pliku programu Outlook.",
+    "pst_error_worker": "Czytnik plików programu Outlook się nie wczytał. Odśwież stronę i spróbuj ponownie."
   },
   "recover_deleted": {
     "tab": "Odzyskaj usunięte elementy",

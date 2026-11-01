@@ -5428,7 +5428,12 @@
     "failure_invalid": "nie je platná správa",
     "untitled": "(bez predmetu)",
     "cancelled_hint": "Ak chcete pokračovať neskôr, importujte rovnaké súbory znova do rovnakého priečinka.",
-    "close": "Zavrieť"
+    "close": "Zavrieť",
+    "pst_note": "Zo súborov Outlooku sa prenáša len pošta. Kontakty, položky kalendára a úlohy sa spočítajú a vynechajú.",
+    "pst_error_encrypted": "Tento súbor Outlooku používa vysoké šifrovanie, ktoré Bulwark nevie prečítať. V Outlooku exportujte poštu do nového súboru .pst bez šifrovania.",
+    "pst_error_not_pst": "Tento súbor nie je dátový súbor Outlooku, ktorý by Bulwark vedel prečítať.",
+    "pst_error_unreadable": "Bulwark nedokázal prečítať tento súbor Outlooku.",
+    "pst_error_worker": "Čítačka súborov Outlooku sa nenačítala. Načítajte stránku znova a skúste to ešte raz."
   },
   "recover_deleted": {
     "tab": "Obnoviť odstránené položky",

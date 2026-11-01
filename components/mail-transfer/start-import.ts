@@ -25,7 +25,10 @@ export function startImport(input: StartImportInput): void {
     controller,
     progress: { phase: "running", imported: 0, failed: 0, skipped: {}, failures: [], fraction: 0, foldersCreated: 0 },
   });
+  const hasPst = input.files.some((f) => f.format === "pst");
   void (async () => {
+    // The PST reader (and its worker) load only for an Outlook file.
+    const openPst = hasPst ? (await import("@/lib/mail-import/pst-source")).openPstSource : undefined;
     const result = await runImport({
       client,
       accountId: input.accountId,
@@ -36,6 +39,7 @@ export function startImport(input: StartImportInput): void {
       resume: input.resume,
       signal: controller.signal,
       onProgress: (progress) => useMailTransferStore.getState().updateProgress(progress),
+      openPst,
     });
     useMailTransferStore.getState().updateProgress(result);
     // Show what arrived, if the same account is still the one on screen.

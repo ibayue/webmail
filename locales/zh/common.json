@@ -5298,7 +5298,12 @@
     "failure_invalid": "不是有效的邮件",
     "untitled": "（无主题）",
     "cancelled_hint": "如需稍后继续，请再次把相同的文件导入到同一个文件夹。",
-    "close": "关闭"
+    "close": "关闭",
+    "pst_note": "Outlook 文件中只导入邮件。联系人、日历项目和任务会被计数并跳过。",
+    "pst_error_encrypted": "此 Outlook 文件使用了 Bulwark 无法读取的高强度加密。请在 Outlook 中把邮件导出到一个不加密的新 .pst 文件。",
+    "pst_error_not_pst": "此文件不是 Bulwark 能读取的 Outlook 数据文件。",
+    "pst_error_unreadable": "Bulwark 无法读取此 Outlook 文件。",
+    "pst_error_worker": "Outlook 文件读取组件未能加载。请重新加载页面后再试。"
   },
   "recover_deleted": {
     "tab": "恢复已删除项目",

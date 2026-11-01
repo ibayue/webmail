@@ -5428,7 +5428,12 @@
     "failure_invalid": "geçerli bir ileti değil",
     "untitled": "(konu yok)",
     "cancelled_hint": "Daha sonra devam etmek için aynı dosyaları aynı klasöre yeniden içe aktarın.",
-    "close": "Kapat"
+    "close": "Kapat",
+    "pst_note": "Outlook dosyalarından yalnızca e-postalar alınır. Kişiler, takvim öğeleri ve görevler sayılır ve atlanır.",
+    "pst_error_encrypted": "Bu Outlook dosyası Bulwark'ın okuyamadığı yüksek şifreleme kullanıyor. Outlook'ta e-postaları şifrelemesiz yeni bir .pst dosyasına aktarın.",
+    "pst_error_not_pst": "Bu dosya Bulwark'ın okuyabildiği bir Outlook veri dosyası değil.",
+    "pst_error_unreadable": "Bulwark bu Outlook dosyasını okuyamadı.",
+    "pst_error_worker": "Outlook dosya okuyucusu yüklenmedi. Sayfayı yeniden yükleyip tekrar deneyin."
   },
   "recover_deleted": {
     "tab": "Silinen öğeleri kurtar",

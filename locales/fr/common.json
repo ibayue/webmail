@@ -5298,7 +5298,12 @@
     "failure_invalid": "message non valide",
     "untitled": "(sans objet)",
     "cancelled_hint": "Pour reprendre plus tard, importez à nouveau les mêmes fichiers dans le même dossier.",
-    "close": "Fermer"
+    "close": "Fermer",
+    "pst_note": "Seuls les e-mails sont importés des fichiers Outlook. Les contacts, éléments d'agenda et tâches sont comptés et laissés de côté.",
+    "pst_error_encrypted": "Ce fichier Outlook utilise un chiffrement élevé que Bulwark ne sait pas lire. Dans Outlook, exportez les e-mails dans un nouveau fichier .pst sans chiffrement.",
+    "pst_error_not_pst": "Ce fichier n'est pas un fichier de données Outlook que Bulwark sait lire.",
+    "pst_error_unreadable": "Bulwark n'a pas pu lire ce fichier Outlook.",
+    "pst_error_worker": "Le lecteur de fichiers Outlook ne s'est pas chargé. Rechargez la page et réessayez."
   },
   "recover_deleted": {
     "tab": "Récupérer des éléments supprimés",

@@ -5298,7 +5298,12 @@
     "failure_invalid": "keine gültige Nachricht",
     "untitled": "(kein Betreff)",
     "cancelled_hint": "Um später weiterzumachen, importieren Sie dieselben Dateien erneut in denselben Ordner.",
-    "close": "Schließen"
+    "close": "Schließen",
+    "pst_note": "Aus Outlook-Dateien werden nur E-Mails übernommen. Kontakte, Kalendereinträge und Aufgaben werden gezählt und ausgelassen.",
+    "pst_error_encrypted": "Diese Outlook-Datei nutzt eine hohe Verschlüsselung, die Bulwark nicht lesen kann. Exportieren Sie die E-Mails in Outlook in eine neue .pst-Datei ohne Verschlüsselung.",
+    "pst_error_not_pst": "Diese Datei ist keine Outlook-Datendatei, die Bulwark lesen kann.",
+    "pst_error_unreadable": "Bulwark konnte diese Outlook-Datei nicht lesen.",
+    "pst_error_worker": "Das Lesemodul für Outlook-Dateien wurde nicht geladen. Laden Sie die Seite neu und versuchen Sie es noch einmal."
   },
   "recover_deleted": {
     "tab": "Gelöschte E-Mails",

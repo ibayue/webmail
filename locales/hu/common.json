@@ -5428,7 +5428,12 @@
     "failure_invalid": "nem érvényes üzenet",
     "untitled": "(nincs tárgy)",
     "cancelled_hint": "A későbbi folytatáshoz importálja újra ugyanazokat a fájlokat ugyanabba a mappába.",
-    "close": "Bezárás"
+    "close": "Bezárás",
+    "pst_note": "Az Outlook-fájlokból csak a levelek kerülnek át. A névjegyeket, naptárelemeket és feladatokat megszámolja és kihagyja.",
+    "pst_error_encrypted": "Ez az Outlook-fájl erős titkosítást használ, amelyet a Bulwark nem tud olvasni. Az Outlookban exportálja a leveleket egy új, titkosítás nélküli .pst fájlba.",
+    "pst_error_not_pst": "Ez a fájl nem olyan Outlook-adatfájl, amelyet a Bulwark olvasni tud.",
+    "pst_error_unreadable": "A Bulwark nem tudta beolvasni ezt az Outlook-fájlt.",
+    "pst_error_worker": "Az Outlook-fájlok olvasója nem töltődött be. Töltse újra az oldalt, és próbálja meg ismét."
   },
   "recover_deleted": {
     "tab": "Törölt elemek visszaállítása",

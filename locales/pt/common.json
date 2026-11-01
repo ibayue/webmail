@@ -5298,7 +5298,12 @@
     "failure_invalid": "não é uma mensagem válida",
     "untitled": "(sem assunto)",
     "cancelled_hint": "Para continuar mais tarde, importe os mesmos arquivos na mesma pasta outra vez.",
-    "close": "Fechar"
+    "close": "Fechar",
+    "pst_note": "Dos arquivos do Outlook só vêm os e-mails. Contatos, itens de calendário e tarefas são contados e deixados de fora.",
+    "pst_error_encrypted": "Este arquivo do Outlook usa criptografia alta, que o Bulwark não consegue ler. No Outlook, exporte os e-mails para um novo arquivo .pst sem criptografia.",
+    "pst_error_not_pst": "Este arquivo não é um arquivo de dados do Outlook que o Bulwark consiga ler.",
+    "pst_error_unreadable": "O Bulwark não conseguiu ler este arquivo do Outlook.",
+    "pst_error_worker": "O leitor de arquivos do Outlook não carregou. Recarregue a página e tente de novo."
   },
   "recover_deleted": {
     "tab": "Recuperar itens excluídos",
