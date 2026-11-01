@@ -5633,6 +5633,76 @@
     "dont_remind": "Bir daha hatırlatma",
     "dismiss_aria": "Yükleme istemini kapat"
   },
+  "app_update": {
+    "ready": "{appName} uygulamasının yeni sürümü hazır.",
+    "reload": "Yeniden yükle"
+  },
+  "offline": {
+    "settings": {
+      "title": "Çevrimdışı",
+      "description": "Bu cihazda bağlantı olmadan e-posta okuyun ve yazın.",
+      "keep_label": "E-postayı bu cihazda tut",
+      "keep_description": "Gelen kutunuzun ve açtığınız klasörlerin son 30 gününü, en fazla 250 MB, bu tarayıcıda şifreli olarak tutar. Çevrimdışıyken e-postaları okuyabilir, işaretleyebilir ve taşıyabilirsiniz; yazdıklarınız giden kutusunda bekler. Oturumu kapatınca hepsi silinir.",
+      "warning": "Bu tarayıcı profilini kullanabilen herkes bu e-postaları okuyabilir. Bunu yalnızca kendi cihazınızda açın ve disk şifrelemesi kullanın.",
+      "forbidden": "Kuruluşunuz e-postaların cihazlarda tutulmasına izin vermiyor.",
+      "unsupported": "Bu tarayıcı çevrimdışı kullanım için e-posta tutamıyor.",
+      "syncing": "E-postalarınız bu cihaza kaydediliyor…",
+      "usage": "Bu cihazda {size}",
+      "usage_updated": "Bu cihazda {size}, {time} güncellendi",
+      "off_confirm_title": "Çevrimdışı mod kapatılsın mı?",
+      "off_confirm_message": "{count, plural, one {Giden kutusundaki # ileti gönderilmedi.} other {Giden kutusundaki # ileti gönderilmedi.}} Kapatmak bunları ve bu cihazda tutulan e-postaları siler.",
+      "off_confirm": "Kapat"
+    },
+    "outbox": {
+      "title": "Giden kutusu",
+      "description": "Çevrimdışıyken yazdığınız iletiler. Bu cihaz yeniden çevrimiçi olunca gönderilir.",
+      "empty": "Gönderilmeyi bekleyen bir şey yok.",
+      "no_subject": "(konu yok)",
+      "to": "Kime: {recipients}",
+      "status_waiting": "Bağlantı bekleniyor",
+      "status_sending": "Gönderiliyor",
+      "status_failed": "Gönderilemedi: {error}",
+      "status_uncertain": "Gönderirken bağlantı koptu. Yeniden göndermeden önce Gönderilenler'e bakın.",
+      "retry": "Yeniden gönder",
+      "delete": "Sil",
+      "delete_confirm_title": "Bu ileti silinsin mi?",
+      "delete_confirm_message": "Gönderilmedi ve geri getirilemez.",
+      "changes": "Okundu, bayrak veya klasörlerdeki {count, plural, one {# değişiklik} other {# değişiklik}} yeniden çevrimiçi olduğunuzda gönderilecek.",
+      "status_held": "İleti beklerken kuruluşunuzun kuralları değişti. Göndermek için yeniden yazın.",
+      "retry_label": "Yeniden gönder: {subject}",
+      "delete_label": "Sil: {subject}"
+    },
+    "banner": {
+      "offline": "Çevrimdışısınız. Bu cihazda tutulan e-postaları görüyorsunuz. Değiştirdikleriniz veya yazdıklarınız yeniden çevrimiçi olunca gönderilir.",
+      "outbox": "Giden kutusunda {count, plural, one {# ileti} other {# ileti}}",
+      "server_down": "Posta sunucusuna ulaşılamıyor. Bu cihazda tutulan e-postaları görüyorsunuz. Değiştirdikleriniz veya yazdıklarınız sunucu yeniden yanıt verince gönderilir."
+    },
+    "toast": {
+      "queued": "Giden kutusuna kaydedildi. Yeniden çevrimiçi olduğunuzda gönderilir.",
+      "sent": "Giden kutusundan gönderildi: {subject}",
+      "send_failed": "Giden kutusundaki bir ileti gönderilemedi: {subject}",
+      "refused_delete": "Kalıcı silme için bağlantı gerekir. Çevrimiçi olunca yeniden deneyin.",
+      "refused_other": "Bunun için bağlantı gerekir. Çevrimiçi olunca yeniden deneyin.",
+      "forbidden": "Kuruluşunuz çevrimdışı modu kapattı. Bu cihazda tutulan e-postalar kaldırıldı.",
+      "back_online": "Yeniden çevrimiçisiniz. Oturum açmak ve bekleyenleri göndermek için yeniden yükleyin.",
+      "reload": "Yeniden yükle",
+      "held": "Giden kutusundaki bir ileti ilginizi bekliyor: {subject}",
+      "lost": "Bu iletiler gönderilmedi ve silindi: {subjects}"
+    },
+    "signout": {
+      "title": "Gönderilmemiş iletilerle oturum kapatılsın mı?",
+      "message": "{count, plural, one {# ileti gönderilmedi.} other {# ileti gönderilmedi.}} Oturumu kapatmak bunları siler.",
+      "confirm": "Oturumu kapat",
+      "lost": "Bu iletiler gönderilmedi ve oturumunuz kapatılırken silindi: {subjects}"
+    },
+    "errors": {
+      "unavailable": "Bunun için bağlantı gerekir. Çevrimiçi olunca yeniden deneyin.",
+      "plugins_down": "İmzalama veya şifreleme eklentiniz çevrimdışı çalışmıyor. Yeniden çevrimiçi olunca bunu gönderin.",
+      "file_missing": "Çevrimdışıyken eklenen bir dosya artık bu cihazda değil. Yeniden ekleyin.",
+      "no_sent_mailbox": "Gönderilenler klasörü bulunamadı.",
+      "no_drafts_mailbox": "Taslaklar klasörü bulunamadı."
+    }
+  },
   "deep_link": {
     "message_not_found": "Bu ileti artık kullanılamıyor.",
     "thread_not_found": "Bu sohbet artık kullanılamıyor.",

@@ -5633,6 +5633,76 @@
     "dont_remind": "不再提醒",
     "dismiss_aria": "關閉安裝提示"
   },
+  "app_update": {
+    "ready": "{appName} 新版本已準備就緒。",
+    "reload": "重新載入"
+  },
+  "offline": {
+    "settings": {
+      "title": "離線",
+      "description": "在此裝置上不需連線即可讀寫郵件。",
+      "keep_label": "在此裝置上保留郵件",
+      "keep_description": "在此瀏覽器中加密保留收件匣和你開啟過的資料夾最近 30 天的郵件，最多 250 MB。離線時可以閱讀、標記和移動郵件，寫好的郵件會在寄件匣中等待。登出時會全部刪除。",
+      "warning": "任何能使用此瀏覽器設定檔的人都能讀取這些郵件。請只在自己的裝置上開啟，並使用磁碟加密。",
+      "forbidden": "你的組織不允許在裝置上保留郵件。",
+      "unsupported": "此瀏覽器無法保留郵件供離線使用。",
+      "syncing": "正在將郵件儲存到此裝置…",
+      "usage": "此裝置上 {size}",
+      "usage_updated": "此裝置上 {size}，更新於 {time}",
+      "off_confirm_title": "關閉離線模式？",
+      "off_confirm_message": "{count, plural, other {寄件匣中有 # 封郵件尚未寄出。}}關閉後，這些郵件和此裝置上保留的郵件都會被刪除。",
+      "off_confirm": "關閉"
+    },
+    "outbox": {
+      "title": "寄件匣",
+      "description": "你離線時寫的郵件。此裝置恢復連線後會寄出。",
+      "empty": "沒有等待寄出的郵件。",
+      "no_subject": "（無主旨）",
+      "to": "收件者：{recipients}",
+      "status_waiting": "等待連線",
+      "status_sending": "正在寄出",
+      "status_failed": "無法寄出：{error}",
+      "status_uncertain": "寄出時連線中斷。再次寄出前請先查看「寄件備份」。",
+      "retry": "再次寄出",
+      "delete": "刪除",
+      "delete_confirm_title": "刪除這封郵件？",
+      "delete_confirm_message": "它尚未寄出，刪除後無法復原。",
+      "changes": "{count, plural, other {# 項}}已讀、標記或資料夾的變更將在恢復連線後送出。",
+      "status_held": "等待期間你的組織規則有所變更。請重新撰寫後再寄出。",
+      "retry_label": "再次寄出：{subject}",
+      "delete_label": "刪除：{subject}"
+    },
+    "banner": {
+      "offline": "你已離線。顯示的是此裝置上保留的郵件。你所做的變更或寫的郵件會在恢復連線後送出。",
+      "outbox": "寄件匣中有 {count, plural, other {# 封}}",
+      "server_down": "無法連線到郵件伺服器。顯示的是此裝置上保留的郵件。你所做的變更或寫的郵件會在伺服器恢復回應後寄出。"
+    },
+    "toast": {
+      "queued": "已儲存到寄件匣。恢復連線後會寄出。",
+      "sent": "已從寄件匣寄出：{subject}",
+      "send_failed": "寄件匣中的一封郵件無法寄出：{subject}",
+      "refused_delete": "永久刪除需要網路連線。請在連線後重試。",
+      "refused_other": "此操作需要網路連線。請在連線後重試。",
+      "forbidden": "你的組織關閉了離線模式。此裝置上保留的郵件已被刪除。",
+      "back_online": "已恢復連線。請重新載入以登入並寄出等待中的內容。",
+      "reload": "重新載入",
+      "held": "寄件匣中有一封郵件需要你處理：{subject}",
+      "lost": "這些郵件未寄出，已被刪除：{subjects}"
+    },
+    "signout": {
+      "title": "有未寄出的郵件，仍要登出？",
+      "message": "{count, plural, other {# 封郵件尚未寄出。}}登出會刪除它們。",
+      "confirm": "登出",
+      "lost": "這些郵件未寄出，並在你登出時被刪除：{subjects}"
+    },
+    "errors": {
+      "unavailable": "此操作需要網路連線。請在連線後重試。",
+      "plugins_down": "你的簽署或加密外掛程式在離線時無法執行。請在恢復連線後再寄出。",
+      "file_missing": "離線時附加的檔案已不在此裝置上。請重新附加。",
+      "no_sent_mailbox": "找不到「寄件備份」資料夾。",
+      "no_drafts_mailbox": "找不到「草稿」資料夾。"
+    }
+  },
   "deep_link": {
     "message_not_found": "已無法使用此郵件。",
     "thread_not_found": "已無法使用此對話串。",

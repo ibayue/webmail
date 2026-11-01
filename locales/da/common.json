@@ -5633,6 +5633,76 @@
     "dont_remind": "Påmind mig ikke igen",
     "dismiss_aria": "Afvis installationsprompt"
   },
+  "app_update": {
+    "ready": "En ny version af {appName} er klar.",
+    "reload": "Genindlæs"
+  },
+  "offline": {
+    "settings": {
+      "title": "Offline",
+      "description": "Læs og skriv mail på denne enhed uden forbindelse.",
+      "keep_label": "Behold mail på denne enhed",
+      "keep_description": "Beholder de seneste 30 dage af din indbakke og af de mapper, du åbner, op til 250 MB, krypteret i denne browser. Offline kan du læse, markere og flytte mail, og det, du skriver, venter i udbakken. Når du logger ud, fjernes det hele.",
+      "warning": "Alle, der kan bruge denne browserprofil, kan læse disse mails. Slå det kun til på din egen enhed, og brug diskkryptering.",
+      "forbidden": "Din organisation tillader ikke, at mail gemmes på enheder.",
+      "unsupported": "Denne browser kan ikke gemme mail til brug offline.",
+      "syncing": "Gemmer din mail på denne enhed…",
+      "usage": "{size} på denne enhed",
+      "usage_updated": "{size} på denne enhed, opdateret {time}",
+      "off_confirm_title": "Slå offlinetilstand fra?",
+      "off_confirm_message": "{count, plural, one {# besked i udbakken er ikke sendt.} other {# beskeder i udbakken er ikke sendt.}} Hvis du slår det fra, slettes de sammen med den mail, der er gemt på denne enhed.",
+      "off_confirm": "Slå fra"
+    },
+    "outbox": {
+      "title": "Udbakke",
+      "description": "Beskeder, du skrev offline. De sendes, når enheden er online igen.",
+      "empty": "Intet venter på at blive sendt.",
+      "no_subject": "(intet emne)",
+      "to": "Til: {recipients}",
+      "status_waiting": "Venter på forbindelse",
+      "status_sending": "Sendes",
+      "status_failed": "Kunne ikke sendes: {error}",
+      "status_uncertain": "Forbindelsen blev afbrudt under afsendelsen. Se i Sendt, før du sender den igen.",
+      "retry": "Send igen",
+      "delete": "Slet",
+      "delete_confirm_title": "Slet denne besked?",
+      "delete_confirm_message": "Den er ikke sendt og kan ikke hentes tilbage.",
+      "changes": "{count, plural, one {# ændring} other {# ændringer}} af læst, markeringer eller mapper sendes, når du er online igen.",
+      "status_held": "Din organisations regler blev ændret, mens beskeden ventede. Skriv den igen for at sende den.",
+      "retry_label": "Send igen: {subject}",
+      "delete_label": "Slet: {subject}"
+    },
+    "banner": {
+      "offline": "Du er offline. Du ser den mail, der er gemt på denne enhed. Det, du ændrer eller skriver, sendes, når du er online igen.",
+      "outbox": "{count, plural, one {# besked} other {# beskeder}} i udbakken",
+      "server_down": "Mailserveren kan ikke nås. Du ser den mail, der er gemt på denne enhed. Det, du ændrer eller skriver, sendes, når den svarer igen."
+    },
+    "toast": {
+      "queued": "Gemt i udbakken. Den sendes, når du er online igen.",
+      "sent": "Sendt fra udbakken: {subject}",
+      "send_failed": "En besked i udbakken kunne ikke sendes: {subject}",
+      "refused_delete": "Endelig sletning kræver forbindelse. Prøv igen, når du er online.",
+      "refused_other": "Det kræver forbindelse. Prøv igen, når du er online.",
+      "forbidden": "Din organisation har slået offlinetilstand fra. Den mail, der var gemt på denne enhed, er fjernet.",
+      "back_online": "Du er online igen. Genindlæs for at logge ind og sende det, der venter.",
+      "reload": "Genindlæs",
+      "held": "En besked i udbakken venter på dig: {subject}",
+      "lost": "Disse beskeder blev ikke sendt og er slettet: {subjects}"
+    },
+    "signout": {
+      "title": "Log ud med usendte beskeder?",
+      "message": "{count, plural, one {# besked er ikke sendt.} other {# beskeder er ikke sendt.}} Når du logger ud, slettes de.",
+      "confirm": "Log ud",
+      "lost": "Disse beskeder blev ikke sendt og blev slettet, da du blev logget ud: {subjects}"
+    },
+    "errors": {
+      "unavailable": "Det kræver forbindelse. Prøv igen, når du er online.",
+      "plugins_down": "Dit plugin til signering eller kryptering kører ikke offline. Send dette, når du er online igen.",
+      "file_missing": "En fil, der blev vedhæftet offline, er ikke længere på denne enhed. Vedhæft den igen.",
+      "no_sent_mailbox": "Mappen Sendt blev ikke fundet.",
+      "no_drafts_mailbox": "Mappen Kladder blev ikke fundet."
+    }
+  },
   "deep_link": {
     "message_not_found": "Denne besked er ikke længere tilgængelig.",
     "thread_not_found": "Denne samtale er ikke længere tilgængelig.",

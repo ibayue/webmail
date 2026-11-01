@@ -18,8 +18,11 @@ export interface ComposerSendExtras {
  * so none drops the read receipt, DSN, REQUIRETLS, priority, plugin headers
  * or the classification label: the Pro tab used to send without them.
  */
-export function composerSendOptions(data: ComposerSendExtras): ComposerSendExtras {
+export function composerSendOptions(data: ComposerSendExtras): ComposerSendExtras & { outbox: true } {
   return {
+    // Every step of the send ran at Send, so offline mode may keep the
+    // finished message in its outbox (#523).
+    outbox: true,
     requestReadReceipt: data.requestReadReceipt,
     requestDsn: data.requestDsn,
     requireTls: data.requireTls,

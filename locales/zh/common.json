@@ -5633,6 +5633,76 @@
     "dont_remind": "不再提醒",
     "dismiss_aria": "关闭安装提示"
   },
+  "app_update": {
+    "ready": "{appName} 新版本已就绪。",
+    "reload": "重新加载"
+  },
+  "offline": {
+    "settings": {
+      "title": "离线",
+      "description": "在此设备上无需连接即可读写邮件。",
+      "keep_label": "在此设备上保留邮件",
+      "keep_description": "在此浏览器中加密保留收件箱和你打开过的文件夹最近 30 天的邮件，最多 250 MB。离线时可以阅读、标记和移动邮件，写好的邮件会在发件箱中等待。退出登录时会全部删除。",
+      "warning": "任何能使用此浏览器配置文件的人都能读取这些邮件。请只在自己的设备上开启，并使用磁盘加密。",
+      "forbidden": "你的组织不允许在设备上保留邮件。",
+      "unsupported": "此浏览器无法保留邮件供离线使用。",
+      "syncing": "正在将邮件保存到此设备…",
+      "usage": "此设备上 {size}",
+      "usage_updated": "此设备上 {size}，更新于 {time}",
+      "off_confirm_title": "关闭离线模式？",
+      "off_confirm_message": "{count, plural, other {发件箱中有 # 封邮件尚未发送。}}关闭后，这些邮件和此设备上保留的邮件都会被删除。",
+      "off_confirm": "关闭"
+    },
+    "outbox": {
+      "title": "发件箱",
+      "description": "你离线时写的邮件。此设备恢复联网后会发送。",
+      "empty": "没有等待发送的邮件。",
+      "no_subject": "（无主题）",
+      "to": "收件人：{recipients}",
+      "status_waiting": "等待连接",
+      "status_sending": "正在发送",
+      "status_failed": "无法发送：{error}",
+      "status_uncertain": "发送时连接中断。再次发送前请先查看“已发送”。",
+      "retry": "再次发送",
+      "delete": "删除",
+      "delete_confirm_title": "删除这封邮件？",
+      "delete_confirm_message": "它尚未发送，删除后无法恢复。",
+      "changes": "{count, plural, other {# 项}}已读、标记或文件夹的更改将在恢复联网后发送。",
+      "status_held": "等待期间你的组织规则发生了变化。请重新撰写后再发送。",
+      "retry_label": "再次发送：{subject}",
+      "delete_label": "删除：{subject}"
+    },
+    "banner": {
+      "offline": "你已离线。显示的是此设备上保留的邮件。你所做的更改或写的邮件会在恢复联网后发送。",
+      "outbox": "发件箱中有 {count, plural, other {# 封}}",
+      "server_down": "无法连接邮件服务器。显示的是此设备上保留的邮件。你所做的更改或写的邮件会在服务器恢复响应后发送。"
+    },
+    "toast": {
+      "queued": "已保存到发件箱。恢复联网后会发送。",
+      "sent": "已从发件箱发送：{subject}",
+      "send_failed": "发件箱中的一封邮件无法发送：{subject}",
+      "refused_delete": "永久删除需要网络连接。请在联网后重试。",
+      "refused_other": "此操作需要网络连接。请在联网后重试。",
+      "forbidden": "你的组织关闭了离线模式。此设备上保留的邮件已被删除。",
+      "back_online": "已恢复联网。请重新加载以登录并发送等待中的内容。",
+      "reload": "重新加载",
+      "held": "发件箱中有一封邮件需要你处理：{subject}",
+      "lost": "这些邮件未发送，已被删除：{subjects}"
+    },
+    "signout": {
+      "title": "有未发送的邮件，仍要退出登录？",
+      "message": "{count, plural, other {# 封邮件尚未发送。}}退出登录会删除它们。",
+      "confirm": "退出登录",
+      "lost": "这些邮件未发送，并在你退出登录时被删除：{subjects}"
+    },
+    "errors": {
+      "unavailable": "此操作需要网络连接。请在联网后重试。",
+      "plugins_down": "你的签名或加密插件在离线时无法运行。请在恢复联网后再发送。",
+      "file_missing": "离线时附加的文件已不在此设备上。请重新附加。",
+      "no_sent_mailbox": "找不到“已发送”文件夹。",
+      "no_drafts_mailbox": "找不到“草稿”文件夹。"
+    }
+  },
   "deep_link": {
     "message_not_found": "此邮件已不可用。",
     "thread_not_found": "此会话已不可用。",

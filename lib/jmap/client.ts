@@ -41,6 +41,7 @@ import { emailMatchesLogin, sortIdentities } from "@/lib/identity-order";
 import type { AccountInfo } from "./types";
 import { stalwartChangeId } from "./stalwart-state";
 import { downloadNameSegment } from "./download-name";
+import { getOfflineHooks, isNetworkFailure, OfflineUnavailableError, SendNotStartedError } from "./offline-hooks";
 import { toInertBlob } from "@/lib/file-preview";
 import { parseAuthenticationResults } from "@/lib/email-headers";
 import { IS_LITE_STALWART } from "@/lib/lite";
@@ -1611,11 +1612,43 @@ export class JMAPClient implements IJMAPClient {
   // lazy default-calendar/address-book creation can't run twice (#907).
   private firstTouchGate = new FirstTouchGate();
 
+  /**
+   * Started without the server (#523): the session comes from the copy kept
+   * with the offline data, every request is answered from this device, and
+   * nothing goes to the network. Replaced by a real client once the server
+   * can be reached again (a reload signs in as usual).
+   */
+  private offlineOnly = false;
+
   constructor(serverUrl: string, username: string, password: string) {
     this.serverUrl = serverUrl.replace(/\/$/, '');
     this.username = username;
     this.password = password;
     this.authHeader = basicAuthHeader(username, password);
+  }
+
+  /** A client that answers from this device only, from a session kept with the offline data (#523). */
+  static fromOfflineSession(serverUrl: string, username: string, session: unknown): JMAPClient {
+    const client = new JMAPClient(serverUrl, username, '');
+    client.offlineOnly = true;
+    const snapshot = session as JMAPSession;
+    client.session = snapshot;
+    client.capabilities = snapshot.capabilities || {};
+    client.apiUrl = snapshot.apiUrl;
+    client.downloadUrl = snapshot.downloadUrl;
+    client.accounts = snapshot.accounts || {};
+    client.accountId = snapshot.primaryAccounts?.["urn:ietf:params:jmap:mail"] || Object.keys(client.accounts)[0] || '';
+    return client;
+  }
+
+  /** Started offline from the device's copy of the session (fromOfflineSession). */
+  isOfflineOnly(): boolean {
+    return this.offlineOnly;
+  }
+
+  /** The session resource, for offline mode to keep (it names the accounts and URLs, no credentials). */
+  getSessionSnapshot(): unknown {
+    return this.session;
   }
 
   static withBearer(
@@ -1926,6 +1959,7 @@ export class JMAPClient implements IJMAPClient {
   }
 
   async connect(): Promise<void> {
+    if (this.offlineOnly) throw new OfflineUnavailableError();
     this.intentionallyDisconnected = false;
     const sessionUrl = `${this.serverUrl}/.well-known/jmap`;
 
@@ -2133,6 +2167,36 @@ export class JMAPClient implements IJMAPClient {
     }
     // Error reports keep the method names of the last calls, nothing else.
     recordJmapCall(methodCalls.map(([name]) => name));
+    // Offline mode (#523, lib/offline/): answered from this device when the
+    // browser is offline or the network fails, and every answer from the
+    // server goes to the device's cache. Without offline mode no hooks are
+    // set and this is the plain network request.
+    const offline = getOfflineHooks();
+    if (this.offlineOnly || offline?.skipNetwork(this)) {
+      const local = offline ? await offline.answer(this, methodCalls) : null;
+      if (local) return local as JMAPResponse;
+      throw new OfflineUnavailableError();
+    }
+    let answer: JMAPResponse;
+    try {
+      answer = await this.networkRequest(methodCalls, using, opts);
+    } catch (error) {
+      // Only when the server is really gone: a refusal without CORS
+      // headers looks the same to the browser and must stay an error.
+      if (offline && isNetworkFailure(error) && await offline.serverGone(this)) {
+        const local = await offline.answer(this, methodCalls);
+        if (local) return local as JMAPResponse;
+      }
+      throw error;
+    }
+    if (offline) {
+      offline.noteNetwork(this, true);
+      offline.record(this, methodCalls, answer);
+    }
+    return answer;
+  }
+
+  private async networkRequest(methodCalls: JMAPMethodCall[], using?: string[], opts?: { transfer?: boolean }): Promise<JMAPResponse> {
 
     const requestBody = {
       using: using || (hasSubmissionMethod(methodCalls) ? [...SUBMISSION_USING] : ["urn:ietf:params:jmap:core", "urn:ietf:params:jmap:mail"]),
@@ -3051,6 +3115,60 @@ export class JMAPClient implements IJMAPClient {
       console.error('Failed to get email:', error);
       return null;
     }
+  }
+
+  // ---- Offline mode (#523, lib/offline/sync.ts) ----
+
+  /** Ids of a folder's messages received since `sinceIso`, newest first. */
+  async getRecentEmailIds(mailboxId: string, accountId: string | undefined, sinceIso: string, limit: number): Promise<string[]> {
+    const response = await this.request([
+      ["Email/query", {
+        accountId: accountId || this.accountId,
+        filter: { inMailbox: mailboxId, after: sinceIso },
+        sort: [{ property: "receivedAt", isAscending: false }],
+        limit,
+      }, "0"],
+    ]);
+    const [name, result] = response.methodResponses?.[0] ?? [];
+    if (name !== "Email/query") throw new Error(methodErrorMessage(response, 'Failed to query emails'));
+    return (result?.ids ?? []) as string[];
+  }
+
+  /** Messages with everything the reader shows (the getEmail properties), a batch at a time. */
+  async getFullEmails(emailIds: string[], accountId?: string): Promise<Email[]> {
+    const targetAccountId = accountId || this.accountId;
+    const out: Email[] = [];
+    for (const batchIds of batched(emailIds, 20)) {
+      const response = await this.request([
+        ["Email/get", {
+          accountId: targetAccountId,
+          ids: batchIds,
+          properties: [
+            "id", "threadId", "mailboxIds", "keywords", "size",
+            "receivedAt", "sentAt", "from", "to", "cc", "bcc", "replyTo",
+            "subject", "preview", "textBody", "htmlBody", "bodyValues",
+            "hasAttachment", "attachments", "messageId", "inReplyTo",
+            "references", "headers", "bodyStructure", "blobId",
+          ],
+          fetchTextBodyValues: true,
+          fetchHTMLBodyValues: true,
+          fetchAllBodyValues: true,
+          maxBodyValueBytes: OPEN_EMAIL_MAX_BODY_BYTES,
+        }, "0"],
+      ]);
+      out.push(...((response.methodResponses?.[0]?.[1]?.list ?? []) as Email[]));
+    }
+    return out;
+  }
+
+  /** Changes made offline, sent as they were made: the ids the server refused. */
+  async applyEmailPatches(accountId: string | undefined, update: Record<string, Record<string, unknown>>): Promise<string[]> {
+    const response = await this.request([
+      ["Email/set", { accountId: accountId || this.accountId, update }, "0"],
+    ]);
+    const [name, result] = response.methodResponses?.[0] ?? [];
+    if (name !== "Email/set") throw jmapError(methodErrorMessage(response, 'Failed to update emails'), result);
+    return Object.keys((result?.notUpdated ?? {}) as Record<string, unknown>);
   }
 
   // The 256000-byte body cap keeps list/thread fetches fast for the common
@@ -4888,10 +5006,10 @@ export class JMAPClient implements IJMAPClient {
   ): Promise<SendEmailResult> {
     const holdForSeconds = delayedUntil ? this.validateDelayedUntil(delayedUntil) : undefined;
     const emailId = `send-${Date.now()}`;
-    const targetAccountId = await this.resolveSendAccountId(fromEmail);
-    const mboxResp = await this.request([
+    const targetAccountId = await this.beforeSubmission(() => this.resolveSendAccountId(fromEmail));
+    const mboxResp = await this.beforeSubmission(() => this.request([
       ["Mailbox/get", { accountId: targetAccountId, properties: ["id", "role"] }, "0"]
-    ]);
+    ]));
     const mailboxes = (mboxResp.methodResponses?.[0]?.[1]?.list || []) as Mailbox[];
     const sentMailbox = mailboxes.find(mb => mb.role === 'sent');
     if (!sentMailbox) {
@@ -4908,9 +5026,9 @@ export class JMAPClient implements IJMAPClient {
     let identityEmail: string | undefined;
     let identityName: string | undefined;
     {
-      const identityResponse = await this.request([
+      const identityResponse = await this.beforeSubmission(() => this.request([
         ["Identity/get", { accountId: targetAccountId }, "0"]
-      ]);
+      ]));
 
       if (!finalIdentityId) {
         finalIdentityId = targetAccountId;
@@ -5100,7 +5218,7 @@ export class JMAPClient implements IJMAPClient {
     // bounce while the create succeeds and files the message in Sent.
     methodCalls.push(deliveryStatusCall(submissionAccountId, "1"));
 
-    let response = await this.request(methodCalls);
+    let response = await this.submissionRequest(methodCalls);
 
     // The message exists in Drafts from here on, sent or not. Two refusals of
     // the submission can be worked around by submitting that copy once more:
@@ -5969,30 +6087,50 @@ export class JMAPClient implements IJMAPClient {
     const targetAccountId = opts.accountId || this.accountId;
     const finalUploadUrl = uploadUrl.replace('{accountId}', encodeURIComponent(targetAccountId));
 
+    // Offline (#523): the file stays on this device under a stand-in id and
+    // is uploaded when the message it belongs to is sent from the outbox.
+    const offline = getOfflineHooks();
+    if (this.offlineOnly || offline?.skipNetwork(this)) {
+      const held = offline ? await offline.holdUpload(this, file, targetAccountId) : null;
+      if (held) return held;
+      throw new OfflineUnavailableError();
+    }
+
     // XHR path: fetch() does not expose upload progress events, so when the
     // caller wants progress (or an AbortSignal) we use XMLHttpRequest. The
     // fetch path is kept for callers that don't need either, to preserve
     // existing 401/retry behaviour through authenticatedFetch().
     let responseText: string;
-    if (opts.onProgress || opts.signal) {
-      await this.confirmTokenBeforeXhr();
-      responseText = await this.xhrUpload(
-        finalUploadUrl,
-        file,
-        opts.onProgress,
-        opts.signal,
-      );
-    } else {
-      const response = await this.authenticatedFetch(finalUploadUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': file.type || 'application/octet-stream' },
-        body: file,
-      }, { timeoutMs: JMAPClient.TRANSFER_TIMEOUT_MS });
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Failed to upload file: ${response.status} - ${errorText}`);
+    try {
+      if (opts.onProgress || opts.signal) {
+        await this.confirmTokenBeforeXhr();
+        responseText = await this.xhrUpload(
+          finalUploadUrl,
+          file,
+          opts.onProgress,
+          opts.signal,
+        );
+      } else {
+        const response = await this.authenticatedFetch(finalUploadUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': file.type || 'application/octet-stream' },
+          body: file,
+        }, { timeoutMs: JMAPClient.TRANSFER_TIMEOUT_MS });
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Failed to upload file: ${response.status} - ${errorText}`);
+        }
+        responseText = await response.text();
       }
-      responseText = await response.text();
+    } catch (error) {
+      // The server is gone though the browser says it's online (#523): the
+      // file waits on this device as when offline. Asking whether it is
+      // gone tells an outage from a refusal (a too-large file, a quota).
+      if (offline && !opts.signal?.aborted && await offline.serverGone(this)) {
+        const held = await offline.holdUpload(this, file, targetAccountId);
+        if (held) return held;
+      }
+      throw error;
     }
     let result;
     try {
@@ -6152,11 +6290,37 @@ export class JMAPClient implements IJMAPClient {
 
   async fetchBlob(blobId: string, name?: string, type?: string, accountId?: string): Promise<Blob> {
     const url = this.getBlobDownloadUrl(blobId, name, type, accountId);
-    const response = await this.authenticatedFetch(url, {}, { timeoutMs: JMAPClient.TRANSFER_TIMEOUT_MS });
+    const response = await this.offlineAwareDownload(url, blobId, accountId);
+    if (response instanceof Blob) return response;
     if (!response.ok) {
       throw new Error(`Failed to fetch blob: ${response.status}`);
     }
-    return response.blob();
+    const blob = await response.blob();
+    getOfflineHooks()?.recordBlob(this, blobId, accountId || this.accountId, blob);
+    return blob;
+  }
+
+  /**
+   * A blob download, or the copy kept on this device (#523) when the
+   * browser is offline or the network fails.
+   */
+  private async offlineAwareDownload(url: string, blobId: string, accountId: string | undefined): Promise<Response | Blob> {
+    const offline = getOfflineHooks();
+    const account = accountId || this.accountId;
+    if (this.offlineOnly || offline?.skipNetwork(this)) {
+      const local = offline ? await offline.blob(this, blobId, account) : null;
+      if (local) return local;
+      throw new OfflineUnavailableError();
+    }
+    try {
+      return await this.authenticatedFetch(url, {}, { timeoutMs: JMAPClient.TRANSFER_TIMEOUT_MS });
+    } catch (error) {
+      if (offline && isNetworkFailure(error) && await offline.serverGone(this)) {
+        const local = await offline.blob(this, blobId, account);
+        if (local) return local;
+      }
+      throw error;
+    }
   }
 
   /**
@@ -6408,15 +6572,49 @@ export class JMAPClient implements IJMAPClient {
   }
 
   private async getEmailSubmissionSendAt(submissionId: string, accountId?: string): Promise<string | undefined> {
-    const response = await this.request([
-      ['EmailSubmission/get', {
-        accountId: accountId ?? await this.resolveSubmissionAccountId(submissionId),
-        ids: [submissionId],
-        properties: ['sendAt', 'undoStatus'],
-      }, '0'],
-    ]);
-    const submission = response.methodResponses?.[0]?.[1]?.list?.[0] as { sendAt?: string } | undefined;
-    return submission?.sendAt;
+    // Read back after the submission: the message is on its way whatever
+    // happens here, so a failure (the network gone a moment later) must
+    // never turn the send into a failed one (#523).
+    try {
+      const response = await this.request([
+        ['EmailSubmission/get', {
+          accountId: accountId ?? await this.resolveSubmissionAccountId(submissionId),
+          ids: [submissionId],
+          properties: ['sendAt', 'undoStatus'],
+        }, '0'],
+      ]);
+      const submission = response.methodResponses?.[0]?.[1]?.list?.[0] as { sendAt?: string } | undefined;
+      return submission?.sendAt;
+    } catch (error) {
+      debug.warn('email', 'Could not read back the hold of a sent message:', error);
+      return undefined;
+    }
+  }
+
+  /**
+   * A step of a send before the submission request: when it fails on the
+   * network nothing has left, which the offline outbox has to know to try
+   * again instead of marking the message "may have gone out" (#523).
+   */
+  private async beforeSubmission<T>(step: () => Promise<T>): Promise<T> {
+    try {
+      return await step();
+    } catch (error) {
+      if (isNetworkFailure(error) || (error instanceof Error && (error.name === 'RequestTimeoutError' || error.name === 'OfflineUnavailableError'))) {
+        throw new SendNotStartedError(error);
+      }
+      throw error;
+    }
+  }
+
+  /** The request that sends: only a refusal without touching the network means it didn't start. */
+  private async submissionRequest(methodCalls: JMAPMethodCall[]): Promise<JMAPResponse> {
+    try {
+      return await this.request(methodCalls);
+    } catch (error) {
+      if (error instanceof Error && error.name === 'OfflineUnavailableError') throw new SendNotStartedError(error);
+      throw error;
+    }
   }
 
   private async getEmailSubmissionForReschedule(submissionId: string, accountId?: string): Promise<{ identityId?: string; envelope?: { rcptTo?: Array<{ email: string }> }; sendAt?: string } | undefined> {
@@ -10625,6 +10823,8 @@ export class JMAPClient implements IJMAPClient {
   private static readonly SSE_LIVE_WINDOW = 45_000;
 
   setupPushNotifications(): boolean {
+    // Nothing to listen to without the server.
+    if (this.offlineOnly) return false;
     const eventSourceUrl = this.getEventSourceUrl();
     if (eventSourceUrl) {
       this.connectSSE(eventSourceUrl);
@@ -11176,7 +11376,11 @@ export class JMAPClient implements IJMAPClient {
   /** Fetch blob content as an ArrayBuffer (for S/MIME byte processing). */
   async fetchBlobArrayBuffer(blobId: string, name?: string, type?: string, accountId?: string, rangeHeader?: number): Promise<ArrayBuffer> {
     const url = this.getBlobDownloadUrl(blobId, name, type, accountId);
-    const response = await this.authenticatedFetch(url, { }, { timeoutMs: JMAPClient.TRANSFER_TIMEOUT_MS });
+    const response = await this.offlineAwareDownload(url, blobId, accountId);
+    if (response instanceof Blob) {
+      const bytes = await response.arrayBuffer();
+      return rangeHeader ? bytes.slice(0, rangeHeader) : bytes;
+    }
     if (!response.ok) {
       throw new Error(`Failed to fetch blob: ${response.status}`);
     }
@@ -11390,12 +11594,12 @@ export class JMAPClient implements IJMAPClient {
     const holdForSeconds = delayedUntil ? this.validateDelayedUntil(delayedUntil) : undefined;
     // Upload the raw message
     const file = new File([blob], 'message.eml', { type: 'message/rfc822' });
-    const { blobId } = await this.uploadBlob(file);
+    const { blobId } = await this.beforeSubmission(() => this.uploadBlob(file));
 
     // Import into Drafts first, then move to Sent after submission succeeds.
     // This avoids encrypt-on-append affecting the SMTP send. See #188.
     const importMailboxId = draftMailboxId || sentMailboxId;
-    const identities = await this.getIdentities();
+    const identities = await this.beforeSubmission(() => this.getIdentities());
     const identity = identities.find(item => item.id === identityId);
     const envelope = createDelayedSubmissionEnvelope(identity?.email || this.username, holdForSeconds, envelopeRecipients);
     // These raw/S-MIME paths submit through the primary submission account, so
@@ -11457,7 +11661,7 @@ export class JMAPClient implements IJMAPClient {
     delayedUntil?: string,
     envelopeRecipients?: string[],
   ): Promise<SendEmailResult> {
-    const mailboxes = await this.getMailboxes();
+    const mailboxes = await this.beforeSubmission(() => this.getMailboxes());
     const draftsMailbox = mailboxes.find(mb => mb.role === 'drafts');
     if (!draftsMailbox) {
           throw new Error('Drafts mailbox not found');
@@ -11466,9 +11670,9 @@ export class JMAPClient implements IJMAPClient {
     const holdForSeconds = delayedUntil ? this.validateDelayedUntil(delayedUntil) : undefined;
     
     const file = new File([blob], 'message.eml', { type: 'message/rfc822' });
-    const { blobId } = await this.uploadBlob(file);
+    const { blobId } = await this.beforeSubmission(() => this.uploadBlob(file));
 
-    const identities = await this.getIdentities();
+    const identities = await this.beforeSubmission(() => this.getIdentities());
     const identity = identities.find(item => item.id === identityId);
     const envelope = createDelayedSubmissionEnvelope(identity?.email || this.username, holdForSeconds, envelopeRecipients);
     const submissionAccountId = this.getSubmissionAccountId();
@@ -11533,7 +11737,7 @@ export class JMAPClient implements IJMAPClient {
     failureMessage: string,
   ): Promise<{ emailId?: string; submissionId?: string; sendAt?: string; rejected: RejectedRecipient[] }> {
     const firstSet = submissionSet(`#${importCreationId}`);
-    let response = await this.request([
+    let response = await this.submissionRequest([
       importCall,
       ['EmailSubmission/set', firstSet, '1'],
       deliveryStatusCall(submissionAccountId, 'raw-submit'),
@@ -11603,7 +11807,12 @@ export class JMAPClient implements IJMAPClient {
    */
   private async destroyImmediateSubmission(submissionId: string | undefined, accountId: string, delayedUntil?: string): Promise<void> {
     if (delayedUntil || !submissionId || !this.hasAccountCapability('urn:stalwart:jmap', accountId)) return;
-    await this.destroyEmailSubmissions([submissionId], accountId);
+    // After the message left: a failure here leaves a record, not a failed send.
+    try {
+      await this.destroyEmailSubmissions([submissionId], accountId);
+    } catch (error) {
+      debug.warn('email', 'Could not remove the submission record of a sent message:', error);
+    }
   }
 
   async getScheduledEmails(limit = 50, position = 0): Promise<{ emails: ScheduledEmail[]; hasMore: boolean; total: number; totalByAccount?: Record<string, number>; nextPosition: number }> {

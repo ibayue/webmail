@@ -113,6 +113,7 @@ import { wantsSignatureSeparator } from "@/lib/signature-delimiter";
 import { finalizeOutgoing, runPreSendChecks, type OutgoingContext } from "@/lib/outgoing/send-pipeline";
 import { classifyOutgoing, isLabelRequiredError, labelMissing, labelsPolicyFor, resolveLabel, type OriginalMessage } from "@/lib/outgoing/classification";
 import { beginLabelTakeover, endLabelTakeover } from "@/lib/outgoing/classification-raw";
+import { beginComposeTakeover, endComposeTakeover } from "@/lib/outgoing/compose-takeover";
 import { recipientsChanged, runPluginSendCheck, sendGuardMessageKey } from "@/lib/outgoing/plugin-send-check";
 import { externalRecipientsFor, inspectAttachments, sniffFile } from "@/lib/outgoing/send-check-payload";
 import { whenPolicySettled } from "@/stores/policy-store";
@@ -467,6 +468,14 @@ const MAX_PLUGIN_INSERT_LENGTH = 100_000;
 const PLUGIN_SELECTION_DELAY_MS = 150;
 const EMPTY_SELECTION = { text: '', empty: true } as const;
 
+/** Offline mode's refusals to keep a send (#523) and the text that explains each. */
+const OFFLINE_SEND_ERRORS: Record<string, string> = {
+  OfflinePluginsDownError: 'errors.plugins_down',
+  OfflineFileMissingError: 'errors.file_missing',
+  OfflineUnavailableError: 'errors.unavailable',
+  SendNotStartedError: 'errors.unavailable',
+};
+
 export function EmailComposer({
   onSend,
   onScheduledSendCreated,
@@ -489,6 +498,7 @@ export function EmailComposer({
   const tQuote = useTranslations('quote_header');
   const tViewer = useTranslations('email_viewer');
   const tClassification = useTranslations('classification');
+  const tOffline = useTranslations('offline');
   const tSendGuards = useTranslations('send_guards');
   const timeFormat = useSettingsStore((state) => state.timeFormat);
   const plainTextModeDefault = useSettingsStore((state) => state.plainTextMode);
@@ -3707,10 +3717,12 @@ export function EmailComposer({
         ],
       };
       let pluginOutcome: Awaited<ReturnType<typeof emailHooks.onComposeSend.takeOver>>;
+      const composeTakeover = beginComposeTakeover(currentIdentity?.id ?? '');
       try {
         pluginOutcome = await emailHooks.onComposeSend.takeOver(composeSendRequest);
       } finally {
         endLabelTakeover(labelToken);
+        endComposeTakeover(composeTakeover);
       }
       if (pluginOutcome === 'aborted') {
         // The plugin shows its own error, or the user cancelled its prompt.
@@ -3900,6 +3912,9 @@ export function EmailComposer({
       } else if (err instanceof SubmissionQuotaError) {
         // At a full submission quota only an administrator can help.
         toast.error(sendFailureMessage(err, t));
+      } else if (err instanceof Error && OFFLINE_SEND_ERRORS[err.name]) {
+        // Offline mode (#523) refused to keep it: says why, in the user's language.
+        toast.error(t('send_failed'), { message: tOffline(OFFLINE_SEND_ERRORS[err.name]) });
       } else if (err instanceof TypeError || (typeof navigator !== 'undefined' && navigator.onLine === false)) {
         // fetch() rejects with a TypeError when the network is gone; its
         // "Failed to fetch" told the user nothing.

@@ -2,6 +2,7 @@
 
 import { PluginSlot } from '@/components/plugins/plugin-slot';
 import { OrgAnnouncement } from '@/components/org/org-announcement';
+import { OfflineBanner } from '@/components/offline/offline-banner';
 import { useIsEmbedded } from '@/hooks/use-is-embedded';
 import { useAccountStore } from '@/stores/account-store';
 import { useAuthStore } from '@/stores/auth-store';
@@ -25,6 +26,7 @@ export function AppTopBannerSlot() {
   return (
     <>
       {!embedded && <OrgAnnouncement />}
+      {!embedded && <OfflineBanner />}
       <PluginSlot name="app-top-banner" extraProps={{ username, serverUrl, impersonated }} />
     </>
   );

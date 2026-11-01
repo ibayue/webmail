@@ -5633,6 +5633,76 @@
     "dont_remind": "Niet meer herinneren",
     "dismiss_aria": "Installatiemelding sluiten"
   },
+  "app_update": {
+    "ready": "Er is een nieuwe versie van {appName} klaar.",
+    "reload": "Opnieuw laden"
+  },
+  "offline": {
+    "settings": {
+      "title": "Offline",
+      "description": "E-mail op dit apparaat lezen en schrijven zonder verbinding.",
+      "keep_label": "E-mail op dit apparaat bewaren",
+      "keep_description": "Bewaart de laatste 30 dagen van je inbox en van de mappen die je opent, tot 250 MB, versleuteld in deze browser. Offline kun je e-mail lezen, markeren en verplaatsen, en wat je schrijft wacht in Postvak UIT. Afmelden verwijdert alles.",
+      "warning": "Iedereen die dit browserprofiel kan gebruiken, kan deze e-mail lezen. Zet dit alleen aan op je eigen apparaat en gebruik schijfversleuteling.",
+      "forbidden": "Je organisatie staat niet toe dat e-mail op apparaten wordt bewaard.",
+      "unsupported": "Deze browser kan geen e-mail bewaren voor offline gebruik.",
+      "syncing": "Je e-mail wordt op dit apparaat opgeslagen…",
+      "usage": "{size} op dit apparaat",
+      "usage_updated": "{size} op dit apparaat, bijgewerkt {time}",
+      "off_confirm_title": "Offlinemodus uitzetten?",
+      "off_confirm_message": "{count, plural, one {# bericht in Postvak UIT is nog niet verzonden.} other {# berichten in Postvak UIT zijn nog niet verzonden.}} Uitzetten verwijdert ze, samen met de e-mail die op dit apparaat is bewaard.",
+      "off_confirm": "Uitzetten"
+    },
+    "outbox": {
+      "title": "Postvak UIT",
+      "description": "Berichten die je offline hebt geschreven. Ze worden verzonden zodra dit apparaat weer online is.",
+      "empty": "Er wacht niets op verzending.",
+      "no_subject": "(geen onderwerp)",
+      "to": "Aan: {recipients}",
+      "status_waiting": "Wacht op verbinding",
+      "status_sending": "Wordt verzonden",
+      "status_failed": "Kon niet worden verzonden: {error}",
+      "status_uncertain": "De verbinding viel weg tijdens het verzenden. Kijk in Verzonden voordat je het opnieuw verzendt.",
+      "retry": "Opnieuw verzenden",
+      "delete": "Verwijderen",
+      "delete_confirm_title": "Dit bericht verwijderen?",
+      "delete_confirm_message": "Het is niet verzonden en kan niet worden teruggehaald.",
+      "changes": "{count, plural, one {# wijziging} other {# wijzigingen}} aan gelezen, markeringen of mappen worden verzonden zodra je weer online bent.",
+      "status_held": "De regels van je organisatie zijn veranderd terwijl dit bericht wachtte. Schrijf het opnieuw om het te verzenden.",
+      "retry_label": "Opnieuw verzenden: {subject}",
+      "delete_label": "Verwijderen: {subject}"
+    },
+    "banner": {
+      "offline": "Je bent offline. Je ziet de e-mail die op dit apparaat is bewaard. Wat je wijzigt of schrijft, wordt verzonden zodra je weer online bent.",
+      "outbox": "{count, plural, one {# bericht} other {# berichten}} in Postvak UIT",
+      "server_down": "De mailserver is niet bereikbaar. Je ziet de e-mail die op dit apparaat is bewaard. Wat je wijzigt of schrijft, wordt verzonden zodra hij weer antwoordt."
+    },
+    "toast": {
+      "queued": "Opgeslagen in Postvak UIT. Het wordt verzonden zodra je weer online bent.",
+      "sent": "Verzonden uit Postvak UIT: {subject}",
+      "send_failed": "Een bericht in Postvak UIT kon niet worden verzonden: {subject}",
+      "refused_delete": "Definitief verwijderen kan alleen met een verbinding. Probeer het opnieuw als je online bent.",
+      "refused_other": "Hiervoor is een verbinding nodig. Probeer het opnieuw als je online bent.",
+      "forbidden": "Je organisatie heeft de offlinemodus uitgezet. De e-mail op dit apparaat is verwijderd.",
+      "back_online": "Je bent weer online. Laad opnieuw om je aan te melden en te verzenden wat wacht.",
+      "reload": "Opnieuw laden",
+      "held": "Een bericht in Postvak UIT heeft je nodig: {subject}",
+      "lost": "Deze berichten zijn niet verzonden en zijn verwijderd: {subjects}"
+    },
+    "signout": {
+      "title": "Afmelden met onverzonden berichten?",
+      "message": "{count, plural, one {# bericht is nog niet verzonden.} other {# berichten zijn nog niet verzonden.}} Afmelden verwijdert ze.",
+      "confirm": "Afmelden",
+      "lost": "Deze berichten zijn niet verzonden en zijn bij het afmelden verwijderd: {subjects}"
+    },
+    "errors": {
+      "unavailable": "Hiervoor is een verbinding nodig. Probeer het opnieuw als je online bent.",
+      "plugins_down": "Je plug-in voor ondertekenen of versleutelen werkt niet offline. Verzend dit als je weer online bent.",
+      "file_missing": "Een bestand dat je offline hebt bijgevoegd, staat niet meer op dit apparaat. Voeg het opnieuw toe.",
+      "no_sent_mailbox": "Je map Verzonden is niet gevonden.",
+      "no_drafts_mailbox": "Je map Concepten is niet gevonden."
+    }
+  },
   "deep_link": {
     "message_not_found": "Dit bericht is niet meer beschikbaar.",
     "thread_not_found": "Dit gesprek is niet meer beschikbaar.",

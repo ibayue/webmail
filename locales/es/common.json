@@ -5633,6 +5633,76 @@
     "dont_remind": "No volver a recordármelo",
     "dismiss_aria": "Cerrar aviso de instalación"
   },
+  "app_update": {
+    "ready": "Hay una nueva versión de {appName} lista.",
+    "reload": "Recargar"
+  },
+  "offline": {
+    "settings": {
+      "title": "Sin conexión",
+      "description": "Lee y escribe correo en este dispositivo sin conexión.",
+      "keep_label": "Guardar el correo en este dispositivo",
+      "keep_description": "Guarda los últimos 30 días de tu bandeja de entrada y de las carpetas que abras, hasta 250 MB, cifrados en este navegador. Sin conexión puedes leer, marcar y mover correo, y lo que escribas espera en la bandeja de salida. Al cerrar sesión se borra todo.",
+      "warning": "Cualquiera que pueda usar este perfil del navegador puede leer este correo. Actívalo solo en tu propio dispositivo y usa cifrado de disco.",
+      "forbidden": "Tu organización no permite guardar correo en los dispositivos.",
+      "unsupported": "Este navegador no puede guardar correo para usarlo sin conexión.",
+      "syncing": "Guardando tu correo en este dispositivo…",
+      "usage": "{size} en este dispositivo",
+      "usage_updated": "{size} en este dispositivo, actualizado {time}",
+      "off_confirm_title": "¿Desactivar el modo sin conexión?",
+      "off_confirm_message": "{count, plural, one {# mensaje de la bandeja de salida no se ha enviado.} other {# mensajes de la bandeja de salida no se han enviado.}} Al desactivarlo se borran, junto con el correo guardado en este dispositivo.",
+      "off_confirm": "Desactivar"
+    },
+    "outbox": {
+      "title": "Bandeja de salida",
+      "description": "Mensajes que escribiste sin conexión. Se envían cuando este dispositivo vuelva a tener conexión.",
+      "empty": "No hay nada pendiente de envío.",
+      "no_subject": "(sin asunto)",
+      "to": "Para: {recipients}",
+      "status_waiting": "Esperando conexión",
+      "status_sending": "Enviándose",
+      "status_failed": "No se pudo enviar: {error}",
+      "status_uncertain": "La conexión se cortó durante el envío. Revisa Enviados antes de enviarlo otra vez.",
+      "retry": "Enviar otra vez",
+      "delete": "Eliminar",
+      "delete_confirm_title": "¿Eliminar este mensaje?",
+      "delete_confirm_message": "No se ha enviado y no se puede recuperar.",
+      "changes": "{count, plural, one {# cambio} other {# cambios}} de leído, marcas o carpetas se enviarán cuando vuelvas a tener conexión.",
+      "status_held": "Las reglas de tu organización cambiaron mientras esperaba. Escríbelo de nuevo para enviarlo.",
+      "retry_label": "Enviar otra vez: {subject}",
+      "delete_label": "Eliminar: {subject}"
+    },
+    "banner": {
+      "offline": "No tienes conexión. Ves el correo guardado en este dispositivo. Lo que cambies o escribas se envía cuando vuelvas a tener conexión.",
+      "outbox": "{count, plural, one {# mensaje} other {# mensajes}} en la bandeja de salida",
+      "server_down": "No se puede conectar con el servidor de correo. Ves el correo guardado en este dispositivo. Lo que cambies o escribas se envía cuando vuelva a responder."
+    },
+    "toast": {
+      "queued": "Guardado en la bandeja de salida. Se envía cuando vuelvas a tener conexión.",
+      "sent": "Enviado desde la bandeja de salida: {subject}",
+      "send_failed": "No se pudo enviar un mensaje de la bandeja de salida: {subject}",
+      "refused_delete": "Eliminar definitivamente necesita conexión. Inténtalo de nuevo cuando tengas conexión.",
+      "refused_other": "Esto necesita conexión. Inténtalo de nuevo cuando tengas conexión.",
+      "forbidden": "Tu organización desactivó el modo sin conexión. Se borró el correo guardado en este dispositivo.",
+      "back_online": "Vuelves a tener conexión. Recarga para iniciar sesión y enviar lo pendiente.",
+      "reload": "Recargar",
+      "held": "Un mensaje de la bandeja de salida te necesita: {subject}",
+      "lost": "Estos mensajes no se enviaron y se borraron: {subjects}"
+    },
+    "signout": {
+      "title": "¿Cerrar sesión con mensajes sin enviar?",
+      "message": "{count, plural, one {# mensaje no se ha enviado.} other {# mensajes no se han enviado.}} Al cerrar sesión se borran.",
+      "confirm": "Cerrar sesión",
+      "lost": "Estos mensajes no se enviaron y se borraron al cerrar la sesión: {subjects}"
+    },
+    "errors": {
+      "unavailable": "Esto necesita conexión. Inténtalo de nuevo cuando tengas conexión.",
+      "plugins_down": "Tu plugin de firma o cifrado no funciona sin conexión. Envía esto cuando vuelvas a tener conexión.",
+      "file_missing": "Un archivo adjuntado sin conexión ya no está en este dispositivo. Adjúntalo de nuevo.",
+      "no_sent_mailbox": "No se encontró tu carpeta Enviados.",
+      "no_drafts_mailbox": "No se encontró tu carpeta Borradores."
+    }
+  },
   "deep_link": {
     "message_not_found": "Este mensaje ya no está disponible.",
     "thread_not_found": "Esta conversación ya no está disponible.",

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  captureException, configureErrorReporting, recordJmapCall, recordNavigation, reportJmapFailure,
+  captureException, configureErrorReporting, recordJmapCall, recordNavigation, reportFromError, reportJmapFailure,
   resetErrorReportingForTests,
 } from '../client';
 
@@ -116,5 +116,19 @@ describe('browser error reporting', () => {
       ['JmapMethodError', 'Email/set: overQuota'],
       ['JmapMethodError', 'Unknown/method: unknown'],
     ]);
+  });
+});
+
+describe('offline mode (#523)', () => {
+  it('doesn’t report what an offline session expects', () => {
+    const refused = Object.assign(errorWithStack('Not available offline'), { name: 'OfflineUnavailableError' });
+    expect(reportFromError(refused, 'unhandledrejection', false)).toBeNull();
+    Object.defineProperty(window.navigator, 'onLine', { configurable: true, get: () => false });
+    try {
+      expect(reportFromError(errorWithStack('Failed to fetch'), 'unhandledrejection', false)).toBeNull();
+    } finally {
+      Object.defineProperty(window.navigator, 'onLine', { configurable: true, get: () => true });
+    }
+    expect(reportFromError(errorWithStack('Failed to fetch'), 'unhandledrejection', false)).not.toBeNull();
   });
 });

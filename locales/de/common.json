@@ -5633,6 +5633,76 @@
     "dont_remind": "Nicht mehr erinnern",
     "dismiss_aria": "Installationshinweis schließen"
   },
+  "app_update": {
+    "ready": "Eine neue Version von {appName} ist bereit.",
+    "reload": "Neu laden"
+  },
+  "offline": {
+    "settings": {
+      "title": "Offline",
+      "description": "E-Mails auf diesem Gerät ohne Verbindung lesen und schreiben.",
+      "keep_label": "E-Mails auf diesem Gerät behalten",
+      "keep_description": "Behält die letzten 30 Tage Ihres Posteingangs und der Ordner, die Sie öffnen, bis zu 250 MB, verschlüsselt in diesem Browser. Offline können Sie E-Mails lesen, markieren und verschieben, und was Sie schreiben, wartet im Postausgang. Beim Abmelden wird alles entfernt.",
+      "warning": "Wer dieses Browserprofil benutzen kann, kann diese E-Mails lesen. Schalten Sie das nur auf Ihrem eigenen Gerät ein und verwenden Sie eine Festplattenverschlüsselung.",
+      "forbidden": "Ihre Organisation erlaubt nicht, E-Mails auf Geräten zu behalten.",
+      "unsupported": "Dieser Browser kann keine E-Mails für die Offline-Nutzung behalten.",
+      "syncing": "Ihre E-Mails werden auf diesem Gerät gespeichert…",
+      "usage": "{size} auf diesem Gerät",
+      "usage_updated": "{size} auf diesem Gerät, aktualisiert {time}",
+      "off_confirm_title": "Offline-Modus ausschalten?",
+      "off_confirm_message": "{count, plural, one {# Nachricht im Postausgang wurde noch nicht gesendet.} other {# Nachrichten im Postausgang wurden noch nicht gesendet.}} Beim Ausschalten werden sie und die auf diesem Gerät behaltenen E-Mails gelöscht.",
+      "off_confirm": "Ausschalten"
+    },
+    "outbox": {
+      "title": "Postausgang",
+      "description": "Nachrichten, die Sie offline geschrieben haben. Sie werden gesendet, sobald dieses Gerät wieder online ist.",
+      "empty": "Nichts wartet auf den Versand.",
+      "no_subject": "(kein Betreff)",
+      "to": "An: {recipients}",
+      "status_waiting": "Wartet auf eine Verbindung",
+      "status_sending": "Wird gesendet",
+      "status_failed": "Konnte nicht gesendet werden: {error}",
+      "status_uncertain": "Die Verbindung brach beim Senden ab. Sehen Sie in „Gesendet“ nach, bevor Sie die Nachricht noch einmal senden.",
+      "retry": "Erneut senden",
+      "delete": "Löschen",
+      "delete_confirm_title": "Diese Nachricht löschen?",
+      "delete_confirm_message": "Sie wurde nicht gesendet und lässt sich nicht wiederherstellen.",
+      "changes": "{count, plural, one {# Änderung} other {# Änderungen}} an Gelesen-Status, Markierungen oder Ordnern werden gesendet, sobald Sie wieder online sind.",
+      "status_held": "Die Regeln Ihrer Organisation haben sich geändert, während die Nachricht wartete. Schreiben Sie sie neu, um sie zu senden.",
+      "retry_label": "Erneut senden: {subject}",
+      "delete_label": "Löschen: {subject}"
+    },
+    "banner": {
+      "offline": "Sie sind offline. Sie sehen die auf diesem Gerät behaltenen E-Mails. Was Sie ändern oder schreiben, wird gesendet, sobald Sie wieder online sind.",
+      "outbox": "{count, plural, one {# Nachricht} other {# Nachrichten}} im Postausgang",
+      "server_down": "Der Mailserver ist nicht erreichbar. Sie sehen die auf diesem Gerät behaltenen E-Mails. Was Sie ändern oder schreiben, wird gesendet, sobald er wieder antwortet."
+    },
+    "toast": {
+      "queued": "Im Postausgang gespeichert. Die Nachricht wird gesendet, sobald Sie wieder online sind.",
+      "sent": "Aus dem Postausgang gesendet: {subject}",
+      "send_failed": "Eine Nachricht im Postausgang konnte nicht gesendet werden: {subject}",
+      "refused_delete": "Endgültiges Löschen braucht eine Verbindung. Versuchen Sie es wieder, wenn Sie online sind.",
+      "refused_other": "Dafür ist eine Verbindung nötig. Versuchen Sie es wieder, wenn Sie online sind.",
+      "forbidden": "Ihre Organisation hat den Offline-Modus ausgeschaltet. Die auf diesem Gerät behaltenen E-Mails wurden entfernt.",
+      "back_online": "Sie sind wieder online. Laden Sie neu, um sich anzumelden und die wartenden Nachrichten zu senden.",
+      "reload": "Neu laden",
+      "held": "Eine Nachricht im Postausgang braucht Sie: {subject}",
+      "lost": "Diese Nachrichten wurden nicht gesendet und gelöscht: {subjects}"
+    },
+    "signout": {
+      "title": "Mit ungesendeten Nachrichten abmelden?",
+      "message": "{count, plural, one {# Nachricht wurde noch nicht gesendet.} other {# Nachrichten wurden noch nicht gesendet.}} Beim Abmelden werden sie gelöscht.",
+      "confirm": "Abmelden",
+      "lost": "Diese Nachrichten wurden nicht gesendet und beim Abmelden gelöscht: {subjects}"
+    },
+    "errors": {
+      "unavailable": "Dafür ist eine Verbindung nötig. Versuchen Sie es wieder, wenn Sie online sind.",
+      "plugins_down": "Ihr Plugin zum Signieren oder Verschlüsseln läuft offline nicht. Senden Sie die Nachricht, wenn Sie wieder online sind.",
+      "file_missing": "Eine offline angehängte Datei ist nicht mehr auf diesem Gerät. Hängen Sie sie erneut an.",
+      "no_sent_mailbox": "Ihr Ordner „Gesendet“ wurde nicht gefunden.",
+      "no_drafts_mailbox": "Ihr Ordner „Entwürfe“ wurde nicht gefunden."
+    }
+  },
   "deep_link": {
     "message_not_found": "Diese Nachricht ist nicht mehr verfügbar.",
     "thread_not_found": "Diese Unterhaltung ist nicht mehr verfügbar.",

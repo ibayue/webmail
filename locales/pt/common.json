@@ -5633,6 +5633,76 @@
     "dont_remind": "Não lembrar novamente",
     "dismiss_aria": "Dispensar aviso de instalação"
   },
+  "app_update": {
+    "ready": "Uma nova versão do {appName} está pronta.",
+    "reload": "Recarregar"
+  },
+  "offline": {
+    "settings": {
+      "title": "Offline",
+      "description": "Leia e escreva e-mails neste dispositivo sem ligação.",
+      "keep_label": "Manter o e-mail neste dispositivo",
+      "keep_description": "Mantém os últimos 30 dias da caixa de entrada e das pastas que abrir, até 250 MB, cifrados neste navegador. Offline pode ler, sinalizar e mover e-mails, e o que escrever espera na caixa de saída. Terminar a sessão remove tudo.",
+      "warning": "Qualquer pessoa que possa usar este perfil do navegador pode ler estes e-mails. Ative isto apenas no seu próprio dispositivo e use cifragem de disco.",
+      "forbidden": "A sua organização não permite manter e-mails nos dispositivos.",
+      "unsupported": "Este navegador não consegue manter e-mails para uso offline.",
+      "syncing": "A guardar o seu e-mail neste dispositivo…",
+      "usage": "{size} neste dispositivo",
+      "usage_updated": "{size} neste dispositivo, atualizado {time}",
+      "off_confirm_title": "Desativar o modo offline?",
+      "off_confirm_message": "{count, plural, one {# mensagem na caixa de saída não foi enviada.} other {# mensagens na caixa de saída não foram enviadas.}} Desativar elimina-as, juntamente com o e-mail mantido neste dispositivo.",
+      "off_confirm": "Desativar"
+    },
+    "outbox": {
+      "title": "Caixa de saída",
+      "description": "Mensagens que escreveu offline. São enviadas quando este dispositivo voltar a estar online.",
+      "empty": "Nada à espera de ser enviado.",
+      "no_subject": "(sem assunto)",
+      "to": "Para: {recipients}",
+      "status_waiting": "À espera de ligação",
+      "status_sending": "A ser enviada",
+      "status_failed": "Não foi possível enviar: {error}",
+      "status_uncertain": "A ligação caiu durante o envio. Veja os Enviados antes de a enviar outra vez.",
+      "retry": "Enviar outra vez",
+      "delete": "Eliminar",
+      "delete_confirm_title": "Eliminar esta mensagem?",
+      "delete_confirm_message": "Não foi enviada e não pode ser recuperada.",
+      "changes": "{count, plural, one {# alteração} other {# alterações}} de lido, sinalizações ou pastas serão enviadas quando voltar a estar online.",
+      "status_held": "As regras da sua organização mudaram enquanto a mensagem esperava. Escreva-a novamente para a enviar.",
+      "retry_label": "Enviar outra vez: {subject}",
+      "delete_label": "Eliminar: {subject}"
+    },
+    "banner": {
+      "offline": "Está offline. Vê o e-mail mantido neste dispositivo. O que alterar ou escrever é enviado quando voltar a estar online.",
+      "outbox": "{count, plural, one {# mensagem} other {# mensagens}} na caixa de saída",
+      "server_down": "Não é possível contactar o servidor de e-mail. Vê o e-mail mantido neste dispositivo. O que alterar ou escrever é enviado quando ele voltar a responder."
+    },
+    "toast": {
+      "queued": "Guardada na caixa de saída. É enviada quando voltar a estar online.",
+      "sent": "Enviada da caixa de saída: {subject}",
+      "send_failed": "Não foi possível enviar uma mensagem da caixa de saída: {subject}",
+      "refused_delete": "Eliminar definitivamente requer ligação. Tente novamente quando estiver online.",
+      "refused_other": "Isto requer ligação. Tente novamente quando estiver online.",
+      "forbidden": "A sua organização desativou o modo offline. O e-mail mantido neste dispositivo foi removido.",
+      "back_online": "Está novamente online. Recarregue para iniciar sessão e enviar o que está à espera.",
+      "reload": "Recarregar",
+      "held": "Uma mensagem na caixa de saída precisa de si: {subject}",
+      "lost": "Estas mensagens não foram enviadas e foram eliminadas: {subjects}"
+    },
+    "signout": {
+      "title": "Terminar sessão com mensagens por enviar?",
+      "message": "{count, plural, one {# mensagem não foi enviada.} other {# mensagens não foram enviadas.}} Terminar a sessão elimina-as.",
+      "confirm": "Terminar sessão",
+      "lost": "Estas mensagens não foram enviadas e foram eliminadas quando a sessão terminou: {subjects}"
+    },
+    "errors": {
+      "unavailable": "Isto requer ligação. Tente novamente quando estiver online.",
+      "plugins_down": "O seu plugin de assinatura ou cifragem não funciona offline. Envie isto quando voltar a estar online.",
+      "file_missing": "Um ficheiro anexado offline já não está neste dispositivo. Anexe-o novamente.",
+      "no_sent_mailbox": "Não foi possível encontrar a pasta Enviados.",
+      "no_drafts_mailbox": "Não foi possível encontrar a pasta Rascunhos."
+    }
+  },
   "deep_link": {
     "message_not_found": "Esta mensagem não está mais disponível.",
     "thread_not_found": "Esta conversa não está mais disponível.",

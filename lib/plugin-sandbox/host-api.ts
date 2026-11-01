@@ -4,6 +4,8 @@
 
 import type { AppInfoView, InstalledPlugin, Permission } from '../plugin-types';
 import { labelRawSend } from '@/lib/outgoing/classification-raw';
+import { completesComposeTakeover } from '@/lib/outgoing/compose-takeover';
+import { getOutboxHooks } from '@/lib/offline/outbox-hooks';
 import { fetchConfig } from '@/hooks/use-config';
 import { IS_LITE } from '../lite';
 import { downloadAllowed, saveBlobAs } from '../download-guard';
@@ -819,6 +821,7 @@ async function doJmapSendRaw(
   rawBytes: ArrayBuffer | ArrayBufferView,
   identityId: string,
   opts?: JmapSubmitRawOptions,
+  pluginId = '',
 ): Promise<unknown> {
   if (typeof identityId !== 'string' || !identityId) throw new Error('jmap.sendRaw: identityId required');
   const { client } = useAuthStore.getState();
@@ -840,6 +843,8 @@ async function doJmapSendRaw(
     identityId,
     opts?.delayedUntil,
     opts?.envelopeRecipients,
+    // Completing the composer's send: offline mode may keep it (#523).
+    { outbox: completesComposeTakeover(pluginId, identityId) },
   );
 }
 
@@ -851,6 +856,7 @@ async function doJmapSubmitRaw(
   rawBytes: ArrayBuffer | ArrayBufferView,
   identityId: string,
   opts?: JmapSubmitRawOptions,
+  pluginId = '',
 ): Promise<unknown> {
   if (typeof identityId !== 'string' || !identityId) {
     throw new Error('jmap.submitRaw: identityId required');
@@ -869,6 +875,12 @@ async function doJmapSubmitRaw(
   copy.set(view);
   const labelled = labelRawSend(copy, identityId, opts?.labelToken);
   const blob = new Blob([labelled.buffer as ArrayBuffer], { type: 'message/rfc822' });
+
+  // Completing the composer's send while offline: kept in the outbox (#523).
+  const outbox = completesComposeTakeover(pluginId, identityId) ? getOutboxHooks() : null;
+  if (outbox?.shouldQueue(client)) {
+    return outbox.queueRaw(client, blob, { identityId, delayedUntil: opts?.delayedUntil, envelopeRecipients: opts?.envelopeRecipients, submitOnly: true });
+  }
 
   return client.submitRawEmail(
     blob,
@@ -2069,11 +2081,13 @@ export async function dispatchApiCall(
       args[0] as ArrayBuffer | ArrayBufferView,
       args[1] as string,
       args[2] as JmapSubmitRawOptions | undefined,
+      plugin.id,
     );
     case 'jmap.submitRaw': return doJmapSubmitRaw(
       args[0] as ArrayBuffer | ArrayBufferView,
       args[1] as string,
       args[2] as JmapSubmitRawOptions | undefined,
+      plugin.id,
     );
     case 'jmap.importRaw': return doJmapImportRaw(
       args[0] as ArrayBuffer | ArrayBufferView,

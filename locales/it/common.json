@@ -5633,6 +5633,76 @@
     "dont_remind": "Non ricordarmelo più",
     "dismiss_aria": "Chiudi avviso di installazione"
   },
+  "app_update": {
+    "ready": "È pronta una nuova versione di {appName}.",
+    "reload": "Ricarica"
+  },
+  "offline": {
+    "settings": {
+      "title": "Offline",
+      "description": "Leggi e scrivi la posta su questo dispositivo senza connessione.",
+      "keep_label": "Conserva la posta su questo dispositivo",
+      "keep_description": "Conserva gli ultimi 30 giorni della posta in arrivo e delle cartelle che apri, fino a 250 MB, cifrati in questo browser. Offline puoi leggere, contrassegnare e spostare la posta, e ciò che scrivi aspetta nella posta in uscita. Uscendo dall'account viene rimosso tutto.",
+      "warning": "Chiunque possa usare questo profilo del browser può leggere questa posta. Attivalo solo sul tuo dispositivo e usa la cifratura del disco.",
+      "forbidden": "La tua organizzazione non consente di conservare la posta sui dispositivi.",
+      "unsupported": "Questo browser non può conservare la posta per l'uso offline.",
+      "syncing": "Salvataggio della posta su questo dispositivo…",
+      "usage": "{size} su questo dispositivo",
+      "usage_updated": "{size} su questo dispositivo, aggiornato {time}",
+      "off_confirm_title": "Disattivare la modalità offline?",
+      "off_confirm_message": "{count, plural, one {# messaggio nella posta in uscita non è stato inviato.} other {# messaggi nella posta in uscita non sono stati inviati.}} Disattivandola vengono eliminati, insieme alla posta conservata su questo dispositivo.",
+      "off_confirm": "Disattiva"
+    },
+    "outbox": {
+      "title": "Posta in uscita",
+      "description": "Messaggi scritti offline. Vengono inviati quando questo dispositivo torna online.",
+      "empty": "Nulla in attesa di invio.",
+      "no_subject": "(nessun oggetto)",
+      "to": "A: {recipients}",
+      "status_waiting": "In attesa di connessione",
+      "status_sending": "Invio in corso",
+      "status_failed": "Impossibile inviare: {error}",
+      "status_uncertain": "La connessione si è interrotta durante l'invio. Controlla Inviati prima di inviarlo di nuovo.",
+      "retry": "Invia di nuovo",
+      "delete": "Elimina",
+      "delete_confirm_title": "Eliminare questo messaggio?",
+      "delete_confirm_message": "Non è stato inviato e non si potrà recuperare.",
+      "changes": "{count, plural, one {# modifica} other {# modifiche}} a letti, contrassegni o cartelle verranno inviate quando sarai di nuovo online.",
+      "status_held": "Le regole della tua organizzazione sono cambiate mentre il messaggio aspettava. Scrivilo di nuovo per inviarlo.",
+      "retry_label": "Invia di nuovo: {subject}",
+      "delete_label": "Elimina: {subject}"
+    },
+    "banner": {
+      "offline": "Sei offline. Vedi la posta conservata su questo dispositivo. Ciò che modifichi o scrivi viene inviato quando torni online.",
+      "outbox": "{count, plural, one {# messaggio} other {# messaggi}} nella posta in uscita",
+      "server_down": "Il server di posta non è raggiungibile. Vedi la posta conservata su questo dispositivo. Ciò che modifichi o scrivi viene inviato quando risponde di nuovo."
+    },
+    "toast": {
+      "queued": "Salvato nella posta in uscita. Verrà inviato quando sarai di nuovo online.",
+      "sent": "Inviato dalla posta in uscita: {subject}",
+      "send_failed": "Non è stato possibile inviare un messaggio della posta in uscita: {subject}",
+      "refused_delete": "L'eliminazione definitiva richiede una connessione. Riprova quando sei online.",
+      "refused_other": "Serve una connessione. Riprova quando sei online.",
+      "forbidden": "La tua organizzazione ha disattivato la modalità offline. La posta conservata su questo dispositivo è stata rimossa.",
+      "back_online": "Sei di nuovo online. Ricarica per accedere e inviare ciò che è in attesa.",
+      "reload": "Ricarica",
+      "held": "Un messaggio nella posta in uscita richiede la tua attenzione: {subject}",
+      "lost": "Questi messaggi non sono stati inviati e sono stati eliminati: {subjects}"
+    },
+    "signout": {
+      "title": "Uscire con messaggi non inviati?",
+      "message": "{count, plural, one {# messaggio non è stato inviato.} other {# messaggi non sono stati inviati.}} Uscendo vengono eliminati.",
+      "confirm": "Esci",
+      "lost": "Questi messaggi non sono stati inviati e sono stati eliminati quando sei uscito: {subjects}"
+    },
+    "errors": {
+      "unavailable": "Serve una connessione. Riprova quando sei online.",
+      "plugins_down": "Il tuo plugin di firma o cifratura non funziona offline. Invia questo messaggio quando sarai di nuovo online.",
+      "file_missing": "Un file allegato offline non è più su questo dispositivo. Allegalo di nuovo.",
+      "no_sent_mailbox": "Impossibile trovare la cartella Inviati.",
+      "no_drafts_mailbox": "Impossibile trovare la cartella Bozze."
+    }
+  },
   "deep_link": {
     "message_not_found": "Questo messaggio non è più disponibile.",
     "thread_not_found": "Questa conversazione non è più disponibile.",

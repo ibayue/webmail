@@ -31,6 +31,9 @@ const SIGNED_OUT_STORAGE_KEYS = [
   // The last organisation policy (stores/policy-store.ts POLICY_CACHE_KEY):
   // its scopes, labels and notices are the signed-in user's.
   'bulwark-policy-last',
+  // Offline mode's "Keep mail on this device" (lib/offline/state.ts): the
+  // next person signing in here starts with it off.
+  'bulwark-offline-accounts',
 ];
 
 const SIGNED_OUT_SIGNAL = 'bulwark:signed-out';
@@ -52,6 +55,28 @@ const beforeSignOutTasks = new Set<(accountId: string) => Promise<void>>();
 export function onBeforeSignOut(task: (accountId: string) => Promise<void>): () => void {
   beforeSignOutTasks.add(task);
   return () => beforeSignOutTasks.delete(task);
+}
+
+// Questions a sign-out the user asked for has to pass first, such as "2
+// messages haven't been sent" (offline mode). An automatic sign-out (the
+// session limits) doesn't ask.
+const signOutGates = new Set<(accountId: string) => Promise<boolean>>();
+
+/** Ask before a sign-out the user started; false from `gate` keeps everyone signed in. */
+export function addSignOutGate(gate: (accountId: string) => Promise<boolean>): () => void {
+  signOutGates.add(gate);
+  return () => signOutGates.delete(gate);
+}
+
+export async function passSignOutGates(accountId: string): Promise<boolean> {
+  for (const gate of [...signOutGates]) {
+    try {
+      if (!(await gate(accountId))) return false;
+    } catch {
+      // A broken question doesn't keep anyone signed in.
+    }
+  }
+  return true;
 }
 
 export async function runBeforeSignOut(accountId: string): Promise<void> {
@@ -81,12 +106,41 @@ export function purgeSignedOutData(): void {
   void clearAllCheckpoints().catch(() => {});
   // Mail exports written to the browser's private files and not deleted yet.
   void sweepPrivateExports({ force: true }).catch(() => {});
+  // Offline mode (#523): the mail kept on this device, the outbox, the key
+  // they were encrypted with, and the app shell the service worker kept.
+  try {
+    window.indexedDB?.deleteDatabase('bulwark-offline');
+  } catch {
+    /* storage unavailable */
+  }
+  forgetOfflineShell();
   for (const cleanup of signedOutCleanups) {
     try {
       cleanup();
     } catch {
       /* one store failing must not keep the others' data */
     }
+  }
+}
+
+/** The service worker stops keeping the app shell and its copies go. */
+function forgetOfflineShell(): void {
+  try {
+    navigator.serviceWorker?.controller?.postMessage({ type: 'offline-shell', on: false });
+  } catch {
+    /* no service worker */
+  }
+  try {
+    if (typeof caches === 'undefined') return;
+    void caches.keys()
+      // The shell, and the push notifications' state (which messages were
+      // shown, the quiet hours), which belongs to the accounts too.
+      .then((keys) => Promise.all(keys.filter((key) => key.startsWith('bulwark-shell-') || key === 'bulwark-push-state-v1').map((key) => caches.delete(key))))
+      .then(() => caches.open('bulwark-sw-state-v1'))
+      .then((cache) => cache.put('/__bulwark/offline-shell', new Response(JSON.stringify({ on: false }), { headers: { 'Content-Type': 'application/json' } })))
+      .catch(() => {});
+  } catch {
+    /* no Cache API */
   }
 }
 

@@ -36,6 +36,7 @@ import { mailAccountKind } from "@/lib/plugin-sandbox/account-kind";
 import { SendCancelledCleanupError } from "@/lib/send-failure-message";
 import type { StorageQuota } from "@/lib/quota";
 import { isArchiveActionEnabled } from "@/lib/archive-gate";
+import { getOutboxHooks } from "@/lib/offline/outbox-hooks";
 import {
   READ_FILTER, UNREAD_FILTER, UNREAD_SECTION_SIZE, andFilters, isUnreadFirstView, mergeUnreadSection,
   openSectionRows, sectionFromUnreadRows, unreadSectionRowCount, withoutReached, type UnreadSection,
@@ -444,8 +445,12 @@ interface EmailStore {
   /** `ownerAccountId`: the JMAP account a link names for the message (#1351). */
   fetchEmailContent: (client: IJMAPClient, emailId: string, ownerAccountId?: string) => Promise<Email | null>;
   fetchQuota: (client: IJMAPClient) => Promise<void>;
-  sendEmail: (client: IJMAPClient, to: string[], subject: string, body: string, cc?: string[], bcc?: string[], identityId?: string, fromEmail?: string, draftId?: string, fromName?: string, htmlBody?: string, attachments?: Array<{ blobId: string; name: string; type: string; size: number; disposition?: 'attachment' | 'inline'; cid?: string }>, inReplyTo?: string[], references?: string[], delayedUntil?: string, envelopeMailFrom?: string, options?: { requestReadReceipt?: boolean; requestDsn?: boolean; requireTls?: boolean; priority?: MessagePriority; headers?: Record<string, string>; labelHeaders?: Record<string, string>; localAccountId?: string; draftAccountId?: string }) => Promise<SendEmailResult>;
-  sendRawEmail: (client: IJMAPClient, rawMimeBlob: Blob, identityId: string, delayedUntil?: string, envelopeRecipients?: string[]) => Promise<SendEmailResult>;
+  /**
+   * `options.outbox`: a send from the composer or quick reply, which offline
+   * mode may keep in its outbox while the server can't be reached (#523).
+   */
+  sendEmail: (client: IJMAPClient, to: string[], subject: string, body: string, cc?: string[], bcc?: string[], identityId?: string, fromEmail?: string, draftId?: string, fromName?: string, htmlBody?: string, attachments?: Array<{ blobId: string; name: string; type: string; size: number; disposition?: 'attachment' | 'inline'; cid?: string }>, inReplyTo?: string[], references?: string[], delayedUntil?: string, envelopeMailFrom?: string, options?: { requestReadReceipt?: boolean; requestDsn?: boolean; requireTls?: boolean; priority?: MessagePriority; headers?: Record<string, string>; labelHeaders?: Record<string, string>; localAccountId?: string; draftAccountId?: string; outbox?: boolean }) => Promise<SendEmailResult>;
+  sendRawEmail: (client: IJMAPClient, rawMimeBlob: Blob, identityId: string, delayedUntil?: string, envelopeRecipients?: string[], options?: { outbox?: boolean }) => Promise<SendEmailResult>;
   /** `emailKey` (emailKeyFor of the row) picks the right row when the id repeats across accounts. */
   deleteEmail: (client: IJMAPClient, emailId: string, forceDelete?: boolean, emailKey?: string) => Promise<boolean>;
   /** `emailKey` (emailKeyFor of the row) picks the right row when the id repeats across accounts. */
@@ -4293,9 +4298,16 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
   },
 
   sendEmail: async (client, to, subject, body, cc, bcc, identityId, fromEmail, draftId, fromName, htmlBody, attachments, inReplyTo, references, delayedUntil, envelopeMailFrom, options) => {
+    // Offline (#523): everything up to here ran at Send (checks, label,
+    // signature, plugin checks); the finished send waits in the outbox.
+    const outbox = options?.outbox ? getOutboxHooks() : null;
+    const queueArgs = () => [to, subject, body, cc, bcc, identityId, fromEmail, draftId, fromName, htmlBody, attachments, inReplyTo, references, delayedUntil, envelopeMailFrom, options];
+    if (outbox?.shouldQueue(client)) return outbox.queueEmail(client, queueArgs());
     set({ isLoading: true, error: null });
     try {
-      const result = await client.sendEmail(to, subject, body, cc, bcc, identityId, fromEmail, draftId, fromName, htmlBody, attachments, inReplyTo, references, delayedUntil, envelopeMailFrom, options);
+      // Files attached while offline are uploaded now that the server answers.
+      const sendAttachments = attachments && getOutboxHooks() ? await getOutboxHooks()!.resolveHeldAttachments(client, attachments) : attachments;
+      const result = await client.sendEmail(to, subject, body, cc, bcc, identityId, fromEmail, draftId, fromName, htmlBody, sendAttachments, inReplyTo, references, delayedUntil, envelopeMailFrom, options);
       // Each send leaves a submission record; sweep the ones that can go
       // (throttled per account by the client).
       void client.pruneEmailSubmissions();
@@ -4323,6 +4335,13 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
       });
       return result;
     } catch (error) {
+      // The network went away before anything was handed to the server
+      // (the client says so: SendNotStartedError): keep it. Any other
+      // failure may have come after the server took the message.
+      if (outbox && error instanceof Error && error.name === 'SendNotStartedError' && outbox.shouldQueue(client)) {
+        set({ isLoading: false });
+        return outbox.queueEmail(client, queueArgs());
+      }
       set({
         error: error instanceof Error ? error.message : "Failed to send email",
         isLoading: false
@@ -4331,7 +4350,11 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
     }
   },
 
-  sendRawEmail: async (client, rawMimeBlob, identityId, delayedUntil, envelopeRecipients) => {
+  sendRawEmail: async (client, rawMimeBlob, identityId, delayedUntil, envelopeRecipients, options) => {
+    // A plugin's send completing the composer's (S/MIME, PGP): signed and
+    // encrypted with the user present, so the finished message can wait.
+    const outbox = options?.outbox ? getOutboxHooks() : null;
+    if (outbox?.shouldQueue(client)) return outbox.queueRaw(client, rawMimeBlob, { identityId, delayedUntil, envelopeRecipients });
     set({ isLoading: true, error: null });
     try {
       const mailboxes = await client.getMailboxes();

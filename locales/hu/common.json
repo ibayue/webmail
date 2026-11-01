@@ -5633,6 +5633,76 @@
     "dont_remind": "Ne emlékeztess többet",
     "dismiss_aria": "Telepítési ablak elutasítása"
   },
+  "app_update": {
+    "ready": "Elkészült a(z) {appName} új verziója.",
+    "reload": "Újratöltés"
+  },
+  "offline": {
+    "settings": {
+      "title": "Offline",
+      "description": "Levelek olvasása és írása ezen az eszközön kapcsolat nélkül.",
+      "keep_label": "Levelek megtartása ezen az eszközön",
+      "keep_description": "Megtartja a beérkezett levelek és a megnyitott mappák utolsó 30 napját, legfeljebb 250 MB-ot, titkosítva ebben a böngészőben. Offline olvashat, megjelölhet és áthelyezhet leveleket, a megírt levelek pedig a postázandók között várnak. Kijelentkezéskor minden törlődik.",
+      "warning": "Bárki, aki használhatja ezt a böngészőprofilt, elolvashatja ezeket a leveleket. Csak a saját eszközén kapcsolja be, és használjon lemeztitkosítást.",
+      "forbidden": "A szervezete nem engedi, hogy leveleket tároljon az eszközökön.",
+      "unsupported": "Ez a böngésző nem tud leveleket tárolni offline használatra.",
+      "syncing": "A levelek mentése erre az eszközre…",
+      "usage": "{size} ezen az eszközön",
+      "usage_updated": "{size} ezen az eszközön, frissítve: {time}",
+      "off_confirm_title": "Kikapcsolja az offline módot?",
+      "off_confirm_message": "{count, plural, one {# levél a postázandók között még nincs elküldve.} other {# levél a postázandók között még nincs elküldve.}} Kikapcsoláskor ezek és az eszközön tárolt levelek törlődnek.",
+      "off_confirm": "Kikapcsolás"
+    },
+    "outbox": {
+      "title": "Postázandó",
+      "description": "Az offline írt levelek. Akkor mennek el, amikor az eszköz újra online lesz.",
+      "empty": "Nincs elküldésre váró levél.",
+      "no_subject": "(nincs tárgy)",
+      "to": "Címzett: {recipients}",
+      "status_waiting": "Kapcsolatra vár",
+      "status_sending": "Küldés folyamatban",
+      "status_failed": "Nem sikerült elküldeni: {error}",
+      "status_uncertain": "A kapcsolat megszakadt küldés közben. Nézze meg az Elküldött mappát, mielőtt újra elküldi.",
+      "retry": "Újraküldés",
+      "delete": "Törlés",
+      "delete_confirm_title": "Törli ezt a levelet?",
+      "delete_confirm_message": "Nem lett elküldve, és nem állítható vissza.",
+      "changes": "{count, plural, one {# módosítás} other {# módosítás}} (olvasottság, jelölők, mappák) elmegy, amikor újra online lesz.",
+      "status_held": "A szervezete szabályai megváltoztak, amíg a levél várt. Írja meg újra az elküldéshez.",
+      "retry_label": "Újraküldés: {subject}",
+      "delete_label": "Törlés: {subject}"
+    },
+    "banner": {
+      "offline": "Offline állapotban van. Az ezen az eszközön tárolt leveleket látja. Amit módosít vagy ír, elmegy, amikor újra online lesz.",
+      "outbox": "{count, plural, one {# levél} other {# levél}} a postázandók között",
+      "server_down": "A levelezőkiszolgáló nem érhető el. Az ezen az eszközön tárolt leveleket látja. Amit módosít vagy ír, elmegy, amikor újra válaszol."
+    },
+    "toast": {
+      "queued": "Mentve a postázandók közé. Akkor megy el, amikor újra online lesz.",
+      "sent": "Elküldve a postázandók közül: {subject}",
+      "send_failed": "Egy postázandó levelet nem sikerült elküldeni: {subject}",
+      "refused_delete": "A végleges törléshez kapcsolat kell. Próbálja újra, amikor online lesz.",
+      "refused_other": "Ehhez kapcsolat kell. Próbálja újra, amikor online lesz.",
+      "forbidden": "A szervezete kikapcsolta az offline módot. Az eszközön tárolt leveleket eltávolítottuk.",
+      "back_online": "Újra online van. Töltse újra az oldalt a bejelentkezéshez és a váró levelek elküldéséhez.",
+      "reload": "Újratöltés",
+      "held": "Egy postázandó levél figyelmet igényel: {subject}",
+      "lost": "Ezek a levelek nem mentek el, és törlődtek: {subjects}"
+    },
+    "signout": {
+      "title": "Kijelentkezik elküldetlen levelekkel?",
+      "message": "{count, plural, one {# levél nincs elküldve.} other {# levél nincs elküldve.}} A kijelentkezés törli őket.",
+      "confirm": "Kijelentkezés",
+      "lost": "Ezek a levelek nem mentek el, és a kijelentkezéskor törlődtek: {subjects}"
+    },
+    "errors": {
+      "unavailable": "Ehhez kapcsolat kell. Próbálja újra, amikor online lesz.",
+      "plugins_down": "Az aláíró vagy titkosító bővítménye offline nem fut. Küldje el, amikor újra online lesz.",
+      "file_missing": "Egy offline csatolt fájl már nincs ezen az eszközön. Csatolja újra.",
+      "no_sent_mailbox": "Az Elküldött mappa nem található.",
+      "no_drafts_mailbox": "A Piszkozatok mappa nem található."
+    }
+  },
   "deep_link": {
     "message_not_found": "Ez az üzenet már nem érhető el.",
     "thread_not_found": "Ez a beszélgetés már nem érhető el.",

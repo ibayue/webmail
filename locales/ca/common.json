@@ -5633,6 +5633,76 @@
     "dont_remind": "No m'ho tornis a recordar",
     "dismiss_aria": "Descarta l'avís d'instal·lació"
   },
+  "app_update": {
+    "ready": "Hi ha una versió nova de {appName} a punt.",
+    "reload": "Torna a carregar"
+  },
+  "offline": {
+    "settings": {
+      "title": "Sense connexió",
+      "description": "Llegiu i escriviu correu en aquest dispositiu sense connexió.",
+      "keep_label": "Desa el correu en aquest dispositiu",
+      "keep_description": "Desa els darrers 30 dies de la safata d'entrada i de les carpetes que obriu, fins a 250 MB, xifrats en aquest navegador. Sense connexió podeu llegir, marcar i moure correu, i el que escriviu espera a la safata de sortida. En tancar la sessió s'esborra tot.",
+      "warning": "Qualsevol persona que pugui fer servir aquest perfil del navegador pot llegir aquest correu. Activeu-ho només al vostre dispositiu i feu servir xifratge de disc.",
+      "forbidden": "La vostra organització no permet desar correu als dispositius.",
+      "unsupported": "Aquest navegador no pot desar correu per fer-lo servir sense connexió.",
+      "syncing": "S'està desant el correu en aquest dispositiu…",
+      "usage": "{size} en aquest dispositiu",
+      "usage_updated": "{size} en aquest dispositiu, actualitzat {time}",
+      "off_confirm_title": "Voleu desactivar el mode sense connexió?",
+      "off_confirm_message": "{count, plural, one {# missatge de la safata de sortida no s'ha enviat.} other {# missatges de la safata de sortida no s'han enviat.}} Si el desactiveu, s'esborren juntament amb el correu desat en aquest dispositiu.",
+      "off_confirm": "Desactiva"
+    },
+    "outbox": {
+      "title": "Safata de sortida",
+      "description": "Missatges que heu escrit sense connexió. S'envien quan aquest dispositiu torna a tenir connexió.",
+      "empty": "No hi ha res pendent d'enviar.",
+      "no_subject": "(sense assumpte)",
+      "to": "Per a: {recipients}",
+      "status_waiting": "S'espera connexió",
+      "status_sending": "S'està enviant",
+      "status_failed": "No s'ha pogut enviar: {error}",
+      "status_uncertain": "La connexió s'ha tallat durant l'enviament. Comproveu Enviats abans de tornar-lo a enviar.",
+      "retry": "Torna a enviar",
+      "delete": "Suprimeix",
+      "delete_confirm_title": "Voleu suprimir aquest missatge?",
+      "delete_confirm_message": "No s'ha enviat i no es pot recuperar.",
+      "changes": "{count, plural, one {# canvi} other {# canvis}} de llegit, marques o carpetes s'enviaran quan torneu a tenir connexió.",
+      "status_held": "Les normes de la vostra organització han canviat mentre esperava. Torneu-lo a escriure per enviar-lo.",
+      "retry_label": "Torna a enviar: {subject}",
+      "delete_label": "Suprimeix: {subject}"
+    },
+    "banner": {
+      "offline": "No teniu connexió. Veieu el correu desat en aquest dispositiu. El que canvieu o escriviu s'envia quan torneu a tenir connexió.",
+      "outbox": "{count, plural, one {# missatge} other {# missatges}} a la safata de sortida",
+      "server_down": "No es pot connectar amb el servidor de correu. Veieu el correu desat en aquest dispositiu. El que canvieu o escriviu s'envia quan torni a respondre."
+    },
+    "toast": {
+      "queued": "Desat a la safata de sortida. S'envia quan torneu a tenir connexió.",
+      "sent": "Enviat des de la safata de sortida: {subject}",
+      "send_failed": "No s'ha pogut enviar un missatge de la safata de sortida: {subject}",
+      "refused_delete": "Suprimir definitivament necessita connexió. Torneu-ho a provar quan tingueu connexió.",
+      "refused_other": "Això necessita connexió. Torneu-ho a provar quan tingueu connexió.",
+      "forbidden": "La vostra organització ha desactivat el mode sense connexió. S'ha esborrat el correu desat en aquest dispositiu.",
+      "back_online": "Torneu a tenir connexió. Recarregueu per iniciar la sessió i enviar el que és pendent.",
+      "reload": "Torna a carregar",
+      "held": "Un missatge de la safata de sortida us necessita: {subject}",
+      "lost": "Aquests missatges no s'han enviat i s'han esborrat: {subjects}"
+    },
+    "signout": {
+      "title": "Voleu tancar la sessió amb missatges sense enviar?",
+      "message": "{count, plural, one {# missatge no s'ha enviat.} other {# missatges no s'han enviat.}} En tancar la sessió s'esborren.",
+      "confirm": "Tanca la sessió",
+      "lost": "Aquests missatges no s'han enviat i s'han esborrat en tancar la sessió: {subjects}"
+    },
+    "errors": {
+      "unavailable": "Això necessita connexió. Torneu-ho a provar quan tingueu connexió.",
+      "plugins_down": "El vostre connector de signatura o xifratge no funciona sense connexió. Envieu-ho quan torneu a tenir connexió.",
+      "file_missing": "Un fitxer adjuntat sense connexió ja no és en aquest dispositiu. Torneu-lo a adjuntar.",
+      "no_sent_mailbox": "No s'ha trobat la carpeta Enviats.",
+      "no_drafts_mailbox": "No s'ha trobat la carpeta Esborranys."
+    }
+  },
   "deep_link": {
     "message_not_found": "Aquest missatge ja no està disponible.",
     "thread_not_found": "Aquesta conversa ja no està disponible.",

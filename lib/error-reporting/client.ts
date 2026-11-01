@@ -121,6 +121,11 @@ export function reportFromError(error: unknown, mechanism: string, handled: bool
   } else {
     return null;
   }
+  // Offline mode (#523): a request the device can't answer while the
+  // network is gone, and any fetch failing while the browser says it is
+  // offline, are the expected state of an offline session, not bugs.
+  if (name === 'OfflineUnavailableError') return null;
+  if (name === 'TypeError' && typeof navigator !== 'undefined' && navigator.onLine === false) return null;
   const frames = parseStack(stack);
   // Every frame outside our bundles: a browser extension or injected script.
   if (frames.length > 0 && frames.every((frame) => frame.path === '[other]')) return null;
