@@ -5,7 +5,7 @@ import { networkInterfaces } from 'node:os';
 import {
   ENT, ENT_SERVER, adminContext, getPolicy, jmapAs, putPolicy, rawMessage, requireEntEnv, shot, userPage, withPolicy,
 } from './helpers/ent';
-import { calendarItem, openCalendar } from './helpers/app';
+import { calendarItem, expandSharedFolders, folderRow, openCalendar } from './helpers/app';
 
 /**
  * Enterprise pack, package B (calendar) against the VM 106 test Stalwarts:
@@ -106,6 +106,12 @@ async function carolInvites(title: string, attendees: Array<[string, string]>, h
     title, start: local(start), duration: 'PT1H', organizerCalendarAddress: `mailto:${ENT.carol}`, participants,
   }, true);
   return { ...created, carol };
+}
+
+async function statusIn(j: J, eventId: string, email: string): Promise<string | undefined> {
+  const event = await getEvent(j, eventId);
+  const p = Object.values((event?.participants ?? {}) as Record<string, { email: string; participationStatus: string }>).find((x) => x.email === email);
+  return p?.participationStatus;
 }
 
 async function waitForCopy(j: J, uid: string, accountId = j.accountId): Promise<string> {
@@ -349,6 +355,16 @@ test('with the delegate invited too: both answers on 1.0, the owner\'s refused o
       await expect(page.getByTestId('answer-self')).toBeVisible();
     }
     await shot(page, 'b-answer-both-invited');
+    if (ENT_SERVER !== '0.16') {
+      // Both answers: alice accepts through bob, bob declines for himself.
+      await page.getByTestId('answer-for-owner').getByRole('button', { name: 'Accept' }).click();
+      await expect.poll(async () => statusIn(invite.carol, invite.id, ENT.alice), { timeout: 60_000 }).toBe('accepted');
+      await openEventInAgenda(page, title, ENT.alice);
+      await page.getByTestId('answer-self').getByRole('button', { name: 'Decline' }).click();
+      // Carol's copy changed the right attendee each time.
+      await expect.poll(async () => statusIn(invite.carol, invite.id, ENT.bob), { timeout: 60_000 }).toBe('declined');
+      expect(await statusIn(invite.carol, invite.id, ENT.alice)).toBe('accepted');
+    }
   } finally {
     await closePage(page);
     await share(alice, bob.accountId, null).catch(() => {});
@@ -388,6 +404,45 @@ test('a member answers for a group mailbox as the group, without SENT-BY', async
     await closePage(page);
     await destroyEvents(invite.carol, [invite.id]);
     await destroyEvents(alice, [teamCopy], teamAccount);
+    await destroyMail(ENT.carol, title);
+  }
+});
+
+test('an invitation in the team mailbox is answered from the banner as the team, with no copy in the member\'s own calendar', async ({ browser }) => {
+  test.setTimeout(240_000);
+  const alice = await jmapAs(ENT.alice);
+  const title = `B banner ${TS}`;
+  const teamAccount = alice.accountIdByName(ENT.team);
+  const invite = await carolInvites(title, [['Ent Team', ENT.team]], 34);
+  const teamCopy = await waitForCopy(alice, invite.uid, teamAccount);
+  const page = await userPage(browser, ENT.alice);
+  try {
+    await expandSharedFolders(page, ENT.team);
+    await folderRow(page, { role: 'inbox', shared: true }).first().click();
+    const row = page.locator('[data-testid="email-list-item"]', { hasText: title }).first();
+    await expect(row).toBeVisible({ timeout: 60_000 });
+    await row.click();
+    await page.getByRole('button', { name: 'Accept', exact: true }).first().click();
+    let raw = '';
+    await expect.poll(async () => {
+      for (const m of await carolMail(title)) {
+        const text = (await rawMessage(ENT.carol, m.blobId)).replace(/\r?\n[ \t]/g, '');
+        if (/METHOD:REPLY/.test(text)) { raw = text; return true; }
+      }
+      return false;
+    }, { timeout: 60_000 }).toBe(true);
+    const attendee = raw.split(/\r?\n/).find((l) => l.startsWith('ATTENDEE') && /ent-team@example\.org/i.test(l)) ?? '';
+    expect(attendee).toMatch(/PARTSTAT=ACCEPTED/);
+    expect(attendee).not.toMatch(/SENT-BY/i);
+    expect(raw).toMatch(/^From:.*ent-team@example\.org/im);
+    // No duplicate in alice's own calendar (#634).
+    expect(await findByUid(alice, invite.uid)).toBeNull();
+  } finally {
+    await closePage(page);
+    await destroyEvents(invite.carol, [invite.id]);
+    await destroyEvents(alice, [teamCopy], teamAccount);
+    const stray = await findByUid(alice, invite.uid).catch(() => null);
+    await destroyEvents(alice, [stray]);
     await destroyMail(ENT.carol, title);
   }
 });
@@ -489,6 +544,43 @@ test('the out-of-office checkbox fits a phone', async ({ browser }) => {
   } finally {
     await closePage(page);
     await call(alice, [['VacationResponse/set', { accountId: alice.accountId, update: { singleton: { isEnabled: false, fromDate: null, toDate: null } } }, '0']], [CORE, VAC]).catch(() => {});
+  }
+});
+
+test('an organisation lock that never blocks the calendar shows locked and creates no event', async ({ browser }) => {
+  test.setTimeout(180_000);
+  const alice = await jmapAs(ENT.alice);
+  const admin = await adminContext(browser);
+  const from = new Date(); from.setDate(from.getDate() + 15); from.setHours(9, 0, 0, 0);
+  const to = new Date(from); to.setDate(to.getDate() + 2);
+  const resetReply = () => call(alice, [['VacationResponse/set', { accountId: alice.accountId, update: { singleton: { isEnabled: false, fromDate: null, toDate: null } } }, '0']], [CORE, VAC]);
+  await destroyEvents(alice, [await findByUid(alice, `bulwark-ooo-${alice.accountId}`)]);
+  await call(alice, [['VacationResponse/set', { accountId: alice.accountId, update: { singleton: {
+    isEnabled: false, fromDate: from.toISOString().replace(/\.\d+Z$/, 'Z'), toDate: to.toISOString().replace(/\.\d+Z$/, 'Z'),
+  } } }, '0']], [CORE, VAC]);
+  try {
+    await withPolicy(admin, { restrictions: { vacationBlockCalendar: { locked: true, value: false } } }, async () => {
+      const page = await userPage(browser, ENT.alice);
+      try {
+        await page.goto('/settings/vacation');
+        const block = page.getByTestId('vacation-block-calendar');
+        await expect(block).toBeVisible({ timeout: 30_000 });
+        await expect(block).not.toBeChecked();
+        await expect(page.getByText('Set by your organisation').first()).toBeVisible();
+        await page.locator('[data-settings-section="reply"]').getByRole('switch').first().click();
+        await expect.poll(async () => (await call(alice, [['VacationResponse/get', { accountId: alice.accountId, ids: ['singleton'] }, '0']], [CORE, VAC]))[0][1].list[0].isEnabled, { timeout: 30_000 }).toBe(true);
+        // Well past the sync's pause: still no busy event.
+        await page.waitForTimeout(6000);
+        expect(await findByUid(alice, `bulwark-ooo-${alice.accountId}`)).toBeNull();
+        await shot(page, 'b-ooo-locked');
+      } finally {
+        await closePage(page);
+      }
+    });
+  } finally {
+    await admin.close();
+    await resetReply().catch(() => {});
+    await destroyEvents(alice, [await findByUid(alice, `bulwark-ooo-${alice.accountId}`).catch(() => null)]);
   }
 });
 
