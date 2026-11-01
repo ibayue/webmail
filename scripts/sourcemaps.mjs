@@ -45,7 +45,9 @@ export function stripReferences(text) {
 export function collect(roots, outDir) {
   const moved = [];
   mkdirSync(outDir, { recursive: true });
-  roots.forEach((root, index) => {
+  roots.forEach((given, index) => {
+    // Absolute, so the maps a file names (resolved below) match the walked paths.
+    const root = resolve(given);
     if (!existsSync(root)) return;
     const files = walk(root);
     const maps = new Set(files.filter((f) => f.endsWith(".map")));

@@ -59,6 +59,23 @@ describe('collect', () => {
   });
 });
 
+describe('collect with a relative root', () => {
+  it('still copies the chunk that names each map', () => {
+    put('rel/chunks/b.js', 'x\n//# sourceMappingURL=b.js.map\n');
+    put('rel/chunks/b.js.map', '{"version":3}');
+    const cwd = process.cwd();
+    process.chdir(dir);
+    try {
+      collect(['rel'], 'out');
+    } finally {
+      process.chdir(cwd);
+    }
+    expect(existsSync(path.join(dir, 'out/0/chunks/b.js'))).toBe(true);
+    expect(existsSync(path.join(dir, 'out/0/chunks/b.js.map'))).toBe(true);
+    expect(mapReferences(readFileSync(path.join(dir, 'rel/chunks/b.js'), 'utf8'))).toEqual([]);
+  });
+});
+
 describe('check', () => {
   it('finds map files, dangling references and inline maps in a folder', () => {
     put('a/x.js.map', '{}');
