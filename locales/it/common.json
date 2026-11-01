@@ -5283,6 +5283,9 @@
     "cancelled": "{name} ha annullato \"{title}\"",
     "untitled": "Evento senza titolo"
   },
+  "company_calendars": {
+    "section": "Organizzazione"
+  },
   "vacation_calendar": {
     "label": "Blocca il mio calendario",
     "description": "Aggiunge un evento occupato per il periodo di assenza, così nessuno ti fissa riunioni in quei giorni.",

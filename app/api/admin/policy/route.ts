@@ -9,6 +9,7 @@ import { bearerIdentity } from '@/lib/auth/bearer-identity';
 import { isStoreUnavailable, storeUnavailableResponse } from '@/lib/auth/store-unavailable';
 import { scopesVisibleTo } from '@/lib/admin/policy-scopes';
 import { configReadOnlyResponse } from '@/lib/admin/config-read-only-response';
+import { stripFeedUrls } from '@/lib/admin/company-feeds';
 
 /** The policy version as an HTTP entity tag. */
 function policyETag(version: string): string {
@@ -83,8 +84,13 @@ export async function GET(request: NextRequest) {
   }
 }
 
-/** The policy for a signed-in user who is not the admin, with the addresses they sign in with. */
-function userPolicyResponse(policy: SettingsPolicy, addresses: string[]): NextResponse {
+/**
+ * The policy for a signed-in user who is not the admin, with the addresses
+ * they sign in with. Company calendar addresses stay here: the browser
+ * fetches a feed by id through /api/fetch-ical (lib/admin/company-feeds.ts).
+ */
+function userPolicyResponse(raw: SettingsPolicy, addresses: string[]): NextResponse {
+  const policy = stripFeedUrls(raw);
   const scopes = scopesVisibleTo(policy.scopes ?? [], addresses);
   // Which domains the scopes were picked for, so a browser that signs in
   // to an account of another domain knows to fetch again.

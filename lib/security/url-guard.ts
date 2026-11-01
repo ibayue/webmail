@@ -34,7 +34,7 @@ function isBlockedHostname(hostname: string): boolean {
  * hostnames / suffixes, and literal IP addresses. Returns the parsed URL when
  * those checks pass, `null` otherwise. Does NOT touch DNS.
  */
-function parseAllowedUrl(urlString: string): URL | null {
+function parseAllowedUrl(urlString: string, privateHost?: string): URL | null {
   let url: URL;
   try {
     url = new URL(urlString);
@@ -46,6 +46,7 @@ function parseAllowedUrl(urlString: string): URL | null {
   if (url.username || url.password) return null;
 
   const hostname = normalizeHostname(url.hostname);
+  if (privateHost && hostname === privateHost) return url;
   if (isBlockedHostname(hostname)) return null;
   if (isBlockedIpAddress(hostname)) return null;
 
@@ -213,9 +214,50 @@ export function envProxyFor(url: URL): URL | null {
   }
 }
 
-function lookupChecked(hostname: string): Promise<string> {
+/**
+ * guardedLookup, except that `privateHost` may resolve to a private address:
+ * an intranet host the admin entered themselves (company calendars). Every
+ * other name, redirect targets included, is still checked, and the address
+ * is still the one the socket connects to.
+ */
+function lookupAllowing(privateHost: string): typeof guardedLookup {
+  return (hostname, options, callback) => {
+    if (normalizeHostname(hostname) !== privateHost) {
+      guardedLookup(hostname, options, callback);
+      return;
+    }
+    const cb = (typeof options === 'function' ? options : callback) as LookupCallback;
+    const opts: LookupOptions = typeof options === 'function' ? {} : typeof options === 'number' ? { family: options } : (options ?? {});
+    lookup(normalizeHostname(hostname), { family: opts.family, hints: opts.hints, all: true, verbatim: true })
+      .then((records) => {
+        if (records.length === 0) {
+          const err: NodeJS.ErrnoException = new Error(`getaddrinfo ENOTFOUND ${hostname}`);
+          err.code = 'ENOTFOUND';
+          cb(err);
+          return;
+        }
+        if (opts.all) cb(null, records);
+        else cb(null, records[0].address, records[0].family);
+      })
+      .catch((err: NodeJS.ErrnoException) => cb(err));
+  };
+}
+
+const privateHostDispatchers = new Map<string, Dispatcher>();
+
+function getPrivateHostDispatcher(privateHost: string): Dispatcher {
+  let dispatcher = privateHostDispatchers.get(privateHost);
+  if (!dispatcher) {
+    dispatcher = new Agent({ connect: { lookup: lookupAllowing(privateHost) as unknown as LookupFunction } });
+    privateHostDispatchers.set(privateHost, dispatcher);
+  }
+  return dispatcher;
+}
+
+function lookupChecked(hostname: string, privateHost?: string): Promise<string> {
+  const look = privateHost ? lookupAllowing(privateHost) : guardedLookup;
   return new Promise((resolve, reject) => {
-    guardedLookup(hostname, {}, (err, address) => (err ? reject(err) : resolve(address as string)));
+    look(hostname, {}, (err, address) => (err ? reject(err) : resolve(address as string)));
   });
 }
 
@@ -229,8 +271,9 @@ const proxiedDispatchers = new Map<string, Dispatcher>();
  * address. The request keeps its Host header, and TLS inside the tunnel uses
  * the hostname for SNI and the certificate check.
  */
-function getProxiedPublicDispatcher(proxy: URL): Dispatcher {
-  let dispatcher = proxiedDispatchers.get(proxy.href);
+function getProxiedPublicDispatcher(proxy: URL, privateHost?: string): Dispatcher {
+  const cacheKey = privateHost ? `${proxy.href}|${privateHost}` : proxy.href;
+  let dispatcher = proxiedDispatchers.get(cacheKey);
   if (dispatcher) return dispatcher;
 
   const proxyClient = new Client(proxy.origin);
@@ -241,7 +284,7 @@ function getProxiedPublicDispatcher(proxy: URL): Dispatcher {
   const connect: buildConnector.connector = (opts, callback) => {
     const hostname = normalizeHostname(opts.hostname);
     const port = Number(opts.port) || (opts.protocol === 'https:' ? 443 : 80);
-    lookupChecked(hostname)
+    lookupChecked(hostname, privateHost)
       .then(async (address) => {
         const authority = `${isIP(address) === 6 ? `[${address}]` : address}:${port}`;
         const tunnel = await proxyClient.connect({
@@ -265,7 +308,7 @@ function getProxiedPublicDispatcher(proxy: URL): Dispatcher {
       .catch((err: Error) => callback(err, null));
   };
   dispatcher = new Agent({ connect });
-  proxiedDispatchers.set(proxy.href, dispatcher);
+  proxiedDispatchers.set(cacheKey, dispatcher);
   return dispatcher;
 }
 
@@ -296,18 +339,30 @@ export type PublicFetchResponse = UndiciResponse;
 export async function fetchPublicUrl(
   url: string,
   init: Omit<UndiciRequestInit, 'dispatcher' | 'redirect'> = {},
+  options: {
+    /**
+     * One hostname that may be a private (intranet) host: only for an
+     * address the admin entered (company calendars). It must equal the
+     * URL's hostname to make any difference.
+     */
+    allowPrivateHost?: string;
+  } = {},
 ): Promise<PublicFetchResponse> {
-  const parsed = parseAllowedUrl(url);
+  const privateHost = options.allowPrivateHost ? normalizeHostname(options.allowPrivateHost) : undefined;
+  const parsed = parseAllowedUrl(url, privateHost);
   if (!parsed) {
     throw new DisallowedUrlError(url);
   }
   const proxy = envProxyFor(parsed);
+  const exempt = privateHost && normalizeHostname(parsed.hostname) === privateHost ? privateHost : undefined;
 
   try {
     return await undiciFetch(url, {
       ...init,
       redirect: 'manual',
-      dispatcher: proxy ? getProxiedPublicDispatcher(proxy) : getPublicDispatcher(),
+      dispatcher: proxy
+        ? getProxiedPublicDispatcher(proxy, exempt)
+        : exempt ? getPrivateHostDispatcher(exempt) : getPublicDispatcher(),
     });
   } catch (err) {
     const blocked = findBlockedCause(err);

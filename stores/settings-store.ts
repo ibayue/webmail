@@ -627,6 +627,8 @@ interface SettingsState extends AccessibilitySettings {
   vacationBlockCalendar: boolean;
   /** The times of each account's out-of-office event as Bulwark last wrote them, by account id. */
   vacationCalendarBlocks: Record<string, { start: string; end: string }>;
+  /** Company calendars (organisation.calendars.feeds) the user hid, by feed id. */
+  hiddenCompanyCalendars: string[];
 
   // Calendar Tasks
   enableCalendarTasks: boolean;
@@ -952,6 +954,7 @@ const DEFAULT_SETTINGS = {
   calendarWorkingDays: [1, 2, 3, 4, 5] as number[],
   vacationBlockCalendar: true,
   vacationCalendarBlocks: {} as Record<string, { start: string; end: string }>,
+  hiddenCompanyCalendars: [] as string[],
 
   // Calendar Tasks
   enableCalendarTasks: false,
@@ -1394,6 +1397,7 @@ export const useSettingsStore = create<SettingsState>()(
           calendarWorkingDays: state.calendarWorkingDays,
           vacationBlockCalendar: state.vacationBlockCalendar,
           vacationCalendarBlocks: state.vacationCalendarBlocks,
+          hiddenCompanyCalendars: state.hiddenCompanyCalendars,
           toolbarPosition: state.toolbarPosition,
           hideAccountSwitcher: state.hideAccountSwitcher,
           showRailAccountList: state.showRailAccountList,

@@ -81,6 +81,9 @@ import type { AnswerTarget } from "@/lib/calendar-delegate";
 import type { MoveEventHandler } from "@/hooks/use-time-grid-interactions";
 import type { RevealTime } from "@/hooks/use-display-hours";
 import { generateBirthdayEvents, createBirthdayCalendar, BIRTHDAY_CALENDAR_ID } from "@/lib/birthday-calendar";
+import { feedIdOf, isCompanyCalendarId } from "@/lib/company-calendars";
+import { expandRecurringEvents } from "@/lib/recurrence-expansion";
+import { useCompanyCalendars } from "./use-company-calendars";
 import { sharedCalendarColorKey, autoAssignSharedCalendarColors } from "@/lib/shared-calendar-colors";
 import { debug } from "@/lib/debug";
 import { consumePendingWebcal, hasPendingWebcal, subscribeToPendingWebcal } from "@/lib/protocol-handlers/session";
@@ -1692,10 +1695,36 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
     }
   }, [calendars, sharedCalendarColors, setSharedCalendarColor]);
 
+  // Company calendars the admin set (lib/company-calendars.ts): read-only,
+  // shown under "Organisation"; hiding one is a synced setting of its own.
+  const company = useCompanyCalendars(client);
+  const hiddenCompanyCalendars = useSettingsStore((s) => s.hiddenCompanyCalendars);
+  const shownCalendarIds = useMemo(() => {
+    if (company.calendars.length === 0) return selectedCalendarIds;
+    const hidden = new Set(company.hiddenIds);
+    return [...selectedCalendarIds, ...company.calendars.map((c) => c.id).filter((id) => !hidden.has(id))];
+  }, [selectedCalendarIds, company.calendars, company.hiddenIds]);
+  const toggleShownCalendar = useCallback((calendarId: string) => {
+    if (!isCompanyCalendarId(calendarId)) {
+      toggleCalendarVisibility(calendarId);
+      return;
+    }
+    const feedId = feedIdOf(calendarId);
+    const hidden = Array.isArray(hiddenCompanyCalendars) ? hiddenCompanyCalendars : [];
+    updateSetting('hiddenCompanyCalendars', hidden.includes(feedId) ? hidden.filter((id) => id !== feedId) : [...hidden, feedId]);
+  }, [toggleCalendarVisibility, hiddenCompanyCalendars, updateSetting]);
+  const companyEvents = useMemo(() => {
+    if (!dateRange || company.events.length === 0) return [];
+    const hidden = new Set(company.hiddenIds);
+    return expandRecurringEvents(company.events.filter((e) => !Object.keys(e.calendarIds).some((id) => hidden.has(id))), dateRange.start, dateRange.end);
+  }, [company.events, company.hiddenIds, dateRange]);
+
   const allCalendars = useMemo(() => {
-    if (!showBirthdayCalendar) return displayCalendars;
-    return [...displayCalendars, createBirthdayCalendar(birthdayCalendarName, birthdayCalendarColor)];
-  }, [displayCalendars, showBirthdayCalendar, birthdayCalendarName, birthdayCalendarColor]);
+    const withBirthdays = showBirthdayCalendar
+      ? [...displayCalendars, createBirthdayCalendar(birthdayCalendarName, birthdayCalendarColor)]
+      : displayCalendars;
+    return company.calendars.length > 0 ? [...withBirthdays, ...company.calendars] : withBirthdays;
+  }, [displayCalendars, showBirthdayCalendar, birthdayCalendarName, birthdayCalendarColor, company.calendars]);
 
   // What the user may change, by the rights of each event's calendar
   // (birthdays, subscriptions and read-only shares can't be changed).
@@ -1719,11 +1748,12 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
       const calIds = Object.keys(e.calendarIds);
       return calIds.some((id) => selectedCalendarIds.includes(id));
     });
+    const withCompany = companyEvents.length > 0 ? [...filtered, ...companyEvents] : filtered;
     if (showBirthdayCalendar && selectedCalendarIds.includes(BIRTHDAY_CALENDAR_ID)) {
-      return [...filtered, ...birthdayEvents];
+      return [...withCompany, ...birthdayEvents];
     }
-    return filtered;
-  }, [events, selectedCalendarIds, showBirthdayCalendar, birthdayEvents]);
+    return withCompany;
+  }, [events, selectedCalendarIds, showBirthdayCalendar, birthdayEvents, companyEvents]);
 
   // The tasks the task list shows; plugin buttons in its toolbar act on them.
   const listedTaskIds = useMemo(
@@ -2000,7 +2030,7 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
       rangeEnd={scrollWindow?.end ?? selectedDate}
       events={visibleEvents}
       calendars={allCalendars}
-      shownCalendars={allCalendars.filter((c) => selectedCalendarIds.includes(c.id))}
+      shownCalendars={allCalendars.filter((c) => shownCalendarIds.includes(c.id))}
       gridTasks={calendarTasks}
       tasks={taskStore.tasks}
       taskFilter={taskStore.filter}
@@ -2147,8 +2177,8 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
             </div>
             <CalendarSidebarPanel
               calendars={allCalendars}
-              selectedCalendarIds={selectedCalendarIds}
-              onToggleVisibility={toggleCalendarVisibility}
+              selectedCalendarIds={shownCalendarIds}
+              onToggleVisibility={toggleShownCalendar}
               onColorChange={client ? (calendarId, color) => {
                 if (calendarId === BIRTHDAY_CALENDAR_ID) {
                   updateSetting('birthdayCalendarColor', color);

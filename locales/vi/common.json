@@ -4857,6 +4857,9 @@
     "cancelled": "{name} đã hủy \"{title}\"",
     "untitled": "Sự kiện không có tiêu đề"
   },
+  "company_calendars": {
+    "section": "Tổ chức"
+  },
   "vacation_calendar": {
     "label": "Chặn lịch của tôi",
     "description": "Thêm một sự kiện bận trong thời gian bạn vắng mặt để không ai đặt cuộc họp với bạn lúc đó.",

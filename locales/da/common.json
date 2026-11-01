@@ -4845,6 +4845,9 @@
     "cancelled": "{name} har aflyst \"{title}\"",
     "untitled": "Unavngivet begivenhed"
   },
+  "company_calendars": {
+    "section": "Organisation"
+  },
   "vacation_calendar": {
     "label": "Bloker min kalender",
     "description": "Tilføjer en optaget begivenhed, mens du er væk, så ingen booker møder med dig imens.",

@@ -5255,6 +5255,9 @@
     "cancelled": "{name} ביטל/ה את \"{title}\"",
     "untitled": "אירוע ללא כותרת"
   },
+  "company_calendars": {
+    "section": "ארגון"
+  },
   "vacation_calendar": {
     "label": "חסום את היומן שלי",
     "description": "מוסיף אירוע תפוס לזמן ההיעדרות, כדי שאף אחד לא יקבע איתך פגישות אז.",

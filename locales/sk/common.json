@@ -4845,6 +4845,9 @@
     "cancelled": "{name} zrušil(a) „{title}“",
     "untitled": "Udalosť bez názvu"
   },
+  "company_calendars": {
+    "section": "Organizácia"
+  },
   "vacation_calendar": {
     "label": "Zablokovať môj kalendár",
     "description": "Pridá obsadenú udalosť na čas vašej neprítomnosti, aby vám vtedy nikto neplánoval stretnutia.",

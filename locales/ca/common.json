@@ -4845,6 +4845,9 @@
     "cancelled": "{name} ha cancel·lat \"{title}\"",
     "untitled": "Esdeveniment sense títol"
   },
+  "company_calendars": {
+    "section": "Organització"
+  },
   "vacation_calendar": {
     "label": "Bloca el meu calendari",
     "description": "Afegeix un esdeveniment ocupat mentre sou fora, perquè ningú us convoqui a reunions aleshores.",

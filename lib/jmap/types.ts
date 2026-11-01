@@ -676,6 +676,9 @@ export interface Calendar {
   // hidden from the event calendar UI while remaining available to the tasks
   // view (#761). Undefined means "not determined" (treated as not tasks-only).
   isTasksOnly?: boolean;
+  // A company calendar the admin set (lib/company-calendars.ts): a read-only
+  // calendar that exists only in the browser.
+  isCompany?: boolean;
 }
 
 /**

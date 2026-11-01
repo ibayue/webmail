@@ -5283,6 +5283,9 @@
     "cancelled": "{name} さんが「{title}」をキャンセルしました",
     "untitled": "無題の予定"
   },
+  "company_calendars": {
+    "section": "組織"
+  },
   "vacation_calendar": {
     "label": "カレンダーをブロック",
     "description": "不在の期間に予定ありの予定を追加し、その間に会議を入れられないようにします。",

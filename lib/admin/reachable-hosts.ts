@@ -2,6 +2,7 @@ import type { SettingsPolicy } from './types';
 import { parseJmapServers } from './jmap-servers';
 import { isBuiltInHost } from '@/lib/outgoing-hosts';
 import { DEFAULT_RELAY_BASE_URL } from '@/lib/push-relays';
+import { allFeeds } from './company-feeds';
 
 /**
  * What stays reachable with "no third-party traffic" on: the hosts the
@@ -39,7 +40,7 @@ function parse(url: unknown): URL | null {
 
 export interface ReachableInput {
   get: (key: string) => unknown;
-  policy: Pick<SettingsPolicy, 'pushRelays' | 'pushRelayUrl' | 'defaultSidebarApps'> & { features?: Partial<SettingsPolicy['features']> };
+  policy: Pick<SettingsPolicy, 'pushRelays' | 'pushRelayUrl' | 'defaultSidebarApps'> & Partial<Pick<SettingsPolicy, 'organisation' | 'scopes'>> & { features?: Partial<SettingsPolicy['features']> };
   env: Record<string, string | undefined>;
   /** The relay the browser bundle was built with (NEXT_PUBLIC_PUSH_RELAY_URL inlined at build time). */
   buildRelayUrl?: string;
@@ -88,6 +89,9 @@ export function listReachableHosts({ get, policy, env, buildRelayUrl = DEFAULT_R
       'Set in the environment only: browsers use the relay this build was made with. Rebuild, or add it under User policy > Push relays.');
   }
   add('Extension directory', get('extensionDirectoryUrl'), 'EXTENSION_DIRECTORY_URL', 'server');
+  // Company calendars of Everyone and of every scope: this server fetches
+  // them (app/api/fetch-ical by feed id), whatever the switch says.
+  for (const feed of allFeeds(policy)) add('Company calendar', feed.url, `Organisation > Calendars (${feed.name})`, 'server');
   for (const app of policy.defaultSidebarApps ?? []) add('Sidebar app', app?.url, `User policy > Sidebar apps (${app?.name ?? ''})`, 'browser');
   add('Document editor (WOPI)', get('wopiClientUrl'), 'WOPI_CLIENT_URL', 'both');
   add('Translation (LibreTranslate)', env.LIBRETRANSLATE_URL, 'LIBRETRANSLATE_URL', 'server');

@@ -5283,6 +5283,9 @@
     "cancelled": "{name} hat „{title}“ abgesagt",
     "untitled": "Unbenannter Termin"
   },
+  "company_calendars": {
+    "section": "Organisation"
+  },
   "vacation_calendar": {
     "label": "Meinen Kalender blockieren",
     "description": "Trägt für Ihre Abwesenheit einen belegten Termin ein, damit Ihnen niemand Besprechungen in dieser Zeit einträgt.",

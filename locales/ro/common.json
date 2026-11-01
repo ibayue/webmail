@@ -4845,6 +4845,9 @@
     "cancelled": "{name} a anulat „{title}”",
     "untitled": "Eveniment fără titlu"
   },
+  "company_calendars": {
+    "section": "Organizație"
+  },
   "vacation_calendar": {
     "label": "Blochează-mi calendarul",
     "description": "Adaugă un eveniment ocupat pe durata absenței, ca nimeni să nu vă programeze ședințe atunci.",

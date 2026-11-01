@@ -4845,6 +4845,9 @@
     "cancelled": "{name} har avlyst «{title}»",
     "untitled": "Hendelse uten tittel"
   },
+  "company_calendars": {
+    "section": "Organisasjon"
+  },
   "vacation_calendar": {
     "label": "Blokker kalenderen min",
     "description": "Legger inn en opptatt-hendelse mens du er borte, så ingen booker møter med deg da.",

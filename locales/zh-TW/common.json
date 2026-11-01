@@ -4845,6 +4845,9 @@
     "cancelled": "{name} 取消了「{title}」",
     "untitled": "未命名活動"
   },
+  "company_calendars": {
+    "section": "組織"
+  },
   "vacation_calendar": {
     "label": "佔用我的行事曆",
     "description": "在你外出期間新增一個忙碌活動，這樣別人不會在這段時間約你開會。",

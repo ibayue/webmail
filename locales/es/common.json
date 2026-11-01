@@ -5283,6 +5283,9 @@
     "cancelled": "{name} ha cancelado \"{title}\"",
     "untitled": "Evento sin título"
   },
+  "company_calendars": {
+    "section": "Organización"
+  },
   "vacation_calendar": {
     "label": "Bloquear mi calendario",
     "description": "Añade un evento ocupado mientras estás fuera, para que nadie te convoque a reuniones entonces.",

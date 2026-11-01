@@ -4845,6 +4845,9 @@
     "cancelled": "{name} lemondta a(z) „{title}” eseményt",
     "untitled": "Névtelen esemény"
   },
+  "company_calendars": {
+    "section": "Szervezet"
+  },
   "vacation_calendar": {
     "label": "Naptáram foglalása",
     "description": "Foglalt eseményt tesz a távollét idejére, hogy addig senki ne szervezzen Önnel megbeszélést.",

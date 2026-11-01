@@ -85,6 +85,15 @@ describe('enterprise sections: defaults and sanitising', () => {
     expect(calendars.freeBusyGroup).toBe('all-staff@example.org');
   });
 
+  it('keeps a feed whose address the server held back, and drops one without an address', () => {
+    const { calendars } = sanitizeOrganisationPolicy({ calendars: { feeds: [
+      { id: 'kept', name: 'Holidays', url: '', urlHeld: true },
+      { id: 'none', name: 'No address' },
+      { id: 'empty', name: 'Typed nothing yet', url: '' },
+    ] } });
+    expect(calendars.feeds.map((f) => [f.id, f.url, f.urlHeld])).toEqual([['kept', '', true]]);
+  });
+
   it('keeps device switches only as booleans', () => {
     const { devices } = sanitizeOrganisationPolicy({ devices: { noDownloads: true, noPrint: 'yes', watermark: 1 } });
     expect(devices.noDownloads).toBe(true);

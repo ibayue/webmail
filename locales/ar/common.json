@@ -4845,6 +4845,9 @@
     "cancelled": "ألغى {name} \"{title}\"",
     "untitled": "حدث بدون عنوان"
   },
+  "company_calendars": {
+    "section": "المؤسسة"
+  },
   "vacation_calendar": {
     "label": "حجز تقويمي",
     "description": "يضيف حدثًا مشغولًا لمدة غيابك، حتى لا يحجز أحد اجتماعات معك خلالها.",

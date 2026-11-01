@@ -5283,6 +5283,9 @@
     "cancelled": "{name} atcēla “{title}”",
     "untitled": "Notikums bez nosaukuma"
   },
+  "company_calendars": {
+    "section": "Organizācija"
+  },
   "vacation_calendar": {
     "label": "Bloķēt manu kalendāru",
     "description": "Pievieno aizņemtu notikumu prombūtnes laikam, lai tad neviens neplānotu ar jums sapulces.",

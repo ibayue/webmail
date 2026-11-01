@@ -5283,6 +5283,9 @@
     "cancelled": "{name} heeft \"{title}\" geannuleerd",
     "untitled": "Afspraak zonder titel"
   },
+  "company_calendars": {
+    "section": "Organisatie"
+  },
   "vacation_calendar": {
     "label": "Mijn agenda blokkeren",
     "description": "Zet een bezette afspraak in je agenda voor de tijd dat je weg bent, zodat niemand dan vergaderingen met je plant.",

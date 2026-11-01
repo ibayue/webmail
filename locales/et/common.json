@@ -4845,6 +4845,9 @@
     "cancelled": "{name} tühistas sündmuse \"{title}\"",
     "untitled": "Nimetu sündmus"
   },
+  "company_calendars": {
+    "section": "Organisatsioon"
+  },
   "vacation_calendar": {
     "label": "Blokeeri minu kalender",
     "description": "Lisab äraoleku ajaks hõivatud sündmuse, et keegi sel ajal sulle koosolekuid ei paneks.",

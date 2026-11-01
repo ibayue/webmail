@@ -5283,6 +5283,9 @@
     "cancelled": "{name}님이 \"{title}\"을(를) 취소했습니다",
     "untitled": "제목 없는 일정"
   },
+  "company_calendars": {
+    "section": "조직"
+  },
   "vacation_calendar": {
     "label": "내 캘린더 차단",
     "description": "부재 기간에 바쁨 일정을 추가해 그동안 회의가 잡히지 않게 합니다.",
