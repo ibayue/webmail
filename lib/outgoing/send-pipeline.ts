@@ -17,6 +17,7 @@
  */
 
 import { debug } from '@/lib/debug';
+import { whenPolicySettled } from '@/stores/policy-store';
 
 // 'plugin-forward': a plugin forwarding a message (api.email.forward).
 export type SendSurface = 'composer' | 'quick-reply' | 'calendar-invitation' | 'plugin-forward';
@@ -130,6 +131,9 @@ export function finalizeOutgoing(
  * one must not make sending impossible.
  */
 export async function runPreSendChecks(context: OutgoingContext): Promise<boolean> {
+  // The checks and what the composer adds after them (labels, signatures)
+  // follow the organisation policy: wait for its first fetch.
+  await whenPolicySettled();
   for (const entry of [...checks]) {
     try {
       if (!(await entry.run(context))) {

@@ -36,6 +36,14 @@ interface PolicyState {
    */
   fetching: boolean;
   /**
+   * Where `rawPolicy` came from: the server, the copy of the last fetched
+   * policy kept in this browser (the fetch failed), or the built-in
+   * defaults (nothing was ever fetched). A loaded server policy is never
+   * replaced by the copy or the defaults, so a network blip can't lift the
+   * organisation's locks.
+   */
+  source: 'none' | 'server' | 'cache' | 'fallback';
+  /**
    * The server answered with the public subset (not signed in yet); the
    * full policy is fetched again once a session exists.
    */
@@ -78,6 +86,55 @@ interface PolicyState {
 
 let policyRequest = 0;
 
+/**
+ * The last full policy the server sent, kept so a failed fetch (network
+ * down, a refetch that errors) doesn't fall back to the defaults and lift
+ * every lock. Removed at full sign-out (lib/sign-out-cleanup.ts).
+ */
+export const POLICY_CACHE_KEY = 'bulwark-policy-last';
+
+function readCachedPolicy(): Record<string, unknown> | null {
+  try {
+    const raw = typeof localStorage === 'undefined' ? null : localStorage.getItem(POLICY_CACHE_KEY);
+    const parsed = raw ? JSON.parse(raw) : null;
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeCachedPolicy(data: unknown): void {
+  try {
+    if (typeof localStorage === 'undefined') return;
+    if (data && typeof data === 'object') localStorage.setItem(POLICY_CACHE_KEY, JSON.stringify(data));
+    else localStorage.removeItem(POLICY_CACHE_KEY);
+  } catch {
+    // Storage full or blocked: the in-memory policy still applies.
+  }
+}
+
+/**
+ * Resolves once the first policy fetch has settled (or after `timeoutMs`).
+ * Sending waits for it, so a required label or a send check the policy
+ * turns on can't be skipped by sending in the first moment after load.
+ */
+export async function whenPolicySettled(timeoutMs = 5000): Promise<void> {
+  const settled = () => {
+    const { fetching, loaded } = usePolicyStore.getState();
+    return loaded || !fetching;
+  };
+  if (settled()) return;
+  await new Promise<void>((resolve) => {
+    const timer = setTimeout(() => { unsubscribe(); resolve(); }, timeoutMs);
+    const unsubscribe = usePolicyStore.subscribe(() => {
+      if (!settled()) return;
+      clearTimeout(timer);
+      unsubscribe();
+      resolve();
+    });
+  });
+}
+
 const COLOR_MODES: readonly ColorMode[] = ['light', 'dark', 'system'];
 
 const sameSubject = (a: PolicySubject | null, b: PolicySubject | null) =>
@@ -96,6 +153,7 @@ export const usePolicyStore = create<PolicyState>()((set, get) => ({
   scopeDomains: null,
   loaded: false,
   fetching: false,
+  source: 'none',
   partial: false,
   demoFeatureOverrides: {},
 
@@ -110,6 +168,20 @@ export const usePolicyStore = create<PolicyState>()((set, get) => ({
     // for the admin server; missing means defaults, and the gates that need
     // the server stay pinned off either way (lib/lite-config.ts).
     const fallback = IS_LITE ? { policy: applyLitePolicy({}) } : {};
+    // The fetch failed: keep a policy the server already gave, else the last
+    // one this browser saw, else the defaults.
+    const settleWithoutServer = () => {
+      if (get().source === 'server') {
+        set({ loaded: true });
+        return;
+      }
+      const cached = readCachedPolicy();
+      if (cached) {
+        set({ ...resolved(IS_LITE ? applyLitePolicy(cached) : (cached as unknown as SettingsPolicy), get().subject), loaded: true, source: 'cache' });
+      } else {
+        set({ ...(fallback.policy ? resolved(fallback.policy, get().subject) : {}), loaded: true, source: 'fallback' });
+      }
+    };
     try {
       // Stalwart serves bundle files immutably: a build-id URL instead of no-store.
       const res = IS_LITE_STALWART
@@ -122,12 +194,17 @@ export const usePolicyStore = create<PolicyState>()((set, get) => ({
         const partial = res.headers?.get?.(POLICY_SCOPE_HEADER) === 'public';
         const domainsHeader = res.headers?.get?.(POLICY_DOMAINS_HEADER);
         const scopeDomains = typeof domainsHeader === 'string' ? domainsHeader.split(',').filter(Boolean) : null;
-        set({ ...resolved(IS_LITE ? applyLitePolicy(data) : data, get().subject), loaded: true, partial, scopeDomains });
+        set({ ...resolved(IS_LITE ? applyLitePolicy(data) : data, get().subject), loaded: true, source: 'server', partial, scopeDomains });
+        if (!partial) writeCachedPolicy(data);
+      } else if (IS_LITE && res.status === 404) {
+        // No policy.json: the deployment set nothing, which is an answer.
+        set({ ...(fallback.policy ? resolved(fallback.policy, get().subject) : {}), loaded: true, source: 'server' });
+        writeCachedPolicy(null);
       } else {
-        set({ ...(fallback.policy ? resolved(fallback.policy, get().subject) : {}), loaded: true });
+        settleWithoutServer();
       }
     } catch {
-      if (request === policyRequest) set({ ...(fallback.policy ? resolved(fallback.policy, get().subject) : {}), loaded: true });
+      if (request === policyRequest) settleWithoutServer();
     } finally {
       if (request === policyRequest) set({ fetching: false });
     }

@@ -26,6 +26,9 @@ const SIGNED_OUT_STORAGE_KEYS = [
   'files-path-stack',
   // Names of the people the user gave access to (Settings > Sharing).
   'bulwark-delegate-names',
+  // The last organisation policy (stores/policy-store.ts POLICY_CACHE_KEY):
+  // its scopes, labels and notices are the signed-in user's.
+  'bulwark-policy-last',
 ];
 
 const SIGNED_OUT_SIGNAL = 'bulwark:signed-out';
