@@ -58,6 +58,16 @@ describe('MboxSplitter', () => {
     expect(texts(split(mbox))).toHaveLength(1);
   });
 
+  it('does not split on a body line with a time but no date after it', () => {
+    const mbox = 'From a Tue May  5 10:11:12 2020\nSubject: x\n\nhello\n\nFrom now on we meet at 10:30 in room 2020b\n';
+    expect(texts(split(mbox))).toHaveLength(1);
+  });
+
+  it('splits on envelope lines with a zone or "remote from"', () => {
+    const mbox = 'From a Sat Apr 18 08:29:01 +0000 2020\nSubject: 1\n\nb\n\nFrom b Sat Apr 18 08:29:01 2020 remote from host\nSubject: 2\n\nb\n';
+    expect(texts(split(mbox))).toHaveLength(2);
+  });
+
   it('unquotes mboxrd ">From " lines by one ">"', () => {
     const mbox = 'From a Tue May  5 10:11:12 2020\nSubject: q\n\n>From the start\n>>From deeper\n> not a from\n>Fromage\n';
     expect(texts(split(mbox, 4))).toEqual(['Subject: q\n\nFrom the start\n>From deeper\n> not a from\n>Fromage\n']);

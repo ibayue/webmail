@@ -80,7 +80,9 @@ function stripEol(line: Uint8Array): Uint8Array {
  * empty line in a file whose writer didn't quote it.
  */
 export function isEnvelopeLine(text: string): boolean {
-  return /^From \S*.*\d{1,2}:\d{2}/.test(text);
+  // Sender, then a date that ends in the year: "... Tue May  5 10:11:12 2020",
+  // optionally with a zone before the year or "remote from host" after it.
+  return /^From \S+\s.*\b\d{1,2}:\d{2}(?::\d{2})?\s+(?:[+-]\d{4}\s+|[A-Z]{2,5}\s+)?\d{4}(?:\s+remote from \S+)?\s*$/.test(text);
 }
 
 const CONTENT_LENGTH = /^content-length:[ \t]*(\d+)[ \t]*\r?$/im;

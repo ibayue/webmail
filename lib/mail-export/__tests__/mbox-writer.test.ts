@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { mboxEntry, envelopeLine } from '@/lib/mail-export/mbox-writer';
 import { MboxSplitter } from '@/lib/mail-import/mbox';
-import { mboxState } from '@/lib/mail-import/mbox-status';
+import { mboxState, withoutStateHeaders } from '@/lib/mail-import/mbox-status';
 import { readHeaderBlock } from '@/lib/mail-import/mbox';
 
 const enc = new TextEncoder();
@@ -20,6 +20,14 @@ function reread(mbox: Uint8Array) {
 
 describe('mboxEntry (mboxrd)', () => {
   const raw = 'Subject: hi\r\nX-Mozilla-Status: 0001\r\nStatus: RO\r\nX-Keywords:\r\n old\r\nFrom: a@example.org\r\n\r\nFrom the top\r\n>From quoted\r\nend\r\n';
+
+  it('copes with a header line of hundreds of kilobytes, on export and on import', () => {
+    const long = `X-${'a'.repeat(300_000)}: v\r\nStatus: RO\r\nSubject: s\r\n\r\nbody\r\n`;
+    const out = dec.decode(join(mboxEntry(enc.encode(long), { $seen: true }, '2020-01-01T00:00:00Z')));
+    expect(out).toContain('aaa: v\r\nSubject: s\r\n');
+    const kept = dec.decode(join(withoutStateHeaders([enc.encode(`${'X'.repeat(300_000)}: v\r\nStatus: RO\r\n\r\nb\r\n`)])));
+    expect(kept.endsWith(': v\r\n\r\nb\r\n')).toBe(true);
+  });
 
   it('writes an envelope line in asctime UTC', () => {
     expect(envelopeLine('2020-05-05T10:11:12Z', '\n')).toBe('From bulwark-export Tue May  5 10:11:12 2020\n');

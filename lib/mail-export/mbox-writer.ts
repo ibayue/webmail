@@ -54,6 +54,8 @@ function startsWithFrom(data: Uint8Array, at: number, end: number): boolean {
 }
 
 const encoder = new TextEncoder();
+// Header names are ASCII; decoding (not spreading the bytes into fromCharCode) copes with a 100 KB line.
+const latin1 = new TextDecoder("latin1");
 const GT_BYTE = new Uint8Array([GT]);
 
 /**
@@ -87,7 +89,7 @@ export function mboxEntry(raw: Uint8Array, keywords: Record<string, boolean> | u
       } else {
         const colon = raw.indexOf(0x3a, lineStart);
         const name = colon > lineStart && colon < lineEnd
-          ? String.fromCharCode(...raw.subarray(lineStart, colon)).trim()
+          ? latin1.decode(raw.subarray(lineStart, colon)).trim()
           : "";
         skipping = STATE_HEADERS.test(name);
         if (skipping) { flush(lineStart); runStart = lineEnd; }
@@ -103,6 +105,9 @@ export function mboxEntry(raw: Uint8Array, keywords: Record<string, boolean> | u
     lineStart = lineEnd;
   }
   flush(raw.length);
+  // The empty line that separates messages. A message without a final line
+  // ending gets one first, so its last line isn't joined to the next envelope
+  // line; the import then sees one line ending more than the server stored.
   const endsWithLf = raw.length > 0 && raw[raw.length - 1] === LF;
   parts.push(encoder.encode(endsWithLf ? eol : eol + eol));
   return parts;

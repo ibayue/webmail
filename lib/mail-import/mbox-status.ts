@@ -139,7 +139,7 @@ export function withoutStateHeaders(parts: Uint8Array[]): Uint8Array[] {
     const folded = line[0] === 0x20 || line[0] === 0x09;
     if (!folded) {
       const colon = line.indexOf(0x3a);
-      const name = colon > 0 ? String.fromCharCode(...line.subarray(0, colon)).trim() : "";
+      const name = colon > 0 ? new TextDecoder("latin1").decode(line.subarray(0, colon)).trim() : "";
       skipping = STATE_HEADER.test(name);
       if (skipping) found = true;
     }
