@@ -56,7 +56,14 @@ export interface VacationTemplate {
 export interface CompanyFeed {
   id: string;
   name: string;
+  /** The ICS address; '' when `urlHeld`. */
   url: string;
+  /**
+   * Set in the policy full Bulwark hands to users: the server keeps the
+   * address back (it may hold a token) and fetches the feed by id
+   * (app/api/fetch-ical, lib/admin/company-feeds.ts).
+   */
+  urlHeld?: boolean;
   /** #rrggbb */
   color: string;
   refreshMinutes: number;
@@ -407,10 +414,12 @@ function feedUrl(value: unknown): string | null {
 function sanitizeFeeds(value: unknown): CompanyFeed[] | undefined {
   return byIdList(value, MAX_FEEDS, (item, id) => {
     const name = line(item.name, 100);
-    const url = feedUrl(item.url);
-    if (!name || !url) return null;
+    // An empty address only for a feed whose address the server held back.
+    const held = item.urlHeld === true && item.url === '';
+    const url = held ? '' : feedUrl(item.url);
+    if (!name || url === null) return null;
     const minutes = count(item.refreshMinutes, 7 * 24 * 60) ?? MIN_FEED_REFRESH_MINUTES;
-    return { id, name, url, color: color(item.color, '#2563eb'), refreshMinutes: Math.max(MIN_FEED_REFRESH_MINUTES, minutes) };
+    return { id, name, url, color: color(item.color, '#2563eb'), refreshMinutes: Math.max(MIN_FEED_REFRESH_MINUTES, minutes), ...(held ? { urlHeld: true } : {}) };
   });
 }
 

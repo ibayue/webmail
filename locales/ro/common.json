@@ -4845,6 +4845,51 @@
     "cancelled": "{name} a anulat „{title}”",
     "untitled": "Eveniment fără titlu"
   },
+  "company_calendars": {
+    "section": "Organizație"
+  },
+  "vacation_calendar": {
+    "label": "Blochează-mi calendarul",
+    "description": "Adaugă un eveniment ocupat pe durata absenței, ca nimeni să nu vă programeze ședințe atunci.",
+    "no_access_managed": "Calendarul acestui cont nu poate fi blocat: nu aveți acces de scriere la el.",
+    "no_calendar": "Calendarul nu poate fi blocat: Bulwark nu a găsit un calendar în care să adauge evenimentul.",
+    "filter_warning": "Activarea oprește scriptul dvs. de filtre cât timp răspunsul este activ."
+  },
+  "calendar_delegate": {
+    "answer_for": "Răspunde în numele {name}",
+    "no_write": "Vedeți invitațiile lui {name}, dar nu puteți răspunde în numele său. Cereți acces de editare.",
+    "also_invited": "Sunteți și dvs. invitat, iar acest server nu poate deosebi răspunsul dvs. de cel al lui {name}. {name} trebuie să răspundă la aceasta.",
+    "answered_by": "Răspuns de {who}"
+  },
+  "free_busy_share": {
+    "button": "Partajează disponibilitatea mea cu {group}",
+    "already": "Disponibilitatea dvs. este partajată cu {group}",
+    "done": "Disponibilitatea dvs. este acum partajată cu {group}.",
+    "error": "Disponibilitatea nu a putut fi partajată. Încercați din nou.",
+    "group_label": "Grup",
+    "title": "Disponibilitate",
+    "description": "Colegii din grup văd când sunteți ocupat, nu ce evenimente aveți. „Sugerează ore” folosește asta."
+  },
+  "find_time": {
+    "suggest": "Sugerează ore",
+    "searching": "Se caută ore libere",
+    "slots_title": "Liber pentru toți cei pe care Bulwark i-a putut verifica",
+    "slot": "{day}, de la {start} la {end}",
+    "none": "Nu există timp liber în următoarele 10 zile lucrătoare.",
+    "picked": "Eveniment mutat la {slot}",
+    "rate_limited": "Prea multe interogări în ultimul minut. Încercați din nou peste un minut.",
+    "unavailable": "Disponibilitatea nu este accesibilă pe acest server, așa că Bulwark nu poate sugera ore.",
+    "not_checked": "Neverificați:",
+    "not_checked_item": "{who}: {reason}",
+    "reason_external": "din afara organizației dvs.",
+    "reason_unknown": "ore ocupate necunoscute",
+    "reason_not_found": "negăsit pe acest server",
+    "reason_error": "nu a putut fi verificat",
+    "unknown_note": "Bulwark vede orele ocupate doar în calendarele partajate cu dvs. Pentru aceste persoane nu poate deosebi liber de nepartajat.",
+    "directory_off": "Bulwark nu poate căuta persoane pe acest server. Administratorul poate activa interogările de director în Stalwart.",
+    "not_looked_up": "Adresa nu a putut fi căutată",
+    "found": "Ore libere găsite: {count}"
+  },
   "share_notifications": {
     "someone": "Cineva",
     "shared": "{name} a partajat cu tine {kind} „{object}”",

@@ -5283,6 +5283,51 @@
     "cancelled": "{name} hat „{title}“ abgesagt",
     "untitled": "Unbenannter Termin"
   },
+  "company_calendars": {
+    "section": "Organisation"
+  },
+  "vacation_calendar": {
+    "label": "Meinen Kalender blockieren",
+    "description": "Trägt für Ihre Abwesenheit einen belegten Termin ein, damit Ihnen niemand Besprechungen in dieser Zeit einträgt.",
+    "no_access_managed": "Der Kalender dieses Kontos kann nicht blockiert werden: Sie haben keinen Schreibzugriff darauf.",
+    "no_calendar": "Ihr Kalender kann nicht blockiert werden: Bulwark hat keinen Kalender für den Termin gefunden.",
+    "filter_warning": "Wenn Sie dies einschalten, ist Ihr eigenes Filterskript ausgeschaltet, solange die Antwort aktiv ist."
+  },
+  "calendar_delegate": {
+    "answer_for": "Für {name} antworten",
+    "no_write": "Sie sehen die Einladungen von {name}, können aber nicht dafür antworten. Bitten Sie um Bearbeitungszugriff.",
+    "also_invited": "Sie sind ebenfalls eingeladen, und dieser Server kann Ihre Antwort nicht von der von {name} unterscheiden. {name} muss hier selbst antworten.",
+    "answered_by": "Beantwortet von {who}"
+  },
+  "free_busy_share": {
+    "button": "Meine Frei/Gebucht-Zeiten für {group} freigeben",
+    "already": "Ihre Frei/Gebucht-Zeiten sind für {group} freigegeben",
+    "done": "Ihre Frei/Gebucht-Zeiten sind jetzt für {group} freigegeben.",
+    "error": "Ihre Frei/Gebucht-Zeiten konnten nicht freigegeben werden. Versuchen Sie es erneut.",
+    "group_label": "Gruppe",
+    "title": "Frei/Gebucht",
+    "description": "Kolleginnen und Kollegen in der Gruppe sehen, wann Sie belegt sind, aber nicht, welche Termine Sie haben. „Zeiten vorschlagen“ nutzt das."
+  },
+  "find_time": {
+    "suggest": "Zeiten vorschlagen",
+    "searching": "Freie Zeiten werden gesucht",
+    "slots_title": "Frei für alle, die Bulwark prüfen konnte",
+    "slot": "{day}, {start} bis {end}",
+    "none": "In den nächsten 10 Arbeitstagen ist keine Zeit frei.",
+    "picked": "Termin verschoben auf {slot}",
+    "rate_limited": "Zu viele Abfragen in der letzten Minute. Versuchen Sie es in einer Minute erneut.",
+    "unavailable": "Frei/Gebucht ist auf diesem Server nicht verfügbar, daher kann Bulwark keine Zeiten vorschlagen.",
+    "not_checked": "Nicht geprüft:",
+    "not_checked_item": "{who}: {reason}",
+    "reason_external": "außerhalb Ihrer Organisation",
+    "reason_unknown": "belegte Zeiten unbekannt",
+    "reason_not_found": "auf diesem Server nicht gefunden",
+    "reason_error": "konnte nicht geprüft werden",
+    "unknown_note": "Bulwark sieht belegte Zeiten nur in Kalendern, die für Sie freigegeben sind. Bei diesen Personen kann es „frei“ nicht von „nicht freigegeben“ unterscheiden.",
+    "directory_off": "Bulwark kann auf diesem Server keine Personen nachschlagen. Ihre Administration kann Verzeichnisabfragen in Stalwart einschalten.",
+    "not_looked_up": "Adresse nicht gefunden",
+    "found": "Freie Zeiten gefunden: {count}"
+  },
   "share_notifications": {
     "someone": "Jemand",
     "shared": "{name} hat {kind} „{object}“ mit Ihnen geteilt",

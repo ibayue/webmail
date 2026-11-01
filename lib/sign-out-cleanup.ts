@@ -68,6 +68,13 @@ export function purgeSignedOutData(): void {
   }
   // Attachment bytes a plugin staged for an upload that never started.
   void fileStorage.clearFiles().catch(() => {});
+  // Company calendar events (lib/company-calendars.ts), also when the
+  // calendar was never opened in this tab.
+  try {
+    window.indexedDB?.deleteDatabase('bulwark-company-calendars');
+  } catch {
+    /* storage unavailable */
+  }
   for (const cleanup of signedOutCleanups) {
     try {
       cleanup();

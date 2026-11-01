@@ -1,14 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { completePolicy, configManager, isPolicyConflict } from '@/lib/admin/config-manager';
-import { requireAdminAuth, getClientIP } from '@/lib/admin/session';
+import { cookies } from 'next/headers';
+import { requireAdminAuth, getClientIP, verifyCurrentAdminSession } from '@/lib/admin/session';
 import { auditLog } from '@/lib/admin/audit';
 import { logger } from '@/lib/logger';
-import { POLICY_DOMAINS_HEADER, POLICY_SCOPE_HEADER, type SettingsPolicy } from '@/lib/admin/types';
+import { ADMIN_SESSION_COOKIE, POLICY_DOMAINS_HEADER, POLICY_SCOPE_HEADER, type SettingsPolicy } from '@/lib/admin/types';
 import { canSeeInstanceDetails, signedInIdentity } from '@/lib/auth/instance-details';
 import { bearerIdentity } from '@/lib/auth/bearer-identity';
 import { isStoreUnavailable, storeUnavailableResponse } from '@/lib/auth/store-unavailable';
 import { scopesVisibleTo } from '@/lib/admin/policy-scopes';
 import { configReadOnlyResponse } from '@/lib/admin/config-read-only-response';
+import { stripFeedUrls } from '@/lib/admin/company-feeds';
 
 /** The policy version as an HTTP entity tag. */
 function policyETag(version: string): string {
@@ -70,6 +72,14 @@ export async function GET(request: NextRequest) {
     // answers with all of them (documented).
     const identity = await signedInIdentity();
     if (identity !== null && !identity.admin) return userPolicyResponse(policy, identity.addresses);
+    // Without a session secret only the admin dashboard's own session tells
+    // the admin apart; everyone else gets the feeds without their addresses,
+    // which may hold tokens.
+    if (identity === null && !(await hasAdminSession())) {
+      return NextResponse.json({ ...stripFeedUrls(policy), scopes: stripFeedUrls(policy).scopes ?? [] }, {
+        headers: { 'Cache-Control': 'no-store' },
+      });
+    }
     // The whole policy, as the admin pages edit it: with its version, which
     // they send back as If-Match when they save.
     return NextResponse.json({ ...policy, scopes: policy.scopes ?? [] }, {
@@ -83,8 +93,22 @@ export async function GET(request: NextRequest) {
   }
 }
 
-/** The policy for a signed-in user who is not the admin, with the addresses they sign in with. */
-function userPolicyResponse(policy: SettingsPolicy, addresses: string[]): NextResponse {
+async function hasAdminSession(): Promise<boolean> {
+  try {
+    const token = (await cookies()).get(ADMIN_SESSION_COOKIE)?.value;
+    return !!token && (await verifyCurrentAdminSession(token)) !== null;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * The policy for a signed-in user who is not the admin, with the addresses
+ * they sign in with. Company calendar addresses stay here: the browser
+ * fetches a feed by id through /api/fetch-ical (lib/admin/company-feeds.ts).
+ */
+function userPolicyResponse(raw: SettingsPolicy, addresses: string[]): NextResponse {
+  const policy = stripFeedUrls(raw);
   const scopes = scopesVisibleTo(policy.scopes ?? [], addresses);
   // Which domains the scopes were picked for, so a browser that signs in
   // to an account of another domain knows to fetch again.

@@ -19,7 +19,6 @@ import { buildRecurrenceSummary } from "./recurrence-editor";
 import { formatEventAlertsLabel } from "./alert-list-editor";
 import {
   getUserParticipantId,
-  getUserStatus,
   getParticipantList,
 } from "@/lib/calendar-participants";
 import { canUserRsvp, getEventEditability, type EditabilityContext } from "@/lib/calendar-editability";
@@ -29,7 +28,9 @@ import { findMeetingLink, locationAction, mapsUrl, primaryLocationName } from "@
 import { useNoThirdPartyTraffic } from "@/hooks/use-third-party-mode";
 import { PluginSlot } from "@/components/plugins/plugin-slot";
 import { eventToView } from "@/lib/plugin-projection";
-import { ParticipantStatusBadge, RsvpButtons } from "./rsvp-buttons";
+import { ParticipantStatusBadge } from "./rsvp-buttons";
+import { AnswerBars, useAnswerView } from "./answer-bars";
+import type { AnswerTarget } from "@/lib/calendar-delegate";
 import { isEditableEventTarget } from "@/lib/keyboard";
 import { isSingleKeyShortcutOff } from "@/lib/single-key-shortcuts";
 import { useCvdColor } from "@/hooks/use-cvd-color";
@@ -47,7 +48,8 @@ interface EventDetailPopoverProps {
   onPrint?: () => void;
   onClose: () => void;
   onSaveNote: (note: string) => void;
-  onRsvp?: (status: CalendarParticipant["participationStatus"]) => void;
+  /** Without a target: the user's own answer on this event. */
+  onRsvp?: (status: CalendarParticipant["participationStatus"], target?: AnswerTarget) => void;
   onMouseEnter?: () => void;
   onMouseLeave?: () => void;
   currentUserEmails?: string[];
@@ -234,10 +236,7 @@ export function EventDetailPopover({
     [event, currentUserEmails]
   );
 
-  const userCurrentStatus = useMemo(
-    () => getUserStatus(event, currentUserEmails),
-    [event, currentUserEmails]
-  );
+  const answerView = useAnswerView(event, calendar, currentUserEmails, canRsvp && !!userParticipantId);
 
   const formatTime = useCallback(
     (d: Date) => format(d, timeFormat === "12h" ? "h:mm a" : "HH:mm"),
@@ -687,14 +686,14 @@ export function EventDetailPopover({
         </div>
       )}
 
-      {/* RSVP Bar (for attendees) */}
-      {canRsvp && onRsvp && userParticipantId && (
-        <div className="px-4 py-3 border-t border-border">
-          <p className="text-xs font-medium text-muted-foreground mb-2">
-            {t("participants.rsvp_label")}
-          </p>
-          <RsvpButtons status={userCurrentStatus} onRespond={onRsvp} size="xs" />
-        </div>
+      {/* RSVP bars: the user's own, and "Answer for <owner>" in a calendar shared with them. */}
+      {onRsvp && (
+        <AnswerBars
+          view={answerView}
+          size="xs"
+          className="px-4 py-3 border-t border-border empty:hidden"
+          onRespond={(target, status) => onRsvp(status, target)}
+        />
       )}
 
     </div>

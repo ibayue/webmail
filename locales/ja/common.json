@@ -5283,6 +5283,51 @@
     "cancelled": "{name} さんが「{title}」をキャンセルしました",
     "untitled": "無題の予定"
   },
+  "company_calendars": {
+    "section": "組織"
+  },
+  "vacation_calendar": {
+    "label": "カレンダーをブロック",
+    "description": "不在の期間に予定ありの予定を追加し、その間に会議を入れられないようにします。",
+    "no_access_managed": "このアカウントのカレンダーはブロックできません。書き込み権限がありません。",
+    "no_calendar": "カレンダーをブロックできません。予定を追加できるカレンダーが見つかりませんでした。",
+    "filter_warning": "これをオンにすると、返信が有効な間は自分のフィルタースクリプトがオフになります。"
+  },
+  "calendar_delegate": {
+    "answer_for": "{name} の代わりに返答",
+    "no_write": "{name} の招待は見られますが、代わりに返答することはできません。編集権限を依頼してください。",
+    "also_invited": "あなたも招待されていて、このサーバーではあなたの返答と {name} の返答を区別できません。この招待には {name} 本人が返答する必要があります。",
+    "answered_by": "{who} が返答しました"
+  },
+  "free_busy_share": {
+    "button": "自分の空き時間を {group} と共有",
+    "already": "空き時間は {group} と共有されています",
+    "done": "空き時間を {group} と共有しました。",
+    "error": "空き時間を共有できませんでした。もう一度お試しください。",
+    "group_label": "グループ",
+    "title": "空き時間",
+    "description": "グループのメンバーには予定がある時間だけが見え、予定の内容は見えません。「時間を提案」で使われます。"
+  },
+  "find_time": {
+    "suggest": "時間を提案",
+    "searching": "空いている時間を探しています",
+    "slots_title": "Bulwark が確認できた全員が空いている時間",
+    "slot": "{day} {start}～{end}",
+    "none": "今後 10 営業日に空き時間はありません。",
+    "picked": "予定を {slot} に移動しました",
+    "rate_limited": "直前の 1 分間の照会が多すぎます。1 分後にもう一度お試しください。",
+    "unavailable": "このサーバーでは空き時間情報を利用できないため、Bulwark は時間を提案できません。",
+    "not_checked": "確認できなかった人：",
+    "not_checked_item": "{who}：{reason}",
+    "reason_external": "組織外",
+    "reason_unknown": "予定ありの時間は不明",
+    "reason_not_found": "このサーバーに見つかりません",
+    "reason_error": "確認できませんでした",
+    "unknown_note": "Bulwark が予定ありの時間を確認できるのは、共有されたカレンダーだけです。これらの人については、空いているのか共有されていないのか区別できません。",
+    "directory_off": "Bulwark はこのサーバーで人を検索できません。管理者は Stalwart でディレクトリ照会をオンにできます。",
+    "not_looked_up": "このアドレスを検索できません",
+    "found": "見つかった空き時間：{count}"
+  },
   "share_notifications": {
     "someone": "誰か",
     "shared": "{name} さんが{kind}「{object}」を共有しました",

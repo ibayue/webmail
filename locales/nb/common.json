@@ -4845,6 +4845,51 @@
     "cancelled": "{name} har avlyst «{title}»",
     "untitled": "Hendelse uten tittel"
   },
+  "company_calendars": {
+    "section": "Organisasjon"
+  },
+  "vacation_calendar": {
+    "label": "Blokker kalenderen min",
+    "description": "Legger inn en opptatt-hendelse mens du er borte, så ingen booker møter med deg da.",
+    "no_access_managed": "Kalenderen til denne kontoen kan ikke blokkeres: du har ikke skrivetilgang til den.",
+    "no_calendar": "Kalenderen din kan ikke blokkeres: Bulwark fant ingen kalender å legge hendelsen i.",
+    "filter_warning": "Slår du dette på, slås ditt eget filterskript av så lenge svaret er aktivt."
+  },
+  "calendar_delegate": {
+    "answer_for": "Svar for {name}",
+    "no_write": "Du ser invitasjonene til {name}, men kan ikke svare for dem. Be om redigeringstilgang.",
+    "also_invited": "Du er også invitert, og denne serveren kan ikke skille svaret ditt fra svaret til {name}. {name} må svare på denne selv.",
+    "answered_by": "Besvart av {who}"
+  },
+  "free_busy_share": {
+    "button": "Del min ledig/opptatt med {group}",
+    "already": "Din ledig/opptatt er delt med {group}",
+    "done": "Din ledig/opptatt er nå delt med {group}.",
+    "error": "Kunne ikke dele ledig/opptatt. Prøv igjen.",
+    "group_label": "Gruppe",
+    "title": "Ledig/opptatt",
+    "description": "Kolleger i gruppen ser når du er opptatt, ikke hva hendelsene dine er. Foreslå tidspunkter bruker det."
+  },
+  "find_time": {
+    "suggest": "Foreslå tidspunkter",
+    "searching": "Ser etter ledige tidspunkter",
+    "slots_title": "Ledig for alle Bulwark kunne sjekke",
+    "slot": "{day}, {start} til {end}",
+    "none": "Ingen ledig tid de neste 10 arbeidsdagene.",
+    "picked": "Hendelsen er flyttet til {slot}",
+    "rate_limited": "For mange oppslag det siste minuttet. Prøv igjen om et minutt.",
+    "unavailable": "Ledig/opptatt er ikke tilgjengelig på denne serveren, så Bulwark kan ikke foreslå tidspunkter.",
+    "not_checked": "Ikke sjekket:",
+    "not_checked_item": "{who}: {reason}",
+    "reason_external": "utenfor organisasjonen din",
+    "reason_unknown": "opptatte tider ukjent",
+    "reason_not_found": "ikke funnet på denne serveren",
+    "reason_error": "kunne ikke sjekkes",
+    "unknown_note": "Bulwark ser bare opptatte tider i kalendere som er delt med deg. For disse personene kan den ikke skille ledig fra ikke delt.",
+    "directory_off": "Bulwark kan ikke slå opp personer på denne serveren. Administratoren kan slå på katalogspørringer i Stalwart.",
+    "not_looked_up": "Adressen kunne ikke slås opp",
+    "found": "Ledige tidspunkter funnet: {count}"
+  },
   "share_notifications": {
     "someone": "Noen",
     "shared": "{name} har delt {kind} «{object}» med deg",

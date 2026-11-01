@@ -4845,6 +4845,51 @@
     "cancelled": "{name} ha cancel·lat \"{title}\"",
     "untitled": "Esdeveniment sense títol"
   },
+  "company_calendars": {
+    "section": "Organització"
+  },
+  "vacation_calendar": {
+    "label": "Bloca el meu calendari",
+    "description": "Afegeix un esdeveniment ocupat mentre sou fora, perquè ningú us convoqui a reunions aleshores.",
+    "no_access_managed": "No es pot blocar el calendari d’aquest compte: no hi teniu accés d’escriptura.",
+    "no_calendar": "No es pot blocar el calendari: Bulwark no ha trobat cap calendari on afegir l’esdeveniment.",
+    "filter_warning": "Si ho activeu, el vostre propi script de filtres s’aturarà mentre la resposta estigui activa."
+  },
+  "calendar_delegate": {
+    "answer_for": "Respon en nom de {name}",
+    "no_write": "Podeu veure les invitacions de {name}, però no podeu respondre en nom seu. Demaneu-li accés d’edició.",
+    "also_invited": "També esteu convidat, i aquest servidor no distingeix la vostra resposta de la de {name}. {name} ha de respondre aquesta.",
+    "answered_by": "Resposta de {who}"
+  },
+  "free_busy_share": {
+    "button": "Comparteix la meva disponibilitat amb {group}",
+    "already": "La vostra disponibilitat està compartida amb {group}",
+    "done": "Ara la vostra disponibilitat està compartida amb {group}.",
+    "error": "No s’ha pogut compartir la vostra disponibilitat. Torneu-ho a provar.",
+    "group_label": "Grup",
+    "title": "Disponibilitat",
+    "description": "Els companys del grup veuen quan esteu ocupat, no quins esdeveniments teniu. «Suggereix horaris» ho fa servir."
+  },
+  "find_time": {
+    "suggest": "Suggereix horaris",
+    "searching": "S’estan cercant horaris lliures",
+    "slots_title": "Lliure per a tothom que Bulwark ha pogut comprovar",
+    "slot": "{day}, de {start} a {end}",
+    "none": "No hi ha temps lliure en els propers 10 dies laborables.",
+    "picked": "Esdeveniment mogut a {slot}",
+    "rate_limited": "Massa consultes en l’últim minut. Torneu-ho a provar d’aquí a un minut.",
+    "unavailable": "La disponibilitat no està disponible en aquest servidor, així que Bulwark no pot suggerir horaris.",
+    "not_checked": "No comprovats:",
+    "not_checked_item": "{who}: {reason}",
+    "reason_external": "fora de la vostra organització",
+    "reason_unknown": "hores ocupades desconegudes",
+    "reason_not_found": "no trobat en aquest servidor",
+    "reason_error": "no s’ha pogut comprovar",
+    "unknown_note": "Bulwark només veu les hores ocupades dels calendaris compartits amb vós. Per a aquestes persones no pot distingir lliure de no compartit.",
+    "directory_off": "Bulwark no pot cercar persones en aquest servidor. L’administrador pot activar les consultes de directori a Stalwart.",
+    "not_looked_up": "No s’ha pogut cercar aquesta adreça",
+    "found": "Horaris lliures trobats: {count}"
+  },
   "share_notifications": {
     "someone": "Algú",
     "shared": "{name} ha compartit amb tu {kind} \"{object}\"",

@@ -5283,6 +5283,51 @@
     "cancelled": "{name} atcēla “{title}”",
     "untitled": "Notikums bez nosaukuma"
   },
+  "company_calendars": {
+    "section": "Organizācija"
+  },
+  "vacation_calendar": {
+    "label": "Bloķēt manu kalendāru",
+    "description": "Pievieno aizņemtu notikumu prombūtnes laikam, lai tad neviens neplānotu ar jums sapulces.",
+    "no_access_managed": "Šī konta kalendāru nevar bloķēt: jums nav rakstīšanas piekļuves.",
+    "no_calendar": "Kalendāru nevar bloķēt: Bulwark neatrada kalendāru, kur pievienot notikumu.",
+    "filter_warning": "To ieslēdzot, jūsu filtru skripts ir izslēgts, kamēr atbilde ir aktīva."
+  },
+  "calendar_delegate": {
+    "answer_for": "Atbildēt {name} vārdā",
+    "no_write": "Jūs redzat {name} ielūgumus, bet nevarat atbildēt viņa vārdā. Palūdziet rediģēšanas piekļuvi.",
+    "also_invited": "Arī jūs esat uzaicināts, un šis serveris nevar atšķirt jūsu atbildi no {name} atbildes. Uz šo jāatbild {name}.",
+    "answered_by": "Atbildēja {who}"
+  },
+  "free_busy_share": {
+    "button": "Kopīgot manu brīvs/aizņemts ar {group}",
+    "already": "Jūsu brīvs/aizņemts ir kopīgots ar {group}",
+    "done": "Jūsu brīvs/aizņemts tagad ir kopīgots ar {group}.",
+    "error": "Neizdevās kopīgot brīvs/aizņemts. Mēģiniet vēlreiz.",
+    "group_label": "Grupa",
+    "title": "Brīvs/aizņemts",
+    "description": "Grupas kolēģi redz, kad esat aizņemts, bet ne jūsu notikumus. To izmanto “Ieteikt laikus”."
+  },
+  "find_time": {
+    "suggest": "Ieteikt laikus",
+    "searching": "Meklē brīvus laikus",
+    "slots_title": "Brīvs visiem, kurus Bulwark varēja pārbaudīt",
+    "slot": "{day}, {start} līdz {end}",
+    "none": "Nākamajās 10 darba dienās nav brīva laika.",
+    "picked": "Notikums pārcelts uz {slot}",
+    "rate_limited": "Pēdējā minūtē bija pārāk daudz vaicājumu. Mēģiniet vēlreiz pēc minūtes.",
+    "unavailable": "Šajā serverī nav pieejama brīvs/aizņemts informācija, tāpēc Bulwark nevar ieteikt laikus.",
+    "not_checked": "Nav pārbaudīti:",
+    "not_checked_item": "{who}: {reason}",
+    "reason_external": "ārpus jūsu organizācijas",
+    "reason_unknown": "aizņemtie laiki nav zināmi",
+    "reason_not_found": "šajā serverī nav atrasts",
+    "reason_error": "neizdevās pārbaudīt",
+    "unknown_note": "Bulwark redz aizņemtos laikus tikai kalendāros, kas kopīgoti ar jums. Šiem cilvēkiem tas nevar atšķirt brīvu laiku no nekopīgota kalendāra.",
+    "directory_off": "Bulwark šajā serverī nevar meklēt cilvēkus. Administrators var ieslēgt direktorija vaicājumus Stalwart.",
+    "not_looked_up": "Šo adresi neizdevās atrast",
+    "found": "Atrasti brīvi laiki: {count}"
+  },
   "share_notifications": {
     "someone": "Kāds",
     "shared": "{name} kopīgoja ar jums {kind} “{object}”",

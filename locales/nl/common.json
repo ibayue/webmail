@@ -5283,6 +5283,51 @@
     "cancelled": "{name} heeft \"{title}\" geannuleerd",
     "untitled": "Afspraak zonder titel"
   },
+  "company_calendars": {
+    "section": "Organisatie"
+  },
+  "vacation_calendar": {
+    "label": "Mijn agenda blokkeren",
+    "description": "Zet een bezette afspraak in je agenda voor de tijd dat je weg bent, zodat niemand dan vergaderingen met je plant.",
+    "no_access_managed": "De agenda van dit account kan niet worden geblokkeerd: je hebt er geen schrijfrechten voor.",
+    "no_calendar": "Je agenda kan niet worden geblokkeerd: Bulwark vond geen agenda om de afspraak in te zetten.",
+    "filter_warning": "Als je dit aanzet, staat je eigen filterscript uit zolang het antwoord actief is."
+  },
+  "calendar_delegate": {
+    "answer_for": "Antwoorden namens {name}",
+    "no_write": "Je ziet de uitnodigingen van {name}, maar kunt er niet namens hen op antwoorden. Vraag om bewerkrechten.",
+    "also_invited": "Je bent zelf ook uitgenodigd en deze server kan jouw antwoord niet onderscheiden van dat van {name}. {name} moet deze zelf beantwoorden.",
+    "answered_by": "Beantwoord door {who}"
+  },
+  "free_busy_share": {
+    "button": "Mijn vrij/bezet delen met {group}",
+    "already": "Je vrij/bezet is gedeeld met {group}",
+    "done": "Je vrij/bezet is nu gedeeld met {group}.",
+    "error": "Kon je vrij/bezet niet delen. Probeer het opnieuw.",
+    "group_label": "Groep",
+    "title": "Vrij/bezet",
+    "description": "Collega’s in de groep zien wanneer je bezet bent, niet wat je afspraken zijn. ‘Tijden voorstellen’ gebruikt dit."
+  },
+  "find_time": {
+    "suggest": "Tijden voorstellen",
+    "searching": "Vrije tijden zoeken",
+    "slots_title": "Vrij voor iedereen die Bulwark kon controleren",
+    "slot": "{day}, {start} tot {end}",
+    "none": "Geen vrije tijd in de komende 10 werkdagen.",
+    "picked": "Afspraak verplaatst naar {slot}",
+    "rate_limited": "Te veel opvragingen in de afgelopen minuut. Probeer het over een minuut opnieuw.",
+    "unavailable": "Vrij/bezet is niet beschikbaar op deze server, dus Bulwark kan geen tijden voorstellen.",
+    "not_checked": "Niet gecontroleerd:",
+    "not_checked_item": "{who}: {reason}",
+    "reason_external": "buiten je organisatie",
+    "reason_unknown": "bezette tijden onbekend",
+    "reason_not_found": "niet gevonden op deze server",
+    "reason_error": "kon niet worden gecontroleerd",
+    "unknown_note": "Bulwark ziet bezette tijden alleen in agenda’s die met je zijn gedeeld. Bij deze mensen kan het vrij niet onderscheiden van niet gedeeld.",
+    "directory_off": "Bulwark kan op deze server geen mensen opzoeken. Je beheerder kan directoryquery’s aanzetten in Stalwart.",
+    "not_looked_up": "Dit adres kon niet worden opgezocht",
+    "found": "Vrije tijden gevonden: {count}"
+  },
   "share_notifications": {
     "someone": "Iemand",
     "shared": "{name} heeft {kind} \"{object}\" met je gedeeld",

@@ -5283,6 +5283,51 @@
     "cancelled": "{name} odwołał(a) „{title}”",
     "untitled": "Wydarzenie bez tytułu"
   },
+  "company_calendars": {
+    "section": "Organizacja"
+  },
+  "vacation_calendar": {
+    "label": "Zablokuj mój kalendarz",
+    "description": "Dodaje zajęte wydarzenie na czas Twojej nieobecności, żeby nikt nie umawiał wtedy z Tobą spotkań.",
+    "no_access_managed": "Nie można zablokować kalendarza tego konta: nie masz do niego prawa zapisu.",
+    "no_calendar": "Nie można zablokować kalendarza: Bulwark nie znalazł kalendarza, do którego można dodać wydarzenie.",
+    "filter_warning": "Włączenie tego wyłącza Twój własny skrypt filtrów, dopóki odpowiedź jest aktywna."
+  },
+  "calendar_delegate": {
+    "answer_for": "Odpowiedz w imieniu: {name}",
+    "no_write": "Widzisz zaproszenia użytkownika {name}, ale nie możesz za niego odpowiadać. Poproś o prawo do edycji.",
+    "also_invited": "Też jesteś zaproszony, a ten serwer nie odróżni Twojej odpowiedzi od odpowiedzi {name}. Na to zaproszenie musi odpowiedzieć {name}.",
+    "answered_by": "Odpowiedź od: {who}"
+  },
+  "free_busy_share": {
+    "button": "Udostępnij moją dostępność grupie {group}",
+    "already": "Twoja dostępność jest udostępniona grupie {group}",
+    "done": "Twoja dostępność jest teraz udostępniona grupie {group}.",
+    "error": "Nie udało się udostępnić dostępności. Spróbuj ponownie.",
+    "group_label": "Grupa",
+    "title": "Dostępność",
+    "description": "Współpracownicy z grupy widzą, kiedy jesteś zajęty, ale nie widzą Twoich wydarzeń. Korzysta z tego funkcja proponowania terminów."
+  },
+  "find_time": {
+    "suggest": "Zaproponuj terminy",
+    "searching": "Szukanie wolnych terminów",
+    "slots_title": "Wolne dla wszystkich, których Bulwark mógł sprawdzić",
+    "slot": "{day}, od {start} do {end}",
+    "none": "Brak wolnego czasu w ciągu najbliższych 10 dni roboczych.",
+    "picked": "Wydarzenie przeniesione na {slot}",
+    "rate_limited": "Za dużo zapytań w ostatniej minucie. Spróbuj ponownie za minutę.",
+    "unavailable": "Informacje o dostępności nie są dostępne na tym serwerze, więc Bulwark nie może zaproponować terminów.",
+    "not_checked": "Nie sprawdzono:",
+    "not_checked_item": "{who}: {reason}",
+    "reason_external": "spoza Twojej organizacji",
+    "reason_unknown": "zajęte terminy nieznane",
+    "reason_not_found": "nie znaleziono na tym serwerze",
+    "reason_error": "nie udało się sprawdzić",
+    "unknown_note": "Bulwark widzi zajęte terminy tylko w kalendarzach udostępnionych Tobie. U tych osób nie odróżni wolnego czasu od braku udostępnienia.",
+    "directory_off": "Bulwark nie może wyszukiwać osób na tym serwerze. Administrator może włączyć zapytania do katalogu w Stalwart.",
+    "not_looked_up": "Nie udało się wyszukać adresu",
+    "found": "Znalezione wolne terminy: {count}"
+  },
   "share_notifications": {
     "someone": "Ktoś",
     "shared": "{name} udostępnił(a) Ci {kind} „{object}”",

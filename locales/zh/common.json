@@ -5283,6 +5283,51 @@
     "cancelled": "{name} 取消了“{title}”",
     "untitled": "无标题活动"
   },
+  "company_calendars": {
+    "section": "组织"
+  },
+  "vacation_calendar": {
+    "label": "占用我的日历",
+    "description": "在你外出期间添加一个忙碌活动，这样别人不会在这段时间约你开会。",
+    "no_access_managed": "无法占用此账户的日历：你没有写入权限。",
+    "no_calendar": "无法占用你的日历：Bulwark 找不到可以添加活动的日历。",
+    "filter_warning": "开启后，在自动回复生效期间你自己的过滤脚本会被关闭。"
+  },
+  "calendar_delegate": {
+    "answer_for": "代表 {name} 回复",
+    "no_write": "你能看到 {name} 的邀请，但不能代为回复。请向对方申请编辑权限。",
+    "also_invited": "你也被邀请了，此服务器无法区分你和 {name} 的回复。这一项需要 {name} 自己回复。",
+    "answered_by": "由 {who} 回复"
+  },
+  "free_busy_share": {
+    "button": "与 {group} 共享我的忙闲时间",
+    "already": "你的忙闲时间已与 {group} 共享",
+    "done": "你的忙闲时间现已与 {group} 共享。",
+    "error": "无法共享你的忙闲时间，请重试。",
+    "group_label": "群组",
+    "title": "忙闲",
+    "description": "群组中的同事能看到你何时忙碌，看不到活动内容。“建议时间”会用到它。"
+  },
+  "find_time": {
+    "suggest": "建议时间",
+    "searching": "正在查找空闲时间",
+    "slots_title": "Bulwark 能查到的所有人都有空",
+    "slot": "{day} {start} 至 {end}",
+    "none": "未来 10 个工作日内没有空闲时间。",
+    "picked": "活动已移到 {slot}",
+    "rate_limited": "过去一分钟内查询过多，请一分钟后再试。",
+    "unavailable": "此服务器不提供忙闲信息，Bulwark 无法建议时间。",
+    "not_checked": "未检查：",
+    "not_checked_item": "{who}：{reason}",
+    "reason_external": "组织外部",
+    "reason_unknown": "忙碌时间未知",
+    "reason_not_found": "在此服务器上找不到",
+    "reason_error": "无法检查",
+    "unknown_note": "Bulwark 只能看到与你共享的日历中的忙碌时间。对这些人，它无法区分有空和未共享。",
+    "directory_off": "Bulwark 无法在此服务器上查找用户。管理员可以在 Stalwart 中开启目录查询。",
+    "not_looked_up": "无法查找此地址",
+    "found": "找到的空闲时间：{count}"
+  },
   "share_notifications": {
     "someone": "有人",
     "shared": "{name} 与您共享了{kind}“{object}”",

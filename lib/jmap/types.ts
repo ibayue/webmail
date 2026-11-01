@@ -676,6 +676,9 @@ export interface Calendar {
   // hidden from the event calendar UI while remaining available to the tasks
   // view (#761). Undefined means "not determined" (treated as not tasks-only).
   isTasksOnly?: boolean;
+  // A company calendar the admin set (lib/company-calendars.ts): a read-only
+  // calendar that exists only in the browser.
+  isCompany?: boolean;
 }
 
 /**
@@ -778,6 +781,11 @@ export interface CalendarParticipant {
   scheduleStatus: string[] | null;
   scheduleUpdated: string | null;
   invitedBy: string | null;
+  /**
+   * Who answered for this participant (RFC 5545 SENT-BY), as a
+   * `mailto:` address. Set when a delegate answers for the calendar's owner.
+   */
+  sentBy?: string | null;
   delegatedTo: Record<string, boolean> | null;
   delegatedFrom: Record<string, boolean> | null;
   memberOf: Record<string, boolean> | null;

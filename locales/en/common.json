@@ -4845,6 +4845,51 @@
     "cancelled": "{name} cancelled \"{title}\"",
     "untitled": "Untitled event"
   },
+  "company_calendars": {
+    "section": "Organisation"
+  },
+  "vacation_calendar": {
+    "label": "Block my calendar",
+    "description": "Adds a busy event for the time you’re away, so nobody books meetings with you then.",
+    "no_access_managed": "The calendar of this account can’t be blocked: you don’t have write access to it.",
+    "no_calendar": "Your calendar can’t be blocked: Bulwark found no calendar to add the event to.",
+    "filter_warning": "Turning this on switches off your own filter script while the reply is active."
+  },
+  "calendar_delegate": {
+    "answer_for": "Answer for {name}",
+    "no_write": "You can see {name}’s invitations but can’t answer for them. Ask them for edit access.",
+    "also_invited": "You’re invited too, and this server can’t tell your answer from {name}’s. {name} has to answer this one.",
+    "answered_by": "Answered by {who}"
+  },
+  "free_busy_share": {
+    "button": "Share my free/busy with {group}",
+    "already": "Your free/busy is shared with {group}",
+    "done": "Your free/busy is now shared with {group}.",
+    "error": "Couldn’t share your free/busy. Try again.",
+    "group_label": "Group",
+    "title": "Free/busy",
+    "description": "Colleagues in the group see when you’re busy, not what your events are. Suggest times uses it."
+  },
+  "find_time": {
+    "suggest": "Suggest times",
+    "searching": "Looking for free times",
+    "slots_title": "Free for everyone Bulwark could check",
+    "slot": "{day}, {start} to {end}",
+    "none": "No free time in the next 10 working days.",
+    "picked": "Event moved to {slot}",
+    "rate_limited": "Too many lookups in the last minute. Try again in a minute.",
+    "unavailable": "Free/busy isn’t available on this server, so Bulwark can’t suggest times.",
+    "not_checked": "Not checked:",
+    "not_checked_item": "{who}: {reason}",
+    "reason_external": "outside your organisation",
+    "reason_unknown": "busy times unknown",
+    "reason_not_found": "not found on this server",
+    "reason_error": "couldn’t be checked",
+    "unknown_note": "Bulwark only sees busy times in calendars shared with you. For these people it can’t tell free from not shared.",
+    "directory_off": "Bulwark can’t look up people on this server. Your administrator can turn on directory queries in Stalwart.",
+    "not_looked_up": "Couldn’t look up this address",
+    "found": "Free times found: {count}"
+  },
   "share_notifications": {
     "someone": "Someone",
     "shared": "{name} shared the {kind} \"{object}\" with you",

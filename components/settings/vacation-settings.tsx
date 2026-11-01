@@ -18,6 +18,7 @@ import { isValidEmail } from '@/lib/validation';
 import { Loader2, AlertTriangle, Eye, EyeOff, Check } from '@/components/icons';
 import { toast } from '@/stores/toast-store';
 import { cn } from '@/lib/utils';
+import { VacationCalendarBlock, VacationFilterWarning } from './vacation-calendar-block';
 
 const STALWART_VACATION_LIMITS = { subject: 511, body: 2047 };
 
@@ -455,6 +456,7 @@ export function VacationSettings() {
           />
         </SettingItem>
         <FieldMessage id="vacation-to-error" text={toError} />
+        <VacationCalendarBlock hasDates={!!fromInput && !!toInput} accountId={managedAccountId ?? undefined} />
       </SettingsSection>
 
       <SettingsSection id="reply" title={t('auto_reply.title')} description={t('status.description')}>
@@ -466,6 +468,7 @@ export function VacationSettings() {
             inactiveLabel={t('status.inactive')}
           />
         </SettingItem>
+        {!localEnabled && <VacationFilterWarning accountId={managedAccountId ?? undefined} />}
         {canNarrow && (
           <SettingItem
             label={t('audience.label')}
