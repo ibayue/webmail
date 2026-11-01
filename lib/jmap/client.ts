@@ -6808,8 +6808,12 @@ export class JMAPClient implements IJMAPClient {
     return this.hasCapability("urn:ietf:params:jmap:quota");
   }
 
+  /**
+   * Stalwart keeps vacationresponse in the session-wide capabilities but drops
+   * it from the account's own when the user lacks the permission (#1488).
+   */
   supportsVacationResponse(): boolean {
-    return this.hasCapability("urn:ietf:params:jmap:vacationresponse");
+    return this.accountSupports(this.accountId, "urn:ietf:params:jmap:vacationresponse");
   }
 
   /**
