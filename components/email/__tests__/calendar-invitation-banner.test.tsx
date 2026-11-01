@@ -588,6 +588,31 @@ describe('CalendarInvitationBanner', () => {
     expect(await screen.findByText('Response sent')).toBeInTheDocument();
   });
 
+  it("answers on the user's own copy, not on a copy in a calendar shared with them (#634)", async () => {
+    const participants = {
+      user: { '@type': 'Participant', email: 'user@example.com', name: 'User', roles: { attendee: true }, participationStatus: 'needs-action' },
+      boss: { '@type': 'Participant', email: 'boss@example.com', name: 'Boss', roles: { attendee: true }, participationStatus: 'needs-action' },
+    };
+    // The boss shared their calendar with the user, and both are invited:
+    // the copy in the boss's calendar is in the store first.
+    mocks.calendarState.events = [
+      { id: 'boss:event-9', uid: 'uid-9', start: '2026-03-30T09:00:00Z', participants, isShared: true, accountId: 'boss' },
+      { id: 'event-9', uid: 'uid-9', start: '2026-03-30T09:00:00Z', participants },
+    ];
+    mocks.clientMock.parseCalendarEvents.mockResolvedValue([
+      { uid: 'uid-9', title: 'Both invited', start: '2026-03-30T09:00:00Z', participants },
+    ]);
+    mocks.calendarState.rsvpEvent.mockResolvedValue(true);
+
+    render(<CalendarInvitationBanner email={makeEmail({ id: 'email-9' })} />);
+
+    fireEvent.click(await screen.findByText('Accept'));
+
+    await waitFor(() => {
+      expect(mocks.calendarState.rsvpEvent).toHaveBeenCalledWith(mocks.clientMock, 'event-9', 'user', 'accepted', null);
+    });
+  });
+
   it('says nothing was sent when a plugin stops the answer', async () => {
     mocks.calendarState.events = [
       {

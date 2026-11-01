@@ -5283,6 +5283,12 @@
     "cancelled": "{name} hat „{title}“ abgesagt",
     "untitled": "Unbenannter Termin"
   },
+  "calendar_delegate": {
+    "answer_for": "Für {name} antworten",
+    "no_write": "Sie sehen die Einladungen von {name}, können aber nicht dafür antworten. Bitten Sie um Bearbeitungszugriff.",
+    "also_invited": "Sie sind ebenfalls eingeladen, und dieser Server kann Ihre Antwort nicht von der von {name} unterscheiden. {name} muss hier selbst antworten.",
+    "answered_by": "Beantwortet von {who}"
+  },
   "free_busy_share": {
     "button": "Meine Frei/Gebucht-Zeiten für {group} freigeben",
     "already": "Ihre Frei/Gebucht-Zeiten sind für {group} freigegeben",

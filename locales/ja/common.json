@@ -5283,6 +5283,12 @@
     "cancelled": "{name} さんが「{title}」をキャンセルしました",
     "untitled": "無題の予定"
   },
+  "calendar_delegate": {
+    "answer_for": "{name} の代わりに返答",
+    "no_write": "{name} の招待は見られますが、代わりに返答することはできません。編集権限を依頼してください。",
+    "also_invited": "あなたも招待されていて、このサーバーではあなたの返答と {name} の返答を区別できません。この招待には {name} 本人が返答する必要があります。",
+    "answered_by": "{who} が返答しました"
+  },
   "free_busy_share": {
     "button": "自分の空き時間を {group} と共有",
     "already": "空き時間は {group} と共有されています",

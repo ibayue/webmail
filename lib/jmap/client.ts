@@ -7314,6 +7314,30 @@ export class JMAPClient implements IJMAPClient {
   }
 
   /**
+   * The principals behind accounts, by account id: who owns a calendar shared
+   * with the user, with their name and address. Principal/get answers for
+   * accounts the user can access even with directory queries off. A failed
+   * request gives an empty answer.
+   */
+  async getAccountOwners(ids: string[]): Promise<Record<string, Principal>> {
+    if (!this.supportsPrincipals() || ids.length === 0) return {};
+    try {
+      const response = await this.request([
+        ["Principal/get", { accountId: this.accountId, ids, properties: ["id", "type", "name", "description", "email"] }, "0"],
+      ], this.principalsUsing());
+      const [method, result] = response.methodResponses?.[0] ?? [];
+      if (method !== "Principal/get") return {};
+      const owners: Record<string, Principal> = {};
+      for (const principal of (result as { list?: Principal[] }).list ?? []) {
+        if (principal.id) owners[principal.id] = principal;
+      }
+      return owners;
+    } catch {
+      return {};
+    }
+  }
+
+  /**
    * Accounts whose metadata request failed, with when: not asked again for
    * ten minutes. A dropped connection (the pre-release 1.0 build) looks the
    * same as a network blip, so the pause is not for the whole session.

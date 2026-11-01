@@ -4845,6 +4845,12 @@
     "cancelled": "ألغى {name} \"{title}\"",
     "untitled": "حدث بدون عنوان"
   },
+  "calendar_delegate": {
+    "answer_for": "الرد نيابةً عن {name}",
+    "no_write": "يمكنك رؤية دعوات {name} لكن لا يمكنك الرد عليها. اطلب صلاحية التعديل.",
+    "also_invited": "أنت مدعو أيضًا، ولا يستطيع هذا الخادم التمييز بين ردك ورد {name}. على {name} الرد على هذه الدعوة.",
+    "answered_by": "ردّ عليها {who}"
+  },
   "free_busy_share": {
     "button": "مشاركة أوقات توفري مع {group}",
     "already": "أوقات توفرك مشتركة مع {group}",

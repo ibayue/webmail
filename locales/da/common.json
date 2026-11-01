@@ -4845,6 +4845,12 @@
     "cancelled": "{name} har aflyst \"{title}\"",
     "untitled": "Unavngivet begivenhed"
   },
+  "calendar_delegate": {
+    "answer_for": "Svar for {name}",
+    "no_write": "Du kan se invitationerne til {name}, men kan ikke svare for dem. Bed om redigeringsadgang.",
+    "also_invited": "Du er også inviteret, og denne server kan ikke skelne dit svar fra svaret fra {name}. {name} skal selv svare på denne.",
+    "answered_by": "Besvaret af {who}"
+  },
   "free_busy_share": {
     "button": "Del min ledig/optaget med {group}",
     "already": "Din ledig/optaget er delt med {group}",

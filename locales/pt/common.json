@@ -5283,6 +5283,12 @@
     "cancelled": "{name} cancelou \"{title}\"",
     "untitled": "Evento sem título"
   },
+  "calendar_delegate": {
+    "answer_for": "Responder por {name}",
+    "no_write": "Pode ver os convites de {name}, mas não responder por essa pessoa. Peça acesso de edição.",
+    "also_invited": "Também foi convidado e este servidor não distingue a sua resposta da de {name}. {name} tem de responder a esta.",
+    "answered_by": "Respondido por {who}"
+  },
   "free_busy_share": {
     "button": "Partilhar a minha disponibilidade com {group}",
     "already": "A sua disponibilidade está partilhada com {group}",

@@ -4845,6 +4845,12 @@
     "cancelled": "{name} cancelled \"{title}\"",
     "untitled": "Untitled event"
   },
+  "calendar_delegate": {
+    "answer_for": "Answer for {name}",
+    "no_write": "You can see {name}’s invitations but can’t answer for them. Ask them for edit access.",
+    "also_invited": "You’re invited too, and this server can’t tell your answer from {name}’s. {name} has to answer this one.",
+    "answered_by": "Answered by {who}"
+  },
   "free_busy_share": {
     "button": "Share my free/busy with {group}",
     "already": "Your free/busy is shared with {group}",

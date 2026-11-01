@@ -572,8 +572,12 @@ export function CalendarInvitationBanner({ email }: CalendarInvitationBannerProp
   const allowsRsvp = method === 'request';
   const allowsImport = method === 'request' || method === 'publish' || method === 'add' || method === 'unknown';
 
+  // The user's own copy: a calendar shared with them by someone invited too
+  // holds that person's copy under the same uid, and answering there would
+  // answer for them (or, on Stalwart 0.16, for whichever address it picks;
+  // the duplicate attendees and wrong senders of #634).
   const existingEvent = parsedEvent?.uid
-    ? storeEvents.find((e) => e.uid === parsedEvent.uid)
+    ? storeEvents.find((e) => e.uid === parsedEvent.uid && !e.isShared)
     : null;
 
   const currentUserParticipant = existingEvent

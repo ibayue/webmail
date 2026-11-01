@@ -778,6 +778,11 @@ export interface CalendarParticipant {
   scheduleStatus: string[] | null;
   scheduleUpdated: string | null;
   invitedBy: string | null;
+  /**
+   * Who answered for this participant (RFC 5545 SENT-BY), as a
+   * `mailto:` address. Set when a delegate answers for the calendar's owner.
+   */
+  sentBy?: string | null;
   delegatedTo: Record<string, boolean> | null;
   delegatedFrom: Record<string, boolean> | null;
   memberOf: Record<string, boolean> | null;

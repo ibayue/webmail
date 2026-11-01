@@ -4845,6 +4845,12 @@
     "cancelled": "{name} tühistas sündmuse \"{title}\"",
     "untitled": "Nimetu sündmus"
   },
+  "calendar_delegate": {
+    "answer_for": "Vasta isiku {name} eest",
+    "no_write": "Näed isiku {name} kutseid, aga ei saa tema eest vastata. Küsi temalt muutmisõigust.",
+    "also_invited": "Oled samuti kutsutud ja see server ei erista sinu vastust isiku {name} vastusest. Sellele peab vastama {name}.",
+    "answered_by": "Vastas {who}"
+  },
   "free_busy_share": {
     "button": "Jaga minu vaba/hõivatud aega grupiga {group}",
     "already": "Sinu vaba/hõivatud aeg on jagatud grupiga {group}",

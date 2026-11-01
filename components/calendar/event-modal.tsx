@@ -9,7 +9,7 @@ import { LinkifiedText } from "@/components/ui/linkified-text";
 import { X, Trash2, Users, CalendarDays, CopyPlus, Pencil, Clock, MapPin, Video, Repeat, Bell, AlignLeft, AlertTriangle, MoreVertical } from "@/components/icons";
 import { IconButton } from "@/components/ui/icon-button";
 import { findMeetingLink, locationAction, mapsUrl, primaryLocationName } from "@/lib/event-links";
-import { ParticipantStatusBadge, RsvpButtons } from "./rsvp-buttons";
+import { ParticipantStatusBadge } from "./rsvp-buttons";
 import { format, parseISO, addHours, isSameDay } from "date-fns";
 import type { CalendarEvent, Calendar, CalendarParticipant, CalendarEventAlert, CalendarRecurrenceRule } from "@/lib/jmap/types";
 import { AlertListEditor, AlertSummary, formatEventAlertsLabel } from "./alert-list-editor";
@@ -22,10 +22,11 @@ import { createRecurrenceRule, sameRecurrenceRules } from "@/lib/recurrence-rule
 import { ParticipantInput, type ParticipantInputHandle } from "./participant-input";
 import { ParticipantAvailability } from "./participant-availability";
 import { FindATime } from "./find-a-time";
+import { AnswerBars, useAnswerView } from "./answer-bars";
+import type { AnswerTarget } from "@/lib/calendar-delegate";
 import {
   eventOrganizer,
   getUserParticipantId,
-  getUserStatus,
   getParticipantList,
   getStatusCounts,
   participantFieldsToSave,
@@ -79,7 +80,8 @@ interface EventModalProps {
   onSave: (data: Partial<CalendarEvent>, sendSchedulingMessages?: boolean, editor?: EventEditorState) => void | Promise<void>;
   onDelete?: (id: string, sendSchedulingMessages?: boolean) => void;
   onDuplicate?: (data: Partial<CalendarEvent>) => void;
-  onRsvp?: (eventId: string, participantId: string, status: CalendarParticipant['participationStatus']) => void;
+  /** `sentBy`: answering for the calendar's owner (lib/calendar-delegate.ts). */
+  onRsvp?: (eventId: string, participantId: string, status: CalendarParticipant['participationStatus'], sentBy?: string) => void;
   onClose: () => void;
   onPreviewChange?: (preview: PendingEventPreview | null) => void;
   /** Opens the event's action menu (export, copy, ...) under the ⋮ of the event view. */
@@ -329,11 +331,6 @@ export function EventModal({
   const userParticipantId = useMemo(() => {
     if (!event) return null;
     return getUserParticipantId(event, currentUserEmails);
-  }, [event, currentUserEmails]);
-
-  const userCurrentStatus = useMemo(() => {
-    if (!event) return null;
-    return getUserStatus(event, currentUserEmails);
   }, [event, currentUserEmails]);
 
   const existingParticipants = useMemo(() => {
@@ -936,11 +933,18 @@ export function EventModal({
     }
   }, [title, description, location, virtualLocation, startDate, startTime, endDate, endTime, allDay, calendarId, calendars, recurrence, customRule, useDefaultAlerts, defaultAlerts, alertRows, preservedAlerts, attendees, initialAttendees, sendInvitations, currentUserEmails, userIsOrganizer, resolveContactName, event, onSave, isSaving, t]);
 
-  const handleRsvp = useCallback((status: CalendarParticipant['participationStatus']) => {
-    if (!event || !userParticipantId || !onRsvp) return;
-    onRsvp(event.id, userParticipantId, status);
+  // The user's own answer, and the owner's in a calendar shared with them
+  // (lib/calendar-delegate.ts).
+  const eventCalendar = useMemo(
+    () => (event ? calendars.find((c) => event.calendarIds?.[c.id]) ?? null : null),
+    [event, calendars],
+  );
+  const answerView = useAnswerView(event ?? null, eventCalendar, currentUserEmails, canRsvp && !!userParticipantId);
+  const handleAnswer = useCallback((target: AnswerTarget, status: CalendarParticipant['participationStatus']) => {
+    if (!onRsvp) return;
+    onRsvp(target.eventId, target.participantId, status, target.sentBy);
     onClose();
-  }, [event, userParticipantId, onRsvp, onClose]);
+  }, [onRsvp, onClose]);
 
   const handleDuplicate = useCallback(() => {
     if (!event || !onDuplicate) return;
@@ -1195,10 +1199,12 @@ export function EventModal({
           The viewer owes a reply but may also edit their own copy,
           so the rsvp-only branch above does not apply to this event.
         */}
-        {canRsvp && onRsvp && userParticipantId && (
-          <div className="px-6 py-3 border-t border-border flex-shrink-0">
-          <RsvpBar status={userCurrentStatus} onRespond={handleRsvp} t={t} />
-          </div>
+        {onRsvp && (
+          <AnswerBars
+            view={answerView}
+            className="px-6 py-3 border-t border-border flex-shrink-0 empty:hidden"
+            onRespond={handleAnswer}
+          />
         )}
 
         {/* Action Bar */}
@@ -1591,24 +1597,6 @@ export function EventModal({
         </div>
       </div>
       <ConfirmDialog {...discardDialogProps} />
-    </div>
-  );
-}
-
-/**
- * The accept / tentative / decline row. Shared by the rsvp-only view and by the
- * read-only view that an *editable* received invite lands in - the latter is the
- * case that had no way to answer an invite at all (#937).
- */
-function RsvpBar({ status, onRespond, t }: {
-  status: CalendarParticipant['participationStatus'] | null;
-  onRespond: (status: CalendarParticipant['participationStatus']) => void;
-  t: ReturnType<typeof useTranslations>;
-}) {
-  return (
-    <div className="flex items-center justify-between gap-2 flex-wrap">
-      <span className="text-sm font-medium">{t("participants.rsvp_label")}</span>
-      <RsvpButtons status={status} onRespond={onRespond} />
     </div>
   );
 }

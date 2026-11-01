@@ -5283,6 +5283,12 @@
     "cancelled": "{name} zrušil(a) „{title}“",
     "untitled": "Událost bez názvu"
   },
+  "calendar_delegate": {
+    "answer_for": "Odpovědět za: {name}",
+    "no_write": "Vidíte pozvánky uživatele {name}, ale nemůžete za něj odpovídat. Požádejte o přístup k úpravám.",
+    "also_invited": "Jste pozváni také a tento server nerozliší vaši odpověď od odpovědi uživatele {name}. Na tuto musí odpovědět {name}.",
+    "answered_by": "Odpověděl(a): {who}"
+  },
   "free_busy_share": {
     "button": "Sdílet můj volný čas se skupinou {group}",
     "already": "Váš volný čas je sdílen se skupinou {group}",

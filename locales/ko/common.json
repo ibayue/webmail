@@ -5283,6 +5283,12 @@
     "cancelled": "{name}님이 \"{title}\"을(를) 취소했습니다",
     "untitled": "제목 없는 일정"
   },
+  "calendar_delegate": {
+    "answer_for": "{name} 대신 응답",
+    "no_write": "{name}의 초대는 볼 수 있지만 대신 응답할 수는 없습니다. 편집 권한을 요청하세요.",
+    "also_invited": "나도 초대되어 있어 이 서버는 내 응답과 {name}의 응답을 구분하지 못합니다. 이 초대는 {name}이(가) 직접 응답해야 합니다.",
+    "answered_by": "{who}이(가) 응답함"
+  },
   "free_busy_share": {
     "button": "내 일정 가능 여부를 {group}과(와) 공유",
     "already": "일정 가능 여부가 {group}과(와) 공유되어 있습니다",

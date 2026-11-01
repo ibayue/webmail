@@ -77,6 +77,7 @@ import { SchedulingDeniedError } from "@/lib/jmap/scheduling-error";
 import { CreateCalendarModal } from "@/components/calendar/create-calendar-modal";
 import { CalendarSidebarHeader } from "@/components/calendar/calendar-sidebar-header";
 import { getUserParticipantId, collectUserCalendarAddresses, userOrganizes, getParticipantList } from "@/lib/calendar-participants";
+import type { AnswerTarget } from "@/lib/calendar-delegate";
 import type { MoveEventHandler } from "@/hooks/use-time-grid-interactions";
 import type { RevealTime } from "@/hooks/use-display-hours";
 import { generateBirthdayEvents, createBirthdayCalendar, BIRTHDAY_CALENDAR_ID } from "@/lib/birthday-calendar";
@@ -123,7 +124,7 @@ import { requestPrint, usePrintStore } from "@/stores/print-store";
 type PendingScopeAction =
   | { type: "edit"; event: CalendarEvent; updates: Partial<CalendarEvent>; editor?: EventEditorState; sendScheduling?: boolean; fromEditor?: boolean }
   | { type: "delete"; event: CalendarEvent; sendScheduling?: boolean; fromEditor?: boolean }
-  | { type: "rsvp"; event: CalendarEvent; participantId: string; status: CalendarParticipant["participationStatus"] };
+  | { type: "rsvp"; event: CalendarEvent; participantId: string; status: CalendarParticipant["participationStatus"]; sentBy?: string };
 
 function isRecurringEvent(event: CalendarEvent): boolean {
   return (event.recurrenceRules?.length ?? 0) > 0 || event.recurrenceId != null;
@@ -1353,10 +1354,11 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
     participantId: string,
     status: CalendarParticipant['participationStatus'],
     scope: 'occurrence' | 'series' = 'series',
+    sentBy?: string,
   ) => {
     if (!client) return;
     try {
-      if (await rsvpEvent(client, eventId, participantId, status, undefined, scope)) toast.success(t("notifications.rsvp_updated"));
+      if (await rsvpEvent(client, eventId, participantId, status, undefined, scope, sentBy ? { sentBy } : undefined)) toast.success(t("notifications.rsvp_updated"));
     } catch (error) {
       toast.error(describeError(error, t("notifications.rsvp_error")));
     }
@@ -1365,9 +1367,9 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
   const handleScopeSelect = useCallback(async (scope: RecurrenceEditScope) => {
     if (!client || !pendingScopeAction) { toast.error(t("notifications.event_error")); return; }
     if (pendingScopeAction.type === "rsvp") {
-      const { event, participantId, status } = pendingScopeAction;
+      const { event, participantId, status, sentBy } = pendingScopeAction;
       setPendingScopeAction(null);
-      await submitRsvp(event.id, participantId, status, scope === "this" ? "occurrence" : "series");
+      await submitRsvp(event.id, participantId, status, scope === "this" ? "occurrence" : "series", sentBy);
       return;
     }
     const { type, event, sendScheduling, fromEditor } = pendingScopeAction;
@@ -1473,16 +1475,16 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
     });
   }, [client, updateEvent, resolveContactName, describeError, t]);
 
-  const handleRsvp = useCallback(async (eventId: string, participantId: string, status: CalendarParticipant['participationStatus']) => {
+  const handleRsvp = useCallback(async (eventId: string, participantId: string, status: CalendarParticipant['participationStatus'], sentBy?: string) => {
     if (!client) return;
     // An answer on one occurrence of a series asks whether it covers just
     // that occurrence or the whole series (#1086).
     const occurrence = events.find(e => e.id === eventId && e.recurrenceId != null);
     if (occurrence) {
-      setPendingScopeAction({ type: "rsvp", event: occurrence, participantId, status });
+      setPendingScopeAction({ type: "rsvp", event: occurrence, participantId, status, sentBy });
       return;
     }
-    await submitRsvp(eventId, participantId, status);
+    await submitRsvp(eventId, participantId, status, "series", sentBy);
   }, [client, events, submitRsvp]);
 
   const handleDeleteFromDetail = useCallback(() => {
@@ -1571,12 +1573,14 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
     handleDeleteEvent(event.id, hasParticipants || undefined);
   }, [handleDeleteEvent]);
 
-  const handleRsvpFromDetail = useCallback(async (status: CalendarParticipant['participationStatus']) => {
+  const handleRsvpFromDetail = useCallback(async (status: CalendarParticipant['participationStatus'], target?: AnswerTarget) => {
     if (!detailEvent || !client) return;
-    const participantId = getUserParticipantId(detailEvent, currentUserEmails);
+    // A target names the event and participant: the owner's in a calendar
+    // shared with the user, or the user's own copy (lib/calendar-delegate.ts).
+    const participantId = target?.participantId ?? getUserParticipantId(detailEvent, currentUserEmails);
     if (!participantId) return;
     closeDetail();
-    await handleRsvp(detailEvent.id, participantId, status);
+    await handleRsvp(target?.eventId ?? detailEvent.id, participantId, status, target?.sentBy);
   }, [detailEvent, client, currentUserEmails, closeDetail, handleRsvp]);
 
   // `/` and the palette's "Search events" go to the search box.

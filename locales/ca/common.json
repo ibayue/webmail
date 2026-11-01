@@ -4845,6 +4845,12 @@
     "cancelled": "{name} ha cancel·lat \"{title}\"",
     "untitled": "Esdeveniment sense títol"
   },
+  "calendar_delegate": {
+    "answer_for": "Respon en nom de {name}",
+    "no_write": "Podeu veure les invitacions de {name}, però no podeu respondre en nom seu. Demaneu-li accés d’edició.",
+    "also_invited": "També esteu convidat, i aquest servidor no distingeix la vostra resposta de la de {name}. {name} ha de respondre aquesta.",
+    "answered_by": "Resposta de {who}"
+  },
   "free_busy_share": {
     "button": "Comparteix la meva disponibilitat amb {group}",
     "already": "La vostra disponibilitat està compartida amb {group}",
