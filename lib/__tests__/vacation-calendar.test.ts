@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  blockTimes, decideBlock, ownFilterScriptStops, effectiveBlockSetting, eventSpan, isoDuration, oooUid, resetVacationCalendarSync,
+  blockTimes, decideBlock, ownFilterScriptStops, resolveBlockSetting, effectiveBlockSetting, eventSpan, isoDuration, oooUid, resetVacationCalendarSync,
   syncVacationBlock, vacationReplyLoaded, vacationReplySaved, type DecisionInput,
 } from '../vacation-calendar';
 import { useSettingsStore } from '@/stores/settings-store';
@@ -229,5 +229,82 @@ describe('ownFilterScriptStops', () => {
     expect(await ownFilterScriptStops(sieve([{ name: 'filters', isActive: true, content: own }]))).toBe(false);
     expect(await ownFilterScriptStops(sieve([{ name: 'filters', isActive: true, content: own }], ['fileinto']))).toBe(true);
     expect(await ownFilterScriptStops(sieve([{ name: 'vacation', isActive: true, content: '' }]))).toBe(false);
+  });
+});
+
+describe('whose event it is without this device\'s record', () => {
+  it('follows the reply\'s previous dates: switched off or moved on another device or by a delegate', () => {
+    const event = span(last.start, last.end);
+    const previous = { fromDate: '2026-12-01T08:00:00Z', toDate: '2026-12-05T17:00:00Z' };
+    expect(decideBlock(input({ reply: reply({ isEnabled: false }), event, previous }))).toEqual({ action: 'destroy' });
+    expect(decideBlock(input({ reply: reply({ toDate: '2026-12-08T17:00:00Z' }), event, previous })).action).toBe('update');
+    // Someone moved the event before: neither the record nor the old dates match.
+    expect(decideBlock(input({ reply: reply({ isEnabled: false }), event: span('2026-12-02T08:00:00Z', '2026-12-03T08:00:00Z'), previous })))
+      .toEqual({ action: 'none' });
+  });
+
+  it('takes a marked event as its own when the reply is loaded on a device with no record', () => {
+    const event = span(last.start, last.end);
+    expect(decideBlock(input({ reply: reply({ toDate: '2026-12-08T17:00:00Z' }), event, marked: true, trigger: 'load' })).action).toBe('update');
+    expect(decideBlock(input({ reply: reply({ toDate: '2026-12-08T17:00:00Z' }), event, marked: false, trigger: 'load' }))).toEqual({ action: 'none' });
+    expect(decideBlock(input({ reply: reply({ toDate: '2026-12-08T17:00:00Z' }), event, marked: true, trigger: 'save' }))).toEqual({ action: 'none' });
+  });
+
+  it('marks the event it creates and keeps the mark when it moves it', async () => {
+    useSettingsStore.setState({ vacationBlockCalendar: true, vacationCalendarBlocks: {}, timeZone: 'Europe/Berlin' });
+    const client = fakeClient(null);
+    await syncVacationBlock(client, undefined, reply(), 'save', NOW);
+    expect(client.createCalendarEvent.mock.calls[0][0]).toMatchObject({ keywords: { 'bulwark-out-of-office': true } });
+    // Another device, no record: the reply\'s old dates make the event ours.
+    useSettingsStore.setState({ vacationCalendarBlocks: {} });
+    const ours = { id: 'e1', ...blockTimes(new Date(last.start), new Date(last.end), 'Europe/Berlin') };
+    const other = fakeClient(ours);
+    expect(await syncVacationBlock(other, undefined, reply({ isEnabled: false }), 'save', NOW, { fromDate: last.start, toDate: last.end })).toBe('destroy');
+    useSettingsStore.setState({ timeZone: 'auto' });
+  });
+});
+
+describe('resolveBlockSetting', () => {
+  it('pins the organisation\'s value when locked and hides the choice when hidden', () => {
+    expect(resolveBlockSetting({ locked: true, value: false }, undefined, true)).toEqual({ value: false, locked: true, hidden: false });
+    // A lock without a value takes the policy default, not the user's choice.
+    expect(resolveBlockSetting({ locked: true }, false, true)).toEqual({ value: false, locked: true, hidden: false });
+    expect(resolveBlockSetting({ locked: true }, undefined, false)).toEqual({ value: true, locked: true, hidden: false });
+    expect(resolveBlockSetting({ hidden: true }, undefined, false)).toEqual({ value: true, locked: false, hidden: true });
+    expect(resolveBlockSetting(undefined, undefined, false)).toEqual({ value: false, locked: false, hidden: false });
+  });
+});
+
+describe('the sync scheduler with several accounts', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    resetVacationCalendarSync();
+    useSettingsStore.setState({ vacationBlockCalendar: true, vacationCalendarBlocks: {} });
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+    resetVacationCalendarSync();
+  });
+
+  it('keeps one job per account, and the dates from before the first of several saves', async () => {
+    const client = fakeClient(null);
+    vacationReplySaved(client, undefined, reply(), reply({ subject: 'A' }));
+    vacationReplySaved(client, 'boss', reply(), reply({ subject: 'B' }));
+    await vi.advanceTimersByTimeAsync(5000);
+    const accounts = client.queryCalendarEvents.mock.calls.map((c) => (c as unknown[])[3]);
+    expect(accounts.sort()).toEqual(['boss', undefined].sort());
+  });
+
+  it('syncs several quick saves once, against the dates from before the first', async () => {
+    useSettingsStore.setState({ timeZone: 'Europe/Berlin' });
+    const ours = { id: 'e1', ...blockTimes(new Date(last.start), new Date(last.end), 'Europe/Berlin') };
+    const client = fakeClient(ours);
+    const moved = reply({ toDate: '2026-12-09T17:00:00Z' });
+    vacationReplySaved(client, undefined, reply(), moved);
+    vacationReplySaved(client, undefined, moved, { ...moved, isEnabled: false });
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(client.queryCalendarEvents).toHaveBeenCalledTimes(1);
+    expect(client.deleteCalendarEvent).toHaveBeenCalledWith('e1', false, undefined);
+    useSettingsStore.setState({ timeZone: 'auto' });
   });
 });

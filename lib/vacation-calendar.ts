@@ -8,9 +8,14 @@
  * timed, or all-day when both ends are midnight in the user's time zone;
  * busy, public, without participants, and never sends invitations.
  *
- * Bulwark keeps the times it last wrote (synced settings, per account).
- * When the event's times no longer match them, someone edited it, and
- * Bulwark leaves it alone. Switching the reply or the block off removes an
+ * The event is Bulwark's while its times are the ones Bulwark last wrote
+ * (kept in the settings, per account) or the reply's dates before the change
+ * at hand. That second rule works on any device and for anyone who changes
+ * the reply (a delegate, the owner), also where the settings don't sync
+ * (Lite, sync off). The event also carries the keyword OOO_KEYWORD (a
+ * CATEGORIES value, which 0.16 and 1.0 both keep): on a device with no
+ * record, a marked event found when the reply is loaded counts as Bulwark's.
+ * When none of these hold, someone edited it, and Bulwark leaves it alone. Switching the reply or the block off removes an
  * event that hasn't started and ends one that has at once; a reply that
  * simply ran out leaves its past event in place. An event deleted elsewhere
  * is not put back until the reply's dates change.
@@ -36,6 +41,9 @@ import { debug } from '@/lib/debug';
 
 export const OOO_UID_PREFIX = 'bulwark-ooo-';
 export const SYNC_DEBOUNCE_MS = 1500;
+
+/** The keyword (iCalendar CATEGORIES) on the busy event. */
+export const OOO_KEYWORD = 'bulwark-out-of-office';
 
 export function oooUid(accountId: string): string {
   return `${OOO_UID_PREFIX}${accountId}`;
@@ -69,6 +77,10 @@ export interface DecisionInput {
   /** The event with our UID, as instants; null when there is none. */
   event: { start: Date; end: Date } | null;
   last: WrittenBlock | null;
+  /** The reply's dates before the change being synced; null when unknown (a load). */
+  previous?: Pick<ReplyState, 'fromDate' | 'toDate'> | null;
+  /** The event carries OOO_KEYWORD. */
+  marked?: boolean;
   now: Date;
   /** `save`: the reply or the block just changed here. `load`: the reply was read. */
   trigger: 'save' | 'load';
@@ -86,10 +98,12 @@ export function decideBlock(input: DecisionInput): BlockDecision {
   const ranOut = reply.isEnabled && !!to && to <= now;
 
   if (event) {
-    const ours = last ? same(event.start, last.start) && same(event.end, last.end) : false;
-    if (!ours) {
-      // Without a record, an event that already sits on the reply's dates
-      // needs nothing; any other was set up or changed by someone else.
+    const matchesLast = !!last && same(event.start, last.start) && same(event.end, last.end);
+    const matchesPrevious = !!input.previous?.fromDate && !!input.previous.toDate
+      && same(event.start, input.previous.fromDate) && same(event.end, input.previous.toDate);
+    const markedOnLoad = !last && !!input.marked && input.trigger === 'load';
+    if (!matchesLast && !matchesPrevious && !markedOnLoad) {
+      // Set up or changed by someone else: left alone.
       return { action: 'none' };
     }
     if (wanted) {
@@ -171,15 +185,30 @@ export function blockCalendar(calendars: Calendar[], accountId: string, primaryA
   return !rights || rights.mayWriteAll || rights.mayWriteOwn ? calendar : null;
 }
 
-/** The block setting as it applies: the organisation's lock, else the user's choice. */
+/**
+ * The block setting as it applies: locked, the organisation's value (the
+ * lock's value, else the policy default, else on); hidden, the policy default
+ * (else on), the user can't see the choice; otherwise the user's choice.
+ * The settings card and the sync both read it here.
+ */
+export function resolveBlockSetting(
+  restriction: { locked?: boolean; hidden?: boolean; value?: unknown } | undefined,
+  policyDefault: unknown,
+  userSetting: unknown,
+): { value: boolean; locked: boolean; hidden: boolean } {
+  const orgValue = (v: unknown) => (typeof v === 'boolean' ? v : typeof policyDefault === 'boolean' ? policyDefault : true);
+  if (restriction?.locked === true) return { value: orgValue('value' in restriction ? restriction.value : undefined), locked: true, hidden: false };
+  if (restriction?.hidden === true) return { value: orgValue(undefined), locked: false, hidden: true };
+  return { value: userSetting !== false, locked: false, hidden: false };
+}
+
 export function effectiveBlockSetting(): boolean {
   const policy = usePolicyStore.getState();
-  const restriction = policy.getRestriction('vacationBlockCalendar');
-  if (restriction?.locked === true) {
-    const value = 'value' in restriction ? restriction.value : policy.getEffectiveDefault('vacationBlockCalendar');
-    return typeof value === 'boolean' ? value : true;
-  }
-  return useSettingsStore.getState().vacationBlockCalendar !== false;
+  return resolveBlockSetting(
+    policy.getRestriction('vacationBlockCalendar'),
+    policy.getEffectiveDefault('vacationBlockCalendar'),
+    useSettingsStore.getState().vacationBlockCalendar,
+  ).value;
 }
 
 function writtenBlocks(): Record<string, WrittenBlock> {
@@ -207,6 +236,7 @@ export async function syncVacationBlock(
   reply: ReplyState,
   trigger: 'save' | 'load',
   now = new Date(),
+  previous: Pick<ReplyState, 'fromDate' | 'toDate'> | null = null,
 ): Promise<BlockDecision['action'] | 'no-calendar' | 'failed'> {
   if (typeof client.supportsCalendars !== 'function' || !client.supportsCalendars()) return 'none';
   const primary = client.getAccountId();
@@ -217,7 +247,8 @@ export async function syncVacationBlock(
     const [found] = await client.queryCalendarEvents({ uid: oooUid(account) }, undefined, 1, target);
     const span = found ? eventSpan(found, zone) : null;
     const last = writtenBlocks()[account] ?? null;
-    const decision = decideBlock({ block: effectiveBlockSetting(), reply, event: span, last, now, trigger });
+    const marked = !!found?.keywords?.[OOO_KEYWORD];
+    const decision = decideBlock({ block: effectiveBlockSetting(), reply, event: span, last, previous, marked, now, trigger });
     switch (decision.action) {
       case 'none':
         // A record of an event that is gone and not wanted any more is dropped.
@@ -235,6 +266,7 @@ export async function syncVacationBlock(
           freeBusyStatus: 'busy',
           privacy: 'public',
           status: 'confirmed',
+          keywords: { [OOO_KEYWORD]: true },
         } as Partial<CalendarEvent>, false, target);
         rememberBlock(account, { start: decision.start.toISOString(), end: decision.end.toISOString() });
         return 'create';
@@ -243,7 +275,8 @@ export async function syncVacationBlock(
         await client.updateCalendarEvent(found!.originalId ?? found!.id, {
           ...blockTimes(decision.start, decision.end, zone),
           title: reply.subject.trim() || OUT_OF_OFFICE_TITLE,
-        }, false, target);
+          [`keywords/${OOO_KEYWORD}`]: true,
+        } as Partial<CalendarEvent>, false, target);
         rememberBlock(account, { start: decision.start.toISOString(), end: decision.end.toISOString() });
         return 'update';
       case 'end-now': {
@@ -285,54 +318,61 @@ interface Pending {
   client: SyncClient;
   accountId: string | undefined;
   reply: ReplyState;
+  /** The dates before the first change still waiting to be synced. */
+  previous: Pick<ReplyState, 'fromDate' | 'toDate'> | null;
   trigger: 'save' | 'load';
 }
 
 // Kept on globalThis: the store and the settings page may be in different
 // bundle copies, and two schedulers would sync the same event twice.
 interface SchedulerState {
-  timer: ReturnType<typeof setTimeout> | null;
-  pending: Pending | null;
-  running: Promise<unknown> | null;
+  /** Per account: one job waiting, one timer, one sync running. */
+  timers: Map<string, ReturnType<typeof setTimeout>>;
+  pending: Map<string, Pending>;
+  running: Map<string, Promise<unknown>>;
   loaded: Set<string>;
 }
 const SCHEDULER_KEY = '__bulwarkVacationCalendarSync';
 function scheduler(): SchedulerState {
   const g = globalThis as unknown as Record<string, SchedulerState | undefined>;
-  return (g[SCHEDULER_KEY] ??= { timer: null, pending: null, running: null, loaded: new Set() });
+  return (g[SCHEDULER_KEY] ??= { timers: new Map(), pending: new Map(), running: new Map(), loaded: new Set() });
 }
 
-function run(): void {
+function run(key: string): void {
   const state = scheduler();
-  state.timer = null;
-  if (state.running || !state.pending) return;
-  const job = state.pending;
-  state.pending = null;
-  state.running = syncVacationBlock(job.client, job.accountId, job.reply, job.trigger)
+  state.timers.delete(key);
+  const job = state.pending.get(key);
+  if (state.running.has(key) || !job) return;
+  state.pending.delete(key);
+  state.running.set(key, syncVacationBlock(job.client, job.accountId, job.reply, job.trigger, new Date(), job.previous)
     .finally(() => {
-      state.running = null;
-      if (state.pending && !state.timer) run();
-    });
+      state.running.delete(key);
+      if (state.pending.has(key) && !state.timers.has(key)) run(key);
+    }));
 }
 
 function schedule(job: Pending): void {
   const state = scheduler();
-  // A save outranks a load that waits; the latest reply wins.
-  if (state.pending?.trigger === 'save' && job.trigger === 'load') return;
-  state.pending = job;
-  if (state.timer) clearTimeout(state.timer);
-  state.timer = setTimeout(run, SYNC_DEBOUNCE_MS);
+  const key = job.accountId ?? job.client.getAccountId();
+  const waiting = state.pending.get(key);
+  // A save outranks a load that waits; the latest reply wins, with the
+  // dates from before the first change it replaces.
+  if (waiting?.trigger === 'save' && job.trigger === 'load') return;
+  state.pending.set(key, waiting?.trigger === 'save' ? { ...job, previous: waiting.previous } : job);
+  const timer = state.timers.get(key);
+  if (timer) clearTimeout(timer);
+  state.timers.set(key, setTimeout(() => run(key), SYNC_DEBOUNCE_MS));
 }
 
 /** After a saved reply: sync when the switch, the dates or the subject changed. */
 export function vacationReplySaved(client: SyncClient, accountId: string | undefined, before: ReplyState, after: ReplyState): void {
   if (relevant(before) === relevant(after)) return;
-  schedule({ client, accountId, reply: after, trigger: 'save' });
+  schedule({ client, accountId, reply: after, previous: { fromDate: before.fromDate, toDate: before.toDate }, trigger: 'save' });
 }
 
 /** The user changed the block setting: sync with the reply as it is. */
 export function vacationBlockChanged(client: SyncClient, accountId: string | undefined, reply: ReplyState): void {
-  schedule({ client, accountId, reply, trigger: 'save' });
+  schedule({ client, accountId, reply, previous: { fromDate: reply.fromDate, toDate: reply.toDate }, trigger: 'save' });
 }
 
 /** After the reply was loaded: once per page load and account. */
@@ -341,16 +381,16 @@ export function vacationReplyLoaded(client: SyncClient, accountId: string | unde
   const state = scheduler();
   if (state.loaded.has(key)) return;
   state.loaded.add(key);
-  schedule({ client, accountId, reply, trigger: 'load' });
+  schedule({ client, accountId, reply, previous: null, trigger: 'load' });
 }
 
 /** For tests: drop what the scheduler holds. */
 export function resetVacationCalendarSync(): void {
   const state = scheduler();
-  if (state.timer) clearTimeout(state.timer);
-  state.timer = null;
-  state.pending = null;
-  state.running = null;
+  for (const timer of state.timers.values()) clearTimeout(timer);
+  state.timers.clear();
+  state.pending.clear();
+  state.running.clear();
   state.loaded.clear();
 }
 
