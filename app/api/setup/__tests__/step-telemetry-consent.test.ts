@@ -10,7 +10,7 @@ import { NextRequest } from 'next/server';
 // It changes only the consent fields of what is stored now.
 
 vi.mock('@/lib/setup/state', () => ({ detectSetupState: () => 'bootstrap' }));
-vi.mock('@/lib/setup/session', () => ({ authenticateWizardRequest: async () => true }));
+vi.mock('@/lib/setup/session', () => ({ authenticateWizardRequest: async () => true, wizardSessionRefusal: async () => null }));
 vi.mock('@/lib/admin/config-manager', () => ({
   configManager: { ensureLoaded: async () => {}, setAdminConfig: async () => {} },
 }));
