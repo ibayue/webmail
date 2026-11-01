@@ -139,10 +139,14 @@ async function cachedDocument(url) {
   const path = appPagePath(url) || "/";
   const section = "/" + (path.split("/").filter(Boolean)[0] || "");
   const candidates = [documentKey(url), self.location.origin + BASE_PATH + (section === "/" ? "" : section), self.location.origin + BASE_PATH];
-  const own = await caches.open(SHELL_CACHE);
-  for (const key of candidates) {
-    const hit = await own.match(key);
-    if (hit) return hit;
+  // Only looked into when it exists: opening it would create it again
+  // after the next build's worker deleted it.
+  if (await caches.has(SHELL_CACHE)) {
+    const own = await caches.open(SHELL_CACHE);
+    for (const key of candidates) {
+      const hit = await own.match(key);
+      if (hit) return hit;
+    }
   }
   for (const key of candidates) {
     const hit = await caches.match(key);
@@ -195,7 +199,9 @@ async function respondWithConfig(request) {
     const response = await fetch(request);
     if (response.ok) {
       const copy = response.clone();
-      caches.open(SHELL_CACHE).then((cache) => cache.put(key, copy)).catch(() => {});
+      // Like pages and chunks, under the build that answered: right after a
+      // deploy this worker still fetches for the new build's tab.
+      caches.open(shellCacheFor(response)).then((cache) => cache.put(key, copy)).catch(() => {});
     }
     return response;
   } catch (error) {

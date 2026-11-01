@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { FakeCaches, loadWorker } from './sw-harness';
 
+const settle = () => new Promise((r) => setTimeout(r, 0));
+
 // The service worker names its caches after the build it came with (#523)
 // and deletes a build's cache once no open tab runs that build.
 describe('service worker caches per build', () => {
@@ -44,5 +46,33 @@ describe('service worker caches per build', () => {
     const before = worker.skipped();
     await worker.dispatch('message', { data: { type: 'skip-waiting' } });
     expect(worker.skipped()).toBe(before + 1);
+  });
+
+  it("the old build's worker doesn't bring back its cache after the new build deleted it", async () => {
+    const caches = new FakeCaches();
+    const state = await caches.open('bulwark-sw-state-v1');
+    await state.put('/__bulwark/offline-shell', new Response(JSON.stringify({ on: true })));
+    let online = true;
+    // The server runs build b now and says so on every answer.
+    const fetchFromB = async () => {
+      if (!online) throw new TypeError('Failed to fetch');
+      const res = new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json', 'X-Bulwark-Build': 'b' } });
+      Object.defineProperty(res, 'type', { value: 'basic' });
+      return res;
+    };
+    const old = loadWorker({ buildId: 'a', caches, clients: [], fetch: fetchFromB });
+    await settle();
+    // Build b's worker took over and deleted build a's files, while the
+    // reloaded tab's first requests still went through build a's worker.
+    expect(await caches.has('bulwark-shell-a')).toBe(false);
+    await old.request({ url: 'https://mail.example.com/api/config' });
+    await settle();
+    expect(await caches.has('bulwark-shell-a')).toBe(false);
+    expect(await caches.has('bulwark-shell-b')).toBe(true);
+
+    online = false;
+    await old.request({ url: 'https://mail.example.com/mail', mode: 'navigate' }).catch(() => null);
+    await settle();
+    expect(await caches.has('bulwark-shell-a')).toBe(false);
   });
 });
