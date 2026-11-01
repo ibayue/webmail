@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
-import type { Counter, Gauge, Histogram, Registry } from 'prom-client';
-import client from 'prom-client';
+import type { Counter, Gauge, Histogram, Registry } from '@prometheus-io/client';
+import client from '@prometheus-io/client';
 import { routeGroup } from '@/lib/route-groups';
 
 /**
