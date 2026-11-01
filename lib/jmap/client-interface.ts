@@ -39,6 +39,16 @@ export interface KeywordDiscoveryResult {
   complete: boolean;
 }
 
+/** One message for `importUploadedEmails`. */
+export interface UploadedEmailImport {
+  blobId: string;
+  mailboxIds: Record<string, boolean>;
+  keywords: Record<string, boolean>;
+  receivedAt?: string;
+}
+
+export type UploadedEmailImportResult = { id: string } | { error: string; type?: string };
+
 /** What `getBlobsAsBase64` brought back. */
 export interface BlobBatch {
   /** Contents as base64 by blobId, for every blob the server returned. */
@@ -336,6 +346,8 @@ export interface IJMAPClient {
     properties: string[],
     accountId?: string,
     limit?: number,
+    /** `transfer`: a mail export's own request (a 429 doesn't pause the rest of the client). */
+    opts?: { transfer?: boolean },
   ): Promise<Array<Record<string, unknown>>>;
 
   // ── Email mutations ───────────────────────────────────────────
@@ -544,7 +556,13 @@ export interface IJMAPClient {
    * Many blobs at once through Blob/get (RFC 9404), for exports; null when
    * the session doesn't advertise the blob capability.
    */
-  getBlobsAsBase64?(blobIds: string[], accountId?: string): Promise<BlobBatch | null>;
+  getBlobsAsBase64?(blobIds: string[], accountId?: string, options?: { sized?: boolean }): Promise<BlobBatch | null>;
+  /**
+   * One blob for a mail export, outside the client-wide rate limit: a 429
+   * throws RateLimitError for the export to wait on, instead of pausing
+   * every other request.
+   */
+  fetchBlobForTransfer?(blobId: string, accountId: string | undefined, signal?: AbortSignal): Promise<Uint8Array>;
   downloadBlob(blobId: string, name?: string, type?: string, accountId?: string): Promise<void>;
 
   // ── Identities ────────────────────────────────────────────────
@@ -690,6 +708,11 @@ export interface IJMAPClient {
    * without it the server stamps the import time.
    */
   importRawEmail(blob: Blob, mailboxIds: Record<string, boolean>, keywords?: Record<string, boolean>, accountId?: string, receivedAt?: string): Promise<string>;
+  /**
+   * Email/import of several uploaded messages in one request (the mail
+   * import). One result per entry, in order: the new id or the server's error.
+   */
+  importUploadedEmails?(entries: UploadedEmailImport[], accountId?: string): Promise<UploadedEmailImportResult[]>;
   submitEmail(emailId: string, identityId: string): Promise<void>;
   /**
    * Server-side move of one email across accounts reachable through THIS client

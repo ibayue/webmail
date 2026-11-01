@@ -19,6 +19,8 @@
 /lite-image/
 # scripts/build-plugin-sandbox.mjs
 /public/plugin-sandbox-assets/
+# scripts/build-pst-worker.mjs
+/public/pst-worker.js
 
 # production
 /build

@@ -16,6 +16,7 @@ import { SpamSiegeGame } from './spam-siege-game';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { toast } from '@/stores/toast-store';
 import { DebugSettings } from './debug-settings';
+import { MailBackupSettings } from '@/components/mail-transfer/mail-backup-settings';
 
 const APP_VERSION = process.env.NEXT_PUBLIC_APP_VERSION || "0.0.0";
 const GIT_COMMIT = process.env.NEXT_PUBLIC_GIT_COMMIT || "unknown";
@@ -213,6 +214,8 @@ export function AboutDataSettings() {
         </SettingItem>
         )}
       </SettingsSection>
+
+      <MailBackupSettings />
 
       <SettingsSection id="fix" title={t('sections.fix')} description={t('sections.fix_description')}>
         <SettingItem label={t('refresh_cache.label')} description={t('refresh_cache.description')} term="cache">

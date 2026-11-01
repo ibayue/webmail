@@ -4,7 +4,7 @@ import { ArchiveEmailsError } from "./archive-error";
 import { generateUUID } from '@/lib/utils';
 import type { Attachment, Email, Mailbox, MailboxRights, StateChange, AccountStates, CollectionChanges, ShareNotification, BusyPeriod, CalendarParticipantIdentity, CalendarEventNotification, Thread, Identity, EmailAddress, ContactCard, AddressBook, AddressBookRights, VacationResponse, Calendar, CalendarComponentType, CalendarRights, CalendarEvent, CalendarEventFilter, CalendarTask, CreateCalendarOptions, FileNode, FileNodeFilter, FileNodeRights, Principal, PrincipalAvailability, PrincipalListing, PushSubscription, EmailPushConfig, DeliveryStatus, EmailSubmission, RejectedRecipient, ScheduledEmail, SendEmailResult, SharedAccount } from "./types";
 import type { SieveScript, SieveCapabilities } from "./sieve-types";
-import type { BlobBatch, CalendarEventUpdateOptions, CalendarQueryOptions, FileNodeListings, IJMAPClient, KeywordDiscoveryResult, KeywordInfo, KeywordMigration, SearchEmailsResult, SearchRequestOptions } from "./client-interface";
+import type { BlobBatch, CalendarEventUpdateOptions, CalendarQueryOptions, FileNodeListings, IJMAPClient, KeywordDiscoveryResult, KeywordInfo, KeywordMigration, SearchEmailsResult, SearchRequestOptions, UploadedEmailImport, UploadedEmailImportResult } from "./client-interface";
 import { attachSearchSnippets, filterHasSnippetTerms, snippetFilterFor, type SearchSnippetResult } from "@/lib/search-snippet";
 import { textConditions, textFilter } from "./search-utils";
 import { batched, batchedBySize, itemsPerRequest } from "./request-limits";
@@ -1764,10 +1764,10 @@ export class JMAPClient implements IJMAPClient {
   private async authenticatedFetch(
     url: string,
     init?: Parameters<typeof fetch>[1],
-    opts?: { timeoutMs?: number },
+    opts?: { timeoutMs?: number; transfer?: boolean },
   ): Promise<Response> {
     // Short-circuit: if rate-limited, reject immediately without sending a request
-    if (this.isRateLimited()) {
+    if (!opts?.transfer && this.isRateLimited()) {
       const remaining = this.rateLimitedUntil - Date.now();
       this.notifyRateLimitBlocked(remaining);
       throw new RateLimitError(remaining);
@@ -1798,7 +1798,7 @@ export class JMAPClient implements IJMAPClient {
     // Handle 429 rate limiting - stop immediately, do not retry
     if (response.status === 429) {
       const retryAfterMs = JMAPClient.parseRetryAfter(response);
-      this.setRateLimited(retryAfterMs);
+      if (!opts?.transfer) this.setRateLimited(retryAfterMs);
       throw new RateLimitError(retryAfterMs);
     }
 
@@ -2097,7 +2097,12 @@ export class JMAPClient implements IJMAPClient {
     }
   }
 
-  private async request(methodCalls: JMAPMethodCall[], using?: string[]): Promise<JMAPResponse> {
+  /**
+   * `transfer`: a mail import or export's own request. A 429 throws
+   * RateLimitError for the transfer to wait on, without pausing the rest of
+   * the client, and a pause the client is in doesn't hold the transfer up.
+   */
+  private async request(methodCalls: JMAPMethodCall[], using?: string[], opts?: { transfer?: boolean }): Promise<JMAPResponse> {
     if (!this.apiUrl) {
       throw new Error('Not connected. Call connect() first.');
     }
@@ -2117,7 +2122,7 @@ export class JMAPClient implements IJMAPClient {
             'Content-Type': 'application/json',
           },
           body,
-        }),
+        }, opts?.transfer ? { transfer: true } : undefined),
       );
 
       const responseText = await response.text();
@@ -4318,6 +4323,7 @@ export class JMAPClient implements IJMAPClient {
     properties: string[],
     accountId?: string,
     limit: number = 10000,
+    opts?: { transfer?: boolean },
   ): Promise<Array<Record<string, unknown>>> {
     const targetAccountId = accountId || this.accountId;
     const pageSize = Math.min(500, this.getMaxObjectsInGet());
@@ -4339,7 +4345,7 @@ export class JMAPClient implements IJMAPClient {
           "#ids": { resultOf: "0", name: "Email/query", path: "/ids" },
           properties: ["id", ...properties],
         }, "1"],
-      ]);
+      ], undefined, opts?.transfer ? { transfer: true } : undefined);
       assertQuerySucceeded(response, 'Email query');
       const [getName, getResult] = response.methodResponses?.[1] ?? [];
       if (getName !== "Email/get" || !getResult) {
@@ -6127,6 +6133,26 @@ export class JMAPClient implements IJMAPClient {
    * runs as a document (toInertBlob); image/svg+xml and text/html come back
    * as application/octet-stream.
    */
+  /**
+   * One blob for the mail export, outside the client-wide rate limit: a 429
+   * throws RateLimitError for the export to wait on instead of pausing every
+   * other request (authenticatedFetch would). A 401 goes through fetchBlob,
+   * which renews the session or token.
+   */
+  async fetchBlobForTransfer(blobId: string, accountId: string | undefined, signal?: AbortSignal): Promise<Uint8Array> {
+    const url = this.getBlobDownloadUrl(blobId, 'message.eml', 'message/rfc822', accountId);
+    const response = await this.timedFetch(url, { signal }, { Authorization: this.authHeader }, JMAPClient.TRANSFER_TIMEOUT_MS);
+    if (response.status === 401) {
+      return new Uint8Array(await (await this.fetchBlob(blobId, 'message.eml', 'message/rfc822', accountId)).arrayBuffer());
+    }
+    if (response.status === 429) throw new RateLimitError(JMAPClient.parseRetryAfter(response));
+    if (!response.ok) {
+      const body = await response.text().catch(() => '');
+      throw new Error(`Failed to fetch blob: ${response.status} - ${body}`);
+    }
+    return new Uint8Array(await response.arrayBuffer());
+  }
+
   async fetchBlobAsObjectUrl(blobId: string, name?: string, type?: string, accountId?: string): Promise<string> {
     const blob = await this.fetchBlob(blobId, name, type, accountId);
     return URL.createObjectURL(toInertBlob(blob));
@@ -6152,7 +6178,7 @@ export class JMAPClient implements IJMAPClient {
    * It checks the access to each blob by itself, though, whichever account the
    * request names, so the rest are asked for in the user's own account.
    */
-  async getBlobsAsBase64(blobIds: string[], accountId?: string): Promise<BlobBatch | null> {
+  async getBlobsAsBase64(blobIds: string[], accountId?: string, options?: { sized?: boolean }): Promise<BlobBatch | null> {
     if (!this.hasCapability(BLOB_CAPABILITY)) return null;
     let account = accountId || this.accountId;
     const ids = [...new Set(blobIds)];
@@ -6160,7 +6186,7 @@ export class JMAPClient implements IJMAPClient {
     const blobGet = async (chunk: string[], property: "size" | "data:asBase64") => {
       const call = () => this.request([
         ["Blob/get", { accountId: account, ids: chunk, properties: [property] }, "0"],
-      ], ["urn:ietf:params:jmap:core", BLOB_CAPABILITY]);
+      ], ["urn:ietf:params:jmap:core", BLOB_CAPABILITY], { transfer: options?.sized });
       let [name, result] = (await call()).methodResponses?.[0] ?? [];
       if (name === "error" && result?.type === "forbidden" && account !== this.accountId) {
         account = this.accountId;
@@ -6173,7 +6199,8 @@ export class JMAPClient implements IJMAPClient {
     };
 
     let chunks: string[][] = ids.length > 0 ? [ids] : [];
-    if (ids.length * BLOB_LARGE_BYTES > BLOB_BATCH_BYTES) {
+    // `sized`: the caller already kept the batch within BLOB_BATCH_BYTES (the mail export knows each message's size).
+    if (!options?.sized && ids.length * BLOB_LARGE_BYTES > BLOB_BATCH_BYTES) {
       const sizes = new Map<string, number | undefined>();
       try {
         for (const chunk of batched(ids, this.getMaxObjectsInGet())) {
@@ -11268,6 +11295,33 @@ export class JMAPClient implements IJMAPClient {
       throw new Error('Email import succeeded but no ID returned');
     }
     return emailId;
+  }
+
+  async importUploadedEmails(entries: UploadedEmailImport[], accountId?: string): Promise<UploadedEmailImportResult[]> {
+    if (entries.length === 0) return [];
+    const targetAccountId = accountId || this.accountId;
+    const emails: Record<string, Record<string, unknown>> = {};
+    entries.forEach((entry, i) => {
+      emails[`imp${i}`] = {
+        blobId: entry.blobId,
+        mailboxIds: entry.mailboxIds,
+        keywords: entry.keywords,
+        ...(entry.receivedAt ? { receivedAt: entry.receivedAt } : {}),
+      };
+    });
+    const response = await this.request([
+      ['Email/import', { accountId: targetAccountId, emails }, '0'],
+    ], undefined, { transfer: true });
+    const [name, result] = response.methodResponses?.[0] ?? [];
+    if (name !== 'Email/import') {
+      throw jmapError(`Email/import failed: ${result?.description || result?.type || 'unknown'}`, result);
+    }
+    return entries.map((_, i) => {
+      const created = result?.created?.[`imp${i}`];
+      if (created?.id) return { id: created.id as string };
+      const err = result?.notCreated?.[`imp${i}`];
+      return { error: (err?.description || err?.type || 'Email/import returned nothing') as string, type: err?.type as string | undefined };
+    });
   }
 
   /** Submit an already-imported email for delivery. */

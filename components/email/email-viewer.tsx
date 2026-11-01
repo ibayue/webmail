@@ -3,7 +3,7 @@
 import { Fragment, useState, useEffect, useLayoutEffect, useMemo, useRef, useCallback, useId } from "react";
 import { Email, ContactCard, Mailbox } from "@/lib/jmap/types";
 import { attachmentDownloadFilename, attachmentsBundleFilename, DEFAULT_ATTACHMENT_TEMPLATE } from "@/lib/download-filename";
-import { EML_IMPORT_ACCEPT, expandImportableEmails } from "@/lib/eml-import";
+import { openMailImport } from "@/stores/mail-transfer-store";
 import { TRANSPARENT_BLOCKED_PIXEL, applyNewTabToAnchor, emailIframeCsp, escapeHtml, isExternalResourceUrl, isOpenableLinkHref, plainTextToSafeHtml, sanitizeEmailBodyForIframe, sanitizeEmailHtml, sanitizePlainTextRenderedHtml } from "@/lib/email-sanitization";
 import { getRenderableHtmlBody } from "@/lib/email-body-selection";
 import { mailLanguage } from "@/lib/mail-language";
@@ -1309,6 +1309,7 @@ export function EmailViewer({
   const archiveActionEnabled = useArchiveActionEnabled();
   const tComposer = useTranslations('email_composer');
   const tNotifications = useTranslations('notifications');
+  const tImport = useTranslations('mail_import');
   const tCommon = useTranslations('common');
   const tFiles = useTranslations('files');
   const tDemoWelcome = useTranslations('demo_welcome');
@@ -3619,52 +3620,9 @@ export function EmailViewer({
     await exportEmail(email, { onArchive, onDelete, archiveEnabled: archiveActionEnabled }, blobSource ?? { client, accountId: undefined });
   };
 
-  // Import email from .eml file or .zip archive containing .eml files
+  // Import mail into the open folder: the import dialog (lib/mail-import) does the rest.
   const handleImportEmail = () => {
-    if (!client) return;
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = EML_IMPORT_ACCEPT;
-    input.multiple = true;
-    input.onchange = async (e) => {
-      const files = Array.from((e.target as HTMLInputElement).files ?? []);
-      if (files.length === 0) return;
-      const { selectedMailbox, mailboxes, fetchEmails } = useEmailStore.getState();
-      const mailbox = mailboxes.find(mb => mb.id === selectedMailbox);
-      const mailboxId = mailbox?.originalId || selectedMailbox;
-      if (!mailboxId) {
-        toast.error(tNotifications('import_email_error'));
-        return;
-      }
-
-      let emails;
-      try {
-        emails = await expandImportableEmails(files);
-      } catch {
-        toast.error(tNotifications('import_email_error'));
-        return;
-      }
-
-      let imported = 0;
-      let failed = 0;
-      for (const { blob, receivedAt } of emails) {
-        try {
-          await client.importRawEmail(blob, { [mailboxId]: true }, { '$seen': true }, undefined, receivedAt);
-          imported++;
-        } catch {
-          failed++;
-        }
-      }
-
-      if (imported > 0) {
-        toast.success(tNotifications('import_email_success'));
-        await fetchEmails(client);
-      }
-      if (failed > 0 || emails.length === 0) {
-        toast.error(tNotifications('import_email_error'));
-      }
-    };
-    input.click();
+    openMailImport({ mailboxId: useEmailStore.getState().selectedMailbox || undefined });
   };
 
   // Print only the email content in a new window. A print asked for from
@@ -4145,7 +4103,7 @@ export function EmailViewer({
     ...(effectiveEmailContent.isHtml
       ? [{ kind: 'item' as const, key: 'extra:view_mode' as const, icon: isDark ? Sun : Moon, label: isDark ? t('view_in_light_mode') : t('view_in_dark_mode'), run: toggleViewMode }]
       : []),
-    { kind: 'item', key: 'extra:import', icon: Upload, label: t('import_email'), run: handleImportEmail },
+    { kind: 'item', key: 'extra:import', icon: Upload, label: tImport('menu_import'), run: handleImportEmail },
     ...(onShowShortcuts && !isMobile
       ? [{ kind: 'item' as const, key: 'extra:shortcuts' as const, icon: Keyboard, label: t('keyboard_shortcuts'), run: onShowShortcuts }]
       : []),
