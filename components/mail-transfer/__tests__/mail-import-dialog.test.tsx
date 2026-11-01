@@ -71,6 +71,17 @@ describe('MailImportDialog', () => {
     expect(startImport).toHaveBeenCalledWith(expect.objectContaining({ accountId: 'acc1', targetMailboxId: null, keepFolders: true }));
   });
 
+  it('loads the folders when opened from Settings before the mail view did, then picks the Inbox', async () => {
+    const fetchMailboxes = vi.fn(async () => {});
+    const loaded = useEmailStore.getState().mailboxes;
+    useEmailStore.setState({ mailboxes: [], fetchMailboxes } as never);
+    render(<MailTransferHost />);
+    act(() => openMailImport());
+    expect(fetchMailboxes).toHaveBeenCalled();
+    act(() => useEmailStore.setState({ mailboxes: loaded } as never));
+    await waitFor(() => expect((screen.getByTestId('mail-import-target') as HTMLSelectElement).value).toBe('inbox'));
+  });
+
   it('cannot start without files', () => {
     render(<MailTransferHost />);
     act(() => openMailImport());

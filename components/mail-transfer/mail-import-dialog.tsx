@@ -72,6 +72,17 @@ export function MailImportDialog({ request }: { request: ImportRequest }) {
   const targetId = target === TOP ? null : targetMailbox ? targetMailbox.originalId || targetMailbox.id : null;
   const effectiveKeep = anyFolders && keepFolders;
 
+  // Opened from Settings, the mail view may not have loaded the folders yet.
+  useEffect(() => {
+    if (client && mailboxes.length === 0) void useEmailStore.getState().fetchMailboxes(client).catch(() => {});
+  }, [client, mailboxes.length]);
+
+  // Keep the choice valid when the folders arrive or the files change.
+  useEffect(() => {
+    const valid = target === TOP ? anyFolders : targets.some((x) => x.mailbox.id === target);
+    if (!valid && target !== initialTarget) setTarget(initialTarget);
+  }, [targets, target, anyFolders, initialTarget]);
+
   // An earlier import of the same file into the same place that stopped part way.
   useEffect(() => {
     let current = true;
