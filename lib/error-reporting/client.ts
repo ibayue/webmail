@@ -205,7 +205,8 @@ function deliver(report: ErrorReport): void {
       name: report.name,
       message: report.message,
       code: report.code,
-      frames: report.frames.slice(0, 10),
+      // With debug IDs, so the counts can point at the uploaded source maps.
+      frames: withDebugIds(report.frames.slice(0, 10)),
       mechanism: report.mechanism,
       handled: report.handled,
       route: report.route,
@@ -220,6 +221,11 @@ function send(url: string, body: string, init: RequestInit, sameOrigin = false):
     ? apiFetch(url, { method: 'POST', body, keepalive: true, ...init })
     : fetch(url, { method: 'POST', body, keepalive: true, ...init });
   void Promise.resolve(request).catch(() => undefined);
+}
+
+function withDebugIds(frames: ErrorReport['frames']): ErrorReport['frames'] {
+  const ids = debugIdsByPath();
+  return frames.map((frame) => (ids.has(frame.path) ? { ...frame, debugId: ids.get(frame.path) } : frame));
 }
 
 /** window.onerror and unhandled rejections, once. */

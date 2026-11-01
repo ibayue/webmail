@@ -16,12 +16,15 @@ import { cn } from '@/lib/utils';
 interface TelemetryStatus {
   consent: 'pending' | 'on' | 'off';
   consentSource: 'no-third-party' | 'env' | 'file';
+  errorsConsent?: 'on' | 'off';
+  errorsConsentSource?: 'telemetry' | 'no-third-party' | 'env' | 'file';
   endpoint: string;
   defaultEndpoint: string;
   consentedAt: string | null;
   lastSentAt: string | null;
   nextScheduledAt: string | null;
   payloadPreview: Record<string, unknown>;
+  errorsPreview?: unknown[];
   accountCounts: { total: number; active7d: number };
 }
 
@@ -56,10 +59,12 @@ export function TelemetryPage() {
   // The heartbeat switch waits for Save like the endpoint (one page, one
   // save bar).
   const [consentDraft, setConsentDraft] = useState<'on' | 'off' | null>(null);
+  const [errorsDraft, setErrorsDraft] = useState<'on' | 'off' | null>(null);
 
   const endpointDirty = status !== null && endpointDraft !== status.endpoint;
   const consentDirty = status !== null && consentDraft !== null && consentDraft !== status.consent;
-  const dirty = endpointDirty || consentDirty;
+  const errorsDirty = status !== null && errorsDraft !== null && errorsDraft !== (status.errorsConsent ?? 'off');
+  const dirty = endpointDirty || consentDirty || errorsDirty;
   useAdminUnsavedChanges('telemetry', dirty);
 
   async function refresh(): Promise<void> {
@@ -99,11 +104,17 @@ export function TelemetryPage() {
         const error = await post({ action: 'set-consent', consent: consentDraft });
         if (error) errors.push(`Heartbeats: ${error}`);
       }
+      // After the heartbeat switch: error counts need it on.
+      if (errorsDirty && errorsDraft) {
+        const error = await post({ action: 'set-errors-consent', consent: errorsDraft });
+        if (error) errors.push(`Error counts: ${error}`);
+      }
       if (endpointDirty) {
         const error = await post({ action: 'set-endpoint', endpoint: endpointDraft });
         if (error) errors.push(`Endpoint: ${error}`);
       }
       setConsentDraft(null);
+      setErrorsDraft(null);
       setMessage(errors.length > 0
         ? { type: 'error', text: `Couldn't save: ${errors.join('; ')}` }
         : { type: 'success', text: 'Telemetry settings saved.' });
@@ -146,6 +157,20 @@ export function TelemetryPage() {
   const isOn = status.consent === 'on';
   const shownOn = (consentDraft ?? status.consent) === 'on';
 
+  // Error counts follow the heartbeat switch as it is about to be saved.
+  const errorsLocked = noThirdParty || status.errorsConsentSource === 'env' || !shownOn;
+  const errorsShownOn = shownOn && (errorsDraft ?? status.errorsConsent ?? 'off') === 'on';
+  const errorsDescription = [
+    'Adds how often each error happened yesterday, the error name and where in the code it happened. No message text, no URLs, no instance id goes to the error tracker.',
+    !shownOn && 'Needs the heartbeat on.',
+    status.errorsConsentSource === 'env' && 'Locked by the BULWARK_TELEMETRY_ERRORS env var.',
+  ].filter(Boolean).join(' ');
+
+  // The payload as it will be once the switches are saved.
+  const previewPayload = errorsShownOn
+    ? { ...status.payloadPreview, schema: '2', errors: status.errorsPreview ?? [] }
+    : (({ errors: _omit, ...v1 }) => ({ ...v1, schema: '1' }))(status.payloadPreview as Record<string, unknown> & { errors?: unknown });
+
   const consentDescription = [
     status.consent === 'pending' && 'Initialising - no heartbeats sent yet.',
     status.consent === 'on' && status.endpoint && 'Heartbeats are enabled. Thanks for helping us improve!',
@@ -181,7 +206,18 @@ export function TelemetryPage() {
             <ToggleSwitch
               checked={shownOn}
               disabled={busy === 'save' || envOverridden}
-              onChange={(checked) => { setConsentDraft(checked ? 'on' : 'off'); setMessage(null); }}
+              onChange={(checked) => {
+                setConsentDraft(checked ? 'on' : 'off');
+                if (!checked) setErrorsDraft('off');
+                setMessage(null);
+              }}
+            />
+          </SettingItem>
+          <SettingItem label="Also send anonymous error counts" description={errorsDescription}>
+            <ToggleSwitch
+              checked={errorsShownOn}
+              disabled={busy === 'save' || errorsLocked}
+              onChange={(checked) => { setErrorsDraft(checked ? 'on' : 'off'); setMessage(null); }}
             />
           </SettingItem>
           <SettingItem label="Last sent">
@@ -252,7 +288,7 @@ export function TelemetryPage() {
             </Button>
           </div>
           <pre className="text-xs bg-muted/50 rounded-md p-3 overflow-x-auto max-h-96">
-            {JSON.stringify(status.payloadPreview, null, 2)}
+            {JSON.stringify(previewPayload, null, 2)}
           </pre>
         </SettingsSection>
       </div>
@@ -261,7 +297,7 @@ export function TelemetryPage() {
         dirty={dirty}
         saving={busy === 'save'}
         onSave={() => void save()}
-        onDiscard={() => { setEndpointDraft(status.endpoint); setConsentDraft(null); }}
+        onDiscard={() => { setEndpointDraft(status.endpoint); setConsentDraft(null); setErrorsDraft(null); }}
         saveLabel="Save"
       />
     </div>

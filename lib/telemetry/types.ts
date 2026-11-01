@@ -1,4 +1,5 @@
-// Schema v1 of the anonymous heartbeat. Documented at
+// Schema v1 of the anonymous heartbeat, and v2 (v1 plus error counts, sent
+// only with the separate error-count consent). Documented at
 // https://bulwarkmail.org/docs/legal/privacy/telemetry
 
 export type ConsentState = 'pending' | 'on' | 'off';
@@ -36,6 +37,42 @@ export interface TelemetryPayload {
   uptime_days: number;
 }
 
+/** At most this many errors in a v2 heartbeat, the most frequent first. */
+export const MAX_TELEMETRY_ERRORS = 50;
+/** Top frames per error. */
+export const MAX_TELEMETRY_FRAMES = 5;
+
+export interface TelemetryErrorFrame {
+  /** The bundle file without origin: `/_next/static/chunks/x.js` or `/.next/server/...`. */
+  path: string;
+  line: number | null;
+  col: number | null;
+  /** The file's debug ID, which finds its uploaded source map. */
+  debug_id: string | null;
+}
+
+/** One error fingerprint of the last complete UTC day. */
+export interface TelemetryError {
+  /** The error's class name (TypeError, JmapMethodError). */
+  name: string;
+  fingerprint: string;
+  frames: TelemetryErrorFrame[];
+  version: string;
+  /** How often that day, bucketed like the account counts. */
+  count: CountBucket;
+  /** On how many of the last 7 days it occurred (1-7). */
+  days: number;
+  /** Only one of Bulwark's fixed error codes (`Email/set: overQuota`), never free text. */
+  message?: string;
+}
+
+export interface TelemetryPayloadV2 extends Omit<TelemetryPayload, 'schema'> {
+  schema: '2';
+  errors: TelemetryError[];
+}
+
+export type AnyTelemetryPayload = TelemetryPayload | TelemetryPayloadV2;
+
 export interface TelemetryStateFile {
   consent: ConsentState;
   endpoint: string;
@@ -47,6 +84,11 @@ export interface TelemetryStateFile {
    */
   lastScheduledSentAt?: string | null;
   nextScheduledAt: string | null;
+  /**
+   * The separate consent to add error counts (schema v2). Off unless an
+   * admin turns it on; switching telemetry off switches it off too.
+   */
+  errorsConsent?: 'on' | 'off';
 }
 
 export const DEFAULT_ENDPOINT = 'https://telemetry.bulwarkmail.org/v1/heartbeat';

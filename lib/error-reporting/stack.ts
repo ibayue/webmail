@@ -7,7 +7,11 @@ export interface Frame {
   line?: number;
   column?: number;
   fn?: string;
+  /** The debug ID of the file, when its bundle registered one (./debug-ids.ts). */
+  debugId?: string;
 }
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export const MAX_FRAMES = 30;
 
@@ -51,7 +55,8 @@ export function sanitizeFrames(input: unknown): Frame[] {
     const frame = raw as Record<string, unknown>;
     const line = typeof frame.line === 'number' ? number(String(frame.line)) : undefined;
     const column = typeof frame.column === 'number' ? number(String(frame.column)) : undefined;
-    out.push({ path: scrubFramePath(frame.path), line, column, fn: scrubFunctionName(frame.fn) });
+    const debugId = typeof frame.debugId === 'string' && UUID.test(frame.debugId) ? frame.debugId.toLowerCase() : undefined;
+    out.push({ path: scrubFramePath(frame.path), line, column, fn: scrubFunctionName(frame.fn), ...(debugId ? { debugId } : {}) });
   }
   return out;
 }

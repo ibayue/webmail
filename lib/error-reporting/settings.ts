@@ -1,6 +1,7 @@
 import { configManager } from '@/lib/admin/config-manager';
 import { parseDsn } from './envelope';
 import { metricsEnabled } from '@/lib/metrics';
+import { effectiveErrorsConsent } from '@/lib/telemetry/state';
 import type { ClientSettings } from './client';
 
 /**
@@ -44,7 +45,8 @@ export function errorReportingSettings(): ErrorReportingSettings {
  */
 export async function shouldCollectErrors(): Promise<boolean> {
   await configManager.ensureLoaded();
-  return !!errorReportingSettings().dsn || metricsEnabled();
+  if (errorReportingSettings().dsn || metricsEnabled()) return true;
+  return (await effectiveErrorsConsent()).consent === 'on';
 }
 
 /** What /api/config hands the browser. */

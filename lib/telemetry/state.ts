@@ -174,6 +174,30 @@ export async function saveStateIfUnchanged(state: TelemetryStateFile, version: s
   return (await telemetryDocs().put(STATE_DOC, serialize(state), { ifVersion: version })).ok;
 }
 
+function errorsEnvOverride(): 'on' | 'off' | null {
+  const v = (process.env.BULWARK_TELEMETRY_ERRORS ?? '').toLowerCase();
+  if (v === 'off' || v === 'false' || v === '0' || v === 'no') return 'off';
+  if (v === 'on' || v === 'true' || v === '1' || v === 'yes') return 'on';
+  return null;
+}
+
+/**
+ * Effective consent to send error counts (schema v2): off whenever
+ * telemetry itself is off (which covers the no-third-party mode), then
+ * BULWARK_TELEMETRY_ERRORS, then the stored choice, off by default.
+ */
+export async function effectiveErrorsConsent(): Promise<{
+  consent: 'on' | 'off';
+  source: 'telemetry' | 'no-third-party' | 'env' | 'file';
+}> {
+  const telemetry = await effectiveConsent();
+  if (telemetry.source === 'no-third-party') return { consent: 'off', source: 'no-third-party' };
+  if (telemetry.consent !== 'on') return { consent: 'off', source: 'telemetry' };
+  const env = errorsEnvOverride();
+  if (env) return { consent: env, source: 'env' };
+  return { consent: telemetry.state.errorsConsent === 'on' ? 'on' : 'off', source: 'file' };
+}
+
 // Effective consent: the no-third-party mode wins over everything (#903),
 // then the env var, then the file. UI changes are blocked when either
 // override is active so the user knows where it's coming from.

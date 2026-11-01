@@ -238,7 +238,7 @@ export const ADMIN_PAGES: readonly AdminPageDef[] = [
     group: 'system',
     keywords: 'telemetry heartbeat anonymous consent privacy',
     sections: [
-      { id: 'status', title: 'Status', keywords: 'enable disable consent' },
+      { id: 'status', title: 'Status', keywords: 'enable disable consent error counts' },
       { id: 'accounts', title: 'Account activity', keywords: 'active total logins' },
       { id: 'endpoint', title: 'Endpoint', keywords: 'collector url' },
       { id: 'payload', title: 'Payload preview', keywords: 'send now json' },

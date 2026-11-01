@@ -3,6 +3,7 @@ import { telemetryDocs } from '@/lib/telemetry/state';
 import { isErrorCode } from './envelope';
 import { fingerprint as fingerprintOf } from './fingerprint';
 import type { Frame } from './stack';
+import { debugIdsByPath } from './debug-ids';
 
 /**
  * Errors counted per UTC day: fingerprint -> name, top frames, version and
@@ -106,7 +107,13 @@ export function recordError(report: Recordable, runtime: 'browser' | 'server', v
   } else if (Object.keys(entries).length < MAX_PER_DAY) {
     entries[print] = {
       name: report.name,
-      frames: report.frames.slice(0, MAX_FRAMES_KEPT),
+      // The server's own bundle files get this process's debug IDs; browser
+      // frames bring theirs along.
+      frames: report.frames.slice(0, MAX_FRAMES_KEPT).map((frame) => {
+        if (frame.debugId) return frame;
+        const id = runtime === 'server' ? debugIdsByPath().get(frame.path) : undefined;
+        return id ? { ...frame, debugId: id } : frame;
+      }),
       version,
       ...(isErrorCode(report.code) ? { code: report.code } : {}),
       runtime,
