@@ -299,6 +299,7 @@ export async function runImport(options: ImportOptions): Promise<ImportProgress>
   const folders = new FolderResolver(client, accountId, options.targetMailboxId);
   const maxSize = client.getMaxSizeUpload() || Number.POSITIVE_INFINITY;
   const lanes = maxConcurrentUploads(client);
+  const uploadAccountId = client.getAccountId?.() || accountId;
 
   let lastReport = 0;
   const report = (force = false) => {
@@ -448,7 +449,10 @@ export async function runImport(options: ImportOptions): Promise<ImportProgress>
     for (let attempt = 0; ; attempt++) {
       await waitWhilePaused();
       try {
-        const { blobId } = await client.uploadBlob(file, { accountId, signal });
+        // Into the user's own account: Stalwart (0.16 and 1.0) keeps a blob uploaded to a
+        // shared account's upload URL where Email/import there can't find it, while one in
+        // the user's own account imports into any account the user may add mail to.
+        const { blobId } = await client.uploadBlob(file, { accountId: uploadAccountId, signal });
         networkErrors = 0;
         enqueue({
           index: item.index,

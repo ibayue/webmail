@@ -39,7 +39,9 @@ function fakeClient(opts: {
   const created: Array<{ name: string; parentId?: string; accountId?: string }> = [];
   const mailboxes: Mailbox[] = [mailbox('inbox', 'Inbox', { role: 'inbox' }), mailbox('target', 'Target')];
   const importCalls: number[] = [];
+  const uploadAccounts: (string | undefined)[] = [];
   const client = {
+    getAccountId: () => 'acc-own',
     getCapabilities: () => ({ 'urn:ietf:params:jmap:core': { maxConcurrentUpload: opts.uploadConcurrency ?? 4 } }),
     getMaxConcurrentRequests: () => 4,
     getMaxSizeUpload: () => 1000,
@@ -51,6 +53,7 @@ function fakeClient(opts: {
     }),
     uploadBlob: vi.fn(async (f: File, o: { accountId?: string; signal?: AbortSignal }) => {
       const n = uploads++;
+      uploadAccounts.push(o.accountId);
       inFlight++;
       maxInFlight = Math.max(maxInFlight, inFlight);
       try {
@@ -82,7 +85,7 @@ function fakeClient(opts: {
       });
     }),
   } as unknown as IJMAPClient;
-  return { client, imported, created, importCalls, get maxInFlight() { return maxInFlight; }, get uploads() { return uploads; } };
+  return { client, imported, created, importCalls, uploadAccounts, get maxInFlight() { return maxInFlight; }, get uploads() { return uploads; } };
 }
 
 function options(client: IJMAPClient, files: File[], extra: Partial<ImportOptions> = {}): ImportOptions {
@@ -113,6 +116,8 @@ describe('runImport', () => {
     expect(result.imported).toBe(3);
     expect(result.skipped).toEqual({ deleted: 1 });
     expect(fake.imported.map((e) => e.accountId)).toEqual(['acc-shared', 'acc-shared', 'acc-shared']);
+    // Uploads go to the user's own account: one in the shared account can't be imported there.
+    expect(new Set(fake.uploadAccounts)).toEqual(new Set(['acc-own']));
     expect(fake.imported.every((e) => e.mailboxIds.target)).toBe(true);
     expect(fake.imported.map((e) => e.keywords)).toEqual([{ $seen: true }, { $flagged: true }, { $seen: true }]);
     expect(fake.imported[0].receivedAt).toBe('2020-05-05T10:00:00Z');
