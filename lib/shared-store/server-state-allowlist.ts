@@ -58,6 +58,7 @@ export const SERVER_STATE_ALLOWLIST: AllowedState[] = [
   { site: 'lib/plugin-secrets/proxy.ts#running', class: 'per-process', why: 'plugin proxy concurrency per replica' },
   { site: 'lib/security/url-guard.ts#publicDispatcher', class: 'per-process', why: 'connection pool' },
   { site: 'lib/security/url-guard.ts#proxiedDispatchers', class: 'per-process', why: 'connection pools per proxy' },
+  { site: 'lib/security/url-guard.ts#privateHostDispatchers', class: 'per-process', why: 'connection pools per admin-entered intranet feed host' },
   { site: 'lib/telemetry/payload.ts#processStartedAt', class: 'per-process', why: 'this process\'s uptime' },
   { site: 'lib/theme-color-meta.ts#enabled', class: 'per-process', why: 'browser-side module reached through a shared import' },
   { site: 'lib/theme-color-meta.ts#scheduled', class: 'per-process', why: 'browser-side module reached through a shared import' },
