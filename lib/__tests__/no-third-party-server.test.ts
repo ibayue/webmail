@@ -26,7 +26,7 @@ const registryPlugins: Record<string, unknown>[] = [];
 vi.mock('@/lib/admin/plugin-registry', () => ({
   getPluginRegistry: vi.fn(async () => ({ plugins: registryPlugins })),
   getThemeRegistry: vi.fn(async () => ({ themes: [] })),
-  getPlugin: vi.fn(async () => null),
+  getPlugin: vi.fn(async (id: string) => registryPlugins.find((p) => p.id === id) ?? null),
   getTheme: vi.fn(async () => null),
 }));
 vi.mock('@/lib/admin/plugin-dev', () => ({ listDevPlugins: vi.fn(async () => []) }));
@@ -356,5 +356,61 @@ describe('review follow-ups', () => {
       delete process.env.DEV_MOCK_JMAP;
       delete process.env.NEXT_PUBLIC_DEV_MOCK_JMAP;
     }
+  });
+});
+
+// A company link check is a server the admin entered on the plugin's admin
+// page: it stays reachable with the switch on, like the JMAP server. The
+// plugin used to be refused completely, and its domain warning with it.
+describe('plugins reaching only servers the admin entered', () => {
+  const linkCheck = {
+    id: 'link-check', name: 'Link Check', version: '2.0.0', enabled: true, permissions: ['http:proxy'],
+    configSchema: { endpointUrl: { type: 'string', label: 'URL' }, token: { type: 'secret', label: 'Token' }, key: { type: 'secret', label: 'Key' } },
+    credentials: {
+      company: { label: 'Company', scope: 'admin', inject: { type: 'none' }, secretKey: 'token', originKey: 'endpointUrl' },
+      google: { label: 'Google', scope: 'admin', inject: { type: 'header', name: 'X-Goog-Api-Key' }, secretKey: 'key', origin: 'https://safebrowsing.googleapis.com' },
+    },
+  };
+  const googleOnly = {
+    id: 'google-only', name: 'Google Only', version: '1.0.0', enabled: true, permissions: ['http:proxy'],
+    configSchema: { key: { type: 'secret', label: 'Key' } },
+    credentials: { google: { label: 'Google', scope: 'admin', inject: { type: 'bearer' }, secretKey: 'key', origin: 'https://safebrowsing.googleapis.com' } },
+  };
+
+  it('reach the browser in the mode, unlike one with only fixed servers', async () => {
+    registryPlugins.push(linkCheck, googleOnly);
+    const { GET } = await import('@/app/api/plugins/route');
+    await setMode(true);
+    const on = await (await GET(new NextRequest('https://webmail.example/api/plugins'))).json();
+    expect(on.plugins.map((p: { id: string }) => p.id)).toEqual(['link-check']);
+  });
+
+  it('get the proxy for the admin-entered server only', async () => {
+    registryPlugins.push(linkCheck);
+    const { setPluginConfig } = await import('@/lib/admin/plugin-config');
+    await setPluginConfig('link-check', 'endpointUrl', 'https://linkcheck.corp.example/check');
+    fetchMock.mockResolvedValueOnce(new Response('{"verdict":"safe"}', { headers: { 'content-type': 'application/json' } }));
+    const { POST } = await import('@/app/api/plugin-proxy/route');
+    await setMode(true, { features: { pluginsEnabled: true } });
+    const company = await POST(new NextRequest('https://webmail.example/api/plugin-proxy?plugin=link-check&credential=company&url=https%3A%2F%2Flinkcheck.corp.example%2Fcheck', { method: 'POST' }));
+    expect((await company.clone().json().catch(() => ({}))).code).not.toBe('no-third-party-traffic');
+    const google = await POST(new NextRequest('https://webmail.example/api/plugin-proxy?plugin=link-check&credential=google&url=https%3A%2F%2Fsafebrowsing.googleapis.com%2Fv5%2Fhashes%3Asearch', { method: 'POST' }));
+    expect(google.status).toBe(403);
+    expect((await google.json()).code).toBe('no-third-party-traffic');
+    expect(calledHosts()).not.toContain('safebrowsing.googleapis.com');
+  });
+
+  it('are listed on the Security page with the server the admin entered and the one that stays off', async () => {
+    registryPlugins.push(linkCheck, googleOnly);
+    const { setPluginConfig } = await import('@/lib/admin/plugin-config');
+    await setPluginConfig('link-check', 'endpointUrl', 'https://linkcheck.corp.example/check');
+    const { GET } = await import('@/app/api/admin/outgoing-hosts/route');
+    await setMode(true);
+    const body = await (await GET(new NextRequest('https://webmail.example/api/admin/outgoing-hosts'))).json();
+    expect(body.reachable).toEqual(expect.arrayContaining([
+      expect.objectContaining({ kind: 'Plugin Link Check', host: 'linkcheck.corp.example', side: 'server' }),
+    ]));
+    expect(body.networkPlugins).toEqual([{ id: 'google-only', name: 'Google Only' }]);
+    expect(body.partlyOffPlugins).toEqual([{ id: 'link-check', name: 'Link Check', hosts: ['safebrowsing.googleapis.com'] }]);
   });
 });

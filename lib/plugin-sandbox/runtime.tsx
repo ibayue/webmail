@@ -150,13 +150,16 @@ function applySettings(next: Record<string, unknown>): void {
 }
 // What api.host.features says: one object for the iframe's lifetime,
 // updated in place on 'host-change' like the settings.
-const hostFeaturesState: HostFeaturesView = { externalSenderLabel: false, externalRecipientWarning: false };
+// noThirdPartyTraffic starts on, as the host's own mode does until it knows.
+const hostFeaturesState: HostFeaturesView = { externalSenderLabel: false, externalRecipientWarning: false, noThirdPartyTraffic: true };
 const hostFeatureListeners = new Set<(features: HostFeaturesView) => void>();
 
 function applyHostFeatures(next: HostFeaturesView | undefined): void {
   if (!next) return;
   hostFeaturesState.externalSenderLabel = next.externalSenderLabel === true;
   hostFeaturesState.externalRecipientWarning = next.externalRecipientWarning === true;
+  // A host older than 1.20 doesn't send it, and never let such a plugin run in the mode.
+  hostFeaturesState.noThirdPartyTraffic = next.noThirdPartyTraffic === true;
   for (const listener of hostFeatureListeners) {
     try { listener(hostFeaturesState); } catch (err) { console.error('[plugin] host feature listener failed', err); }
   }

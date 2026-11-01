@@ -67,7 +67,8 @@ import { requestPanel } from './panel-requests';
 import { requestPageNavigation } from './page-navigation';
 import { requestOpenEmail } from './open-email';
 import { doComposerAttach, doComposerGetBody, doComposerGetSelection, doComposerReplaceBody, doComposerReplaceSelection } from './host-api-composer';
-import { pluginAllowed, wkdAllowed } from '../outgoing-hosts';
+import { wkdAllowed } from '../outgoing-hosts';
+import { noThirdPartyTraffic } from '../third-party-mode';
 import { resolveExternalLink } from '../plugin-hook-result';
 
 /**
@@ -698,8 +699,9 @@ async function readCapped(res: Response, limit: number): Promise<ArrayBuffer> {
 
 async function doHttpFetch(plugin: InstalledPlugin, rawUrl: string, init?: PluginFetchInit) {
   // Such a plugin isn't started in the no-third-party mode; this is the
-  // second lock in case one runs anyway (#903).
-  if (!pluginAllowed(plugin)) throw new Error('Outside requests are off: this server does not contact outside services');
+  // second lock in case one runs anyway (#903). A plugin the mode lets run
+  // (admin-entered servers through the proxy) has no outside fetch either.
+  if (noThirdPartyTraffic()) throw new Error('Outside requests are off: this server does not contact outside services');
   if (typeof rawUrl !== 'string') throw new Error('url must be a string');
   let url: URL;
   try { url = new URL(rawUrl); } catch { throw new Error('url must be absolute https://'); }

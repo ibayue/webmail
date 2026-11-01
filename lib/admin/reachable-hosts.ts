@@ -44,6 +44,11 @@ export interface ReachableInput {
   env: Record<string, string | undefined>;
   /** The relay the browser bundle was built with (NEXT_PUBLIC_PUSH_RELAY_URL inlined at build time). */
   buildRelayUrl?: string;
+  /**
+   * Plugins that run in the mode and the servers the admin entered on their
+   * admin page (credentials with an originKey; lib/outgoing-hosts.ts).
+   */
+  plugins?: { name: string; origins: string[] }[];
 }
 
 const BRANDING_KEYS = [
@@ -51,7 +56,7 @@ const BRANDING_KEYS = [
   'appLogoLightUrl', 'appLogoDarkUrl', 'loginLogoLightUrl', 'loginLogoDarkUrl',
 ] as const;
 
-export function listReachableHosts({ get, policy, env, buildRelayUrl = DEFAULT_RELAY_BASE_URL }: ReachableInput): ReachableHost[] {
+export function listReachableHosts({ get, policy, env, buildRelayUrl = DEFAULT_RELAY_BASE_URL, plugins = [] }: ReachableInput): ReachableHost[] {
   const out: ReachableHost[] = [];
   const seen = new Set<string>();
   const add = (kind: string, url: unknown, setIn: string, side: ReachableHost['side'], note?: string) => {
@@ -92,6 +97,11 @@ export function listReachableHosts({ get, policy, env, buildRelayUrl = DEFAULT_R
   // Company calendars of Everyone and of every scope: this server fetches
   // them (app/api/fetch-ical by feed id), whatever the switch says.
   for (const feed of allFeeds(policy)) add('Company calendar', feed.url, `Organisation > Calendars (${feed.name})`, 'server');
+  // A plugin's server the admin entered (a company link check): this server
+  // proxies its requests (app/api/plugin-proxy).
+  for (const plugin of plugins) {
+    for (const origin of plugin.origins) add(`Plugin ${plugin.name}`, origin, "The plugin's admin page", 'server');
+  }
   for (const app of policy.defaultSidebarApps ?? []) add('Sidebar app', app?.url, `User policy > Sidebar apps (${app?.name ?? ''})`, 'browser');
   add('Document editor (WOPI)', get('wopiClientUrl'), 'WOPI_CLIENT_URL', 'both');
   add('Translation (LibreTranslate)', env.LIBRETRANSLATE_URL, 'LIBRETRANSLATE_URL', 'server');

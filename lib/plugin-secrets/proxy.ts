@@ -13,6 +13,7 @@ import { authHeaderFor, credentialOrigin, privateProxyOrigins, type CredentialIn
 import { getUserCredential, setUserCredentialSecret, userKey, type VaultUser } from './vault';
 import { declaredUserCredential } from './known-plugins';
 import { isStoredDataUnavailable } from '@/lib/stored-data-errors';
+import { credentialAllowedInMode } from '@/lib/outgoing-hosts';
 
 /** Largest request body the proxy forwards (one upload chunk). */
 export const MAX_PROXY_REQUEST_BYTES = 100 * 1024 * 1024;
@@ -117,6 +118,25 @@ export async function adminCredentialStatus(pluginId: string): Promise<{ credent
  */
 export async function adminCredentialOrigins(pluginId: string): Promise<string[]> {
   return (await adminCredentials(pluginId)).flatMap(({ origin }) => (origin ? [origin] : []));
+}
+
+/**
+ * The servers the admin entered for a plugin's credentials (originKey), set
+ * or not yet set up with a secret: what stays reachable for it with
+ * third-party traffic off (Organisation > Security).
+ */
+export async function adminEnteredOrigins(pluginId: string): Promise<string[]> {
+  const plugin = await getPlugin(pluginId);
+  const specs = (plugin as { credentials?: Record<string, CredentialSpec> } | null)?.credentials;
+  if (!plugin || !plugin.enabled || !specs) return [];
+  const config = await getPluginConfig(pluginId);
+  const out = new Set<string>();
+  for (const spec of Object.values(specs)) {
+    if (spec.scope !== 'admin' || !credentialAllowedInMode(spec) || !spec.originKey) continue;
+    const origin = credentialOrigin(config[spec.originKey]);
+    if (origin) out.add(origin);
+  }
+  return [...out];
 }
 
 async function adminCredentials(pluginId: string): Promise<{ credentialId: string; origin: string | null }[]> {

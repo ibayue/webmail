@@ -3,7 +3,9 @@ import { configManager } from '@/lib/admin/config-manager';
 import { isNoThirdPartyTrafficOn, thirdPartyRefusal } from '@/lib/admin/third-party-mode';
 import { rejectCrossOriginRequest } from '@/lib/security/same-origin';
 import { getStalwartCredentials } from '@/lib/stalwart/credentials';
-import { CREDENTIAL_ID_RE } from '@/lib/plugin-secrets/credentials';
+import { CREDENTIAL_ID_RE, type CredentialSpec } from '@/lib/plugin-secrets/credentials';
+import { credentialAllowedInMode } from '@/lib/outgoing-hosts';
+import { getPlugin } from '@/lib/admin/plugin-registry';
 import { ProxyError, proxyRequest, type CaptureSpec } from '@/lib/plugin-secrets/proxy';
 import { bootGateResponse } from '@/lib/shared-store/boot-gate';
 
@@ -46,8 +48,7 @@ export async function POST(request: NextRequest) {
   if (!configManager.getPolicy().features.pluginsEnabled) {
     return NextResponse.json({ error: 'Plugins are turned off', code: 'disabled' }, { status: 403 });
   }
-  // Every proxied request goes to a host outside this deployment (#903).
-  if (await isNoThirdPartyTrafficOn()) return thirdPartyRefusal('The plugin proxy');
+  const thirdPartyOff = await isNoThirdPartyTrafficOn();
 
   const creds = await getStalwartCredentials(request);
   if (!creds) return NextResponse.json({ error: 'Not authenticated', code: 'unauthenticated' }, { status: 401 });
@@ -58,6 +59,14 @@ export async function POST(request: NextRequest) {
   const url = params.get('url') ?? '';
   if (!PLUGIN_ID_RE.test(pluginId) || !CREDENTIAL_ID_RE.test(credentialId) || !url) {
     return NextResponse.json({ error: 'plugin, credential and url are required', code: 'bad_request' }, { status: 400 });
+  }
+  // With third-party traffic off only a server the admin entered on the
+  // plugin's admin page stays reachable (a company link check); servers
+  // fixed in a manifest and accounts users connect are outside hosts (#903).
+  if (thirdPartyOff) {
+    const plugin = await getPlugin(pluginId);
+    const spec = (plugin as { credentials?: Record<string, CredentialSpec> } | null)?.credentials?.[credentialId];
+    if (!credentialAllowedInMode(spec)) return thirdPartyRefusal('The plugin proxy');
   }
   const capture = parseCapture(request.headers.get('x-bulwark-capture'));
   if (capture === null) {

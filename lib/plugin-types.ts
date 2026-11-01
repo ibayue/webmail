@@ -876,6 +876,14 @@ export interface HostFeaturesView {
   externalSenderLabel: boolean;
   /** The admin turned on the confirm before sending outside the organisation (organisation.externalMail.recipientWarning). */
   externalRecipientWarning: boolean;
+  /**
+   * Bulwark 1.20 and later: "no third-party traffic" is on (or not known
+   * yet). Outside services are off: the proxy refuses servers fixed in a
+   * manifest and only reaches those the admin entered on the plugin's admin
+   * page. A plugin switches such a service off instead of treating it as
+   * down.
+   */
+  noThirdPartyTraffic: boolean;
 }
 
 /** One setting `api.app.searchSettings` found, in the user's language. */
