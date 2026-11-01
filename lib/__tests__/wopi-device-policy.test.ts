@@ -95,6 +95,28 @@ describe('office editor under the device policies', () => {
   });
 });
 
+describe('office editor when the policy or session can’t be read', () => {
+  it('turns everything off when the policy can’t be read', async () => {
+    policy.current = null as never;
+    const info = await fileInfo();
+    expect(info).toMatchObject({ DisablePrint: true, DisableExport: true, HideSaveOption: true });
+  });
+
+  it('applies every scope’s switch when the session can’t be read', async () => {
+    policy.current = {
+      ...DEFAULT_POLICY,
+      scopes: [{ id: 'x', label: 'X', match: { groups: ['other@example.com'] }, policy: { organisation: { devices: { noPrint: true } } } }],
+    };
+    (fetchJmapSession as Mock).mockResolvedValueOnce({
+      primaryAccounts: { 'urn:ietf:params:jmap:mail': 'c' }, accounts: { c: {} },
+      downloadUrl: 'https://mail.example.com/jmap/download/{accountId}/{blobId}/{name}?accept={type}',
+    }).mockResolvedValueOnce(null);
+    const info = await fileInfo();
+    expect(info).toMatchObject({ DisablePrint: true });
+    expect(info.DisableExport).toBeUndefined();
+  });
+});
+
 describe('wopiDeviceInfo', () => {
   it('maps each switch', () => {
     const off = DEFAULT_ORGANISATION_POLICY.devices;

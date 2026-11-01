@@ -46,10 +46,17 @@ const SESSION = {
 const json = (data: unknown) => ({ ok: true, json: async () => data, headers: new Headers() });
 
 let emailGets: Array<Record<string, unknown>> = [];
+/** Session reads after the first (the route's own) fail, as a server error would. */
+let failSessionAfterFirst = false;
 function mockJmap() {
   emailGets = [];
+  let sessions = 0;
   fetchJmapServer.mockImplementation(async (url: string, init?: { body?: string }) => {
-    if (url.endsWith('/.well-known/jmap') || url.endsWith('/jmap/session')) return json(SESSION);
+    if (url.endsWith('/.well-known/jmap') || url.endsWith('/jmap/session')) {
+      sessions++;
+      if (failSessionAfterFirst && sessions > 1) return { ok: false, status: 503, json: async () => ({}), headers: new Headers() };
+      return json(SESSION);
+    }
     const body = JSON.parse(init?.body ?? '{}') as { methodCalls: [string, Record<string, unknown>, string][] };
     if (body.methodCalls[0][0] === 'Mailbox/query') return json({ methodResponses: [['Mailbox/query', { ids: ['inbox'] }, 'mb']] });
     for (const call of body.methodCalls) if (call[0] === 'Email/get') emailGets.push(call[1]);
@@ -110,6 +117,19 @@ describe('push preview under "Push without sender and subject"', () => {
     const { body } = await callRoute();
     expect(body.redacted).toBe(true);
     expect(JSON.stringify(body)).not.toContain('Salary');
+  });
+
+  it('applies a group scope’s switch when the session can’t be read, and asks again next time', async () => {
+    withDevices({ pushWithoutContent: true }, { groups: ['other-team@example.org'] });
+    failSessionAfterFirst = true;
+    try {
+      expect((await callRoute()).body.redacted).toBe(true);
+    } finally {
+      failSessionAfterFirst = false;
+    }
+    // The failed read wasn't kept: with the session back, alice isn't in that group.
+    mockJmap();
+    expect((await callRoute()).body.redacted).toBeUndefined();
   });
 
   it('leaves logins outside the scope alone', async () => {
