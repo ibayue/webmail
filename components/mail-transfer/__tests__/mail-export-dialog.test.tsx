@@ -83,6 +83,27 @@ describe('MailExportDialog', () => {
     expect(useMailTransferStore.getState().request).toBeNull();
   });
 
+  it('signing out stops a running export, or frees a finished one\'s file', async () => {
+    const { runBeforeSignOut } = await import('@/lib/sign-out-cleanup');
+    const controller = new AbortController();
+    render(<MailTransferHost />);
+    act(() => {
+      openMailExport({ mailboxId: 'inbox' });
+      useMailTransferStore.getState().startJob({ kind: 'export', controller, progress: { phase: 'running', exported: 1, failed: 0, failures: [], total: 4, fraction: 0.25 } });
+    });
+    await act(() => runBeforeSignOut('acc1'));
+    expect(controller.signal.aborted).toBe(true);
+
+    const discard = vi.fn(async () => {});
+    act(() => {
+      useMailTransferStore.setState({ request: null, visible: false, job: null });
+      openMailExport({ mailboxId: 'inbox' });
+      useMailTransferStore.getState().startJob({ kind: 'export', controller: new AbortController(), progress: { phase: 'done', exported: 3, failed: 0, failures: [], total: 3, fraction: 1, file: { name: 'a.mbox', size: 1, discard } } });
+    });
+    await act(() => runBeforeSignOut('acc1'));
+    expect(discard).toHaveBeenCalled();
+  });
+
   it('runs on in the background and the chip names the export', () => {
     const controller = new AbortController();
     render(<MailTransferHost />);

@@ -20,9 +20,12 @@ export function MailTransferHost() {
   const visible = useMailTransferStore((s) => s.visible);
   const job = useMailTransferStore((s) => s.job);
 
-  // An account that signs out takes its running job and its checkpoints with it.
+  // An account that signs out takes its running job, a finished export's
+  // file in the browser's private storage, and its checkpoints with it.
   useEffect(() => onBeforeSignOut(async (accountId) => {
-    useMailTransferStore.getState().cancelJob();
+    const store = useMailTransferStore.getState();
+    if (isJobActive(store.job)) store.cancelJob();
+    else store.close();
     if (accountId !== "all") await clearCheckpointsFor(accountId);
   }), []);
 
