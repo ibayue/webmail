@@ -5,8 +5,8 @@
 #
 #   kubectl apply -k overlays/config-in-git
 #
-# Export your current policy from the admin console (Organisation > Export)
-# into policy.json to start from it.
+# To start from your current policy, use "Export policy.json" on the admin
+# console's Domains and groups page.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
