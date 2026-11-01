@@ -6001,6 +6001,9 @@
       "error_save": "Neizdevās saglabāt: {error}"
     }
   },
+  "send_guards": {
+    "not_running": "Nav nosūtīts. Jūsu organizācijas pieprasītā pārbaude pašlaik nedarbojas. Mēģiniet vēlreiz pēc brīža."
+  },
   "plugin_list": {
     "filters": "Filtri",
     "remove_filter": "Noņemt filtru {label}"

@@ -6001,6 +6001,9 @@
       "error_save": "Impossible d'enregistrer : {error}"
     }
   },
+  "send_guards": {
+    "not_running": "Non envoyé. Une vérification exigée par votre organisation ne fonctionne pas. Réessayez dans un instant."
+  },
   "plugin_list": {
     "filters": "Filtres",
     "remove_filter": "Retirer le filtre {label}"

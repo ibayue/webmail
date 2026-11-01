@@ -6001,6 +6001,9 @@
       "error_save": "無法儲存：{error}"
     }
   },
+  "send_guards": {
+    "not_running": "未傳送。貴組織要求的一項檢查目前未執行。請稍後再試。"
+  },
   "plugin_list": {
     "filters": "篩選",
     "remove_filter": "移除篩選條件 {label}"

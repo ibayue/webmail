@@ -6013,6 +6013,9 @@
       "error_save": "Không thể lưu: {error}"
     }
   },
+  "send_guards": {
+    "not_running": "Chưa gửi. Một bước kiểm tra mà tổ chức của bạn yêu cầu hiện không chạy. Hãy thử lại sau giây lát."
+  },
   "plugin_list": {
     "filters": "Bộ lọc",
     "remove_filter": "Xóa bộ lọc {label}"

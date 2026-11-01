@@ -6001,6 +6001,9 @@
       "error_save": "Could not save: {error}"
     }
   },
+  "send_guards": {
+    "not_running": "Not sent. A check your organisation requires isn't running. Try again in a moment."
+  },
   "plugin_list": {
     "filters": "Filters",
     "remove_filter": "Remove filter {label}"

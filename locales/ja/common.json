@@ -6001,6 +6001,9 @@
       "error_save": "保存できませんでした: {error}"
     }
   },
+  "send_guards": {
+    "not_running": "送信されませんでした。組織で必須のチェックが動作していません。しばらくしてからもう一度お試しください。"
+  },
   "plugin_list": {
     "filters": "フィルター",
     "remove_filter": "フィルター「{label}」を解除"

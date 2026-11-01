@@ -6001,6 +6001,9 @@
       "error_save": "저장하지 못했어요: {error}"
     }
   },
+  "send_guards": {
+    "not_running": "보내지 않았습니다. 조직에서 요구하는 검사가 실행되고 있지 않습니다. 잠시 후 다시 시도하세요."
+  },
   "plugin_list": {
     "filters": "필터",
     "remove_filter": "{label} 필터 제거"

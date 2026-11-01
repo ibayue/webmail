@@ -6001,6 +6001,9 @@
       "error_save": "Opslaan mislukt: {error}"
     }
   },
+  "send_guards": {
+    "not_running": "Niet verzonden. Een controle die je organisatie verplicht stelt, draait niet. Probeer het zo meteen opnieuw."
+  },
   "plugin_list": {
     "filters": "Filters",
     "remove_filter": "Filter {label} verwijderen"

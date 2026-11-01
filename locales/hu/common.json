@@ -6001,6 +6001,9 @@
       "error_save": "Nem sikerült menteni: {error}"
     }
   },
+  "send_guards": {
+    "not_running": "Nincs elküldve. Egy, a szervezete által előírt ellenőrzés most nem fut. Próbálja újra egy pillanat múlva."
+  },
   "plugin_list": {
     "filters": "Szűrők",
     "remove_filter": "{label} szűrő eltávolítása"

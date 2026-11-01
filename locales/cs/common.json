@@ -6001,6 +6001,9 @@
       "error_save": "Uložení se nezdařilo: {error}"
     }
   },
+  "send_guards": {
+    "not_running": "Neodesláno. Kontrola, kterou vaše organizace vyžaduje, právě neběží. Zkuste to za chvíli znovu."
+  },
   "plugin_list": {
     "filters": "Filtry",
     "remove_filter": "Odebrat filtr {label}"

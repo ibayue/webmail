@@ -6001,6 +6001,9 @@
       "error_save": "Impossibile salvare: {error}"
     }
   },
+  "send_guards": {
+    "not_running": "Non inviato. Un controllo richiesto dalla tua organizzazione non è attivo. Riprova tra un momento."
+  },
   "plugin_list": {
     "filters": "Filtri",
     "remove_filter": "Rimuovi il filtro {label}"

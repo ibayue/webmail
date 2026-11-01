@@ -489,6 +489,7 @@ export function EmailComposer({
   const tQuote = useTranslations('quote_header');
   const tViewer = useTranslations('email_viewer');
   const tClassification = useTranslations('classification');
+  const tSendGuards = useTranslations('send_guards');
   const timeFormat = useSettingsStore((state) => state.timeFormat);
   const plainTextModeDefault = useSettingsStore((state) => state.plainTextMode);
   // Per-message format (#1022). Seeded from the "plain text only" setting -
@@ -3660,6 +3661,7 @@ export function EmailComposer({
         // A guard that crashed or never answered showed nothing; say why
         // the message is still here.
         if (sendCheck === 'failed') toast.error(t('send_guard_failed'));
+        if (sendCheck === 'guard-down') toast.error(tSendGuards('not_running'));
         return;
       }
 

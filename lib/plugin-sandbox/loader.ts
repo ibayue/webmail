@@ -34,6 +34,7 @@ import { cancelPluginProxyRequests } from './proxy-client';
 import { cancelConnectFor } from './connect-dialog';
 import { isHookHandedOver } from './host-features';
 import { hookArgsFor } from './hook-payload';
+import { rememberDeclaredHooks } from '../plugin-send-guards';
 import type { SlotName } from '../plugin-types';
 import { PLUGIN_REFUSED_ERROR, pluginAllowed } from '../outgoing-hosts';
 
@@ -316,6 +317,8 @@ async function startSandboxedPlugin(plugin: InstalledPlugin): Promise<void> {
 
     const slotOffers = permittedOffers(plugin, info.slots, true);
     writeSlotOffers(plugin.id, hash, info.slots);
+    // Whether it checks mail before sending, for the next start (plugin-send-guards.ts).
+    rememberDeclaredHooks(plugin, hash, info.hooks);
 
     registerActive({
       plugin,

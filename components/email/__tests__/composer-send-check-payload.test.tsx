@@ -6,7 +6,8 @@ import { usePolicyStore } from '@/stores/policy-store';
 import { resetSendPipeline } from '@/lib/outgoing/send-pipeline';
 import { DEFAULT_POLICY, type SettingsPolicy } from '@/lib/admin/types';
 import { DEFAULT_ORGANISATION_POLICY } from '@/lib/admin/organisation-policy';
-import type { OutgoingEmail } from '@/lib/plugin-types';
+import type { InstalledPlugin, OutgoingEmail } from '@/lib/plugin-types';
+import { setSendGuardSource } from '@/lib/plugin-send-guards';
 
 // ─── Heavy component mocks (mirrors composer-reply-signature.test.tsx) ─
 
@@ -175,8 +176,9 @@ vi.mock('@/stores/template-store', () => {
 
 // ─── Misc dependency mocks ────────────────────────────────────────────────────
 
+const toasts = vi.hoisted(() => ({ error: [] as string[] }));
 vi.mock('@/stores/toast-store', () => ({
-  toast: { info: () => {}, error: () => {}, success: () => {} },
+  toast: { info: () => {}, error: (message: string) => { toasts.error.push(message); }, success: () => {} },
 }));
 
 vi.mock('@/lib/plugin-hooks', () => ({
@@ -309,5 +311,29 @@ describe('composer: what a send check plugin gets', () => {
     fireEvent.click(screen.getAllByTestId('composer-send')[0]);
     await waitFor(() => expect(onSend).toHaveBeenCalledTimes(1));
     expect((sendChecks.seen[0] as OutgoingEmail).externalRecipients).toEqual(['mallory@evil.test']);
+  });
+});
+
+// A send check the admin requires that isn't running holds the send.
+describe('composer: a required send check that is down', () => {
+  afterEach(() => {
+    setSendGuardSource(null);
+    toasts.error = [];
+    vi.clearAllMocks();
+  });
+
+  it('sends nothing and says why', async () => {
+    const down = {
+      id: 'send-checks', name: 'Send checks', version: '1.0.0', permissions: ['email:send'],
+      status: 'error', error: 'auto-disabled', enabled: false, forceEnabled: true, managed: true,
+    } as unknown as InstalledPlugin;
+    setSendGuardSource({ snapshot: () => ({ plugins: [down], forced: () => true }), subscribe: () => () => {} });
+    sendChecks.seen = [];
+    const onSend = vi.fn();
+    render(<EmailComposer initialData={DRAFT} onSend={onSend} />);
+    fireEvent.click(screen.getAllByTestId('composer-send')[0]);
+    await waitFor(() => expect(toasts.error).toContain('not_running'));
+    expect(onSend).not.toHaveBeenCalled();
+    expect(sendChecks.seen).toEqual([]);
   });
 });

@@ -6001,6 +6001,9 @@
       "error_save": "Nu s-a putut salva: {error}"
     }
   },
+  "send_guards": {
+    "not_running": "Nu a fost trimis. O verificare cerută de organizația ta nu rulează. Încearcă din nou peste o clipă."
+  },
   "plugin_list": {
     "filters": "Filtre",
     "remove_filter": "Eliminați filtrul {label}"

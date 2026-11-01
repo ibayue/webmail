@@ -11,13 +11,22 @@
 
 import { emailHooks } from '@/lib/plugin-hooks';
 import type { OutgoingEmail } from '@/lib/plugin-types';
+import { awaitSendGuards } from '@/lib/plugin-send-guards';
+import { debug } from '@/lib/debug';
 
 /**
  * allowed: send. vetoed: a plugin said no and told the user. failed: a
- * handler threw or ran out of time (nobody told the user yet).
+ * handler threw or ran out of time. guard-down: a send check the admin
+ * requires isn't running (lib/plugin-send-guards.ts). Nobody told the user
+ * about the last two yet.
  */
-export type PluginSendCheckOutcome = 'allowed' | 'vetoed' | 'failed';
+export type PluginSendCheckOutcome = 'allowed' | 'vetoed' | 'failed' | 'guard-down';
 
 export async function runPluginSendCheck(email: OutgoingEmail): Promise<PluginSendCheckOutcome> {
+  const down = await awaitSendGuards();
+  if (down.length > 0) {
+    debug.warn('email', `Send held: required send checks not running: ${down.map((g) => `${g.id} (${g.state})`).join(', ')}`);
+    return 'guard-down';
+  }
   return emailHooks.onBeforeEmailSend.interceptOutcome(email);
 }

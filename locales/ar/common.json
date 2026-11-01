@@ -6001,6 +6001,9 @@
       "error_save": "تعذّر الحفظ: {error}"
     }
   },
+  "send_guards": {
+    "not_running": "لم تُرسل. هناك فحص تشترطه مؤسستك لا يعمل حاليًا. حاول مرة أخرى بعد قليل."
+  },
   "plugin_list": {
     "filters": "المرشحات",
     "remove_filter": "إزالة المرشح {label}"

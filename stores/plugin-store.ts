@@ -27,6 +27,7 @@ import { IMPLICIT_PERMISSIONS } from '@/lib/plugin-types';
 import type { Permission } from '@/lib/plugin-types';
 import { IS_LITE } from '@/lib/lite';
 import { onFullSignOut } from '@/lib/sign-out-cleanup';
+import { forgetDeclaredHooks, setSendGuardSource } from '@/lib/plugin-send-guards';
 
 let pluginInitializationPromise: Promise<void> | null = null;
 // One-time guard so we attach the locale and regional subscriptions only once.
@@ -427,6 +428,7 @@ function removePluginData(id: string): void {
   deactivatePlugin(id);
   removeAllPluginHooks(id);
   forgetSlotOffers(id);
+  forgetDeclaredHooks(id);
   void pluginStorage.deleteCode(id).catch(() => {});
   void pluginStorage.deletePreview(id).catch(() => {});
   // Accounts the user connected for it live on the server (this mail account's).
@@ -838,3 +840,15 @@ onFullSignOut(() => {
     }),
   });
 });
+
+// Send guards the admin requires hold sends while they aren't running
+// (lib/plugin-send-guards.ts). No plugins run in Lite.
+if (!IS_LITE) {
+  setSendGuardSource({
+    snapshot: () => ({
+      plugins: usePluginStore.getState().plugins,
+      forced: (plugin) => !!plugin.forceEnabled || usePolicyStore.getState().isPluginForceEnabled(plugin.id),
+    }),
+    subscribe: (listener) => usePluginStore.subscribe(listener),
+  });
+}

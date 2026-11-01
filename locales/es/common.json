@@ -6001,6 +6001,9 @@
       "error_save": "No se pudo guardar: {error}"
     }
   },
+  "send_guards": {
+    "not_running": "No enviado. Una comprobación que exige tu organización no está en marcha. Vuelve a intentarlo en un momento."
+  },
   "plugin_list": {
     "filters": "Filtros",
     "remove_filter": "Quitar el filtro {label}"

@@ -6001,6 +6001,9 @@
       "error_save": "Speichern fehlgeschlagen: {error}"
     }
   },
+  "send_guards": {
+    "not_running": "Nicht gesendet. Eine Prüfung, die Ihre Organisation vorschreibt, läuft gerade nicht. Versuchen Sie es gleich noch einmal."
+  },
   "plugin_list": {
     "filters": "Filter",
     "remove_filter": "Filter {label} entfernen"

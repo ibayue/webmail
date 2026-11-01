@@ -6001,6 +6001,9 @@
       "error_save": "无法保存：{error}"
     }
   },
+  "send_guards": {
+    "not_running": "未发送。你的组织要求的一项检查当前未运行。请稍后再试。"
+  },
   "plugin_list": {
     "filters": "筛选",
     "remove_filter": "移除筛选条件 {label}"

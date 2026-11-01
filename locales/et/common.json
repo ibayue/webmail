@@ -6001,6 +6001,9 @@
       "error_save": "Salvestamine ebaõnnestus: {error}"
     }
   },
+  "send_guards": {
+    "not_running": "Ei saadetud. Teie organisatsiooni nõutud kontroll praegu ei tööta. Proovige hetke pärast uuesti."
+  },
   "plugin_list": {
     "filters": "Filtrid",
     "remove_filter": "Eemalda filter {label}"

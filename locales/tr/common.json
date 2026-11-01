@@ -6001,6 +6001,9 @@
       "error_save": "Kaydedilemedi: {error}"
     }
   },
+  "send_guards": {
+    "not_running": "Gönderilmedi. Kuruluşunuzun zorunlu tuttuğu bir denetim şu anda çalışmıyor. Biraz sonra yeniden deneyin."
+  },
   "plugin_list": {
     "filters": "Filtreler",
     "remove_filter": "{label} filtresini kaldır"

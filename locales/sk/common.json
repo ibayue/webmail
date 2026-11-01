@@ -6001,6 +6001,9 @@
       "error_save": "Uloženie zlyhalo: {error}"
     }
   },
+  "send_guards": {
+    "not_running": "Neodoslané. Kontrola, ktorú vyžaduje vaša organizácia, práve nebeží. Skúste to o chvíľu znova."
+  },
   "plugin_list": {
     "filters": "Filtre",
     "remove_filter": "Odstrániť filter {label}"

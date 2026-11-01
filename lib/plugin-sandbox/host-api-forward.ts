@@ -209,7 +209,9 @@ export async function doEmailForward(
       authoredText: note,
       externalRecipients: await externalRecipientsFor(context),
     };
-    if ((await runPluginSendCheck(outgoing)) !== 'allowed') return { sent: false, reason: 'stopped' };
+    const outcome = await runPluginSendCheck(outgoing);
+    if (outcome === 'guard-down') toast.error(text(messages, 'send_guards.not_running'));
+    if (outcome !== 'allowed') return { sent: false, reason: 'stopped' };
   }
 
   // The attachments are blobs of the account the original is in; a message
