@@ -234,7 +234,7 @@ function enqueueRecord(account: string, task: () => Promise<void>): void {
 // ---- Hooks for the JMAP client ----
 
 let networkWasDown = false;
-let probing = false;
+let probing: Promise<boolean> | null = null;
 
 /**
  * A request failed on the network. Browsers report a refusal without CORS
@@ -243,17 +243,19 @@ let probing = false;
  * when that fails too is the server counted as gone, and sends go to the
  * outbox.
  */
-async function probeServer(client: OfflineClientRef): Promise<void> {
-  if (probing) return;
-  probing = true;
-  try {
-    await fetch(`${client.getServerUrl().replace(/\/+$/, '')}/.well-known/jmap`, { mode: 'no-cors', cache: 'no-store', credentials: 'omit' });
-  } catch {
-    networkWasDown = true;
-    if (!useOfflineStore.getState().networkDown) useOfflineStore.setState({ networkDown: true });
-  } finally {
-    probing = false;
-  }
+function probeServer(client: OfflineClientRef): Promise<boolean> {
+  if (probing) return probing;
+  probing = (async () => {
+    try {
+      await fetch(`${client.getServerUrl().replace(/\/+$/, '')}/.well-known/jmap`, { mode: 'no-cors', cache: 'no-store', credentials: 'omit' });
+      return false;
+    } catch {
+      networkWasDown = true;
+      if (!useOfflineStore.getState().networkDown) useOfflineStore.setState({ networkDown: true });
+      return true;
+    }
+  })().finally(() => { probing = null; });
+  return probing;
 }
 
 const hooks: OfflineHooks = {
@@ -293,6 +295,11 @@ const hooks: OfflineHooks = {
     } else {
       void probeServer(client);
     }
+  },
+  async serverGone(client) {
+    if (!offlineActive(accountForClient(client))) return false;
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) return true;
+    return probeServer(client);
   },
   async blob(client, blobId, jmap) {
     const account = accountForClient(client);
@@ -445,7 +452,11 @@ export async function runSync(account: string): Promise<void> {
   syncsRunning.add(account);
   useOfflineStore.setState((s) => ({ syncing: [...new Set([...s.syncing, account])] }));
   try {
-    await syncAccount(account, client, { stillActive: () => offlineActive(account), scopeMailboxes });
+    await syncAccount(account, client, {
+      stillActive: () => offlineActive(account),
+      recorded: async () => { await recording.get(account); },
+      scopeMailboxes,
+    });
     useOfflineStore.setState((s) => ({ lastSyncedAt: { ...s.lastSyncedAt, [account]: Date.now() } }));
   } catch {
     // Tried again at the next change or in 15 minutes.
@@ -493,6 +504,12 @@ export async function enableOffline(account: string): Promise<void> {
   if (!offlineAllowed(account)) return;
   const enabled = useOfflineStore.getState().enabled;
   if (!enabled.includes(account)) writeEnabled([...enabled, account]);
+  // Ask the browser not to clear it when space runs low (it may say no).
+  try {
+    void navigator.storage?.persist?.().catch(() => false);
+  } catch {
+    /* no Storage API */
+  }
   const client = onlineClientFor(account);
   if (client) await putMisc(account, 'session', client.getSessionSnapshot());
   await tellServiceWorker(true);

@@ -33,6 +33,12 @@ export interface OfflineHooks {
   record(client: OfflineClientRef, methodCalls: OfflineMethodCall[], response: OfflineResponse): void;
   /** A request reached the server (true) or failed on the network (false). */
   noteNetwork(client: OfflineClientRef, reachable: boolean): void;
+  /**
+   * After a request failed on the network: whether the server can't be
+   * reached at all (then the device answers), or it only refused that
+   * request (then it stays an error).
+   */
+  serverGone(client: OfflineClientRef): Promise<boolean>;
   /** A blob kept on the device, or null. */
   blob(client: OfflineClientRef, blobId: string, accountId: string): Promise<Blob | null>;
   /** A blob the server sent, for the cache. */

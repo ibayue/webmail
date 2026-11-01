@@ -21,6 +21,8 @@ const ATTACHMENT_BUDGET_BYTES = 100 * 1024 * 1024;
 
 interface SyncDeps {
   stillActive: () => boolean;
+  /** Resolves once the cache has written every answer the client recorded so far. */
+  recorded: () => Promise<void>;
   scopeMailboxes: (account: string) => Promise<Array<{ jmap: string; mailboxId: string; isInbox: boolean }>>;
 }
 
@@ -31,21 +33,35 @@ interface AttachmentPart {
   size?: number;
 }
 
+/** Once more after a second: Stalwart refuses requests beyond its limit of parallel ones. */
+async function twice<T>(run: () => Promise<T>): Promise<T> {
+  try {
+    return await run();
+  } catch {
+    await new Promise((r) => setTimeout(r, 1000));
+    return run();
+  }
+}
+
 export async function syncAccount(account: string, client: JMAPClient, deps: SyncDeps): Promise<void> {
   await putMisc(account, 'session', client.getSessionSnapshot());
   // Folders and identities are recorded from these answers.
-  await client.getAllMailboxes().catch(() => client.getMailboxes());
-  await client.getIdentities().catch(() => []);
+  await twice(() => client.getAllMailboxes()).catch(() => client.getMailboxes());
+  await twice(() => client.getIdentities()).catch(() => []);
+  // The folder list says which folder is the Inbox.
+  await deps.recorded();
   if (!deps.stillActive()) return;
 
   const since = new Date(Date.now() - CACHE_WINDOW_MS).toISOString();
   const wanted = new Map<string, Set<string>>();
   const scopes = await deps.scopeMailboxes(account);
+  let complete = scopes.length > 0;
   for (const { jmap, mailboxId, isInbox } of scopes) {
     let ids: string[];
     try {
-      ids = await client.getRecentEmailIds(mailboxId, jmap, since, isInbox ? INBOX_LIMIT : FOLDER_LIMIT);
+      ids = await twice(() => client.getRecentEmailIds(mailboxId, jmap, since, isInbox ? INBOX_LIMIT : FOLDER_LIMIT));
     } catch {
+      complete = false;
       continue;
     }
     const set = wanted.get(jmap) ?? new Set<string>();
@@ -57,13 +73,16 @@ export async function syncAccount(account: string, client: JMAPClient, deps: Syn
   for (const [jmap, idSet] of wanted) {
     const ids = [...idSet];
     // Fresh keywords and folders for all of them (cheap: list properties).
-    if (ids.length) await client.getSomeEmails(ids, jmap === client.getAccountId() ? undefined : jmap).catch(() => []);
-    // Bodies for the ones that don't have one yet.
+    if (ids.length) await twice(() => client.getSomeEmails(ids, jmap === client.getAccountId() ? undefined : jmap)).catch(() => []);
+    // Bodies for the ones that don't have one yet, a batch at a time.
     const missing: string[] = [];
     for (const id of ids) if (!(await hasBody(account, jmap, id))) missing.push(id);
-    if (missing.length) await client.getFullEmails(missing, jmap);
-    if (!deps.stillActive()) return;
+    for (let i = 0; i < missing.length; i += 20) {
+      await twice(() => client.getFullEmails(missing.slice(i, i + 20), jmap)).catch(() => { complete = false; });
+      if (!deps.stillActive()) return;
+    }
   }
+  await deps.recorded();
 
   // What left the window or the folders goes.
   const index = await emailIndex(account);
@@ -72,8 +91,8 @@ export async function syncAccount(account: string, client: JMAPClient, deps: Syn
     const jmap = key.split('\u0001')[1];
     if (!wanted.get(jmap)?.has(email.id)) stale.push(key);
   }
-  // A folder that couldn't be asked keeps what it had.
-  if (scopes.length > 0 && wanted.size > 0) await removeEmails(account, stale);
+  // Only after a complete pass: a folder that couldn't be asked keeps what it had.
+  if (complete) await removeEmails(account, stale);
 
   // Attachments and inline images, newest messages first, within the budget.
   let budget = ATTACHMENT_BUDGET_BYTES;

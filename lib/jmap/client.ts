@@ -2155,8 +2155,9 @@ export class JMAPClient implements IJMAPClient {
     try {
       answer = await this.networkRequest(methodCalls, using, opts);
     } catch (error) {
-      if (offline && isNetworkFailure(error)) {
-        offline.noteNetwork(this, false);
+      // Only when the server is really gone: a refusal without CORS
+      // headers looks the same to the browser and must stay an error.
+      if (offline && isNetworkFailure(error) && await offline.serverGone(this)) {
         const local = await offline.answer(this, methodCalls);
         if (local) return local as JMAPResponse;
       }
@@ -6272,7 +6273,7 @@ export class JMAPClient implements IJMAPClient {
     try {
       return await this.authenticatedFetch(url, {}, { timeoutMs: JMAPClient.TRANSFER_TIMEOUT_MS });
     } catch (error) {
-      if (offline && isNetworkFailure(error)) {
+      if (offline && isNetworkFailure(error) && await offline.serverGone(this)) {
         const local = await offline.blob(this, blobId, account);
         if (local) return local;
       }
