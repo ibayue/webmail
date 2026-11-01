@@ -77,6 +77,29 @@ export async function reloadToNewBuild(): Promise<void> {
   window.location.reload();
 }
 
+/**
+ * A worker of this tab's own build that waits (offline mode on, so it
+ * doesn't take over while tabs of the old build are open): this tab runs
+ * that build already, so it takes over now. Tabs of the old build keep
+ * their files: the old build's cache stays until the last of them closes,
+ * and the new worker answers chunks from every build's cache.
+ */
+export function adoptWaitingWorker(registration: ServiceWorkerRegistration): void {
+  const id = currentBuildId();
+  if (!id) return;
+  const ours = (worker: ServiceWorker | null | undefined) => !!worker && new URL(worker.scriptURL).searchParams.get('v') === id;
+  const adopt = () => {
+    if (ours(registration.waiting)) registration.waiting!.postMessage({ type: 'skip-waiting' });
+  };
+  adopt();
+  registration.addEventListener('updatefound', () => {
+    const installing = registration.installing;
+    installing?.addEventListener('statechange', () => {
+      if (installing.state === 'installed') adopt();
+    });
+  });
+}
+
 /** Tells the service worker which build this tab runs, so it keeps that build's files while the tab is open. */
 export function announceBuildToServiceWorker(): void {
   const id = currentBuildId();

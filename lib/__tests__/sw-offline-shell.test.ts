@@ -123,4 +123,13 @@ describe('service worker with offline mode on', () => {
     expect((await caches.keys()).filter((k) => k.startsWith('bulwark-shell-'))).toEqual([]);
     expect(await worker.request({ url: `${ORIGIN}/mail`, mode: 'navigate' })).toBeNull();
   });
+
+  it('keeps a newer tab’s shell in that tab’s build cache, not its own', async () => {
+    const caches = new FakeCaches();
+    const fetchMock = vi.fn(async () => sameOrigin('x', 'text/javascript'));
+    const worker = loadWorker({ buildId: 'old', caches, clients: [], fetch: fetchMock });
+    await worker.dispatch('message', { data: { type: 'offline-shell', on: true, urls: ['/_next/static/chunks/n.js'], buildId: 'new' } });
+    expect(await caches.has('bulwark-shell-new')).toBe(true);
+    expect(await caches.has('bulwark-shell-old')).toBe(false);
+  });
 });

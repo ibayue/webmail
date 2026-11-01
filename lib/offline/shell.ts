@@ -5,7 +5,7 @@
  */
 
 import { apiFetch, withBasePath } from '@/lib/browser-navigation';
-import { SW_SCOPE } from '@/lib/app-update';
+import { currentBuildId, SW_SCOPE } from '@/lib/app-update';
 
 /** The app's pages kept for a start without the network. */
 const SHELL_PAGES = ['/', '/mail', '/settings'];
@@ -35,7 +35,7 @@ export async function tellServiceWorker(on: boolean): Promise<void> {
   const worker = await activeWorker();
   if (!worker) return;
   const urls = on ? [...SHELL_PAGES.map((p) => withBasePath(p)), ...(await shellFiles())] : [];
-  worker.postMessage({ type: 'offline-shell', on, urls });
+  worker.postMessage({ type: 'offline-shell', on, urls, buildId: currentBuildId() });
 }
 
 /** The service worker's copies of the shell, from the page (also when no worker runs). */

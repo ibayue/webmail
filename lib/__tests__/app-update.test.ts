@@ -10,7 +10,7 @@ vi.mock('@/lib/lite', async (importOriginal) => {
   };
 });
 
-import { currentBuildId, fetchDeployedBuildId, isChunkLoadFailure, newerBuildId, serviceWorkerUrl } from '../app-update';
+import { adoptWaitingWorker, currentBuildId, fetchDeployedBuildId, isChunkLoadFailure, newerBuildId, serviceWorkerUrl } from '../app-update';
 
 function answer(body: unknown, ok = true) {
   return vi.fn(async () => ({ ok, json: async () => body }) as Response);
@@ -72,5 +72,15 @@ describe('app update', () => {
     const error = Object.assign(new Error('Loading chunk 123 failed.'), { name: 'ChunkLoadError' });
     expect(isChunkLoadFailure({ reason: error } as unknown as PromiseRejectionEvent)).toBe(true);
     expect(isChunkLoadFailure({ reason: new Error('nope') } as unknown as PromiseRejectionEvent)).toBe(false);
+  });
+
+  it('lets a waiting worker of this tab’s build take over, and no other', () => {
+    const worker = (v: string) => ({ scriptURL: `https://mail.example.com/sw.js?v=${v}`, postMessage: vi.fn() });
+    const ours = worker('build-a');
+    adoptWaitingWorker({ waiting: ours, addEventListener: () => {} } as unknown as ServiceWorkerRegistration);
+    expect(ours.postMessage).toHaveBeenCalledWith({ type: 'skip-waiting' });
+    const other = worker('build-b');
+    adoptWaitingWorker({ waiting: other, addEventListener: () => {} } as unknown as ServiceWorkerRegistration);
+    expect(other.postMessage).not.toHaveBeenCalled();
   });
 });

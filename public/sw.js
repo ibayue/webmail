@@ -46,8 +46,12 @@ const OFFLINE_SHELL_KEY = "/__bulwark/offline-shell";
 self.addEventListener("install", (event) => {
   // With offline mode on, a tab may load a chunk of its build at any time,
   // from this worker's caches. A new build's worker waits until those tabs
-  // are gone or one asks it to take over (its "Reload"); without offline
-  // mode nothing is cached and it takes over at once, as it always did.
+  // are gone or a tab asks it to take over: its "Reload", or a tab that
+  // runs the new build already (lib/app-update.ts adoptWaitingWorker). The
+  // old build's tabs keep their files then too: its cache stays while they
+  // are open, and chunks are answered from every build's cache. Without
+  // offline mode nothing is cached and it takes over at once, as it always
+  // did.
   event.waitUntil(readOfflineShell().then((on) => {
     if (!on) return self.skipWaiting();
     return self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((open) => {
@@ -200,10 +204,14 @@ function offlineRoute(request) {
   return null;
 }
 
-/** Keeps the files a tab names (this build's shell) in this build's cache. */
-async function precacheShell(urls) {
+/**
+ * Keeps the files a tab names (its build's shell) in that build's cache. The
+ * tab may run a newer build than this worker (right after a deploy).
+ */
+async function precacheShell(urls, buildId) {
   if (!Array.isArray(urls) || urls.length === 0) return;
-  const cache = await caches.open(SHELL_CACHE);
+  const name = typeof buildId === "string" && /^[\w.-]{1,80}$/.test(buildId) ? SHELL_CACHE_PREFIX + buildId : SHELL_CACHE;
+  const cache = await caches.open(name);
   const wanted = urls.filter((u) => typeof u === "string");
   for (let i = 0; i < wanted.length; i += 8) {
     await Promise.all(wanted.slice(i, i + 8).map(async (u) => {
@@ -221,10 +229,10 @@ async function precacheShell(urls) {
   }
 }
 
-async function setOfflineShell(on, urls) {
+async function setOfflineShell(on, urls, buildId) {
   await writeOfflineShell(on);
   if (on) {
-    await precacheShell(urls);
+    await precacheShell(urls, buildId);
     return;
   }
   // Off: nothing of the shell stays.
@@ -320,7 +328,7 @@ self.addEventListener("message", (event) => {
     return;
   }
   if (data.type === "offline-shell") {
-    event.waitUntil(setOfflineShell(data.on === true, data.urls));
+    event.waitUntil(setOfflineShell(data.on === true, data.urls, data.buildId));
     return;
   }
   if (data.type === "skip-waiting") {

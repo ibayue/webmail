@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { IS_LITE } from "@/lib/lite";
-import { announceBuildToServiceWorker, serviceWorkerUrl, SW_SCOPE } from "@/lib/app-update";
+import { adoptWaitingWorker, announceBuildToServiceWorker, serviceWorkerUrl, SW_SCOPE } from "@/lib/app-update";
 
 export function ServiceWorkerRegistration() {
   useEffect(() => {
@@ -37,6 +37,7 @@ export function ServiceWorkerRegistration() {
       .then((registration) => {
         console.log("Service Worker registered successfully:", registration);
         announceBuildToServiceWorker();
+        adoptWaitingWorker(registration);
       })
       .catch((error) => {
         console.error("Service Worker registration failed:", error);
