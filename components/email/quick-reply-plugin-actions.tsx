@@ -12,8 +12,7 @@ type Props = {
   onChange: (text: string) => void;
 };
 
-/** Own the quick-reply capability without an extra reading-pane render.
- * 읽기 화면을 추가 렌더링하지 않고 간단 답장의 플러그인 핸들을 관리합니다. */
+/** Own the quick-reply capability without an extra reading-pane render. */
 export function QuickReplyPluginActions({ inputRef, readMetadata, onChange }: Props) {
   const [composerId] = useState(generateUUID);
   const metadataRef = useRef(readMetadata);

@@ -177,7 +177,6 @@ interface PluginItemsProps {
  * are hidden and the same actions are listed in the Options menu instead
  * (ComposerPluginMenuItems with `onlyWhenNarrow`).
  * `alwaysVisible` is for a wrapping toolbar without an Options fallback.
- * Options 대체 메뉴가 없는 줄바꿈 툴바는 `alwaysVisible`로 작업을 표시합니다.
  */
 export function ComposerPluginToolbarButtons({ surface, context, alwaysVisible = false }: { surface: "composer-toolbar-actions"; context: () => Record<string, unknown>; alwaysVisible?: boolean }) {
   const actions = usePluginActions(surface);

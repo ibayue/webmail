@@ -42,8 +42,7 @@ import { ReaderSelectionMenu, useReaderSelectionMenu, watchBodySelection, watchE
 import { onPanelRequest } from "@/lib/plugin-sandbox/panel-requests";
 import type { ComposerMetadata } from "@/lib/plugin-sandbox/composer-registry";
 import { QuickReplyPluginActions } from "./quick-reply-plugin-actions";
-import { buildReplyRecipients, isSelfSent } from "@/lib/reply-recipients";
-import { findDraftIdentityId, findReplyIdentityId } from "@/lib/reply-identity";
+import { quickReplyEnvelope } from "@/lib/outgoing/quick-reply-envelope";
 import { formatFileSize, cn, formatDate, formatDateTime, formatRelativeAgo, generateUUID, cleanPreview, type MailboxNode } from "@/lib/utils";
 import { getEffectiveTimeZone, getWallClock } from "@/lib/timezone";
 import { itemsToHide } from "@/lib/toolbar-overflow";
@@ -1597,18 +1596,13 @@ export function EmailViewer({
   const quickReplyRef = useRef<HTMLTextAreaElement>(null);
   const [isQuickReplyFocused, setIsQuickReplyFocused] = useState(false);
   const [isSendingQuickReply, setIsSendingQuickReply] = useState(false);
-  /** Follow the native reply recipient and identity rules without sending.
-   * 발송 없이 기본 답장의 수신인·identity 선택 규칙을 따릅니다. */
+  /** The recipients and identity the quick reply would be sent with. */
   const quickMetadata = (): ComposerMetadata => {
     if (!email) return { subject: '', to: [], attachments: [] };
-    const ownAddresses = identities.map(identity => identity.email).filter(Boolean);
-    const source = { from: email.from, replyToAddresses: email.replyTo, to: email.to, cc: email.cc };
-    const to = buildReplyRecipients(source, 'reply', ownAddresses).to
-      .map(recipient => recipient.email).filter((address): address is string => Boolean(address));
-    let identityId = findReplyIdentityId(identities, email) ?? identities[0]?.id;
-    if (isSelfSent(source, ownAddresses)) identityId = findDraftIdentityId(identities, email.from?.[0]) ?? identityId;
+    const envelope = quickReplyEnvelope(email, identities);
     return {
-      subject: email.subject ?? '', to, attachments: [], identityId,
+      subject: email.subject ?? '', to: envelope.recipients, attachments: [],
+      identityId: envelope.sendingIdentity?.id,
       accountKey: JSON.stringify([activeAccountId, email.sourceClientAccountId, email.sourceAccountId]),
       pending: isSendingQuickReply,
     };

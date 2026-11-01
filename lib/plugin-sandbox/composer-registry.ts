@@ -75,8 +75,7 @@ export function captureComposer(id: string): ComposerSnapshot {
   };
 }
 
-/** Register an open composer, optionally using a preallocated capability id.
- * 미리 할당한 ID를 선택적으로 사용하여 열린 작성창을 등록합니다. */
+/** Register an open composer, optionally using a preallocated capability id. */
 export function registerComposer(handle: ComposerHandle, id = generateUUID()): { id: string; unregister: () => void } {
   handles.set(id, handle);
   return { id, unregister: () => { handles.delete(id); snapshots.delete(id); } };

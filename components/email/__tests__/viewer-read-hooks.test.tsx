@@ -49,8 +49,7 @@ const viewer = (email: Email, extra: Record<string, unknown> = {}) => (
 beforeEach(() => clearAllHooks());
 afterEach(() => { cleanup(); act(() => { resetActions(); setActionDispatcher(null); }); });
 
-/** Obtain the quick-reply handle through a generic plugin action click.
- * 범용 플러그인 작업 클릭으로 간단 답장의 핸들을 얻습니다. */
+/** Obtain the quick-reply handle through a generic plugin action click. */
 async function quickComposer() {
   const clicks: Record<string, unknown>[] = [];
   const send = vi.fn();
