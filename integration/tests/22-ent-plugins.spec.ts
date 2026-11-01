@@ -217,9 +217,14 @@ async function expectSentOnce(account: string, subject: string): Promise<void> {
   expect((await messages(account, RUN)).filter((m) => m.subject === subject)).toHaveLength(1);
 }
 
-/** Both plugins started: the host notes the hooks of every plugin once it has started it. */
+/**
+ * Both plugins started (the host notes the hooks of every plugin once it
+ * has started it) and the message list is there, so the start-up requests
+ * are done before the test sends anything.
+ */
 async function pluginsReady(page: Page): Promise<void> {
   await page.waitForFunction((ids) => ids.every((id) => localStorage.getItem(`plugin-declared-hooks:${id}`)), [LINK, SEND], { timeout: 60_000 });
+  await expect(page.locator('[data-testid="email-list-item"]').first()).toBeVisible({ timeout: 60_000 });
 }
 
 async function clearBody(page: Page): Promise<void> {
@@ -277,8 +282,18 @@ async function compose(page: Page, to: string[], subject: string, text: string):
 }
 
 async function pressSend(page: Page): Promise<void> {
+  // A send still winding down after a "Go back" ignores another one.
+  await expect(page.getByTestId('composer-send').first()).toBeEnabled({ timeout: 20_000 });
   await page.locator('[data-testid="composer-subject"]').first().focus();
   await page.keyboard.press('Control+Enter');
+}
+
+/** "Go back" in the send check's warning: it closes and the composer is ready again. */
+async function goBack(page: Page): Promise<void> {
+  const dialog = page.locator(`[data-plugin-dialog="${SEND}"]`);
+  await dialog.getByRole('button', { name: 'Go back' }).click();
+  await expect(dialog).toBeHidden();
+  await expect(page.getByText('Message not sent').first()).toBeVisible({ timeout: 20_000 });
 }
 
 const IBAN = 'DE89 3704 0044 0532 0130 00';
@@ -443,7 +458,7 @@ test('item 5: an IBAN and a card number warn, masked; Go back keeps the mail, Se
   await expect(dialog).not.toContainText('0532 0130');
   await expect(dialog).not.toContainText(CARD);
   await shot(alice, 'e-send-warn');
-  await dialog.getByRole('button', { name: 'Go back' }).click();
+  await goBack(alice);
   await expect(alice.locator('[data-testid="email-composer"]')).toBeVisible();
 
   await pressSend(alice);
@@ -524,7 +539,7 @@ test('item 5: an external-only rule ignores internal recipients, with the domain
     const dialog = sendDialog(carol);
     await expect(dialog).toContainText('IBAN DE89', { timeout: 20_000 });
     await expect(dialog).toContainText('goes outside your organisation');
-    await dialog.getByRole('button', { name: 'Go back' }).click();
+    await goBack(carol);
     await pressSend(carol);
     await sendDialog(carol).getByRole('button', { name: 'Send anyway' }).click();
     await expectSentOnce(ENT.bob, outside);
@@ -569,7 +584,7 @@ test('item 5: a quick reply is checked too', async ({ browser }) => {
   await box.press('Control+Enter');
   const dialog = sendDialog(alice);
   await expect(dialog).toContainText('IBAN DE89', { timeout: 20_000 });
-  await dialog.getByRole('button', { name: 'Go back' }).click();
+  await goBack(alice);
   // The typed text stays.
   await expect(box).toHaveValue(`To ${IBAN} please`);
   await box.fill('I will pay by card in person.');
@@ -600,7 +615,7 @@ test('item 5: the send dialog fits at 390 px', async ({ browser }) => {
   expect(box!.x + box!.width).toBeLessThanOrEqual(390);
   expect(await alice.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(0);
   await shot(alice, 'e-send-phone');
-  await dialog.getByRole('button', { name: 'Go back' }).click();
+  await goBack(alice);
   await alice.context().close();
 });
 
@@ -614,7 +629,7 @@ test('item 5: a keyword the admin adds on the plugin page warns at the next send
   await keywords.fill(`TOPSECRET-${RUN}\n${word}`);
   await page.getByRole('button', { name: 'Save', exact: true }).click();
   await expect.poll(async () => {
-    const res = await admin.request.get(`/api/admin/plugins/${SEND}/config?public=1`);
+    const res = await admin.request.get(`/api/admin/plugins/${SEND}/config`);
     return String((await res.json()).keywords ?? '');
   }, { timeout: 20_000 }).toContain(word);
   await shot(page, 'e-send-admin');
