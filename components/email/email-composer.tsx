@@ -4028,6 +4028,11 @@ export function EmailComposer({
     cancelSaveAndClose();
     sendCancelledRef.current = true;
     explicitCloseRef.current = true;
+    // Discard owns the whole pending batch. Abort queued controllers too so
+    // the serial upload loop skips them after the active upload settles.
+    for (const attachment of attachmentsRef.current) {
+      attachment.abortController?.abort();
+    }
     setShowCloseDialog(false);
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current);
