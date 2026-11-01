@@ -1301,6 +1301,37 @@
     "tag_removed_count": "{count, plural, other {Címke eltávolítva # e-mailről}}",
     "new_mail_count": "{count, plural, other {# új üzenet}}"
   },
+  "org_notice": {
+    "label": "Közlemény",
+    "dismiss": "Közlemény bezárása",
+    "severity_info": "Információ",
+    "severity_warning": "Figyelmeztetés",
+    "severity_critical": "Fontos"
+  },
+  "vacation_templates": {
+    "title": "A szervezet sablonjai",
+    "description": "Kezdjen a szervezete által megírt válasszal. A szöveget utána módosíthatja.",
+    "pick_label": "Sablon használata",
+    "pick_placeholder": "Válasszon sablont",
+    "deputy_label": "A helyettes címe",
+    "deputy_placeholder": "kollega@example.com",
+    "deputy_hint": "A válasz sürgős ügyekben ezt a kollégát nevezi meg.",
+    "deputy_missing": "Előbb adja meg a helyettese címét.",
+    "deputy_name_label": "A helyettes neve",
+    "deputy_name_missing": "Előbb adja meg a helyettese nevét.",
+    "apply": "Ennek a szövegnek a használata",
+    "apply_hint": "Lecseréli a lenti tárgyat és szöveget."
+  },
+  "retention_notice": {
+    "line": "Az itt lévő üzenetek az ide helyezésük után {count, plural, one {# nappal} other {# nappal}} törlődnek."
+  },
+  "device_policy": {
+    "downloads_off": "A szervezete kikapcsolta a letöltést.",
+    "download_off_named": "{name}: a szervezete kikapcsolta a letöltést",
+    "download_blocked": "A szervezete kikapcsolta a letöltést.",
+    "export_blocked": "A szervezete kikapcsolta a levelek exportálását.",
+    "print_blocked": "A szervezete kikapcsolta a nyomtatást."
+  },
   "third_party": {
     "push_needs_relay": "A push-értesítésekhez a szervezeted által üzemeltetett push relé kell, és nincs beállítva egy sem. Az új levelek továbbra is megjelennek, amíg az alkalmazás nyitva van.",
     "relay_desc": "Csak a szervezeted saját reléi választhatók, mert ez a szerver nem kapcsolódik külső szolgáltatásokhoz.",

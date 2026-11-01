@@ -1301,6 +1301,37 @@
     "tag_removed_count": "{count, plural, one {Štítek odebrán z # zprávy} few {Štítek odebrán ze # zpráv} other {Štítek odebrán z # zpráv}}",
     "new_mail_count": "{count, plural, one {# nová zpráva} few {# nové zprávy} other {# nových zpráv}}"
   },
+  "org_notice": {
+    "label": "Oznámení",
+    "dismiss": "Zavřít oznámení",
+    "severity_info": "Informace",
+    "severity_warning": "Upozornění",
+    "severity_critical": "Důležité"
+  },
+  "vacation_templates": {
+    "title": "Šablony organizace",
+    "description": "Začněte odpovědí, kterou připravila vaše organizace. Text pak můžete upravit.",
+    "pick_label": "Použít šablonu",
+    "pick_placeholder": "Vyberte šablonu",
+    "deputy_label": "Adresa zástupce",
+    "deputy_placeholder": "kolega@example.com",
+    "deputy_hint": "Odpověď uvede tohoto kolegu pro naléhavé záležitosti.",
+    "deputy_missing": "Nejdřív zadejte adresu svého zástupce.",
+    "deputy_name_label": "Jméno zástupce",
+    "deputy_name_missing": "Nejdřív zadejte jméno svého zástupce.",
+    "apply": "Použít tento text",
+    "apply_hint": "Nahradí předmět a text níže."
+  },
+  "retention_notice": {
+    "line": "Zprávy zde se smažou {count, plural, one {# den} few {# dny} many {# dne} other {# dní}} poté, co sem byly přesunuty."
+  },
+  "device_policy": {
+    "downloads_off": "Stahování vypnula vaše organizace.",
+    "download_off_named": "{name}: stahování vypnula vaše organizace",
+    "download_blocked": "Vaše organizace vypnula stahování.",
+    "export_blocked": "Vaše organizace vypnula export pošty.",
+    "print_blocked": "Tisk vypnula vaše organizace."
+  },
   "third_party": {
     "push_needs_relay": "Push oznámení potřebují push relay provozovaný vaší organizací a žádný není nastaven. Nová pošta se dál zobrazuje, dokud je aplikace otevřená.",
     "relay_desc": "Nabízejí se jen vlastní relaye vaší organizace, protože tento server nekontaktuje externí služby.",

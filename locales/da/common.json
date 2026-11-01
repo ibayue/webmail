@@ -1301,6 +1301,37 @@
     "tag_removed_count": "{count, plural, one {Tag fjernet fra # e-mail} other {Tag fjernet fra # e-mails}}",
     "new_mail_count": "{count, plural, one {# ny besked} other {# nye beskeder}}"
   },
+  "org_notice": {
+    "label": "Meddelelse",
+    "dismiss": "Luk meddelelse",
+    "severity_info": "Information",
+    "severity_warning": "Advarsel",
+    "severity_critical": "Vigtigt"
+  },
+  "vacation_templates": {
+    "title": "Organisationens skabeloner",
+    "description": "Start med et svar, din organisation har skrevet. Du kan ændre teksten bagefter.",
+    "pick_label": "Brug en skabelon",
+    "pick_placeholder": "Vælg en skabelon",
+    "deputy_label": "Stedfortræderens adresse",
+    "deputy_placeholder": "kollega@example.com",
+    "deputy_hint": "Svaret nævner denne kollega ved hastesager.",
+    "deputy_missing": "Indtast først din stedfortræders adresse.",
+    "deputy_name_label": "Stedfortræderens navn",
+    "deputy_name_missing": "Indtast først din stedfortræders navn.",
+    "apply": "Brug denne tekst",
+    "apply_hint": "Erstatter emnet og teksten nedenfor."
+  },
+  "retention_notice": {
+    "line": "Beskeder her slettes {count, plural, one {# dag} other {# dage}} efter, at de blev flyttet hertil."
+  },
+  "device_policy": {
+    "downloads_off": "Din organisation har slået download fra.",
+    "download_off_named": "{name}: din organisation har slået download fra",
+    "download_blocked": "Din organisation har slået download fra.",
+    "export_blocked": "Din organisation har slået eksport af mail fra.",
+    "print_blocked": "Din organisation har slået udskrivning fra."
+  },
   "third_party": {
     "push_needs_relay": "Push-notifikationer kræver et push-relæ, som din organisation driver, og der er ikke sat noget op. Ny mail vises stadig, mens appen er åben.",
     "relay_desc": "Kun din organisations egne relæer tilbydes, fordi denne server ikke kontakter eksterne tjenester.",

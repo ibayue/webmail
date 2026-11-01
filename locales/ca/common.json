@@ -1301,6 +1301,37 @@
     "tag_removed_count": "{count, plural, one {S'ha tret l'etiqueta de # correu} other {S'ha tret l'etiqueta de # correus}}",
     "new_mail_count": "{count, plural, one {# missatge nou} other {# missatges nous}}"
   },
+  "org_notice": {
+    "label": "Avís",
+    "dismiss": "Tanca l'avís",
+    "severity_info": "Informació",
+    "severity_warning": "Advertència",
+    "severity_critical": "Important"
+  },
+  "vacation_templates": {
+    "title": "Plantilles de l'organització",
+    "description": "Comenceu amb una resposta que ha escrit la vostra organització. Després podeu canviar el text.",
+    "pick_label": "Utilitza una plantilla",
+    "pick_placeholder": "Trieu una plantilla",
+    "deputy_label": "Adreça del suplent",
+    "deputy_placeholder": "company@example.com",
+    "deputy_hint": "La resposta indica aquesta persona per als assumptes urgents.",
+    "deputy_missing": "Primer introduïu l’adreça del vostre suplent.",
+    "deputy_name_label": "Nom del suplent",
+    "deputy_name_missing": "Primer introduïu el nom del vostre suplent.",
+    "apply": "Utilitza aquest text",
+    "apply_hint": "Substitueix l'assumpte i el text de sota."
+  },
+  "retention_notice": {
+    "line": "Els missatges d'aquí s'eliminen {count, plural, one {# dia} other {# dies}} després de moure'ls aquí."
+  },
+  "device_policy": {
+    "downloads_off": "La vostra organització ha desactivat les baixades.",
+    "download_off_named": "{name}: la vostra organització ha desactivat les baixades",
+    "download_blocked": "La vostra organització ha desactivat les baixades.",
+    "export_blocked": "La vostra organització ha desactivat l'exportació del correu.",
+    "print_blocked": "La vostra organització ha desactivat la impressió."
+  },
   "third_party": {
     "push_needs_relay": "Les notificacions push necessiten un repetidor push gestionat per la vostra organització, i no n'hi ha cap de configurat. El correu nou es continua mostrant mentre l'aplicació està oberta.",
     "relay_desc": "Només s'ofereixen els repetidors propis de la vostra organització, perquè aquest servidor no contacta amb serveis externs.",

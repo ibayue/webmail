@@ -115,6 +115,8 @@ interface FileBrowserProps {
   onRenameNode: (id: string, newName: string) => Promise<void>;
   onDeleteNode: (id: string, name: string) => Promise<void>;
   onDownloadNode: (id: string) => Promise<void>;
+  /** A device policy turned downloads off (Organisation > Devices): every download action goes. */
+  downloadsOff?: boolean;
   onRevealNode: (id: string) => Promise<void>;
   onRemoveRecent: (id: string) => void;
   /** Pro shell only: all connected accounts surfaced as top-level folders at the root. */
@@ -203,6 +205,7 @@ export function FileBrowser({
   onRenameNode,
   onDeleteNode,
   onDownloadNode,
+  downloadsOff = false,
   onRevealNode,
   onRemoveRecent,
   accountFolders,
@@ -861,7 +864,7 @@ export function FileBrowser({
           {one && !one.isDirectory && !one.isSymlink && isPreviewable(one.name) && (
             <ContextMenuItem icon={Eye} label={t("preview")} onClick={() => { closeMenu(); previewResource(one); }} />
           )}
-          {one && !one.isDirectory && !one.isSymlink && (
+          {one && !one.isDirectory && !one.isSymlink && !downloadsOff && (
             <ContextMenuItem icon={Download} label={t("download")} onClick={() => { closeMenu(); void onDownload(one.name); }} />
           )}
           <ContextMenuSeparator />
@@ -875,7 +878,7 @@ export function FileBrowser({
       const withFolders = !!onDownloadZip && menuSelection.some((r) => r.isDirectory);
       return (
         <>
-          {(fileCount > 0 || withFolders) && (
+          {(fileCount > 0 || withFolders) && !downloadsOff && (
             <ContextMenuItem
               icon={Download}
               label={withFolders ? t("download_zip") : t("download_count", { count: fileCount })}
@@ -936,10 +939,10 @@ export function FileBrowser({
         {!resource.isSymlink && (
           <ContextMenuItem icon={Copy} label={t("copy")} shortcut={formatShortcutCombo("Mod + C")} onClick={() => { closeMenu(); onCopy([resource.name]); }} />
         )}
-        {resource.isDirectory && onDownloadZip && (
+        {resource.isDirectory && onDownloadZip && !downloadsOff && (
           <ContextMenuItem icon={Download} label={t("download_zip")} onClick={() => { closeMenu(); downloadNames([resource.name]); }} />
         )}
-        {!resource.isDirectory && !resource.isSymlink && (
+        {!resource.isDirectory && !resource.isSymlink && !downloadsOff && (
           <ContextMenuItem icon={Download} label={t("download")} onClick={() => { closeMenu(); void onDownload(resource.name); }} />
         )}
         <ContextMenuItem icon={Info} label={t("details")} onClick={() => { closeMenu(); toggleDetails(true); }} />
@@ -969,13 +972,13 @@ export function FileBrowser({
     onToggleSelect: handleToggleSelect,
     onOpen: openResource,
     onContextMenu: openItemMenu,
-    onDownload: (r) => void onDownload(r.name),
+    onDownload: downloadsOff ? undefined : (r) => void onDownload(r.name),
     onShare: (r) => setShareTargetId(r.id),
     canShare,
     dragProps: itemDragProps,
     // Tab onto an item: the arrows go on from there.
     onFocusItem: (r) => setFocusedName(r.name),
-  }), [handleSelectClick, handleToggleSelect, openResource, openItemMenu, onDownload, canShare, itemDragProps]);
+  }), [handleSelectClick, handleToggleSelect, openResource, openItemMenu, onDownload, downloadsOff, canShare, itemDragProps]);
 
   const handleSort = useCallback((key: SortKey) => {
     if (sortKey === key) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
@@ -1031,11 +1034,11 @@ export function FileBrowser({
       onShare={fromDrawer((r: FileResource) => setShareTargetId(r.id))}
       onCreateIn={fromDrawer(createIn)}
       onRenameFolder={fromDrawer(setRenameFolder)}
-      onDownloadFolder={onDownloadZip ? (folder: FileResource) => void onDownloadZip([folder.id], `${folder.name}.zip`) : undefined}
+      onDownloadFolder={onDownloadZip && !downloadsOff ? (folder: FileResource) => void onDownloadZip([folder.id], `${folder.name}.zip`) : undefined}
       onMoveFolder={onMoveNode ? fromDrawer((folder: FileResource) => setMoveTarget({ folder })) : undefined}
       onDeleteFolder={fromDrawer((folder: FileResource) => void onDeleteNode(folder.id, folder.name))}
       onRevealRecent={fromDrawer((id: string) => void onRevealNode(id))}
-      onDownloadRecent={fromDrawer((id: string) => void onDownloadNode(id))}
+      onDownloadRecent={downloadsOff ? undefined : fromDrawer((id: string) => void onDownloadNode(id))}
       onRemoveRecent={onRemoveRecent}
       trashCount={trashCount}
       onOpenTrash={fromDrawer(() => onNavigate(TRASH_PATH, TRASH_LOCATION))}
@@ -1154,7 +1157,7 @@ export function FileBrowser({
       onClose={() => toggleDetails(false)}
       onOpen={() => singleSelected && (singleSelected.isDirectory ? openResource(singleSelected) : previewResource(singleSelected))}
       onEdit={() => singleSelected && onEditFile?.(singleSelected.name)}
-      onDownload={() => singleSelected && void onDownload(singleSelected.name)}
+      onDownload={downloadsOff ? undefined : () => singleSelected && void onDownload(singleSelected.name)}
       onShare={() => singleSelected && setShareTargetId(singleSelected.id)}
       onToggleStar={() => singleSelected && onToggleFavorite(pathOf(singleSelected))}
       className={cn(
@@ -1183,8 +1186,8 @@ export function FileBrowser({
     pluginFiles: [],
   } : selectedList.length > 0 ? {
     count: selectedList.length,
-    // Folders download as a zip.
-    fileCount: selectedList.filter((r) => !r.isSymlink && (!r.isDirectory || !!onDownloadZip)).length,
+    // Folders download as a zip. None with downloads turned off: no Download button.
+    fileCount: downloadsOff ? 0 : selectedList.filter((r) => !r.isSymlink && (!r.isDirectory || !!onDownloadZip)).length,
     canOpen: !!singleSelected && !singleSelected.isSymlink
       && (singleSelected.isDirectory || isPreviewable(singleSelected.name) || !!isOfficeEditable?.(singleSelected.name)),
     canRename: !!singleSelected,

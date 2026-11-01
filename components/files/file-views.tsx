@@ -19,7 +19,8 @@ export interface FileItemHandlers {
   onToggleSelect: (resource: FileResource) => void;
   onOpen: (resource: FileResource) => void;
   onContextMenu: (e: React.MouseEvent, resource: FileResource) => void;
-  onDownload: (resource: FileResource) => void;
+  /** Left out when a device policy turned downloads off. */
+  onDownload?: (resource: FileResource) => void;
   onShare: (resource: FileResource) => void;
   canShare: (resource: FileResource) => boolean;
   dragProps: (resource: FileResource) => React.HTMLAttributes<HTMLElement> & { draggable?: boolean };
@@ -293,8 +294,8 @@ function FileListRow({ resource, isSelected, isFocused, isTabStop, isDropTarget,
         {!touch && (resource.isDirectory || resource.isSymlink ? "—" : <FileSize bytes={resource.contentLength} />)}
       </div>
       <div role="gridcell" className="flex items-center justify-end gap-0.5 w-[4.75rem]">
-        {!touch && !resource.isDirectory && !resource.isSymlink && (
-          <RowAction icon={Download} label={t("download")} onClick={() => handlers.onDownload(resource)} />
+        {!touch && !resource.isDirectory && !resource.isSymlink && handlers.onDownload && (
+          <RowAction icon={Download} label={t("download")} onClick={() => handlers.onDownload?.(resource)} />
         )}
         {!touch && handlers.canShare(resource) && (
           <RowAction icon={Share2} label={t("share")} onClick={() => handlers.onShare(resource)} />

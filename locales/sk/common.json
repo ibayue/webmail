@@ -1301,6 +1301,37 @@
     "tag_removed_count": "{count, plural, one {Štítok odstránený z # e-mailu} few {Štítok odstránený z # e-mailov} other {Štítok odstránený z # e-mailov}}",
     "new_mail_count": "{count, plural, one {# nová správa} few {# nové správy} other {# nových správ}}"
   },
+  "org_notice": {
+    "label": "Oznámenie",
+    "dismiss": "Zavrieť oznámenie",
+    "severity_info": "Informácia",
+    "severity_warning": "Upozornenie",
+    "severity_critical": "Dôležité"
+  },
+  "vacation_templates": {
+    "title": "Šablóny organizácie",
+    "description": "Začnite odpoveďou, ktorú pripravila vaša organizácia. Text potom môžete zmeniť.",
+    "pick_label": "Použiť šablónu",
+    "pick_placeholder": "Vyberte šablónu",
+    "deputy_label": "Adresa zástupcu",
+    "deputy_placeholder": "kolega@example.com",
+    "deputy_hint": "Odpoveď uvedie tohto kolegu pre naliehavé veci.",
+    "deputy_missing": "Najprv zadajte adresu svojho zástupcu.",
+    "deputy_name_label": "Meno zástupcu",
+    "deputy_name_missing": "Najprv zadajte meno svojho zástupcu.",
+    "apply": "Použiť tento text",
+    "apply_hint": "Nahradí predmet a text nižšie."
+  },
+  "retention_notice": {
+    "line": "Správy tu sa vymažú {count, plural, one {# deň} few {# dni} many {# dňa} other {# dní}} po presunutí sem."
+  },
+  "device_policy": {
+    "downloads_off": "Vaša organizácia vypla sťahovanie.",
+    "download_off_named": "{name}: vaša organizácia vypla sťahovanie",
+    "download_blocked": "Vaša organizácia vypla sťahovanie.",
+    "export_blocked": "Vaša organizácia vypla export pošty.",
+    "print_blocked": "Vaša organizácia vypla tlač."
+  },
   "third_party": {
     "push_needs_relay": "Push oznámenia potrebujú push relay prevádzkovaný vašou organizáciou a žiadny nie je nastavený. Nová pošta sa naďalej zobrazuje, kým je aplikácia otvorená.",
     "relay_desc": "Ponúkajú sa iba vlastné relaye vašej organizácie, pretože tento server nekontaktuje externé služby.",

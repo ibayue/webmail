@@ -1301,6 +1301,37 @@
     "tag_removed_count": "{count, plural, other {已从 # 封邮件移除标签}}",
     "new_mail_count": "{count, plural, other {# 封新邮件}}"
   },
+  "org_notice": {
+    "label": "公告",
+    "dismiss": "关闭公告",
+    "severity_info": "信息",
+    "severity_warning": "警告",
+    "severity_critical": "重要"
+  },
+  "vacation_templates": {
+    "title": "组织模板",
+    "description": "从组织编写的回复开始。之后可以修改文字。",
+    "pick_label": "使用模板",
+    "pick_placeholder": "选择模板",
+    "deputy_label": "代理人地址",
+    "deputy_placeholder": "colleague@example.com",
+    "deputy_hint": "回复会写明紧急事务请联系这位同事。",
+    "deputy_missing": "请先输入代理人的地址。",
+    "deputy_name_label": "代理人姓名",
+    "deputy_name_missing": "请先输入代理人的姓名。",
+    "apply": "使用此文字",
+    "apply_hint": "替换下方的主题和正文。"
+  },
+  "retention_notice": {
+    "line": "此处的邮件会在移入 {count, plural, other {# 天}} 后删除。"
+  },
+  "device_policy": {
+    "downloads_off": "你的组织已关闭下载。",
+    "download_off_named": "{name}：你的组织已关闭下载",
+    "download_blocked": "你的组织已关闭下载。",
+    "export_blocked": "你的组织已关闭邮件导出。",
+    "print_blocked": "你的组织已关闭打印。"
+  },
   "third_party": {
     "push_needs_relay": "推送通知需要由您的组织运行的推送中继，但尚未设置。应用打开时，新邮件仍会显示。",
     "relay_desc": "由于此服务器不连接外部服务，因此只提供您组织自己的中继。",

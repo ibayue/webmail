@@ -1301,6 +1301,37 @@
     "tag_removed_count": "{count, plural, one {Etiqueta removida de # e-mail} other {Etiqueta removida de # e-mails}}",
     "new_mail_count": "{count, plural, one {# mensagem nova} other {# mensagens novas}}"
   },
+  "org_notice": {
+    "label": "Aviso",
+    "dismiss": "Fechar aviso",
+    "severity_info": "Informação",
+    "severity_warning": "Atenção",
+    "severity_critical": "Importante"
+  },
+  "vacation_templates": {
+    "title": "Modelos da organização",
+    "description": "Comece por uma resposta escrita pela sua organização. Pode alterar o texto depois.",
+    "pick_label": "Usar um modelo",
+    "pick_placeholder": "Escolha um modelo",
+    "deputy_label": "Endereço do substituto",
+    "deputy_placeholder": "colega@example.com",
+    "deputy_hint": "A resposta indica este colega para assuntos urgentes.",
+    "deputy_missing": "Introduza primeiro o endereço do seu substituto.",
+    "deputy_name_label": "Nome do substituto",
+    "deputy_name_missing": "Introduza primeiro o nome do seu substituto.",
+    "apply": "Usar este texto",
+    "apply_hint": "Substitui o assunto e o texto abaixo."
+  },
+  "retention_notice": {
+    "line": "As mensagens aqui são eliminadas {count, plural, one {# dia} other {# dias}} depois de serem movidas para cá."
+  },
+  "device_policy": {
+    "downloads_off": "A sua organização desativou as transferências.",
+    "download_off_named": "{name}: a sua organização desativou as transferências",
+    "download_blocked": "A sua organização desativou as transferências.",
+    "export_blocked": "A sua organização desativou a exportação de mensagens.",
+    "print_blocked": "A sua organização desativou a impressão."
+  },
   "third_party": {
     "push_needs_relay": "As notificações push precisam de um relay push mantido pela sua organização, e nenhum está configurado. Os novos e-mails continuam aparecendo enquanto o app estiver aberto.",
     "relay_desc": "Só são oferecidos os relays da própria organização, porque este servidor não entra em contato com serviços externos.",

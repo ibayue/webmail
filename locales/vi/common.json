@@ -1313,6 +1313,37 @@
     "tag_removed_count": "{count, plural, one {Đã xóa thẻ khỏi # email} other {Đã xóa thẻ khỏi # email}}",
     "new_mail_count": "{count, plural, one {# thư mới} other {# thư mới}}"
   },
+  "org_notice": {
+    "label": "Thông báo",
+    "dismiss": "Đóng thông báo",
+    "severity_info": "Thông tin",
+    "severity_warning": "Cảnh báo",
+    "severity_critical": "Quan trọng"
+  },
+  "vacation_templates": {
+    "title": "Mẫu của tổ chức",
+    "description": "Bắt đầu từ một thư trả lời do tổ chức của bạn soạn. Bạn có thể sửa nội dung sau đó.",
+    "pick_label": "Dùng mẫu",
+    "pick_placeholder": "Chọn mẫu",
+    "deputy_label": "Địa chỉ người thay thế",
+    "deputy_placeholder": "colleague@example.com",
+    "deputy_hint": "Thư trả lời sẽ nêu người này cho các việc khẩn.",
+    "deputy_missing": "Hãy nhập địa chỉ người thay thế trước.",
+    "deputy_name_label": "Tên người thay thế",
+    "deputy_name_missing": "Hãy nhập tên người thay thế trước.",
+    "apply": "Dùng nội dung này",
+    "apply_hint": "Thay thế tiêu đề và nội dung bên dưới."
+  },
+  "retention_notice": {
+    "line": "Thư ở đây sẽ bị xóa {count, plural, other {# ngày}} sau khi được chuyển vào đây."
+  },
+  "device_policy": {
+    "downloads_off": "Tổ chức của bạn đã tắt tải xuống.",
+    "download_off_named": "{name}: tổ chức của bạn đã tắt tải xuống",
+    "download_blocked": "Tổ chức của bạn đã tắt tải xuống.",
+    "export_blocked": "Tổ chức của bạn đã tắt xuất thư.",
+    "print_blocked": "Tổ chức của bạn đã tắt in."
+  },
   "third_party": {
     "push_needs_relay": "Thông báo đẩy cần có một chuyển tiếp đẩy do tổ chức của bạn điều hành và chưa có cài đặt nào. Thư mới vẫn hiển thị khi ứng dụng đang mở.",
     "relay_desc": "Chỉ các rơle riêng của tổ chức bạn mới được cung cấp vì máy chủ này không liên hệ với các dịch vụ bên ngoài.",

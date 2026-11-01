@@ -1301,6 +1301,37 @@
     "tag_removed_count": "{count, plural, one {Etikett fjernet fra # e-post} other {Etikett fjernet fra # e-poster}}",
     "new_mail_count": "{count, plural, one {# ny melding} other {# nye meldinger}}"
   },
+  "org_notice": {
+    "label": "Kunngjøring",
+    "dismiss": "Lukk kunngjøringen",
+    "severity_info": "Informasjon",
+    "severity_warning": "Advarsel",
+    "severity_critical": "Viktig"
+  },
+  "vacation_templates": {
+    "title": "Organisasjonens maler",
+    "description": "Start med et svar organisasjonen din har skrevet. Du kan endre teksten etterpå.",
+    "pick_label": "Bruk en mal",
+    "pick_placeholder": "Velg en mal",
+    "deputy_label": "Stedfortrederens adresse",
+    "deputy_placeholder": "kollega@example.com",
+    "deputy_hint": "Svaret nevner denne kollegaen for hastesaker.",
+    "deputy_missing": "Skriv inn stedfortrederens adresse først.",
+    "deputy_name_label": "Stedfortrederens navn",
+    "deputy_name_missing": "Skriv inn stedfortrederens navn først.",
+    "apply": "Bruk denne teksten",
+    "apply_hint": "Erstatter emnet og teksten nedenfor."
+  },
+  "retention_notice": {
+    "line": "Meldinger her slettes {count, plural, one {# dag} other {# dager}} etter at de ble flyttet hit."
+  },
+  "device_policy": {
+    "downloads_off": "Organisasjonen din har slått av nedlasting.",
+    "download_off_named": "{name}: organisasjonen din har slått av nedlasting",
+    "download_blocked": "Organisasjonen din har slått av nedlasting.",
+    "export_blocked": "Organisasjonen din har slått av eksport av e-post.",
+    "print_blocked": "Organisasjonen din har slått av utskrift."
+  },
   "third_party": {
     "push_needs_relay": "Push-varsler trenger et push-relé som organisasjonen din driver, og det er ikke satt opp noe. Ny e-post vises fortsatt mens appen er åpen.",
     "relay_desc": "Bare organisasjonens egne reléer tilbys, fordi denne serveren ikke kontakter eksterne tjenester.",

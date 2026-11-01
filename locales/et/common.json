@@ -1301,6 +1301,37 @@
     "tag_removed_count": "{count, plural, one {Silt eemaldati # kirjalt} other {Silt eemaldati # kirjalt}}",
     "new_mail_count": "{count, plural, one {# uus kiri} other {# uut kirja}}"
   },
+  "org_notice": {
+    "label": "Teadaanne",
+    "dismiss": "Sulge teadaanne",
+    "severity_info": "Teave",
+    "severity_warning": "Hoiatus",
+    "severity_critical": "Oluline"
+  },
+  "vacation_templates": {
+    "title": "Organisatsiooni mallid",
+    "description": "Alusta vastusest, mille sinu organisatsioon on kirjutanud. Teksti saad hiljem muuta.",
+    "pick_label": "Kasuta malli",
+    "pick_placeholder": "Vali mall",
+    "deputy_label": "Asendaja aadress",
+    "deputy_placeholder": "kolleeg@example.com",
+    "deputy_hint": "Vastus nimetab selle kolleegi kiireloomuliste asjade jaoks.",
+    "deputy_missing": "Sisesta kõigepealt oma asendaja aadress.",
+    "deputy_name_label": "Asendaja nimi",
+    "deputy_name_missing": "Sisesta kõigepealt oma asendaja nimi.",
+    "apply": "Kasuta seda teksti",
+    "apply_hint": "Asendab allpool oleva teema ja teksti."
+  },
+  "retention_notice": {
+    "line": "Siin olevad kirjad kustutatakse {count, plural, one {# päev} other {# päeva}} pärast siia teisaldamist."
+  },
+  "device_policy": {
+    "downloads_off": "Sinu organisatsioon on allalaadimise välja lülitanud.",
+    "download_off_named": "{name}: sinu organisatsioon on allalaadimise välja lülitanud",
+    "download_blocked": "Sinu organisatsioon lülitas allalaadimise välja.",
+    "export_blocked": "Sinu organisatsioon lülitas kirjade eksportimise välja.",
+    "print_blocked": "Sinu organisatsioon on printimise välja lülitanud."
+  },
   "third_party": {
     "push_needs_relay": "Tõuketeavitused vajavad sinu organisatsiooni hallatavat push-releed, kuid ühtegi pole seadistatud. Uued kirjad kuvatakse endiselt, kuni rakendus on avatud.",
     "relay_desc": "Pakutakse ainult sinu organisatsiooni enda releesid, sest see server ei võta ühendust väliste teenustega.",

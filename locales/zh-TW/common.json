@@ -1301,6 +1301,37 @@
     "tag_removed_count": "{count, plural, other {已從 # 封郵件移除標籤}}",
     "new_mail_count": "{count, plural, other {# 封新郵件}}"
   },
+  "org_notice": {
+    "label": "公告",
+    "dismiss": "關閉公告",
+    "severity_info": "資訊",
+    "severity_warning": "警告",
+    "severity_critical": "重要"
+  },
+  "vacation_templates": {
+    "title": "組織範本",
+    "description": "從組織撰寫的回覆開始。之後可以修改文字。",
+    "pick_label": "使用範本",
+    "pick_placeholder": "選擇範本",
+    "deputy_label": "代理人地址",
+    "deputy_placeholder": "colleague@example.com",
+    "deputy_hint": "回覆會寫明緊急事務請聯絡這位同事。",
+    "deputy_missing": "請先輸入代理人的地址。",
+    "deputy_name_label": "代理人姓名",
+    "deputy_name_missing": "請先輸入代理人的姓名。",
+    "apply": "使用此文字",
+    "apply_hint": "取代下方的主旨和內文。"
+  },
+  "retention_notice": {
+    "line": "此處的郵件會在移入 {count, plural, other {# 天}} 後刪除。"
+  },
+  "device_policy": {
+    "downloads_off": "你的組織已關閉下載。",
+    "download_off_named": "{name}：你的組織已關閉下載",
+    "download_blocked": "你的組織已關閉下載。",
+    "export_blocked": "你的組織已關閉郵件匯出。",
+    "print_blocked": "你的組織已關閉列印。"
+  },
   "third_party": {
     "push_needs_relay": "推送通知需要由您的組織執行的推送中繼，但尚未設定。應用程式開啟時，新郵件仍會顯示。",
     "relay_desc": "由於此伺服器不會連線至外部服務，因此只提供您組織自己的中繼。",

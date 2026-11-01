@@ -1301,6 +1301,37 @@
     "tag_removed_count": "{count, plural, one {Label verwijderd van # e-mail} other {Label verwijderd van # e-mails}}",
     "new_mail_count": "{count, plural, one {# nieuw bericht} other {# nieuwe berichten}}"
   },
+  "org_notice": {
+    "label": "Mededeling",
+    "dismiss": "Mededeling sluiten",
+    "severity_info": "Informatie",
+    "severity_warning": "Waarschuwing",
+    "severity_critical": "Belangrijk"
+  },
+  "vacation_templates": {
+    "title": "Sjablonen van de organisatie",
+    "description": "Begin met een antwoord dat uw organisatie heeft geschreven. U kunt de tekst daarna aanpassen.",
+    "pick_label": "Sjabloon gebruiken",
+    "pick_placeholder": "Kies een sjabloon",
+    "deputy_label": "Adres van de vervanger",
+    "deputy_placeholder": "collega@example.com",
+    "deputy_hint": "Het antwoord noemt deze collega voor dringende zaken.",
+    "deputy_missing": "Vul eerst het adres van uw vervanger in.",
+    "deputy_name_label": "Naam van de vervanger",
+    "deputy_name_missing": "Vul eerst de naam van uw vervanger in.",
+    "apply": "Deze tekst gebruiken",
+    "apply_hint": "Vervangt het onderwerp en de tekst hieronder."
+  },
+  "retention_notice": {
+    "line": "Berichten hier worden {count, plural, one {# dag} other {# dagen}} nadat ze hierheen zijn verplaatst verwijderd."
+  },
+  "device_policy": {
+    "downloads_off": "Uw organisatie heeft downloaden uitgezet.",
+    "download_off_named": "{name}: uw organisatie heeft downloaden uitgezet",
+    "download_blocked": "Uw organisatie heeft downloaden uitgezet.",
+    "export_blocked": "Uw organisatie heeft het exporteren van e-mail uitgezet.",
+    "print_blocked": "Uw organisatie heeft afdrukken uitgezet."
+  },
   "third_party": {
     "push_needs_relay": "Pushmeldingen hebben een pushrelay van je organisatie nodig, en er is er geen ingesteld. Nieuwe e-mail wordt nog steeds getoond zolang de app open is.",
     "relay_desc": "Alleen de eigen relays van je organisatie worden aangeboden, omdat deze server geen externe diensten benadert.",

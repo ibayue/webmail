@@ -72,6 +72,9 @@ import { ConversationHeaderActions, type ConversationActions } from "./conversat
 import { PhishingMarkBanner } from "./phishing-mark-banner";
 import { turnOffLinks } from "@/lib/phishing-links";
 import { usePhishingMarked } from "@/hooks/use-phishing-report";
+import { useDevicePolicy } from "@/hooks/use-device-policy";
+import { Watermark, useWatermarkText } from "@/components/device/watermark";
+import { NO_SAVE_MEDIA_CSS, blockMediaSaving } from "@/lib/device-frame";
 
 export type ConversationAttachmentHandler = (
   blobId: string, name: string, type: string | undefined, source: EmailBlobContext,
@@ -553,6 +556,11 @@ export function ConversationEmailBody({
   const t = useTranslations();
   const resolvedTheme = useThemeStore((state) => state.resolvedTheme);
   const mailAttachmentAction = useSettingsStore((state) => state.mailAttachmentAction);
+  // The device policies of the message's own account (Organisation > Devices).
+  const devices = useDevicePolicy(email);
+  const downloadsOffRef = useRef(devices.noDownloads);
+  downloadsOffRef.current = devices.noDownloads;
+  const watermark = useWatermarkText(email);
   const wopiStatus = useWopiStatus(true);
   const hideInlineImageAttachments = useSettingsStore((state) => state.hideInlineImageAttachments);
   const emailAlwaysLightMode = useSettingsStore((state) => state.emailAlwaysLightMode);
@@ -827,8 +835,8 @@ export function ConversationEmailBody({
   td, th { word-break: break-word; padding: 0.5rem; }
   pre { white-space: pre-wrap; word-wrap: break-word; }
   ${isDark ? emailDarkModeCss() : ''}
-</style></head><body dir="auto">${emailContent.html}${reading.frameCss ? `<style>${reading.frameCss}</style>` : ''}</body></html>`;
-  }, [emailContent.isHtml, emailContent.html, allowExternal, isDark, bodyLanguage, reading.frameKey, reading.frameCss, appFontSources]);
+</style>${devices.noPrint ? '<style>@media print{html,body{display:none!important}}</style>' : ''}${devices.noDownloads ? `<style>${NO_SAVE_MEDIA_CSS}</style>` : ''}</head><body dir="auto">${emailContent.html}${reading.frameCss ? `<style>${reading.frameCss}</style>` : ''}</body></html>`;
+  }, [emailContent.isHtml, emailContent.html, allowExternal, isDark, bodyLanguage, reading.frameKey, reading.frameCss, appFontSources, devices.noPrint, devices.noDownloads]);
   useLayoutEffect(() => { setHtmlBodyEl(null); }, [emailIframeSrcDoc]);
   // One object per body: React writes innerHTML again whenever this object
   // changes, dropping whatever was mounted in the body.
@@ -899,6 +907,8 @@ export function ConversationEmailBody({
       };
       doc.addEventListener('click', onLinkClick, true);
       doc.addEventListener('auxclick', onLinkClick, true);
+      // "No downloads": the message's own pictures can't be saved or dragged out either.
+      blockMediaSaving(doc, () => downloadsOffRef.current);
       // Selected text: the onTextSelectionChange hook and the right-click
       // menu plugins may add entries to.
       watchBodySelection(doc, iframe, {
@@ -971,6 +981,7 @@ export function ConversationEmailBody({
 
       {/* Email Body */}
       <div className="relative" style={bodyStyle ?? { padding: 'var(--density-card-p)' }}>
+        <Watermark text={watermark} />
         {emailContent.isHtml ? (
           <iframe
             ref={iframeRef}
@@ -1025,15 +1036,19 @@ export function ConversationEmailBody({
               const { icon: Icon, className: iconClass } = attachmentIcon(attachment.type, attachment.name);
               const isPreviewable = isFilePreviewable(attachment.name, attachment.type)
                 || (!!attachment.blobId && canWopiOpen(wopiStatus, attachment.name));
-              const opensPreview = isPreviewable && mailAttachmentAction === 'preview';
+              // Without downloads, whatever can be previewed is, and nothing else opens.
+              const opensPreview = isPreviewable && (mailAttachmentAction === 'preview' || devices.noDownloads);
+              const locked = devices.noDownloads && !opensPreview;
               return (
                 <React.Fragment key={idx}>
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
+                    if (locked) return;
                     onDownloadAttachment?.(attachment.blobId, attachment.name || 'attachment', attachment.type, source);
                   }}
-                  title={opensPreview ? t('files.preview') : t('email_viewer.download')}
+                  aria-disabled={locked || undefined}
+                  title={locked ? t('device_policy.downloads_off') : opensPreview ? t('files.preview') : t('email_viewer.download')}
                   className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted hover:bg-muted/80 transition-colors text-sm"
                 >
                   <Icon className={cn("w-4 h-4", iconClass)} />
@@ -1046,7 +1061,7 @@ export function ConversationEmailBody({
                   </span>
                   {opensPreview ? (
                     <Eye className="w-4 h-4 text-muted-foreground" />
-                  ) : (
+                  ) : locked ? null : (
                     <Download className="w-4 h-4 text-muted-foreground" />
                   )}
                 </button>

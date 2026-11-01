@@ -1301,6 +1301,37 @@
     "tag_removed_count": "{count, plural, one {Étiquette retirée de # e-mail} other {Étiquette retirée de # e-mails}}",
     "new_mail_count": "{count, plural, one {# nouveau message} other {# nouveaux messages}}"
   },
+  "org_notice": {
+    "label": "Annonce",
+    "dismiss": "Fermer l'annonce",
+    "severity_info": "Information",
+    "severity_warning": "Avertissement",
+    "severity_critical": "Important"
+  },
+  "vacation_templates": {
+    "title": "Modèles de l'organisation",
+    "description": "Partez d'une réponse rédigée par votre organisation. Vous pouvez modifier le texte ensuite.",
+    "pick_label": "Utiliser un modèle",
+    "pick_placeholder": "Choisissez un modèle",
+    "deputy_label": "Adresse du suppléant",
+    "deputy_placeholder": "collegue@example.com",
+    "deputy_hint": "La réponse indique cette personne pour les urgences.",
+    "deputy_missing": "Saisissez d'abord l'adresse de votre suppléant.",
+    "deputy_name_label": "Nom du suppléant",
+    "deputy_name_missing": "Saisissez d'abord le nom de votre suppléant.",
+    "apply": "Utiliser ce texte",
+    "apply_hint": "Remplace l'objet et le texte ci-dessous."
+  },
+  "retention_notice": {
+    "line": "Les messages ici sont supprimés {count, plural, one {# jour} other {# jours}} après y avoir été déplacés."
+  },
+  "device_policy": {
+    "downloads_off": "Votre organisation a désactivé les téléchargements.",
+    "download_off_named": "{name} : votre organisation a désactivé les téléchargements",
+    "download_blocked": "Votre organisation a désactivé les téléchargements.",
+    "export_blocked": "Votre organisation a désactivé l'export des e-mails.",
+    "print_blocked": "Votre organisation a désactivé l'impression."
+  },
   "third_party": {
     "push_needs_relay": "Les notifications push nécessitent un relais push géré par votre organisation, et aucun n'est configuré. Les nouveaux messages s'affichent toujours tant que l'application est ouverte.",
     "relay_desc": "Seuls les relais de votre organisation sont proposés, car ce serveur ne contacte pas de services extérieurs.",

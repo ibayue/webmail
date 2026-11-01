@@ -30,6 +30,12 @@ import { confirmMailRemoval } from '@/lib/mail-removal-confirm';
 import { useConfirmDialog } from '@/hooks/use-confirm-dialog';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { saveQuickReplyDraft } from '@/lib/outgoing/quick-reply-envelope';
+import { canDownload } from '@/lib/device-policy';
+import { isFilePreviewable } from '@/lib/file-preview';
+import dynamic from 'next/dynamic';
+
+// Only needed when the device policy turns downloads off.
+const FilePreviewModal = dynamic(() => import('@/components/files/file-preview-modal').then((m) => m.FilePreviewModal), { ssr: false });
 
 interface ProEmailTabBodyProps {
   tabId: string;
@@ -418,15 +424,29 @@ export function ProEmailView({ emailId, client: clientOverride, clientAccountId,
     }
   }, [client, email, moveToMailbox, onClose]);
 
-  const handleDownloadAttachment = useCallback(async (blobId: string, name: string, type?: string, _forceDownload?: boolean, source?: EmailBlobContext) => {
+  // An attachment shown in the preview because the message's account turned
+  // downloads off (Organisation > Devices); the tab downloads otherwise.
+  const [preview, setPreview] = useState<{ blobId: string; name: string; type?: string; context: EmailBlobContext; policyAccount: string | null } | null>(null);
+  const handleDownloadAttachment = useCallback(async (blobId: string, name: string, type?: string, forceDownload?: boolean, source?: EmailBlobContext) => {
     const context = source ?? blobSource;
     if (!context.client) return;
+    const policyAccount = context.clientAccountId ?? localAccountId ?? email?.sourceClientAccountId ?? null;
+    if (!forceDownload && !canDownload(policyAccount ?? { client: context.client }) && isFilePreviewable(name, type)) {
+      setPreview({ blobId, name, type, context, policyAccount });
+      return;
+    }
     try {
+      // Refused (and said so) by the device policy when downloads are off.
       await context.client.downloadBlob(blobId, name, type, context.accountId);
     } catch (err) {
       console.error('Download failed:', err);
     }
-  }, [blobSource]);
+  }, [blobSource, localAccountId, email?.sourceClientAccountId]);
+  const getPreviewContent = useCallback(async () => {
+    if (!preview?.context.client) throw new Error('No attachment selected');
+    const blob = await preview.context.client.fetchBlob(preview.blobId, preview.name, preview.type, preview.context.accountId);
+    return { blob, contentType: preview.type || blob.type };
+  }, [preview]);
 
   const handleQuickReply = useCallback(async (body: string) => {
     handleReply(body);
@@ -524,6 +544,15 @@ export function ProEmailView({ emailId, client: clientOverride, clientAccountId,
         />
       </ErrorBoundary>
       <ConfirmDialog {...confirmDialogProps} />
+      {preview && (
+        <FilePreviewModal
+          name={preview.name}
+          onClose={() => setPreview(null)}
+          onDownload={() => void handleDownloadAttachment(preview.blobId, preview.name, preview.type, true, preview.context)}
+          getFileContent={getPreviewContent}
+          policyAccount={preview.policyAccount}
+        />
+      )}
     </div>
   );
 }

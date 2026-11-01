@@ -55,7 +55,8 @@ import type { OpenableEmail } from "@/lib/plugin-sandbox/open-email";
 import { MvListSectionHeader } from "./mv-list-section-header";
 import { PluginSearchResults } from "./plugin-search-results";
 import { commonTagScope } from "@/hooks/use-account-tags";
-import { TrashRecoveryLink } from "./trash-recovery-link";
+import { FolderRetentionLine } from "./retention-notice";
+import { canExport, canPrint } from "@/lib/device-policy";
 
 interface EmailListProps {
   emails: Email[];
@@ -1149,8 +1150,8 @@ export function EmailList({
         />
       )}
 
-      {/* Recover deleted items, from the account's own Trash (mounted only there) */}
-      {currentMailbox?.role === 'trash' && <TrashRecoveryLink mailbox={currentMailbox} />}
+      {/* How long Trash and Junk keep mail, and Recover deleted items from the account's own Trash, on one line */}
+      {(currentMailbox?.role === 'trash' || currentMailbox?.role === 'junk') && <FolderRetentionLine mailbox={currentMailbox} />}
 
       {/* Empty Folder Banner for Junk/Trash */}
       {isEmptyableFolder && emails.length > 0 && !hasSelection && (
@@ -1367,7 +1368,8 @@ export function EmailList({
               : [contextMenuEmail!];
             await copyToAccount(emails, accountId, mailboxId);
           }}
-          onExport={() => {
+          // Export, print and View source follow the device policy of the row's own account.
+          onExport={contextMenuEmail && !canExport(contextMenuEmail) ? undefined : () => {
             const target = contextMenuEmail!;
             void exportEmail(target, {
               onArchive: onArchive ? () => onArchive(target) : undefined,
@@ -1375,13 +1377,13 @@ export function EmailList({
               archiveEnabled: archiveActionEnabled,
             });
           }}
-          onPrint={onEmailSelect ? () => {
+          onPrint={onEmailSelect && !(contextMenuEmail && !canPrint(contextMenuEmail)) ? () => {
             // The print window opens in the click; the reader fills it once
             // the message is open.
             const target = contextMenuEmail!;
-            if (requestPrint(emailKeyFor(target))) onEmailSelect(target);
+            if (requestPrint(emailKeyFor(target), target)) onEmailSelect(target);
           } : undefined}
-          onViewSource={() => setSourceEmail(contextMenuEmail)}
+          onViewSource={contextMenuEmail && !canExport(contextMenuEmail) ? undefined : () => setSourceEmail(contextMenuEmail)}
           onBatchMarkAsRead={(read) => markSelectionRead(read)}
           batchTagIds={selectionTags.all}
           batchPartialTagIds={selectionTags.some}

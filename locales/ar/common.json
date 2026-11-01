@@ -1301,6 +1301,37 @@
     "tag_removed_count": "{count, plural, one {تمت إزالة الوسم من رسالة واحدة} other {تمت إزالة الوسم من # رسائل}}",
     "new_mail_count": "{count, plural, one {رسالة جديدة واحدة} other {# رسائل جديدة}}"
   },
+  "org_notice": {
+    "label": "إعلان",
+    "dismiss": "إغلاق الإعلان",
+    "severity_info": "معلومة",
+    "severity_warning": "تحذير",
+    "severity_critical": "هام"
+  },
+  "vacation_templates": {
+    "title": "قوالب مؤسستك",
+    "description": "ابدأ من رد كتبته مؤسستك. يمكنك تغيير النص بعد ذلك.",
+    "pick_label": "استخدام قالب",
+    "pick_placeholder": "اختر قالبًا",
+    "deputy_label": "عنوان البديل",
+    "deputy_placeholder": "colleague@example.com",
+    "deputy_hint": "يذكر الرد هذا الزميل للأمور العاجلة.",
+    "deputy_missing": "أدخل عنوان بديلك أولًا.",
+    "deputy_name_label": "اسم البديل",
+    "deputy_name_missing": "أدخل اسم بديلك أولًا.",
+    "apply": "استخدام هذا النص",
+    "apply_hint": "يستبدل الموضوع والنص أدناه."
+  },
+  "retention_notice": {
+    "line": "تُحذف الرسائل هنا بعد {count, plural, one {يوم واحد} two {يومين} few {# أيام} many {# يومًا} other {# يوم}} من نقلها إلى هنا."
+  },
+  "device_policy": {
+    "downloads_off": "أوقفت مؤسستك التنزيلات.",
+    "download_off_named": "{name}: أوقفت مؤسستك التنزيلات",
+    "download_blocked": "أوقفت مؤسستك التنزيلات.",
+    "export_blocked": "أوقفت مؤسستك تصدير البريد.",
+    "print_blocked": "أوقفت مؤسستك الطباعة."
+  },
   "third_party": {
     "push_needs_relay": "تحتاج الإشعارات الفورية إلى خادم ترحيل تديره مؤسستك، ولم يُعدّ أي خادم. يستمر ظهور البريد الجديد ما دام التطبيق مفتوحًا.",
     "relay_desc": "لا تُعرض إلا خوادم الترحيل الخاصة بمؤسستك، لأن هذا الخادم لا يتصل بخدمات خارجية.",

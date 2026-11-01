@@ -1301,6 +1301,37 @@
     "tag_removed_count": "{count, plural, zero {Tags noņemts # vēstulēm} one {Tags noņemts # vēstulei} other {Tags noņemts # vēstulēm}}",
     "new_mail_count": "{count, plural, zero {# jaunas vēstules} one {# jauna vēstule} other {# jaunas vēstules}}"
   },
+  "org_notice": {
+    "label": "Paziņojums",
+    "dismiss": "Aizvērt paziņojumu",
+    "severity_info": "Informācija",
+    "severity_warning": "Brīdinājums",
+    "severity_critical": "Svarīgi"
+  },
+  "vacation_templates": {
+    "title": "Organizācijas veidnes",
+    "description": "Sāciet ar atbildi, ko uzrakstījusi jūsu organizācija. Tekstu pēc tam varat mainīt.",
+    "pick_label": "Izmantot veidni",
+    "pick_placeholder": "Izvēlieties veidni",
+    "deputy_label": "Aizvietotāja adrese",
+    "deputy_placeholder": "kolegis@example.com",
+    "deputy_hint": "Atbildē šis kolēģis būs norādīts steidzamiem jautājumiem.",
+    "deputy_missing": "Vispirms ievadiet sava aizvietotāja adresi.",
+    "deputy_name_label": "Aizvietotāja vārds",
+    "deputy_name_missing": "Vispirms ievadiet sava aizvietotāja vārdu.",
+    "apply": "Izmantot šo tekstu",
+    "apply_hint": "Aizstāj tālāk esošo tēmu un tekstu."
+  },
+  "retention_notice": {
+    "line": "Šeit esošie ziņojumi tiek dzēsti {count, plural, zero {# dienas} one {# dienu} other {# dienas}} pēc to pārvietošanas šeit."
+  },
+  "device_policy": {
+    "downloads_off": "Jūsu organizācija ir izslēgusi lejupielādes.",
+    "download_off_named": "{name}: jūsu organizācija ir izslēgusi lejupielādes",
+    "download_blocked": "Jūsu organizācija izslēdza lejupielādes.",
+    "export_blocked": "Jūsu organizācija izslēdza pasta eksportēšanu.",
+    "print_blocked": "Jūsu organizācija ir izslēgusi drukāšanu."
+  },
   "third_party": {
     "push_needs_relay": "Push paziņojumiem vajadzīgs jūsu organizācijas uzturēts push relejs, un neviens nav iestatīts. Jauns pasts joprojām tiek rādīts, kamēr lietotne ir atvērta.",
     "relay_desc": "Tiek piedāvāti tikai jūsu organizācijas pašas releji, jo šis serveris nesazinās ar ārējiem pakalpojumiem.",

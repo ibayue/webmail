@@ -1301,6 +1301,37 @@
     "tag_removed_count": "{count, plural, one {Etiqueta quitada de # correo} other {Etiqueta quitada de # correos}}",
     "new_mail_count": "{count, plural, one {# mensaje nuevo} other {# mensajes nuevos}}"
   },
+  "org_notice": {
+    "label": "Aviso",
+    "dismiss": "Cerrar aviso",
+    "severity_info": "Información",
+    "severity_warning": "Advertencia",
+    "severity_critical": "Importante"
+  },
+  "vacation_templates": {
+    "title": "Plantillas de la organización",
+    "description": "Empiece con una respuesta que escribió su organización. Después puede cambiar el texto.",
+    "pick_label": "Usar una plantilla",
+    "pick_placeholder": "Elija una plantilla",
+    "deputy_label": "Dirección del suplente",
+    "deputy_placeholder": "colega@example.com",
+    "deputy_hint": "La respuesta indica a esta persona para asuntos urgentes.",
+    "deputy_missing": "Escriba primero la dirección de su suplente.",
+    "deputy_name_label": "Nombre del suplente",
+    "deputy_name_missing": "Escriba primero el nombre de su suplente.",
+    "apply": "Usar este texto",
+    "apply_hint": "Sustituye el asunto y el texto de abajo."
+  },
+  "retention_notice": {
+    "line": "Los mensajes de aquí se eliminan {count, plural, one {# día} other {# días}} después de moverlos aquí."
+  },
+  "device_policy": {
+    "downloads_off": "Su organización ha desactivado las descargas.",
+    "download_off_named": "{name}: su organización ha desactivado las descargas",
+    "download_blocked": "Su organización ha desactivado las descargas.",
+    "export_blocked": "Su organización ha desactivado la exportación del correo.",
+    "print_blocked": "Su organización ha desactivado la impresión."
+  },
   "third_party": {
     "push_needs_relay": "Las notificaciones push necesitan un relay push gestionado por tu organización, y no hay ninguno configurado. El correo nuevo se sigue mostrando mientras la aplicación está abierta.",
     "relay_desc": "Solo se ofrecen los relays propios de tu organización, porque este servidor no contacta con servicios externos.",

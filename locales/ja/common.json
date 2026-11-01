@@ -1301,6 +1301,37 @@
     "tag_removed_count": "{count, plural, other {#件のメールからタグを外しました}}",
     "new_mail_count": "{count, plural, other {新着メッセージ #件}}"
   },
+  "org_notice": {
+    "label": "お知らせ",
+    "dismiss": "お知らせを閉じる",
+    "severity_info": "情報",
+    "severity_warning": "警告",
+    "severity_critical": "重要"
+  },
+  "vacation_templates": {
+    "title": "組織のテンプレート",
+    "description": "組織が用意した返信から始めます。テキストは後で変更できます。",
+    "pick_label": "テンプレートを使う",
+    "pick_placeholder": "テンプレートを選択",
+    "deputy_label": "代理の人のアドレス",
+    "deputy_placeholder": "colleague@example.com",
+    "deputy_hint": "返信には、急ぎの用件の連絡先としてこの人が記載されます。",
+    "deputy_missing": "先に代理の人のアドレスを入力してください。",
+    "deputy_name_label": "代理の人の名前",
+    "deputy_name_missing": "先に代理の人の名前を入力してください。",
+    "apply": "このテキストを使う",
+    "apply_hint": "下の件名と本文を置き換えます。"
+  },
+  "retention_notice": {
+    "line": "ここにあるメッセージは、移動されてから{count, plural, other {#日}}後に削除されます。"
+  },
+  "device_policy": {
+    "downloads_off": "組織によりダウンロードは無効になっています。",
+    "download_off_named": "{name}: 組織によりダウンロードは無効になっています",
+    "download_blocked": "組織がダウンロードを無効にしています。",
+    "export_blocked": "組織がメールのエクスポートを無効にしています。",
+    "print_blocked": "組織により印刷は無効になっています。"
+  },
   "third_party": {
     "push_needs_relay": "プッシュ通知には組織が運用するプッシュリレーが必要ですが、設定されていません。アプリを開いている間は、新着メールが引き続き表示されます。",
     "relay_desc": "このサーバーは外部サービスに接続しないため、組織独自のリレーのみが表示されます。",

@@ -1301,6 +1301,37 @@
     "tag_removed_count": "{count, plural, other {برچسب از # ایمیل برداشته شد}}",
     "new_mail_count": "{count, plural, other {# پیام جدید}}"
   },
+  "org_notice": {
+    "label": "اطلاعیه",
+    "dismiss": "بستن اطلاعیه",
+    "severity_info": "اطلاعات",
+    "severity_warning": "هشدار",
+    "severity_critical": "مهم"
+  },
+  "vacation_templates": {
+    "title": "قالب‌های سازمان",
+    "description": "از پاسخی که سازمان شما نوشته شروع کنید. بعداً می‌توانید متن را تغییر دهید.",
+    "pick_label": "استفاده از قالب",
+    "pick_placeholder": "یک قالب انتخاب کنید",
+    "deputy_label": "نشانی جانشین",
+    "deputy_placeholder": "colleague@example.com",
+    "deputy_hint": "پاسخ این همکار را برای کارهای فوری نام می‌برد.",
+    "deputy_missing": "ابتدا نشانی جانشین خود را وارد کنید.",
+    "deputy_name_label": "نام جانشین",
+    "deputy_name_missing": "ابتدا نام جانشین خود را وارد کنید.",
+    "apply": "استفاده از این متن",
+    "apply_hint": "موضوع و متن زیر را جایگزین می‌کند."
+  },
+  "retention_notice": {
+    "line": "پیام‌های اینجا {count, plural, one {# روز} other {# روز}} پس از انتقال به اینجا حذف می‌شوند."
+  },
+  "device_policy": {
+    "downloads_off": "سازمان شما بارگیری را خاموش کرده است.",
+    "download_off_named": "{name}: سازمان شما بارگیری را خاموش کرده است",
+    "download_blocked": "سازمان شما بارگیری را خاموش کرده است.",
+    "export_blocked": "سازمان شما خروجی گرفتن از ایمیل را خاموش کرده است.",
+    "print_blocked": "سازمان شما چاپ را خاموش کرده است."
+  },
   "third_party": {
     "push_needs_relay": "اعلان‌های push به یک رلهٔ push نیاز دارند که سازمان شما اداره کند، و هیچ‌کدام راه‌اندازی نشده است. تا وقتی برنامه باز است، ایمیل‌های جدید همچنان نمایش داده می‌شوند.",
     "relay_desc": "فقط رله‌های خود سازمان شما پیشنهاد می‌شوند، چون این سرور با سرویس‌های بیرونی تماس نمی‌گیرد.",

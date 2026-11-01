@@ -1266,6 +1266,37 @@
     "tag_removed_count": "{count, plural, one {התגית הוסרה מהודעה אחת} other {התגית הוסרה מ-# הודעות}}",
     "new_mail_count": "{count, plural, one {הודעה חדשה אחת} other {# הודעות חדשות}}"
   },
+  "org_notice": {
+    "label": "הודעה",
+    "dismiss": "סגירת ההודעה",
+    "severity_info": "מידע",
+    "severity_warning": "אזהרה",
+    "severity_critical": "חשוב"
+  },
+  "vacation_templates": {
+    "title": "תבניות של הארגון",
+    "description": "התחילו מתשובה שהארגון שלכם כתב. אפשר לשנות את הטקסט אחר כך.",
+    "pick_label": "שימוש בתבנית",
+    "pick_placeholder": "בחרו תבנית",
+    "deputy_label": "כתובת הממלא מקום",
+    "deputy_placeholder": "colleague@example.com",
+    "deputy_hint": "התשובה מפנה לעמית הזה בעניינים דחופים.",
+    "deputy_missing": "הזינו קודם את כתובת הממלא מקום.",
+    "deputy_name_label": "שם הממלא מקום",
+    "deputy_name_missing": "הזינו קודם את שם הממלא מקום.",
+    "apply": "שימוש בטקסט הזה",
+    "apply_hint": "מחליף את הנושא והטקסט שלמטה."
+  },
+  "retention_notice": {
+    "line": "ההודעות כאן נמחקות {count, plural, one {יום אחד} two {יומיים} other {# ימים}} אחרי שהועברו לכאן."
+  },
+  "device_policy": {
+    "downloads_off": "הארגון שלכם כיבה הורדות.",
+    "download_off_named": "{name}: הארגון שלכם כיבה הורדות",
+    "download_blocked": "הארגון שלכם כיבה הורדות.",
+    "export_blocked": "הארגון שלכם כיבה ייצוא של דואר.",
+    "print_blocked": "הארגון שלכם כיבה הדפסה."
+  },
   "third_party": {
     "push_needs_relay": "התראות Push דורשות ממסר Push שהארגון שלך מפעיל, ולא הוגדר אף אחד. דואר חדש עדיין מוצג כל עוד האפליקציה פתוחה.",
     "relay_desc": "מוצעים רק הממסרים של הארגון שלך, כי השרת הזה לא פונה לשירותים חיצוניים.",

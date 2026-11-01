@@ -204,7 +204,13 @@ async function handlePush(event) {
   let body;
   let data = { kind: "mail-list", accountId, slot };
 
-  if (email) {
+  if (email && preview && preview.redacted) {
+    // The organisation keeps sender and subject off notifications
+    // (Organisation > Devices): the route sent neither.
+    title = accountLabel ? `New mail (${accountLabel})` : "New mail";
+    body = unreadTotal > 1 ? `${unreadTotal} unread messages` : "You have new mail";
+    if (unreadTotal <= 1) data = { kind: "email", emailId: email.id, threadId: email.threadId, slot };
+  } else if (email) {
     const sender = email.from && email.from[0];
     const senderName = (sender && sender.name) || (sender && sender.email) || "New mail";
     title = senderName + (accountLabel ? ` (${accountLabel})` : "");

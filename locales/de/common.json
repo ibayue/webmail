@@ -1301,6 +1301,37 @@
     "tag_removed_count": "{count, plural, one {Markierung von # E-Mail entfernt} other {Markierung von # E-Mails entfernt}}",
     "new_mail_count": "{count, plural, one {# neue Nachricht} other {# neue Nachrichten}}"
   },
+  "org_notice": {
+    "label": "Mitteilung",
+    "dismiss": "Mitteilung schließen",
+    "severity_info": "Information",
+    "severity_warning": "Warnung",
+    "severity_critical": "Wichtig"
+  },
+  "vacation_templates": {
+    "title": "Vorlagen Ihrer Organisation",
+    "description": "Beginnen Sie mit einer Antwort, die Ihre Organisation vorbereitet hat. Den Text können Sie danach ändern.",
+    "pick_label": "Vorlage verwenden",
+    "pick_placeholder": "Vorlage auswählen",
+    "deputy_label": "Adresse der Vertretung",
+    "deputy_placeholder": "kollegin@example.com",
+    "deputy_hint": "Die Antwort nennt diese Person für dringende Anliegen.",
+    "deputy_missing": "Geben Sie zuerst die Adresse Ihrer Vertretung ein.",
+    "deputy_name_label": "Name der Vertretung",
+    "deputy_name_missing": "Geben Sie zuerst den Namen Ihrer Vertretung ein.",
+    "apply": "Diesen Text verwenden",
+    "apply_hint": "Ersetzt Betreff und Text unten."
+  },
+  "retention_notice": {
+    "line": "Nachrichten hier werden {count, plural, one {# Tag} other {# Tage}} nach dem Verschieben hierher gelöscht."
+  },
+  "device_policy": {
+    "downloads_off": "Downloads sind von Ihrer Organisation abgeschaltet.",
+    "download_off_named": "{name}: Downloads sind von Ihrer Organisation abgeschaltet",
+    "download_blocked": "Ihre Organisation hat Downloads abgeschaltet.",
+    "export_blocked": "Ihre Organisation hat den Export von E-Mails abgeschaltet.",
+    "print_blocked": "Drucken ist von Ihrer Organisation abgeschaltet."
+  },
   "third_party": {
     "push_needs_relay": "Push-Benachrichtigungen brauchen ein Push-Relay Ihrer Organisation, und es ist keines eingerichtet. Neue E-Mails werden weiterhin angezeigt, solange die App geöffnet ist.",
     "relay_desc": "Es werden nur die eigenen Relays Ihrer Organisation angeboten, weil dieser Server keine externen Dienste kontaktiert.",

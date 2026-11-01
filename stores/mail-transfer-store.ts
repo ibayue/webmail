@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import type { ImportProgress } from "@/lib/mail-import/engine";
 import type { ExportProgress } from "@/lib/mail-export/engine";
+import { downloadAllowed } from "@/lib/download-guard";
 
 /**
  * The mail import and export dialog: what it was opened for, whether it is
@@ -68,6 +69,9 @@ export const useMailTransferStore = create<MailTransferState>()((set, get) => ({
   visible: false,
   job: null,
   open: (request) => {
+    // The device policy "No export" of the active account (Organisation >
+    // Devices): the dialog doesn't open and the app says why. Import stays.
+    if (request.kind === "export" && !downloadAllowed("export", null)) return false;
     if (isJobActive(get().job)) {
       set({ visible: true });
       return false;
