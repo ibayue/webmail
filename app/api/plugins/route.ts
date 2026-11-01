@@ -4,6 +4,7 @@ import { getPluginRegistry, getThemeRegistry } from '@/lib/admin/plugin-registry
 import { listDevPlugins } from '@/lib/admin/plugin-dev';
 import { configManager } from '@/lib/admin/config-manager';
 import { logger } from '@/lib/logger';
+import { storeUnavailableResponse } from '@/lib/admin/store-unavailable-response';
 import { isNoThirdPartyTrafficOn } from '@/lib/admin/third-party-mode';
 import { pluginDeclaresNetwork } from '@/lib/outgoing-hosts';
 
@@ -98,6 +99,8 @@ export async function GET(request: NextRequest) {
       { headers: { 'Cache-Control': 'no-store' } },
     );
   } catch (error) {
+    const unavailable = storeUnavailableResponse(error);
+    if (unavailable) return unavailable;
     logger.error('Plugin list error', { error: error instanceof Error ? error.message : 'Unknown error' });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }

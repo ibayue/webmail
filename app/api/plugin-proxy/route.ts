@@ -5,6 +5,7 @@ import { rejectCrossOriginRequest } from '@/lib/security/same-origin';
 import { getStalwartCredentials } from '@/lib/stalwart/credentials';
 import { CREDENTIAL_ID_RE } from '@/lib/plugin-secrets/credentials';
 import { ProxyError, proxyRequest, type CaptureSpec } from '@/lib/plugin-secrets/proxy';
+import { bootGateResponse } from '@/lib/shared-store/boot-gate';
 
 const PLUGIN_ID_RE = /^[a-z0-9][a-z0-9-]*[a-z0-9]$/;
 const FIELD_RE = /^[A-Za-z_][A-Za-z0-9_]{0,63}$/;
@@ -35,6 +36,9 @@ function parseCapture(raw: string | null): CaptureSpec | null | undefined {
  * plugin itself (its iframe has an opaque origin and is refused here).
  */
 export async function POST(request: NextRequest) {
+  // The proxy doesn't run for this route, so it applies the boot gate itself.
+  const notReady = bootGateResponse();
+  if (notReady) return notReady;
   const crossOrigin = rejectCrossOriginRequest(request);
   if (crossOrigin) return crossOrigin;
 

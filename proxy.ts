@@ -15,6 +15,7 @@ import { listReachableHosts, noThirdPartyCspSources } from "./lib/admin/reachabl
 import { getWopiEditorOrigins } from "./lib/wopi/discovery";
 import { detectSetupState } from "./lib/setup/state";
 import { isServedOverHttps } from "./lib/security/request-protocol";
+import { bootGateResponse } from "./lib/shared-store/boot-gate";
 
 const intlMiddleware = createIntlMiddleware(routing);
 
@@ -187,6 +188,19 @@ function isSetupPath(pathname: string): boolean {
 }
 
 export async function proxy(request: NextRequest) {
+  // The probes answer without config or store, so a replica that is still
+  // starting (or lost its shared store) can say so (#1066).
+  const probePath = routePathOf(request.nextUrl.pathname);
+  if (probePath === "/api/health" || probePath === "/api/ready") {
+    const probe = NextResponse.next();
+    probe.headers.set("X-Content-Type-Options", "nosniff");
+    probe.headers.set("X-Frame-Options", "DENY");
+    return probe;
+  }
+  // With a shared store, nothing else is served until boot finished.
+  const notReady = bootGateResponse(probePath);
+  if (notReady) return notReady;
+
   // Resolve setup state before deciding what to skip. The first call after
   // boot triggers the config load; subsequent calls are in-memory.
   await configManager.ensureLoaded();

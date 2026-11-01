@@ -4,8 +4,7 @@ import { auditLog } from '@/lib/admin/audit';
 import { logger } from '@/lib/logger';
 import {
   effectiveConsent,
-  loadState,
-  saveState,
+  updateState,
   buildPayload,
   sendOnce,
   reschedule,
@@ -13,6 +12,7 @@ import {
   getLoginCounts,
   resolveEndpointAllowed,
 } from '@/lib/telemetry';
+import { storedDataUnavailableResponse } from '@/lib/stored-data-errors';
 
 /**
  * GET /api/admin/telemetry
@@ -48,6 +48,8 @@ export async function GET(request: NextRequest) {
     logger.error('telemetry GET error', {
       error: err instanceof Error ? err.message : 'unknown',
     });
+    const unavailable = storedDataUnavailableResponse(err);
+    if (unavailable) return unavailable;
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -90,13 +92,15 @@ export async function POST(request: NextRequest) {
       if (body.consent !== 'on' && body.consent !== 'off') {
         return NextResponse.json({ error: 'consent must be "on" or "off"' }, { status: 400 });
       }
-      const state = await loadState();
-      const before = state.consent;
-      state.consent = body.consent;
-      if (body.consent === 'on' && !state.consentedAt) {
-        state.consentedAt = new Date().toISOString();
-      }
-      await saveState(state);
+      const consent = body.consent;
+      const now = new Date().toISOString();
+      let before: string | undefined;
+      // Against the stored state, so a schedule written meanwhile stays.
+      await updateState((state) => {
+        before = state.consent;
+        state.consent = consent;
+        if (consent === 'on' && !state.consentedAt) state.consentedAt = now;
+      });
       await reschedule();
       await auditLog('telemetry.set-consent', { from: before, to: body.consent }, ip);
       return NextResponse.json({ ok: true });
@@ -113,11 +117,12 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ error: check.reason }, { status: 400 });
         }
       }
-      const state = await loadState();
-      const before = state.endpoint;
+      let before: string | undefined;
       // Empty means no collector: heartbeats stop until a URL is set again.
-      state.endpoint = trimmed;
-      await saveState(state);
+      const state = await updateState((current) => {
+        before = current.endpoint;
+        current.endpoint = trimmed;
+      });
       await reschedule();
       await auditLog('telemetry.set-endpoint', { from: before, to: state.endpoint }, ip);
       return NextResponse.json({ ok: true, endpoint: state.endpoint });
@@ -138,6 +143,8 @@ export async function POST(request: NextRequest) {
     logger.error('telemetry POST error', {
       error: err instanceof Error ? err.message : 'unknown',
     });
+    const unavailable = storedDataUnavailableResponse(err);
+    if (unavailable) return unavailable;
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
