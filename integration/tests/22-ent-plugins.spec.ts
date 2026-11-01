@@ -633,7 +633,7 @@ test('item 5: a keyword the admin adds on the plugin page warns at the next send
 });
 
 // A required send check that never started used to let every message through.
-test('item 5: sending is held while the required check isn't running', async ({ browser }) => {
+test("item 5: sending is held while the required check isn't running", async ({ browser }) => {
   const subject = `Send held ${RUN}`;
   const alice = await userPage(browser, ENT.alice);
   await pluginsReady(alice);
