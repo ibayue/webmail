@@ -11,10 +11,10 @@
 /** The folders under app/api. */
 export const API_GROUPS: readonly string[] = [
   'account', 'account-archive', 'admin', 'auth', 'bimi', 'caldav', 'calendar-agenda', 'config',
-  'connector', 'dev-jmap', 'errors', 'favicon', 'fetch-ical', 'health', 'metrics', 'og-image',
-  'plugin-approval-status', 'plugin-proxy', 'plugin-secrets', 'plugin-signing-pubkey', 'plugins',
-  'push', 'pwa-icon', 'pwa-screenshot', 'ready', 'settings', 'setup', 'system', 'translate',
-  'webdav', 'wopi',
+  'connector', 'dev-jmap', 'errors', 'favicon', 'fetch-ical', 'health', 'metrics', 'offline',
+  'og-image', 'plugin-approval-status', 'plugin-proxy', 'plugin-secrets', 'plugin-signing-pubkey',
+  'plugins', 'push', 'pwa-icon', 'pwa-screenshot', 'ready', 'settings', 'setup', 'system',
+  'translate', 'version', 'webdav', 'wopi',
 ];
 
 /** The page areas under app/(main)/[locale], plus the pages outside it. */
