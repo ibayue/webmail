@@ -900,6 +900,17 @@
     "link_off": "lenke slått av",
     "no_subject": "(uten emne)"
   },
+  "classification": {
+    "picker_label": "Klassifisering",
+    "chip_label": "Klassifisering: {name}",
+    "none": "Ingen klassifisering",
+    "pick_required": "Velg en klassifisering",
+    "required_hint": "Organisasjonen din krever en klassifisering.",
+    "required_toast": "Velg en klassifisering før du sender.",
+    "quick_reply_needs_label": "Dette svaret trenger en klassifisering. Velg en her, og send deretter.",
+    "forward_needs_label": "En klassifisering er påkrevd. Videresend meldingen fra meldingsvinduet.",
+    "received_hint": "Satt av avsenderens e-postprogram. Hvem som helst kan sette en klassifisering, så den beviser ingenting."
+  },
   "email_composer": {
     "select_from_directory": "Velg fra katalog",
     "minimize": "Minimer",

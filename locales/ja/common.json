@@ -900,6 +900,17 @@
     "link_off": "リンクは無効です",
     "no_subject": "(件名なし)"
   },
+  "classification": {
+    "picker_label": "機密区分",
+    "chip_label": "機密区分：{name}",
+    "none": "機密区分なし",
+    "pick_required": "機密区分を選択",
+    "required_hint": "組織では機密区分の指定が必要です。",
+    "required_toast": "送信する前に機密区分を選択してください。",
+    "quick_reply_needs_label": "この返信には機密区分が必要です。ここで選択してから送信してください。",
+    "forward_needs_label": "機密区分の指定が必要です。メール作成画面から転送してください。",
+    "received_hint": "送信者のメールプログラムが設定したものです。機密区分は誰でも設定できるため、何の証明にもなりません。"
+  },
   "email_composer": {
     "select_from_directory": "ディレクトリから選択",
     "minimize": "最小化",

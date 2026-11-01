@@ -900,6 +900,17 @@
     "link_off": "链接已停用",
     "no_subject": "（无主题）"
   },
+  "classification": {
+    "picker_label": "密级",
+    "chip_label": "密级：{name}",
+    "none": "未设置密级",
+    "pick_required": "选择密级",
+    "required_hint": "您的组织要求设置密级。",
+    "required_toast": "发送前请选择密级。",
+    "quick_reply_needs_label": "此回复需要设置密级。请在这里选择，然后发送。",
+    "forward_needs_label": "必须设置密级。请从撰写窗口转发此邮件。",
+    "received_hint": "由发件人的邮件程序设置。任何人都可以设置密级，因此它不能证明任何事情。"
+  },
   "email_composer": {
     "select_from_directory": "从目录中选择",
     "minimize": "最小化",

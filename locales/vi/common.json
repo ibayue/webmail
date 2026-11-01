@@ -900,6 +900,17 @@
     "link_off": "đã tắt liên kết",
     "no_subject": "(không có tiêu đề)"
   },
+  "classification": {
+    "picker_label": "Phân loại bảo mật",
+    "chip_label": "Phân loại bảo mật: {name}",
+    "none": "Chưa chọn phân loại",
+    "pick_required": "Chọn phân loại",
+    "required_hint": "Tổ chức của bạn yêu cầu chọn phân loại bảo mật.",
+    "required_toast": "Hãy chọn phân loại bảo mật trước khi gửi.",
+    "quick_reply_needs_label": "Thư trả lời này cần phân loại bảo mật. Hãy chọn ở đây rồi gửi.",
+    "forward_needs_label": "Cần có phân loại bảo mật. Hãy chuyển tiếp thư từ khung soạn thư.",
+    "received_hint": "Do chương trình thư của người gửi đặt. Ai cũng có thể đặt phân loại, nên nó không chứng minh được gì."
+  },
   "email_composer": {
     "select_from_directory": "Chọn từ danh bạ",
     "minimize": "Thu nhỏ",

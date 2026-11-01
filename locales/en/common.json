@@ -900,6 +900,17 @@
     "link_off": "link turned off",
     "no_subject": "(no subject)"
   },
+  "classification": {
+    "picker_label": "Classification",
+    "chip_label": "Classification: {name}",
+    "none": "No label",
+    "pick_required": "Pick a label",
+    "required_hint": "Your organisation requires a label.",
+    "required_toast": "Pick a classification label before sending.",
+    "quick_reply_needs_label": "This reply needs a classification label. Pick one here, then send.",
+    "forward_needs_label": "A classification label is required. Forward the message from the composer.",
+    "received_hint": "Set by the sender's mail program. Anyone can set a label, so it proves nothing."
+  },
   "email_composer": {
     "select_from_directory": "Select from directory",
     "minimize": "Minimize",

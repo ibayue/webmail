@@ -900,6 +900,17 @@
     "link_off": "link disattivato",
     "no_subject": "(nessun oggetto)"
   },
+  "classification": {
+    "picker_label": "Classificazione",
+    "chip_label": "Classificazione: {name}",
+    "none": "Nessuna classificazione",
+    "pick_required": "Scegli una classificazione",
+    "required_hint": "La tua organizzazione richiede una classificazione.",
+    "required_toast": "Scegli una classificazione prima di inviare.",
+    "quick_reply_needs_label": "Questa risposta richiede una classificazione. Sceglila qui, poi invia.",
+    "forward_needs_label": "È richiesta una classificazione. Inoltra il messaggio dall'editor.",
+    "received_hint": "Impostata dal programma di posta del mittente. Chiunque può impostare una classificazione, quindi non prova nulla."
+  },
   "email_composer": {
     "select_from_directory": "Seleziona dalla rubrica aziendale",
     "minimize": "Riduci a icona",

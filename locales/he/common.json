@@ -865,6 +865,17 @@
     "link_off": "הקישור מושבת",
     "no_subject": "(ללא נושא)"
   },
+  "classification": {
+    "picker_label": "סיווג",
+    "chip_label": "סיווג: {name}",
+    "none": "ללא סיווג",
+    "pick_required": "בחירת סיווג",
+    "required_hint": "הארגון שלך מחייב סיווג.",
+    "required_toast": "יש לבחור סיווג לפני השליחה.",
+    "quick_reply_needs_label": "התשובה הזו צריכה סיווג. יש לבחור סיווג כאן ואז לשלוח.",
+    "forward_needs_label": "נדרש סיווג. יש להעביר את ההודעה מהעורך.",
+    "received_hint": "נקבע על ידי תוכנת הדואר של השולח. כל אחד יכול לקבוע סיווג, ולכן הוא לא מוכיח דבר."
+  },
   "email_composer": {
     "select_from_directory": "בחירה מהספרייה",
     "minimize": "מזעור",

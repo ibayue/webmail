@@ -900,6 +900,17 @@
     "link_off": "link dezactivat",
     "no_subject": "(fără subiect)"
   },
+  "classification": {
+    "picker_label": "Clasificare",
+    "chip_label": "Clasificare: {name}",
+    "none": "Fără clasificare",
+    "pick_required": "Alegeți o clasificare",
+    "required_hint": "Organizația dvs. cere o clasificare.",
+    "required_toast": "Alegeți o clasificare înainte de trimitere.",
+    "quick_reply_needs_label": "Acest răspuns are nevoie de o clasificare. Alegeți una aici, apoi trimiteți.",
+    "forward_needs_label": "Este necesară o clasificare. Redirecționați mesajul din fereastra de redactare.",
+    "received_hint": "Setată de programul de e-mail al expeditorului. Oricine poate seta o clasificare, deci nu dovedește nimic."
+  },
   "email_composer": {
     "select_from_directory": "Selectează din director",
     "minimize": "Minimizează",

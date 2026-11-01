@@ -900,6 +900,17 @@
     "link_off": "링크 꺼짐",
     "no_subject": "(제목 없음)"
   },
+  "classification": {
+    "picker_label": "보안 등급",
+    "chip_label": "보안 등급: {name}",
+    "none": "보안 등급 없음",
+    "pick_required": "보안 등급 선택",
+    "required_hint": "조직에서 보안 등급을 지정하도록 요구해요.",
+    "required_toast": "보내기 전에 보안 등급을 선택하세요.",
+    "quick_reply_needs_label": "이 답장에는 보안 등급이 필요해요. 여기서 선택한 다음 보내세요.",
+    "forward_needs_label": "보안 등급이 필요해요. 메일 쓰기 창에서 메시지를 전달하세요.",
+    "received_hint": "보낸 사람의 메일 프로그램이 지정한 값이에요. 누구나 보안 등급을 지정할 수 있어서 아무것도 증명하지 않아요."
+  },
   "email_composer": {
     "select_from_directory": "디렉터리에서 선택",
     "minimize": "최소화",

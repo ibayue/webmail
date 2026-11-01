@@ -900,6 +900,17 @@
     "link_off": "Link deaktiviert",
     "no_subject": "(kein Betreff)"
   },
+  "classification": {
+    "picker_label": "Einstufung",
+    "chip_label": "Einstufung: {name}",
+    "none": "Keine Einstufung",
+    "pick_required": "Einstufung wählen",
+    "required_hint": "Ihre Organisation verlangt eine Einstufung.",
+    "required_toast": "Wählen Sie vor dem Senden eine Einstufung.",
+    "quick_reply_needs_label": "Diese Antwort braucht eine Einstufung. Wählen Sie sie hier aus und senden Sie dann.",
+    "forward_needs_label": "Eine Einstufung ist vorgeschrieben. Leiten Sie die Nachricht im Editor weiter.",
+    "received_hint": "Vom E-Mail-Programm des Absenders gesetzt. Jeder kann eine Einstufung setzen, sie beweist also nichts."
+  },
   "email_composer": {
     "select_from_directory": "Aus Verzeichnis auswählen",
     "minimize": "Minimieren",

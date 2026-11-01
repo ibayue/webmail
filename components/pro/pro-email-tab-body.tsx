@@ -24,6 +24,8 @@ import { KEYWORD_PREFIX, KEYWORD_PREFIX_LEGACY, emailKeyFor } from "@/lib/thread
 import { cn } from "@/lib/utils";
 import { getDraftTextBody } from '@/lib/email-body-selection';
 import { messagePriorityFromHeaders } from '@/lib/message-priority';
+import { labelSourceHeaders } from '@/lib/outgoing/classification';
+import { draftLabelChoice } from '@/lib/classification/labels';
 import { useArchiveActionEnabled } from '@/lib/archive-gate';
 import { confirmMailRemoval } from '@/lib/mail-removal-confirm';
 import { useConfirmDialog } from '@/hooks/use-confirm-dialog';
@@ -83,6 +85,7 @@ function buildReplyContext(email: Email): ProReplyContext {
     messageId: email.messageId,
     inReplyTo: email.inReplyTo,
     references: email.references,
+    headers: labelSourceHeaders(email.headers),
   };
 }
 
@@ -287,6 +290,7 @@ export function ProEmailView({ emailId, client: clientOverride, clientAccountId,
       replyTo: {
         subject: email.subject,
         attachments: [payload.attachment],
+        headers: labelSourceHeaders(email.headers),
       },
       sourceEmailId: email.id,
       sourceEmailSource: writeSource,
@@ -467,6 +471,7 @@ export function ProEmailView({ emailId, client: clientOverride, clientAccountId,
         // composer without its files and the next save stripped them.
         attachments: email.attachments,
         priority: messagePriorityFromHeaders(email.headers),
+        classification: draftLabelChoice(email.headers),
       },
     }, { to: addresses(email.to), cc: addresses(email.cc), subject: draftSubject, body: bodyText }, onClose);
   }, [email, accountId, localAccountId, identities, multiAccountIdentities, openComposeTab, onClose, t]);

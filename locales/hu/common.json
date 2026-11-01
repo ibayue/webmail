@@ -900,6 +900,17 @@
     "link_off": "link kikapcsolva",
     "no_subject": "(nincs tárgy)"
   },
+  "classification": {
+    "picker_label": "Besorolás",
+    "chip_label": "Besorolás: {name}",
+    "none": "Nincs besorolás",
+    "pick_required": "Válassz besorolást",
+    "required_hint": "A szervezeted besorolást ír elő.",
+    "required_toast": "Küldés előtt válassz besorolást.",
+    "quick_reply_needs_label": "Ehhez a válaszhoz besorolás kell. Itt válassz egyet, aztán küldd el.",
+    "forward_needs_label": "A besorolás kötelező. Az üzenetet a szerkesztőből továbbítsd.",
+    "received_hint": "A feladó levelezőprogramja állította be. Bárki megadhat besorolást, így semmit sem bizonyít."
+  },
   "email_composer": {
     "select_from_directory": "Kiválasztás a címtárból",
     "minimize": "Kis méret",

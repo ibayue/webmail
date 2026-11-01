@@ -900,6 +900,17 @@
     "link_off": "link välja lülitatud",
     "no_subject": "(teema puudub)"
   },
+  "classification": {
+    "picker_label": "Klassifikatsioon",
+    "chip_label": "Klassifikatsioon: {name}",
+    "none": "Klassifikatsioonita",
+    "pick_required": "Vali klassifikatsioon",
+    "required_hint": "Sinu organisatsioon nõuab klassifikatsiooni.",
+    "required_toast": "Vali enne saatmist klassifikatsioon.",
+    "quick_reply_needs_label": "See vastus vajab klassifikatsiooni. Vali see siin ja saada siis.",
+    "forward_needs_label": "Klassifikatsioon on nõutud. Saada kiri edasi kirjakoostajast.",
+    "received_hint": "Selle määras saatja meiliprogramm. Klassifikatsiooni võib määrata igaüks, seega ei tõesta see midagi."
+  },
   "email_composer": {
     "select_from_directory": "Vali kataloogist",
     "minimize": "Minimeeri",

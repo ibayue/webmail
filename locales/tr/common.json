@@ -900,6 +900,17 @@
     "link_off": "bağlantı devre dışı",
     "no_subject": "(konu yok)"
   },
+  "classification": {
+    "picker_label": "Sınıflandırma",
+    "chip_label": "Sınıflandırma: {name}",
+    "none": "Sınıflandırma yok",
+    "pick_required": "Sınıflandırma seçin",
+    "required_hint": "Kuruluşunuz bir sınıflandırma gerektiriyor.",
+    "required_toast": "Göndermeden önce bir sınıflandırma seçin.",
+    "quick_reply_needs_label": "Bu yanıt için sınıflandırma gerekiyor. Burada bir tane seçin, sonra gönderin.",
+    "forward_needs_label": "Sınıflandırma zorunlu. İletiyi ileti düzenleyiciden iletin.",
+    "received_hint": "Gönderenin posta programı tarafından ayarlandı. Herkes sınıflandırma ayarlayabilir, bu yüzden hiçbir şeyi kanıtlamaz."
+  },
   "email_composer": {
     "select_from_directory": "Dizinden seç",
     "minimize": "Simge durumuna küçült",

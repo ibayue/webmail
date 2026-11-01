@@ -3,6 +3,7 @@
 // structured-cloneable data back to the iframe.
 
 import type { AppInfoView, InstalledPlugin, Permission } from '../plugin-types';
+import { injectTakeoverLabel } from '@/lib/outgoing/classification';
 import { fetchConfig } from '@/hooks/use-config';
 import { IS_LITE } from '../lite';
 import { doAppGetSettings, doAppSearchSettings } from './host-api-app';
@@ -822,7 +823,10 @@ async function doJmapSendRaw(
   // ArrayBuffer (not SharedArrayBuffer) — also detaches from the caller's view.
   const copy = new Uint8Array(view.byteLength);
   copy.set(view);
-  const blob = new Blob([copy.buffer], { type: 'message/rfc822' });
+  // During a labelled takeover (S/MIME, PGP) the label's headers go into the
+  // top-level header block, outside what the plugin signed or encrypted.
+  const labelled = injectTakeoverLabel(copy, identityId);
+  const blob = new Blob([labelled.buffer as ArrayBuffer], { type: 'message/rfc822' });
   return useEmailStore.getState().sendRawEmail(
     client,
     blob,
@@ -856,7 +860,8 @@ async function doJmapSubmitRaw(
   
   const copy = new Uint8Array(view.byteLength);
   copy.set(view);
-  const blob = new Blob([copy.buffer], { type: 'message/rfc822' });
+  const labelled = injectTakeoverLabel(copy, identityId);
+  const blob = new Blob([labelled.buffer as ArrayBuffer], { type: 'message/rfc822' });
 
   return client.submitRawEmail(
     blob,

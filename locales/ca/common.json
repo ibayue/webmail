@@ -900,6 +900,17 @@
     "link_off": "enllaç desactivat",
     "no_subject": "(sense assumpte)"
   },
+  "classification": {
+    "picker_label": "Classificació",
+    "chip_label": "Classificació: {name}",
+    "none": "Sense classificació",
+    "pick_required": "Trieu una classificació",
+    "required_hint": "La vostra organització exigeix una classificació.",
+    "required_toast": "Trieu una classificació abans d'enviar.",
+    "quick_reply_needs_label": "Aquesta resposta necessita una classificació. Trieu-ne una aquí i després envieu-la.",
+    "forward_needs_label": "Cal una classificació. Reenvieu el missatge des del redactor.",
+    "received_hint": "La defineix el programa de correu del remitent. Qualsevol pot definir una classificació, així que no demostra res."
+  },
   "email_composer": {
     "select_from_directory": "Selecciona del directori",
     "minimize": "Minimitza",

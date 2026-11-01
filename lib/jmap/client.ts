@@ -44,7 +44,8 @@ import { parseAuthenticationResults } from "@/lib/email-headers";
 import { IS_LITE_STALWART } from "@/lib/lite";
 import { toStorageQuota, type JMAPQuota, type StorageQuota } from "@/lib/quota";
 import { messagePriorityHeaders, type MessagePriority } from "@/lib/message-priority";
-import { customHeaderProperties } from "@/lib/outgoing/custom-headers";
+import { customHeaderProperties, withLabelHeaders } from "@/lib/outgoing/custom-headers";
+import { draftLabelProperty } from "@/lib/classification/labels";
 import { attachmentParts, HTML_PART_ID, relatedBodyStructure, TEXT_PART_ID, type OutgoingBodyPart } from "./outgoing-body";
 import { addBodyMediaToAttachments } from "./body-media-attachments";
 
@@ -1431,6 +1432,12 @@ export interface SubmissionSendOptions {
    * has gone (a phishing report, which the user doesn't keep).
    */
   noSentCopy?: boolean;
+  /**
+   * Classification label headers (lib/outgoing/classification.ts) as
+   * Email/set create properties. Written after `headers`; a plugin header
+   * of the same name is dropped, so a plugin can't change the label.
+   */
+  labelHeaders?: Record<string, string>;
 }
 
 /** The MAIL FROM / RCPT TO parameters the options translate to. */
@@ -4697,7 +4704,9 @@ export class JMAPClient implements IJMAPClient {
     htmlBody?: string,
     inReplyTo?: string[],
     references?: string[],
-    options?: { priority?: MessagePriority; accountId?: string; previousDraftAccountId?: string },
+    // `classification`: the composer's label choice (an id, null for none),
+    // kept in X-Bulwark-Label so a re-opened draft restores it.
+    options?: { priority?: MessagePriority; accountId?: string; previousDraftAccountId?: string; classification?: string | null },
   ): Promise<string> {
     // A draft for a group identity belongs in the group's Drafts, like its
     // Sent copy (#1090).
@@ -4756,6 +4765,7 @@ export class JMAPClient implements IJMAPClient {
       ...(draftReferences?.length ? { references: draftReferences } : {}),
       // A re-opened draft reads its priority back from these (#970).
       ...messagePriorityHeaders(options?.priority),
+      ...draftLabelProperty(options?.classification),
     };
 
     // Images the HTML shows by cid: go into a multipart/related beside it
@@ -4959,7 +4969,7 @@ export class JMAPClient implements IJMAPClient {
     }
 
     Object.assign(emailCreate, messagePriorityHeaders(options?.priority));
-    Object.assign(emailCreate, customHeaderProperties(options?.headers));
+    Object.assign(emailCreate, withLabelHeaders(customHeaderProperties(options?.headers), options?.labelHeaders));
 
     // Images the HTML shows by cid: go into a multipart/related beside it,
     // or recipients don't see them (#1451).

@@ -51,6 +51,8 @@ export interface ProReplyContext {
   quoteHeaderHtml?: string;
   quoteHeaderText?: string;
   quoteWrapInBlockquote?: boolean;
+  /** The original's label headers (lib/outgoing/classification.ts labelSourceHeaders). */
+  headers?: Record<string, string | string[]>;
 }
 
 export interface ProComposeTabData {

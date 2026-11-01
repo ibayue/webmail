@@ -900,6 +900,17 @@
     "link_off": "saite izslēgta",
     "no_subject": "(bez temata)"
   },
+  "classification": {
+    "picker_label": "Klasifikācija",
+    "chip_label": "Klasifikācija: {name}",
+    "none": "Bez klasifikācijas",
+    "pick_required": "Izvēlieties klasifikāciju",
+    "required_hint": "Jūsu organizācija pieprasa klasifikāciju.",
+    "required_toast": "Pirms sūtīšanas izvēlieties klasifikāciju.",
+    "quick_reply_needs_label": "Šai atbildei vajadzīga klasifikācija. Izvēlieties to šeit un tad sūtiet.",
+    "forward_needs_label": "Klasifikācija ir obligāta. Pārsūtiet vēstuli no redaktora.",
+    "received_hint": "To iestatīja sūtītāja pasta programma. Klasifikāciju var iestatīt ikviens, tāpēc tā neko nepierāda."
+  },
   "email_composer": {
     "select_from_directory": "Izvēlēties no kataloga",
     "minimize": "Minimizēt",

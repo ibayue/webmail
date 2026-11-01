@@ -900,6 +900,17 @@
     "link_off": "odkaz vypnutý",
     "no_subject": "(bez predmetu)"
   },
+  "classification": {
+    "picker_label": "Klasifikácia",
+    "chip_label": "Klasifikácia: {name}",
+    "none": "Bez klasifikácie",
+    "pick_required": "Vyberte klasifikáciu",
+    "required_hint": "Vaša organizácia vyžaduje klasifikáciu.",
+    "required_toast": "Pred odoslaním vyberte klasifikáciu.",
+    "quick_reply_needs_label": "Táto odpoveď potrebuje klasifikáciu. Vyberte ju tu a potom odošlite.",
+    "forward_needs_label": "Klasifikácia je povinná. Prepošlite správu z editora správ.",
+    "received_hint": "Nastavil ju poštový program odosielateľa. Klasifikáciu môže nastaviť ktokoľvek, takže nič nedokazuje."
+  },
   "email_composer": {
     "select_from_directory": "Vybrať z adresára",
     "minimize": "Minimalizovať",
