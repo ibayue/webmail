@@ -450,6 +450,8 @@ export function CalendarInvitationBanner({ email }: CalendarInvitationBannerProp
   // The addresses that pick "your" participant in the invitation.
   const actingEmails = answerAs ? answerAs.emails : identityEmails;
   // Answering for a person (not a group) names the user with SENT-BY.
+  // Set below, once the function exists; the parse callback reads it late.
+  const loadSharedCopyRef = useRef<(uid: string) => Promise<CalendarEvent | null>>(async () => null);
   const answerOptions = answerAs && !answerAs.isGroup && identityEmails[0]
     ? { sentBy: `mailto:${identityEmails[0]}` }
     : undefined;
@@ -529,7 +531,10 @@ export function CalendarInvitationBanner({ email }: CalendarInvitationBannerProp
       // only needed for the "already in calendar" pill, must not block the banner.
       // Filter by UID server-side; the previous unfiltered query fetched up to
       // 1000 events plus multiple /get batches just to find one match.
-      if (parsed.uid && supportsCalendar) {
+      if (parsed.uid && supportsCalendar && sharedMailAccount) {
+        // The copy in the shared or group account the message belongs to.
+        void loadSharedCopyRef.current(parsed.uid).catch(() => { /* ignore lookup failure */ });
+      } else if (parsed.uid && supportsCalendar) {
         const storeHasIt = useCalendarStore.getState().events.some((e) => e.uid === parsed.uid);
         if (!storeHasIt) {
           client.queryCalendarEvents({ uid: parsed.uid })
@@ -548,7 +553,7 @@ export function CalendarInvitationBanner({ email }: CalendarInvitationBannerProp
       setParseError(err instanceof Error ? err.message : String(err));
       setState('error');
     }
-  }, [calendarInvitationParsingEnabled, client, parseClient, blobAccountId, attachment, supportsCalendar]);
+  }, [calendarInvitationParsingEnabled, client, parseClient, blobAccountId, attachment, supportsCalendar, sharedMailAccount]);
 
   useEffect(() => {
     if (attachment && calendarInvitationParsingEnabled) {
@@ -597,6 +602,37 @@ export function CalendarInvitationBanner({ email }: CalendarInvitationBannerProp
   const showDetails = !isCollapsed;
   const allowsRsvp = method === 'request';
   const allowsImport = method === 'request' || method === 'publish' || method === 'add' || method === 'unknown';
+
+  /** Finds the invitation's copy in the shared or group account and adds it to the store. */
+  async function loadSharedCopy(uid: string): Promise<CalendarEvent | null> {
+    if (!client || !sharedMailAccount) return null;
+    const known = useCalendarStore.getState().events.find((e) => e.uid === uid && e.accountId === sharedMailAccount);
+    if (known) return known;
+    const found = await client.queryCalendarEvents({ uid }, undefined, undefined, sharedMailAccount);
+    // As the store holds a shared account's events: prefixed ids, store calendar ids.
+    const accountCalendars = useCalendarStore.getState().calendars.filter((c) => c.accountId === sharedMailAccount);
+    const mapped = found.map((e): CalendarEvent => ({
+      ...e,
+      id: `${sharedMailAccount}:${e.id}`,
+      originalId: e.id,
+      originalCalendarIds: e.calendarIds,
+      calendarIds: Object.fromEntries(Object.entries(e.calendarIds ?? {}).map(([id, on]) => [
+        accountCalendars.find((c) => (c.originalId ?? c.id) === id)?.id ?? `${sharedMailAccount}:${id}`, on,
+      ])),
+      accountId: sharedMailAccount,
+      accountName: accountCalendars[0]?.accountName,
+      isShared: true,
+    }));
+    if (mapped.length === 0) return null;
+    useCalendarStore.setState((s) => {
+      const ids = new Set(s.events.map((e) => e.id));
+      const added = mapped.filter((e) => !ids.has(e.id));
+      return added.length > 0 ? { events: [...s.events, ...added] } : s;
+    });
+    return mapped.find((e) => !e.recurrenceId) ?? mapped[0];
+  }
+
+  loadSharedCopyRef.current = loadSharedCopy;
 
   // The copy in the account the message belongs to. For the user's own
   // mailbox that is their own calendar: a calendar shared with them by
@@ -667,6 +703,7 @@ export function CalendarInvitationBanner({ email }: CalendarInvitationBannerProp
   const cancellationOutdated = isCancellation && cancelRemoval?.kind === 'outdated';
 
   const resolveExistingEventForRsvp = async () => {
+    if (sharedMailAccount) return existingEvent;
     if (!client || !existingEvent) {
       return existingEvent;
     }
@@ -704,9 +741,11 @@ export function CalendarInvitationBanner({ email }: CalendarInvitationBannerProp
     // and Stalwart queues the iTIP REPLY itself. A manual client-side reply
     // here produced duplicate emails.
     try {
+      // A copy in a shared or group account may not be loaded yet: look it up
+      // there before adding the invitation again.
       const eventForRsvp = existingEvent
         ? await resolveExistingEventForRsvp()
-        : null;
+        : sharedMailAccount && parsedEvent.uid ? await loadSharedCopy(parsedEvent.uid) : null;
       const existingEventParticipant = eventForRsvp
         ? findParticipantByEmails(eventForRsvp, actingEmails)
         : null;

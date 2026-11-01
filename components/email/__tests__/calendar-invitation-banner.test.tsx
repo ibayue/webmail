@@ -672,6 +672,28 @@ describe('CalendarInvitationBanner', () => {
       }
     });
 
+    it("finds the group's copy on the server when the calendar wasn't loaded, and answers there", async () => {
+      withAccountCalendar('team');
+      try {
+        const participants = invited('team@example.com');
+        mocks.calendarState.events = [];
+        mocks.clientMock.parseCalendarEvents.mockResolvedValue([{ uid: 'uid-13', title: 'Team call', start: '2026-03-30T09:00:00Z', participants }]);
+        mocks.clientMock.queryCalendarEvents.mockImplementation(async (...args: unknown[]) => (args[3] === 'team'
+          ? [{ id: 'event-13', uid: 'uid-13', start: '2026-03-30T09:00:00Z', participants, calendarIds: { b: true } }]
+          : []));
+        mocks.calendarState.rsvpEvent.mockResolvedValue(true);
+
+        render(<CalendarInvitationBanner email={makeEmail({ id: 'email-13', sourceAccountId: 'team' } as Partial<Email>)} />);
+        fireEvent.click(await screen.findByText('Accept'));
+
+        await waitFor(() => expect(mocks.calendarState.rsvpEvent).toHaveBeenCalledWith(mocks.clientMock, 'team:event-13', 'team', 'accepted', null));
+        expect(mocks.clientMock.queryCalendarEvents).toHaveBeenCalledWith({ uid: 'uid-13' }, undefined, undefined, 'team');
+        expect(mocks.calendarState.importEvents).not.toHaveBeenCalled();
+      } finally {
+        mocks.calendarState.calendars = calendarsBefore;
+      }
+    });
+
     it("adds an invitation not yet in the group's calendar there, not to the user's own", async () => {
       withAccountCalendar('team');
       try {
