@@ -6,6 +6,8 @@ import { Loader2, Pause } from "@/components/icons";
 import { isJobActive, useMailTransferStore } from "@/stores/mail-transfer-store";
 import { onBeforeSignOut } from "@/lib/sign-out-cleanup";
 import { clearCheckpointsFor } from "@/lib/mail-import/checkpoints";
+import { sweepPrivateExports } from "@/lib/mail-export/sinks";
+import { useAuthStore } from "@/stores/auth-store";
 import { MailImportDialog } from "./mail-import-dialog";
 import { MailExportDialog } from "./mail-export-dialog";
 import { formatClock } from "./transfer-progress";
@@ -35,10 +37,17 @@ export function MailTransferHost() {
         store.cancelJob("signout");
         await Promise.race([job.finished, new Promise((resolve) => setTimeout(resolve, SIGN_OUT_WAIT_MS))]);
       }
-      useMailTransferStore.getState().close();
+      useMailTransferStore.getState().close({ now: true });
     }
     if (accountId !== "all") await clearCheckpointsFor(accountId);
   }), []);
+
+  // Export files a closed tab or a crash left in the browser's private
+  // storage go when the app starts and when someone signs in.
+  const activeAccountId = useAuthStore((s) => s.activeAccountId);
+  useEffect(() => {
+    if (!isJobActive(useMailTransferStore.getState().job)) void sweepPrivateExports();
+  }, [activeAccountId]);
 
   return (
     <>

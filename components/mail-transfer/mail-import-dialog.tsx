@@ -144,7 +144,7 @@ export function MailImportDialog({ request }: { request: ImportRequest }) {
             <Button variant="destructive" onClick={() => cancelJob()} aria-describedby={`${id}-status`}>{t("cancel_import")}</Button>
           </>
         ) : (
-          <Button onClick={close}>{t("close")}</Button>
+          <Button onClick={() => close()}>{t("close")}</Button>
         )}
       >
         <ProgressBody progress={progress} t={t} locale={locale} statusId={`${id}-status`} />
@@ -157,7 +157,7 @@ export function MailImportDialog({ request }: { request: ImportRequest }) {
   return (
     <Dialog
       isOpen
-      onClose={close}
+      onClose={() => close()}
       size="full-on-phone"
       title={t("title")}
       description={t("description")}
@@ -165,7 +165,7 @@ export function MailImportDialog({ request }: { request: ImportRequest }) {
       initialFocus={chooseButton}
       footer={(
         <>
-          <Button variant="outline" onClick={close}>{t("cancel")}</Button>
+          <Button variant="outline" onClick={() => close()}>{t("cancel")}</Button>
           <Button onClick={onStart} disabled={!canStart} data-testid="mail-import-start">{t("start")}</Button>
         </>
       )}

@@ -1,11 +1,16 @@
+import { hasWebLocks, holdLock } from "@/lib/mail-import/locks";
+
 /**
  * Where an export's bytes go, so a large mailbox never has to fit in memory:
  *
  * 1. File System Access (Chrome, Edge): the user picks the file first and the
  *    export writes straight into it.
  * 2. The origin private file system (Firefox, Safari): written to a private
- *    file on disk, then downloaded. The file is deleted when the dialog
- *    closes, on sign-out, and by a sweep when the next export starts.
+ *    file on disk, then downloaded. The file is deleted a while after the
+ *    dialog closes (so the download can finish), at once on sign-out, and by
+ *    a sweep when the app starts, someone signs in or the next export starts.
+ *    Each file is held under a Web Lock while its tab uses it, so the sweep
+ *    of another tab leaves it alone.
  * 3. Memory, for small exports only, where neither exists.
  *
  * Writes are gathered into 1 MB pieces: a message arrives in many small parts.
@@ -16,8 +21,8 @@ export interface ExportFile {
   size: number;
   /** Saves the file (again) where the browser keeps downloads; absent when the user picked the place. */
   download?: () => void;
-  /** Frees what the export kept in this browser. */
-  discard: () => Promise<void>;
+  /** Frees what the export kept in this browser: after the download had time to finish, or `now`. */
+  discard: (now?: boolean) => Promise<void>;
 }
 
 export interface ExportSink {
@@ -37,6 +42,11 @@ export class ExportTooLargeError extends Error {
 /** The most a memory-only export may hold. */
 export const MEMORY_EXPORT_LIMIT = 200 * 1024 * 1024;
 const PRIVATE_DIR = "bulwark-exports";
+const LOCK_PREFIX = "bulwark-export-file:";
+/** How long a closed export's private file stays for its download: a minute, plus a second per 50 MB. */
+export function downloadGraceMs(size: number): number {
+  return 60_000 + Math.ceil(size / 50_000_000) * 1000;
+}
 const FLUSH_BYTES = 1 << 20;
 
 interface WritableLike {
@@ -86,6 +96,13 @@ function triggerDownload(url: string, name: string): void {
 
 type SavePicker = (options: { suggestedName?: string; types?: { description?: string; accept: Record<string, string[]> }[] }) => Promise<{ createWritable(): Promise<WritableLike> }>;
 
+/** Whether this browser can write a private file from the page (Safari before 26 can't). */
+export function canWritePrivateFile(): boolean {
+  if (typeof navigator === "undefined" || typeof (navigator.storage as { getDirectory?: unknown } | undefined)?.getDirectory !== "function") return false;
+  const handle = (globalThis as { FileSystemFileHandle?: { prototype: object } }).FileSystemFileHandle;
+  return !!handle && "createWritable" in handle.prototype;
+}
+
 export function canPickSaveFile(): boolean {
   return typeof window !== "undefined" && typeof (window as unknown as { showSaveFilePicker?: unknown }).showSaveFilePicker === "function";
 }
@@ -126,6 +143,8 @@ export async function privateFileSink(name: string, mime: string): Promise<Expor
   const dir = await privateDir();
   if (!dir) return null;
   const entry = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  // Held until the file is gone, so no other tab's sweep deletes it meanwhile.
+  const release = (await holdLock(`${LOCK_PREFIX}${entry}`)) ?? (() => {});
   let handle: FileSystemFileHandle;
   let writable: WritableLike;
   try {
@@ -133,15 +152,20 @@ export async function privateFileSink(name: string, mime: string): Promise<Expor
     const create = (handle as unknown as { createWritable?: () => Promise<WritableLike> }).createWritable;
     if (typeof create !== "function") {
       await dir.removeEntry(entry).catch(() => {});
+      release();
       return null;
     }
     writable = await create.call(handle);
   } catch {
     await dir.removeEntry(entry).catch(() => {});
+    release();
     return null;
   }
   const buf = buffered((chunk) => writable.write(chunk as BufferSource));
-  const remove = () => dir.removeEntry(entry).catch(() => {});
+  const remove = async () => {
+    await dir.removeEntry(entry).catch(() => {});
+    release();
+  };
   return {
     kind: "private",
     write: (chunk) => buf.write(chunk),
@@ -155,7 +179,12 @@ export async function privateFileSink(name: string, mime: string): Promise<Expor
         name,
         size: file.size,
         download: () => triggerDownload(url, name),
-        discard: async () => { URL.revokeObjectURL(url); await remove(); },
+        discard: async (now = false) => {
+          // Deleting the file under a download that is still reading it would break the download.
+          if (!now) await new Promise((resolve) => setTimeout(resolve, downloadGraceMs(file.size)));
+          URL.revokeObjectURL(url);
+          await remove();
+        },
       };
     },
     abort: async () => { await writable.abort().catch(() => {}); await remove(); },
@@ -178,17 +207,52 @@ export function memorySink(name: string, mime: string, limit = MEMORY_EXPORT_LIM
       parts = [];
       const url = URL.createObjectURL(blob);
       triggerDownload(url, name);
-      return { name, size: blob.size, download: () => triggerDownload(url, name), discard: async () => URL.revokeObjectURL(url) };
+      return {
+        name,
+        size: blob.size,
+        download: () => triggerDownload(url, name),
+        discard: async (now = false) => {
+          if (!now) await new Promise((resolve) => setTimeout(resolve, downloadGraceMs(blob.size)));
+          URL.revokeObjectURL(url);
+        },
+      };
     },
     abort: async () => { parts = []; },
   };
 }
 
-/** Deletes private export files left behind (a closed tab, a crash). */
-export async function sweepPrivateExports(): Promise<void> {
+/**
+ * Deletes private export files no tab uses any more (a closed tab, a crash),
+ * so no copy of the mail stays in the browser profile. A file another tab
+ * holds is left alone; `force` deletes everything (everyone signed out).
+ * Without Web Locks only `force` sweeps, since another tab can't be asked.
+ */
+export async function sweepPrivateExports({ force = false }: { force?: boolean } = {}): Promise<void> {
+  if (!force && !hasWebLocks()) return;
   try {
     const root = await navigator.storage?.getDirectory?.();
-    await root?.removeEntry(PRIVATE_DIR, { recursive: true });
+    if (!root) return;
+    if (force) {
+      await root.removeEntry(PRIVATE_DIR, { recursive: true }).catch(() => {});
+      return;
+    }
+    let dir: FileSystemDirectoryHandle;
+    try {
+      dir = await root.getDirectoryHandle(PRIVATE_DIR);
+    } catch {
+      return;
+    }
+    const names: string[] = [];
+    for await (const name of (dir as unknown as { keys(): AsyncIterable<string> }).keys()) names.push(name);
+    for (const name of names) {
+      const release = await holdLock(`${LOCK_PREFIX}${name}`);
+      if (!release) continue;
+      try {
+        await dir.removeEntry(name).catch(() => {});
+      } finally {
+        release();
+      }
+    }
   } catch {
     /* nothing there */
   }

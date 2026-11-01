@@ -129,4 +129,26 @@ describe('MailExportDialog', () => {
     expect(screen.getByTestId('mail-transfer-chip').textContent).toContain('chip');
     expect(controller.signal.aborted).toBe(false);
   });
+
+  it('keeps the running count out of the live region', () => {
+    render(<MailTransferHost />);
+    act(() => {
+      openMailExport({ mailboxId: 'inbox' });
+      useMailTransferStore.getState().startJob({ kind: 'export', controller: new AbortController(), progress: { phase: 'running', exported: 1, failed: 0, failures: [], total: 4, fraction: 0.25 } });
+    });
+    expect(screen.getByTestId('mail-export-status').textContent).toBe('running_title');
+    expect(screen.getByTestId('mail-export-count').textContent).toBe('status_exported');
+  });
+
+  it('says the export stays in memory where the private file system can\'t write files', () => {
+    vi.stubGlobal('navigator', { ...navigator, storage: { getDirectory: async () => ({}) } });
+    vi.stubGlobal('FileSystemFileHandle', class {});
+    try {
+      render(<MailTransferHost />);
+      act(() => openMailExport());
+      expect(screen.getByText('save_memory')).toBeTruthy();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
 });

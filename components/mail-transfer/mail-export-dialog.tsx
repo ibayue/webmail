@@ -9,7 +9,7 @@ import { useAuthStore } from "@/stores/auth-store";
 import { isJobActive, useMailTransferStore, type ExportRequest } from "@/stores/mail-transfer-store";
 import type { ExportFormat, ExportProgress } from "@/lib/mail-export/engine";
 import { safeName } from "@/lib/mail-export/engine";
-import { canPickSaveFile, memorySink, pickSaveFile, privateFileSink, sweepPrivateExports, type ExportSink } from "@/lib/mail-export/sinks";
+import { canPickSaveFile, canWritePrivateFile, memorySink, pickSaveFile, privateFileSink, sweepPrivateExports, type ExportSink } from "@/lib/mail-export/sinks";
 import { formatFileSize } from "@/lib/utils";
 import { formatClock, TransferBar } from "./transfer-progress";
 import { startExport } from "./start-export";
@@ -21,8 +21,7 @@ function today(): string {
 /** Where the file will go in this browser, said before the export starts. */
 function saveMode(): "picker" | "download" | "memory" {
   if (canPickSaveFile()) return "picker";
-  const storage = typeof navigator !== "undefined" ? (navigator.storage as { getDirectory?: unknown } | undefined) : undefined;
-  return typeof storage?.getDirectory === "function" ? "download" : "memory";
+  return canWritePrivateFile() ? "download" : "memory";
 }
 
 export function MailExportDialog({ request }: { request: ExportRequest }) {
@@ -103,7 +102,7 @@ export function MailExportDialog({ request }: { request: ExportRequest }) {
             {progress.phase === "done" && progress.file?.download && (
               <Button variant="outline" onClick={() => progress.file?.download?.()} data-testid="mail-export-download">{t("download_again")}</Button>
             )}
-            <Button onClick={close}>{t("close")}</Button>
+            <Button onClick={() => close()}>{t("close")}</Button>
           </>
         )}
       >
@@ -120,14 +119,14 @@ export function MailExportDialog({ request }: { request: ExportRequest }) {
   return (
     <Dialog
       isOpen
-      onClose={close}
+      onClose={() => close()}
       size="full-on-phone"
       title={folder ? t("title_folder", { name: mailbox?.name ?? "" }) : t("title_account")}
       description={folder ? t("description_folder") : t("description_account")}
       testId="mail-export-dialog"
       footer={(
         <>
-          <Button variant="outline" onClick={close}>{t("cancel")}</Button>
+          <Button variant="outline" onClick={() => close()}>{t("cancel")}</Button>
           <Button onClick={() => void onStart()} disabled={starting || (folder && !mailbox)} data-testid="mail-export-start">{t("start")}</Button>
         </>
       )}
@@ -135,7 +134,7 @@ export function MailExportDialog({ request }: { request: ExportRequest }) {
       <div className="mt-4 space-y-5">
         <fieldset>
           <legend className="mb-2 text-sm font-medium text-foreground">{t("format_label")}</legend>
-          <div className="space-y-2" role="radiogroup" aria-label={t("format_label")}>
+          <div className="space-y-2">
             {formats.map((f) => (
               <label key={f.value} className="flex items-start gap-2 rounded-md border border-border p-3 text-sm text-foreground has-[:checked]:border-primary">
                 <input
@@ -166,16 +165,18 @@ type T = ReturnType<typeof useTranslations>;
 
 function ExportProgressBody({ progress: p, t, locale, statusId }: { progress: ExportProgress; t: T; locale: string; statusId: string }) {
   const running = p.phase === "running" || p.phase === "paused";
+  // The live region says only what changes the user's plans (paused, done);
+  // the count beside it would otherwise be read out several times a second.
   let status: string;
   if (p.phase === "paused" && p.pausedUntil) status = t("paused", { time: formatClock(p.pausedUntil, locale) });
-  else if (running) status = t("status_exported", { count: p.exported, total: p.total });
-  else if (p.phase === "done") status = t("summary_exported", { count: p.exported });
+  else if (running) status = t("running_title");
   else status = t("summary_exported", { count: p.exported });
   const tooLarge = p.phase === "failed" && /larger than this browser can keep in memory/.test(p.error ?? "");
   return (
     <div className="mt-4 space-y-4">
       {running && <TransferBar fraction={p.total > 0 ? p.fraction : null} label={t("progress_label")} paused={p.phase === "paused"} />}
-      <p id={statusId} role="status" aria-live="polite" className="text-sm text-foreground tabular-nums" data-testid="mail-export-status">{status}</p>
+      {running && <p className="text-sm text-foreground tabular-nums" data-testid="mail-export-count">{t("status_exported", { count: p.exported, total: p.total })}</p>}
+      <p id={statusId} role="status" aria-live="polite" className={running ? "text-sm text-muted-foreground" : "text-sm text-foreground"} data-testid="mail-export-status">{status}</p>
       {p.phase === "done" && p.file && (
         <p className="text-sm text-muted-foreground break-words" data-testid="mail-export-file">{t("summary_file", { name: p.file.name, size: formatFileSize(p.file.size) })}</p>
       )}

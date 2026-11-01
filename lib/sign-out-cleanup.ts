@@ -73,7 +73,7 @@ export function purgeSignedOutData(): void {
   // Where mail imports stopped: file names and folders of the accounts.
   void clearAllCheckpoints().catch(() => {});
   // Mail exports written to the browser's private files and not deleted yet.
-  void sweepPrivateExports().catch(() => {});
+  void sweepPrivateExports({ force: true }).catch(() => {});
   for (const cleanup of signedOutCleanups) {
     try {
       cleanup();

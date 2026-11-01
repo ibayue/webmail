@@ -44,8 +44,11 @@ interface MailTransferState {
   /** Hides the dialog; a running job goes on. */
   hide: () => void;
   show: () => void;
-  /** Closes the dialog and forgets a finished job (an export's private file is deleted). */
-  close: () => void;
+  /**
+   * Closes the dialog and forgets a finished job. An export's private file
+   * is deleted once its download had time to finish, or at once with `now`.
+   */
+  close: (options?: { now?: boolean }) => void;
   startJob: (job: TransferJob) => void;
   updateProgress: (progress: ImportProgress | ExportProgress) => void;
   /** `reason` "signout": the account signs out, so nothing more is written for it. */
@@ -56,8 +59,8 @@ export function isJobActive(job: TransferJob | null): boolean {
   return !!job && (job.progress.phase === "running" || job.progress.phase === "paused");
 }
 
-function discardExport(job: TransferJob | null): void {
-  if (job?.kind === "export") void job.progress.file?.discard().catch(() => {});
+function discardExport(job: TransferJob | null, now = false): void {
+  if (job?.kind === "export") void job.progress.file?.discard(now).catch(() => {});
 }
 
 export const useMailTransferStore = create<MailTransferState>()((set, get) => ({
@@ -75,12 +78,12 @@ export const useMailTransferStore = create<MailTransferState>()((set, get) => ({
   },
   hide: () => set({ visible: false }),
   show: () => set({ visible: true }),
-  close: () => {
+  close: (options) => {
     if (isJobActive(get().job)) {
       set({ visible: false });
       return;
     }
-    discardExport(get().job);
+    discardExport(get().job, options?.now);
     set({ request: null, visible: false, job: null });
   },
   startJob: (job) => set({ job }),
