@@ -49,7 +49,14 @@ describe('scrubText', () => {
 
   it('keeps engine messages readable', () => {
     expect(scrubText('Cannot read properties of undefined (reading \'id\')')).toBe('Cannot read properties of undefined (reading \'…\')');
-    expect(scrubText('e.map is not a function')).toBe('e.map is not a function');
+    // Minified identifiers go too; the resolved stack names the code.
+    expect(scrubText('e.map is not a function')).toBe('… is not a function');
+  });
+
+  it('removes unquoted free text such as a folder name or a subject', () => {
+    const out = scrubText('Cannot move message from ' + ADDRESS + ' to ' + FOLDER + ': ' + SUBJECT.toLowerCase());
+    expectClean(out);
+    expect(out).toBe('Cannot move message from [email] to …: … for …');
   });
 
   it('caps the length', () => {

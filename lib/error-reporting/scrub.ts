@@ -5,12 +5,13 @@
  * Mail content must never leave the browser in an error, not even to the
  * admin's own error tracker: no message bodies, subjects, addresses, file
  * names, tokens, cookies or URLs. Error messages are free text, so the rules
- * remove whatever could be such content: quoted text, addresses, URLs, file
- * names, credentials, long random-looking strings, key=value pairs, and
- * everything after the first line. What stays is the shape of the message
+ * remove whatever could be such content: everything after the first line,
+ * quoted text, addresses, URLs, file names, credentials, long random-looking
+ * strings and key=value pairs, and then every word that is not on a fixed
+ * list of common words. What stays is the shape of the message
  * ("Cannot read properties of undefined (reading "…")").
  *
- * Documented at https://bulwarkmail.org/docs/admin/monitoring#what-is-removed
+ * Documented at https://bulwarkmail.org/docs/deployment/monitoring#what-is-removed
  */
 
 export const MAX_MESSAGE_LENGTH = 200;
@@ -73,9 +74,45 @@ export function scrubText(input: unknown): string {
   text = text.replace(LONG_RUN, (run) => (looksRandom(run) ? '[id]' : run));
   text = text.replace(IPV4, '[ip]');
   text = text.replace(PHONE, '[number]');
+  // Last, and the rule the others only make readable: a word stays only when
+  // it is on the list of common words. Free text such as an unquoted subject
+  // or folder name ("to Acquisition Talks") becomes "…".
+  text = text.replace(WORD_OR_PLACEHOLDER, (token) => (
+    PLACEHOLDER.test(token) || COMMON_WORDS.has(token.toLowerCase()) ? token : REDACTED
+  ));
+  text = text.replace(/\d{5,}/g, REDACTED).replace(/…(?:[\s,;]+…)+/g, REDACTED);
   if (text.length > MAX_MESSAGE_LENGTH) text = `${text.slice(0, MAX_MESSAGE_LENGTH - 1)}…`;
   return text;
 }
+
+const PLACEHOLDER = /^\[(?:email|url|token|file|id|ip|number|redacted)\]$/;
+const WORD_OR_PLACEHOLDER = /\[(?:email|url|token|file|id|ip|number|redacted)\]|[\p{L}_$][\p{L}\p{N}_$'’.-]*/gu;
+
+/**
+ * Words an error message may keep: English function words and the words
+ * JavaScript engines, browsers, Next.js and Bulwark's own errors are made of.
+ * Anything else could be content and is replaced.
+ */
+const COMMON_WORDS = new Set(`
+a about above access after again against all already an and another any are argument arguments array as at attempt
+attempted available bad be been before being body both but by call called calling can can't cannot canceled cancelled
+change changed changes child chunk class client close closed code component connect connected connection constructor
+context could create created data date decode default defined delete deleted denied did does doesn't done during each
+element empty end entry error errors event exceed exceeded exist exists expected failed fetch field file files find
+first for found from function get given got had has have header headers here hook hydration if in index initial
+instead internal invalid is isn't it item items its json key keys length limit list load loaded loading lost
+mailbox mailboxes match maximum may maybe message messages method missing more must network new no node none not
+null number object of offline on once one only open operation or out over parse parsing permission please property
+properties provided read reading ready received recursion redirect refused rejected render rendered rendering request
+requested requests required resource response result retry returned save saved script send sent server session set
+should size some stack state status still string such support supported sync syntax than that the then there these
+this thread timed timeout to token too type unable undefined unexpected unknown update updated upload uploaded use
+used user using valid value values was were when which while with within without worker write wrong
+abort aborted account accounts attachment attachments auth authentication authorization basic bearer blob broke broken check health heartbeat metrics something telemetry version blocked browser cache calendar callback contact contacts cookie
+cors credentials decrypt denied download draft email emails encrypt encrypted expired failure folder folders
+identity identities import keyword keywords login logout mail move moved oauth outbox plugin
+plugins push quota rate reply sender settings signature submission subscription template theme upload websocket
+`.split(/\s+/).filter(Boolean));
 
 /** An error name: a code identifier, or "Error". */
 export function scrubName(input: unknown): string {
