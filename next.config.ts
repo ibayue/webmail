@@ -59,6 +59,15 @@ const nextConfig: NextConfig = {
   // No `X-Powered-By: Next.js`; headers() below sends
   // `X-Powered-By: bulwarkmail.org` instead, without a version.
   poweredByHeader: false,
+  // Keep proxy rewrites on the origin the server listens on. Next renames a
+  // 127.x or [::1] host to "localhost" in each proxy rewrite, but its router
+  // compares the rewrite with the listen address. On HOSTNAME=127.0.0.1 every
+  // locale rewrite then looked external and was proxied back to the server
+  // itself, over TLS when X-Forwarded-Proto said https: EPROTO and a 500
+  // behind a reverse proxy (#1046, #1487, vercel/next.js#94745). With this set,
+  // request.url is the URL the router built; proxy.ts builds its redirects
+  // from it as well.
+  skipProxyUrlNormalize: true,
   // Directory-style pages (out/en/mail/index.html) are what static hosts and
   // the shipped SPA-fallback rules expect; next/image has no optimizer here.
   ...(isLite ? { trailingSlash: true, images: { unoptimized: true } } : {}),

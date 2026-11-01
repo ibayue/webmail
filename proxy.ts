@@ -189,6 +189,17 @@ function isSetupPath(pathname: string): boolean {
   );
 }
 
+/**
+ * A redirect to `pathname` (without the base path) on the origin of
+ * request.url. Not request.nextUrl: Next renames a 127.x or [::1] host there
+ * to "localhost", and with skipProxyUrlNormalize (next.config.ts) Next no
+ * longer turns that back into a relative Location. On HOSTNAME=127.0.0.1 the
+ * browser would be sent to https://localhost:3000/... (#1487).
+ */
+function redirectTo(request: NextRequest, pathname: string, search: string): NextResponse {
+  return NextResponse.redirect(new URL(`${request.nextUrl.basePath}${pathname}${search}`, request.url));
+}
+
 export async function proxy(request: NextRequest) {
   // The probes answer without config or store, so a replica that is still
   // starting (or lost its shared store) can say so (#1066). The metrics
@@ -234,10 +245,7 @@ export async function proxy(request: NextRequest) {
           { status: 503, headers: { "content-type": "application/json" } },
         );
       }
-      const url = request.nextUrl.clone();
-      url.pathname = "/setup";
-      url.search = request.nextUrl.search;
-      return NextResponse.redirect(url);
+      return redirectTo(request, "/setup", request.nextUrl.search);
     }
   } else if (isSetupPath(pathname)) {
     // Configured / env-managed: wizard is no longer reachable.
@@ -247,10 +255,7 @@ export async function proxy(request: NextRequest) {
     if (pathname.startsWith("/api/setup")) {
       return new NextResponse("Not Found", { status: 404 });
     }
-    const url = request.nextUrl.clone();
-    url.pathname = "/admin/login";
-    url.search = "";
-    return NextResponse.redirect(url);
+    return redirectTo(request, "/admin/login", "");
   }
 
   // Outer CSRF gate for every API route (GHSA-qvr9-m8cq-7wvg,
