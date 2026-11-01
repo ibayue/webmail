@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { completePolicy, configManager, isPolicyConflict } from '@/lib/admin/config-manager';
-import { requireAdminAuth, getClientIP } from '@/lib/admin/session';
+import { cookies } from 'next/headers';
+import { requireAdminAuth, getClientIP, verifyCurrentAdminSession } from '@/lib/admin/session';
 import { auditLog } from '@/lib/admin/audit';
 import { logger } from '@/lib/logger';
-import { POLICY_DOMAINS_HEADER, POLICY_SCOPE_HEADER, type SettingsPolicy } from '@/lib/admin/types';
+import { ADMIN_SESSION_COOKIE, POLICY_DOMAINS_HEADER, POLICY_SCOPE_HEADER, type SettingsPolicy } from '@/lib/admin/types';
 import { canSeeInstanceDetails, signedInIdentity } from '@/lib/auth/instance-details';
 import { bearerIdentity } from '@/lib/auth/bearer-identity';
 import { isStoreUnavailable, storeUnavailableResponse } from '@/lib/auth/store-unavailable';
@@ -71,6 +72,14 @@ export async function GET(request: NextRequest) {
     // answers with all of them (documented).
     const identity = await signedInIdentity();
     if (identity !== null && !identity.admin) return userPolicyResponse(policy, identity.addresses);
+    // Without a session secret only the admin dashboard's own session tells
+    // the admin apart; everyone else gets the feeds without their addresses,
+    // which may hold tokens.
+    if (identity === null && !(await hasAdminSession())) {
+      return NextResponse.json({ ...stripFeedUrls(policy), scopes: stripFeedUrls(policy).scopes ?? [] }, {
+        headers: { 'Cache-Control': 'no-store' },
+      });
+    }
     // The whole policy, as the admin pages edit it: with its version, which
     // they send back as If-Match when they save.
     return NextResponse.json({ ...policy, scopes: policy.scopes ?? [] }, {
@@ -81,6 +90,15 @@ export async function GET(request: NextRequest) {
     if (isStoreUnavailable(error)) return storeUnavailableResponse();
     logger.error('Policy read error', { error: error instanceof Error ? error.message : 'Unknown error' });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+
+async function hasAdminSession(): Promise<boolean> {
+  try {
+    const token = (await cookies()).get(ADMIN_SESSION_COOKIE)?.value;
+    return !!token && (await verifyCurrentAdminSession(token)) !== null;
+  } catch {
+    return false;
   }
 }
 

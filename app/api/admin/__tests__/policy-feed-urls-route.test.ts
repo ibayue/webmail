@@ -7,6 +7,10 @@ import { NextRequest } from 'next/server';
 
 const who = vi.hoisted(() => ({
   identity: null as null | { admin: true } | { admin: false; addresses: string[] },
+  adminCookie: false,
+}));
+vi.mock('next/headers', () => ({
+  cookies: async () => ({ get: (name: string) => (name === 'admin_session' && who.adminCookie ? { value: 'token' } : undefined) }),
 }));
 vi.mock('@/lib/auth/instance-details', () => ({
   canSeeInstanceDetails: async () => true,
@@ -29,7 +33,11 @@ vi.mock('@/lib/admin/config-manager', () => ({
   },
 }));
 vi.mock('@/lib/logger', () => ({ logger: { error: vi.fn(), warn: vi.fn(), info: vi.fn(), debug: vi.fn() } }));
-vi.mock('@/lib/admin/session', () => ({ requireAdminAuth: vi.fn(), getClientIP: () => '0.0.0.0' }));
+vi.mock('@/lib/admin/session', () => ({
+  requireAdminAuth: vi.fn(),
+  getClientIP: () => '0.0.0.0',
+  verifyCurrentAdminSession: async (token: string) => (token === 'token' ? { admin: true } : null),
+}));
 vi.mock('@/lib/admin/audit', () => ({ auditLog: vi.fn() }));
 
 import { GET } from '@/app/api/admin/policy/route';
@@ -38,6 +46,7 @@ const get = async () => (await GET(new NextRequest('https://mail.example/api/adm
 
 beforeEach(() => {
   who.identity = null;
+  who.adminCookie = false;
 });
 
 describe('GET /api/admin/policy company calendar addresses', () => {
@@ -55,5 +64,16 @@ describe('GET /api/admin/policy company calendar addresses', () => {
     const body = await get();
     expect(body.organisation.calendars.feeds[0].url).toBe(FEED.url);
     expect(body.scopes[0].policy.organisation.calendars.feeds[0].url).toBe(TEAM_FEED.url);
+  });
+
+  // No session secret: the server can't tell users apart (signedInIdentity null).
+  it('keeps the addresses back without a session secret unless the admin dashboard asks', async () => {
+    const anyone = await get();
+    expect(JSON.stringify(anyone)).not.toContain('token=secret');
+    expect(JSON.stringify(anyone)).not.toContain('key=k');
+    expect(anyone.organisation.calendars.feeds[0]).toMatchObject({ id: 'hol', url: '', urlHeld: true });
+    who.adminCookie = true;
+    const admin = await get();
+    expect(admin.organisation.calendars.feeds[0].url).toBe(FEED.url);
   });
 });
