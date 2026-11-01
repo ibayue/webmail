@@ -11,6 +11,8 @@ vi.mock('@/lib/browser-navigation', async (original) => ({
   apiFetch: (...args: unknown[]) => apiFetch(...args),
 }));
 
+vi.mock('@/lib/auth/active-account-slot', () => ({ getActiveAccountSlotHeaders: () => ({ 'X-JMAP-Cookie-Slot': '1' }) }));
+
 import {
   companyCalendarId, createCompanyCalendar, isCompanyCalendarId, loadFeedEvents, resetCompanyCalendarMemory, toCompanyEvents,
 } from '../company-calendars';
@@ -46,6 +48,8 @@ describe('loadFeedEvents', () => {
     const client = fakeClient();
     expect(await loadFeedEvents(client, 'alice', FEED, T0)).toEqual(PARSED);
     expect(apiFetch).toHaveBeenCalledWith('/api/fetch-ical', expect.objectContaining({ method: 'POST', body: JSON.stringify({ feedId: 'hol' }) }));
+    // The server resolves the feed for the active account's sign-in slot.
+    expect(apiFetch.mock.calls[0][1].headers).toMatchObject({ 'X-JMAP-Cookie-Slot': '1' });
     const [, options] = client.uploadBlob.mock.calls[0] as unknown as [File, { accountId: string; onProgress?: unknown }];
     expect(options.accountId).toBe('alice');
     expect(typeof options.onProgress).toBe('function');

@@ -28,7 +28,8 @@ export function useCompanyCalendars(client: IJMAPClient | null): {
   const feeds = usePolicyStore((s) => s.policy.organisation?.calendars?.feeds ?? NO_FEEDS);
   const hidden = useSettingsStore((s) => s.hiddenCompanyCalendars);
   const [parsed, setParsed] = useState<Record<string, CalendarEvent[]>>({});
-  const accountKey = client?.getAccountId?.() ?? "";
+  // Per login, not just per JMAP account id: two servers can reuse ids.
+  const accountKey = client ? `${client.getUsername?.() ?? ""}|${client.getAccountId?.() ?? ""}` : "";
   const feedsKey = JSON.stringify(feeds.map((f) => [f.id, f.url, f.refreshMinutes]));
 
   useEffect(() => {

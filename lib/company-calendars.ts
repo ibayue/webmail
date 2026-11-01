@@ -24,6 +24,7 @@ import type { IJMAPClient } from '@/lib/jmap/client-interface';
 import type { Calendar, CalendarEvent } from '@/lib/jmap/types';
 import type { CompanyFeed } from '@/lib/admin/organisation-policy';
 import { apiFetch } from '@/lib/browser-navigation';
+import { getActiveAccountSlotHeaders } from '@/lib/auth/active-account-slot';
 import { IS_LITE } from '@/lib/lite';
 import { onFullSignOut } from '@/lib/sign-out-cleanup';
 import { debug } from '@/lib/debug';
@@ -192,7 +193,9 @@ async function fetchFeedText(feed: CompanyFeed): Promise<string> {
     ? await fetch(feed.url, { headers: { Accept: 'text/calendar, application/ics, text/plain, */*' }, credentials: 'omit' })
     : await apiFetch('/api/fetch-ical', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        // The server resolves the feed against the active account's scopes:
+        // name its sign-in slot, or it picks the first signed-in account.
+        headers: { 'Content-Type': 'application/json', ...getActiveAccountSlotHeaders() },
         body: JSON.stringify({ feedId: feed.id }),
       });
   if (!response.ok) throw new Error(`Company calendar ${feed.id}: ${response.status}`);
