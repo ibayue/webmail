@@ -4,6 +4,8 @@ import { DEFAULT_POLICY, DEFAULT_THEME_POLICY, POLICY_DOMAINS_HEADER, POLICY_SCO
 import { apiFetch } from '@/lib/browser-navigation';
 import { IS_LITE, IS_LITE_STALWART, LITE_POLICY_PATH, withLiteBuildId } from '@/lib/lite';
 import { applyLitePolicy } from '@/lib/lite-config';
+import { configureErrorReporting } from '@/lib/error-reporting/client';
+import { liteErrorReporting } from '@/lib/error-reporting/lite';
 import { resolvePolicy, type PolicySource, type PolicySubject } from '@/lib/admin/policy-scopes';
 import { DEFAULT_ORGANISATION_POLICY, type OrganisationPolicy } from '@/lib/admin/organisation-policy';
 
@@ -115,11 +117,15 @@ export const usePolicyStore = create<PolicyState>()((set, get) => ({
         const partial = res.headers?.get?.(POLICY_SCOPE_HEADER) === 'public';
         const domainsHeader = res.headers?.get?.(POLICY_DOMAINS_HEADER);
         const scopeDomains = typeof domainsHeader === 'string' ? domainsHeader.split(',').filter(Boolean) : null;
+        // Lite has no /api/config: error reporting is set in policy.json.
+        if (IS_LITE) configureErrorReporting(liteErrorReporting(data));
         set({ ...resolved(IS_LITE ? applyLitePolicy(data) : data, get().subject), loaded: true, partial, scopeDomains });
       } else {
+        if (IS_LITE) configureErrorReporting(null);
         set({ ...(fallback.policy ? resolved(fallback.policy, get().subject) : {}), loaded: true });
       }
     } catch {
+      if (IS_LITE && request === policyRequest) configureErrorReporting(null);
       if (request === policyRequest) set({ ...(fallback.policy ? resolved(fallback.policy, get().subject) : {}), loaded: true });
     }
   },

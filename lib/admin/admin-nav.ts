@@ -27,6 +27,7 @@ export const ADMIN_PAGE_IDS = [
   'marketplace',
   'version',
   'telemetry',
+  'monitoring',
   'logs',
 ] as const;
 
@@ -241,6 +242,17 @@ export const ADMIN_PAGES: readonly AdminPageDef[] = [
       { id: 'accounts', title: 'Account activity', keywords: 'active total logins' },
       { id: 'endpoint', title: 'Endpoint', keywords: 'collector url' },
       { id: 'payload', title: 'Payload preview', keywords: 'send now json' },
+    ],
+  },
+  {
+    id: 'monitoring',
+    label: 'Monitoring',
+    description: 'Error reports, metrics, health checks and tracing for your own tools',
+    group: 'system',
+    keywords: 'monitoring errors sentry bugsink glitchtip dsn prometheus metrics health probes tracing opentelemetry otel',
+    sections: [
+      { id: 'errors', title: 'Error reporting', keywords: 'dsn sentry bugsink glitchtip sample rate environment' },
+      { id: 'errors-today', title: 'Errors today', keywords: 'count fingerprint top' },
     ],
   },
   {

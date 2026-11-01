@@ -13,15 +13,16 @@ export function getDir(): string {
 }
 
 /**
- * Telemetry's documents (#1066): `state.json`, `logins.json` and the
- * instance id `.telemetry-id`. Local mode: today's files in the telemetry
- * dir. Shared mode: one copy for the whole deployment, so every replica
- * reports as the same instance with the same counts.
+ * Telemetry's documents (#1066): `state.json`, `logins.json`, the instance
+ * id `.telemetry-id` and the per-day error counts `errors.json`
+ * (lib/error-reporting/aggregate.ts). Local mode: today's files in the
+ * telemetry dir. Shared mode: one copy for the whole deployment, so every
+ * replica reports as the same instance with the same counts.
  */
 export const TELEMETRY_COLLECTION: CollectionOptions = {
   local: {
     dir: () => getDir(),
-    idOf: (relative) => (['state.json', 'logins.json', '.telemetry-id'].includes(relative) ? relative : null),
+    idOf: (relative) => (['state.json', 'logins.json', '.telemetry-id', 'errors.json'].includes(relative) ? relative : null),
   },
 };
 

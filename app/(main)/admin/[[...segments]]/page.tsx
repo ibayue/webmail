@@ -20,6 +20,7 @@ import { MarketplaceDetailPage } from '../_pages/marketplace-detail';
 import { ExtensionDetailPage } from '../_pages/extension-detail';
 import { VersionPage } from '../_pages/version';
 import { TelemetryPage } from '../_pages/telemetry';
+import { MonitoringPage } from '../_pages/monitoring';
 import { LogsPage } from '../_pages/logs';
 
 /**
@@ -56,6 +57,7 @@ export default function AdminPage() {
     case 'marketplace': return detail ? <MarketplaceDetailPage key={detail} slug={detail} /> : <MarketplacePage />;
     case 'version': return <VersionPage />;
     case 'telemetry': return <TelemetryPage />;
+    case 'monitoring': return <MonitoringPage />;
     case 'logs': return <LogsPage />;
   }
 }

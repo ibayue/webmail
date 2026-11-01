@@ -9,12 +9,13 @@ import { bootState, getStore, sharedStoreUrl } from "./lib/shared-store";
 import { bootSharedMode } from "./lib/shared-store/boot";
 import { importLocalData } from "./lib/shared-store/import";
 import { exportSharedData } from "./lib/shared-store/export";
+import { logger, isJsonLogFormat } from "./lib/logger";
 
 const pkg = JSON.parse(
   readFileSync(`${process.cwd()}/package.json`, "utf-8")
 );
 const current: string = pkg.version ?? "0.0.0";
-console.info(`Bulwark Webmail v${current}`);
+logger.info(`Bulwark Webmail v${current}`, { version: current });
 
 // With REDIS_URL every replica shares one store (#1066). Without it,
 // everything below runs exactly as it always has.
@@ -36,12 +37,12 @@ async function exportAndExit(): Promise<never> {
       await store.ping(2000);
       break;
     } catch {
-      console.warn("Export: waiting for the shared store");
+      logger.warn("Export: waiting for the shared store");
       await new Promise((resolve) => setTimeout(resolve, 2000));
     }
   }
   const written = await exportSharedData();
-  console.info("Export from the shared store done; start without REDIS_URL on this volume now.", written);
+  logger.info("Export from the shared store done; start without REDIS_URL on this volume now.", { written });
   process.exit(0);
 }
 
@@ -57,18 +58,23 @@ migrateLegacyAdminLayout()
   .then(() => migratePolicyUnifiedMailbox())
   .then(() => (exportOnly ? exportAndExit() : shared ? bootShared() : loadAdmin()))
   .then(async () => {
-    console.info("Admin dashboard initialized");
+    logger.info("Admin dashboard initialized");
+    // Errors routes catch and log, and errors Next reports (instrumentation.ts),
+    // go to the error tracker when one is configured. Off otherwise.
+    // https://bulwarkmail.org/docs/admin/monitoring
+    const { installServerErrorReporting } = await import("./lib/error-reporting/server");
+    await installServerErrorReporting();
     // With a shared store, boot already made or loaded the secret.
     if (!shared) {
       try {
         if (await ensureSessionSecret()) {
-          console.info(
+          logger.info(
             "Generated a session secret in the admin state dir. Keep that dir on a " +
             "persistent volume, or set SESSION_SECRET, so restarts don't sign everyone out.",
           );
         }
       } catch (err) {
-        console.warn("Failed to generate a session secret:", err instanceof Error ? err.message : err);
+        logger.warn("Failed to generate a session secret", { error: err instanceof Error ? err.message : String(err) });
       }
     }
     // If we're in bootstrap state (no JMAP_SERVER_URL env and no
@@ -79,20 +85,22 @@ migrateLegacyAdminLayout()
       try {
         const token = await ensureSetupToken();
         const port = process.env.PORT || "3000";
-        console.info("");
-        console.info("==============================================================");
-        console.info("  SETUP REQUIRED");
-        console.info(`  Token: ${token}`);
         // In the fragment, so the token stays out of access logs and Referer.
-        console.info(`  Open:  http://<host>:${port}/setup#token=${token}`);
-        console.info("  Token expires in 1 hour. Restart the container to reissue.");
-        console.info("==============================================================");
-        console.info("");
+        const open = `http://<host>:${port}/setup#token=${token}`;
+        if (isJsonLogFormat()) {
+          logger.info("Setup required", { token, open, expiresIn: "1h" });
+        } else {
+          for (const line of [
+            "==============================================================",
+            "  SETUP REQUIRED",
+            `  Token: ${token}`,
+            `  Open:  ${open}`,
+            "  Token expires in 1 hour. Restart the container to reissue.",
+            "==============================================================",
+          ]) logger.info(line);
+        }
       } catch (err) {
-        console.warn(
-          "Failed to issue setup token:",
-          err instanceof Error ? err.message : err,
-        );
+        logger.warn("Failed to issue setup token", { error: err instanceof Error ? err.message : String(err) });
       }
     }
   })
@@ -116,5 +124,5 @@ migrateLegacyAdminLayout()
     ]);
   })
   .catch((err) => {
-    console.warn("Admin dashboard init skipped:", err instanceof Error ? err.message : err);
+    logger.warn("Admin dashboard init skipped", { error: err instanceof Error ? err.message : String(err) });
   });

@@ -7,6 +7,7 @@ import {
   ArrowLeft,
   ArrowUpCircle,
   Activity,
+  HeartRateMonitor,
   Building2,
   ChevronRight,
   KeyRound,
@@ -59,6 +60,7 @@ const PAGE_ICONS: Record<AdminPageId, AppIcon> = {
   marketplace: Store,
   version: ArrowUpCircle,
   telemetry: Activity,
+  monitoring: HeartRateMonitor,
   logs: ScrollText,
 };
 
