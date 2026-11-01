@@ -1,5 +1,4 @@
 import { apiFetch, getPathPrefix } from '@/lib/browser-navigation';
-import { IS_LITE } from '@/lib/lite';
 import { scrubRoutePath } from '@/lib/route-groups';
 import { debugIdsByPath } from './debug-ids';
 import {
@@ -201,9 +200,10 @@ function deliver(report: ErrorReport): void {
       mode: 'cors',
     });
   }
-  // Lite has no server: the bundler drops this branch, and the endpoint
-  // with it (scripts/lite/verify.mjs fails on undocumented /api strings).
-  if (!IS_LITE && settings.collect) {
+  // Lite has no server. Read here, not through IS_LITE: the bundler inlines
+  // the variable only in this module, so the branch and the endpoint string
+  // leave the Lite bundle (scripts/lite/verify.mjs).
+  if (process.env.NEXT_PUBLIC_BULWARK_LITE !== '1' && settings.collect) {
     send('/api/errors', JSON.stringify({
       name: report.name,
       message: report.message,

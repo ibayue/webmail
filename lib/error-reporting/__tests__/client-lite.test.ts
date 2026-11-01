@@ -1,16 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('@/lib/lite', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@/lib/lite')>()),
-  IS_LITE: true,
-}));
-
 import { captureException, configureErrorReporting, resetErrorReportingForTests } from '../client';
 
 const DSN = 'https://6f0b9c79ed3a4315b76595bc2536ac40@bugsink.example.org/3';
 let fetchSpy: ReturnType<typeof vi.fn>;
 
 beforeEach(() => {
+  vi.stubEnv('NEXT_PUBLIC_BULWARK_LITE', '1');
   resetErrorReportingForTests();
   sessionStorage.clear();
   fetchSpy = vi.fn().mockResolvedValue(new Response(null, { status: 200 }));
@@ -18,6 +14,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.unstubAllEnvs();
   vi.unstubAllGlobals();
 });
 
