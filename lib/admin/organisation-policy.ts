@@ -305,6 +305,12 @@ function email(value: unknown): string | undefined {
   return v === '' || EMAIL_RE.test(v) ? v.slice(0, 320) : undefined;
 }
 
+/** Whether the admin page may store this as `phishingReport.address` (the sanitiser's rule). */
+export function isPhishingReportAddress(value: string): boolean {
+  const v = value.trim().toLowerCase();
+  return v.length <= 320 && EMAIL_RE.test(v);
+}
+
 function color(value: unknown, fallback: string): string {
   return typeof value === 'string' && COLOR_RE.test(value.trim()) ? value.trim().toLowerCase() : fallback;
 }
