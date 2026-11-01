@@ -8,8 +8,19 @@ import { crc32 } from "./crc32";
  *
  * - addFile: a whole file in memory (one message); deflated when that saves space.
  * - openStream: a file written piece by piece (a folder's mbox), deflated,
- *   with its CRC and sizes in a data descriptor after the data.
+ *   with its CRC and sizes in a data descriptor after the data. Its size
+ *   isn't known up front, so its local header always carries a Zip64 extra
+ *   field and the descriptor always has 64-bit sizes: readers that go
+ *   through the archive in order (Java's ZipInputStream, macOS Archive
+ *   Utility) learn the descriptor's size from the local header.
  */
+
+export interface ZipWriterOptions {
+  /** Deflate streamed entries (default). Off only for tests that push gigabytes through. */
+  compressStreams?: boolean;
+  /** The CRC-32 function; a test that only counts bytes can pass a cheap one. */
+  checksum?: (data: Uint8Array, crc: number) => number;
+}
 
 export type ZipSink = (chunk: Uint8Array) => Promise<void>;
 
@@ -58,7 +69,7 @@ export class ZipWriter {
   private readonly entries: CentralEntry[] = [];
   private streaming = false;
 
-  constructor(private readonly sink: ZipSink) {}
+  constructor(private readonly sink: ZipSink, private readonly options: ZipWriterOptions = {}) {}
 
   /** Bytes written so far. */
   get bytesWritten(): number {
@@ -71,8 +82,10 @@ export class ZipWriter {
     await this.sink(bytes);
   }
 
+  /** `zip64`: a streamed entry of unknown size, with a Zip64 extra field of zeros. */
   private localHeader(entry: Omit<CentralEntry, "offset" | "directory">, zip64: boolean): Uint8Array {
-    const header = new Uint8Array(30 + entry.name.length);
+    const extra = zip64 ? 20 : 0;
+    const header = new Uint8Array(30 + entry.name.length + extra);
     const v = new DataView(header.buffer);
     v.setUint32(0, 0x04034b50, true);
     v.setUint16(4, zip64 ? 45 : 20, true);
@@ -81,11 +94,16 @@ export class ZipWriter {
     v.setUint16(10, entry.time, true);
     v.setUint16(12, entry.date, true);
     v.setUint32(14, entry.crc, true);
-    v.setUint32(18, entry.compressedSize, true);
-    v.setUint32(22, entry.size, true);
+    v.setUint32(18, zip64 ? MAX32 : entry.compressedSize, true);
+    v.setUint32(22, zip64 ? MAX32 : entry.size, true);
     v.setUint16(26, entry.name.length, true);
-    v.setUint16(28, 0, true);
+    v.setUint16(28, extra, true);
     header.set(entry.name, 30);
+    if (zip64) {
+      // Zip64 extra field: original and compressed size, both 0 (they follow in the descriptor).
+      v.setUint16(30 + entry.name.length, 0x0001, true);
+      v.setUint16(32 + entry.name.length, 16, true);
+    }
     return header;
   }
 
@@ -125,8 +143,11 @@ export class ZipWriter {
     const name = encoder.encode(path);
     const { time, date } = dosDateTime(mtime);
     const flags = FLAG_UTF8 | FLAG_DESCRIPTOR;
+    const compress = this.options.compressStreams !== false;
+    const method = compress ? 8 : 0;
+    const checksum = this.options.checksum ?? crc32;
     const offset = this.offset;
-    await this.emit(this.localHeader({ name, flags, method: 8, time, date, crc: 0, compressedSize: 0, size: 0 }, false));
+    await this.emit(this.localHeader({ name, flags, method, time, date, crc: 0, compressedSize: 0, size: 0 }, true));
 
     let crc = 0;
     let size = 0;
@@ -146,28 +167,30 @@ export class ZipWriter {
     return {
       write: async (chunk: Uint8Array) => {
         if (chunk.length === 0) return;
-        crc = crc32(chunk, crc);
+        crc = checksum(chunk, crc);
         size += chunk.length;
-        deflate.push(chunk, false);
-        await drain();
+        if (compress) {
+          deflate.push(chunk, false);
+          await drain();
+        } else {
+          compressedSize += chunk.length;
+          await this.emit(chunk);
+        }
       },
       close: async () => {
-        deflate.push(new Uint8Array(0), true);
-        await drain();
-        const zip64 = size >= MAX32 || compressedSize >= MAX32;
-        const descriptor = new Uint8Array(zip64 ? 24 : 16);
+        if (compress) {
+          deflate.push(new Uint8Array(0), true);
+          await drain();
+        }
+        // Always 64-bit sizes: the local header announced Zip64.
+        const descriptor = new Uint8Array(24);
         const v = new DataView(descriptor.buffer);
         v.setUint32(0, 0x08074b50, true);
         v.setUint32(4, crc, true);
-        if (zip64) {
-          u64(v, 8, compressedSize);
-          u64(v, 16, size);
-        } else {
-          v.setUint32(8, compressedSize, true);
-          v.setUint32(12, size, true);
-        }
+        u64(v, 8, compressedSize);
+        u64(v, 16, size);
         await this.emit(descriptor);
-        this.entries.push({ name, flags, method: 8, time, date, crc, compressedSize, size, offset, directory: false });
+        this.entries.push({ name, flags, method, time, date, crc, compressedSize, size, offset, directory: false });
         this.streaming = false;
       },
     };

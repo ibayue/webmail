@@ -259,7 +259,10 @@ export async function* zipSource(file: File, options: SourceOptions): ItemSource
   let index = 0;
   for (const entry of entries) {
     throwIfAborted(options.signal);
-    if (isMbox(entry.name)) {
+    if (entry.encrypted) {
+      const i = index++;
+      yield isResumed(options, i) ? { kind: "skipped", index: i, reason: "resumed" } : { kind: "skipped", index: i, reason: "other", label: emlLabel(entry.name) };
+    } else if (isMbox(entry.name)) {
       const before = doneBytes;
       const chunks = (async function* () {
         let seen = 0;
@@ -277,7 +280,14 @@ export async function* zipSource(file: File, options: SourceOptions): ItemSource
       } else if (entry.size > options.maxMessageBytes) {
         yield { kind: "skipped", index: i, reason: "too_large", label: emlLabel(entry.name) };
       } else {
-        const bytes = await readZipEntry(file, entry);
+        let bytes: Uint8Array;
+        try {
+          bytes = await readZipEntry(file, entry);
+        } catch {
+          // Encrypted, or damaged: left out and named in the summary.
+          yield { kind: "skipped", index: i, reason: "other", label: emlLabel(entry.name) };
+          continue;
+        }
         const head = new TextDecoder("latin1").decode(bytes.subarray(0, 64 * 1024));
         yield {
           kind: "message",

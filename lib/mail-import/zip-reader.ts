@@ -11,6 +11,8 @@ export interface ZipEntry {
   /** Path inside the archive, `/` separated. */
   name: string;
   directory: boolean;
+  /** Encrypted (general purpose flag 0): can't be read. */
+  encrypted: boolean;
   method: number;
   compressedSize: number;
   size: number;
@@ -97,7 +99,7 @@ export async function listZipEntries(file: Blob): Promise<ZipEntry[]> {
       }
       extra += 4 + len;
     }
-    entries.push({ name, directory: name.endsWith("/"), method, compressedSize, size, localOffset });
+    entries.push({ name, directory: name.endsWith("/"), encrypted: (flags & 0x0001) !== 0, method, compressedSize, size, localOffset });
     at += 46 + nameLength + extraLength + commentLength;
   }
   return entries;
@@ -111,6 +113,7 @@ async function dataStart(file: Blob, entry: ZipEntry): Promise<number> {
 }
 
 function assertMethod(entry: ZipEntry): void {
+  if (entry.encrypted) throw new ZipFormatError("Encrypted entry");
   if (entry.method !== 0 && entry.method !== 8) throw new ZipFormatError(`Unsupported compression ${entry.method}`);
 }
 
@@ -119,7 +122,11 @@ export async function readZipEntry(file: Blob, entry: ZipEntry): Promise<Uint8Ar
   assertMethod(entry);
   const start = await dataStart(file, entry);
   const raw = await bytes(file, start, start + entry.compressedSize);
-  return entry.method === 0 ? raw : inflateSync(raw, { out: new Uint8Array(entry.size) });
+  if (entry.method === 0) return raw;
+  // No fixed output buffer: a wrong declared size must fail, not cut the message short.
+  const data = inflateSync(raw);
+  if (data.length !== entry.size) throw new ZipFormatError("Entry size doesn't match");
+  return data;
 }
 
 /** The entry in chunks of about `chunkBytes`, inflated as they come (an mbox inside the archive). */
