@@ -291,6 +291,25 @@ test('item 1: a sender trusted in the address book stays blocked under the lock 
 
 // ─── Item 2: Report phishing ─────────────────────────────────────────────
 
+test('item 1: a lock set in a group scope holds for its members only, also before their groups are known', async ({ browser }) => {
+  const subject = `Scoped lock ${RUN}`;
+  await policy({ scopes: [{ id: 'team-lock', label: 'Team lock', match: { groups: [ENT.team] }, policy: { restrictions: LOCK } }] }, browser);
+  await deliverAndWait({ from: ENT.bob, to: [ENT.alice, ENT.carol], subject, html: html('Scoped') });
+  // ent-alice is in ent-team: blocked, with ent-bob trusted in the list.
+  const alice = await seededPage(browser, ENT.alice, { externalContentPolicy: 'block', trustedSenders: [ENT.bob] });
+  const pixel = pixelRequests(alice);
+  await openMessage(alice, subject);
+  await expect(alice.getByTestId('external-content-notice')).toContainText('Your organisation blocks content');
+  expect(pixel.count()).toBe(0);
+  await alice.context().close();
+  // ent-carol isn't: her own choice applies, no organisation note.
+  const carol = await seededPage(browser, ENT.carol, { externalContentPolicy: 'ask' });
+  await openMessage(carol, subject);
+  await expect(carol.getByTestId('external-content-notice')).toBeVisible();
+  await expect(carol.getByTestId('external-content-notice')).not.toContainText('Your organisation blocks content');
+  await carol.context().close();
+});
+
 test('item 2: the admin sets the report address on Organisation > Security', async ({ browser }) => {
   await policy({}, browser);
   const admin = await adminContext(browser);
@@ -342,6 +361,28 @@ test('item 2: Report phishing sends the message to ent-sec as an attachment and 
   expect(srcdoc ?? '').toContain('Log in here');
   expect(srcdoc ?? '').not.toContain('https://ent-link.example.org/login');
   await shot(alice, 'a-phishing-banner');
+  await alice.context().close();
+});
+
+test('item 2: Undo after a report moves the message back and clears $phishing', async ({ browser }) => {
+  const subject = `Phish undo ${RUN}`;
+  await policy({ organisation: { phishingReport: { address: ENT.sec, format: 'forward' } } }, browser);
+  await deliverAndWait({ from: ENT.bob, to: [ENT.alice], subject, text: 'Undo check' });
+  const alice = await userPage(browser, ENT.alice);
+  await openMessage(alice, subject);
+  await alice.getByRole('button', { name: 'More actions' }).first().click();
+  await alice.getByTestId('ctx-report-phishing').click();
+  await alice.getByTestId('phishing-report-confirm').click();
+  const toast = alice.getByText(`Reported to ${ENT.sec} and moved to Junk.`).first();
+  await expect(toast).toBeVisible({ timeout: 30_000 });
+  await alice.getByRole('button', { name: 'Undo', exact: true }).first().click();
+  await expect(alice.getByText('Moved back. The report was already sent.').first()).toBeVisible({ timeout: 30_000 });
+  const inbox = await roleMailboxId(ENT.alice, 'inbox');
+  const back = await waitForMessage(ENT.alice, RUN, (m) => m.subject === subject && !!m.mailboxIds[inbox]);
+  expect(back.keywords.$phishing).toBeUndefined();
+  expect(back.keywords.$junk).toBeUndefined();
+  // The report itself went out.
+  await waitForMessage(ENT.sec, RUN, (m) => m.subject === `Phishing: ${subject}`);
   await alice.context().close();
 });
 
@@ -454,6 +495,38 @@ test('item 3: a required label blocks sending until one is picked; SIO-Label and
   await expect(bob.getByTestId('received-label-chip').first()).toHaveText('Confidential');
   await shot(bob, 'a-labels-received-chip');
   await bob.context().close();
+});
+
+test('item 3: Undo send brings the message back with its label', async ({ browser }) => {
+  const subject = `Undo label ${RUN}`;
+  await policy({ organisation: { labels: { list: GENERIC_LABELS, defaultId: 'internal', required: true, extraHeader: '' } } }, browser);
+  const alice = await userPage(browser, ENT.alice);
+  // Undo send on, through Settings (a synced setting).
+  await alice.locator('a[href$="/settings"]').first().click();
+  await alice.locator('[data-testid="settings-tab-composing"]').first().click();
+  const delay = alice.locator('[data-search-label="Undo send / send delay"] select').first();
+  await delay.selectOption('30');
+  await alice.getByText('Back to mail').first().click();
+  await folderRow(alice, { role: 'inbox' }).first().waitFor({ state: 'visible', timeout: 30_000 });
+  await composeAndSend(alice, ENT.bob, subject, async () => {
+    await alice.getByTestId('composer-classification-trigger').click();
+    await alice.getByTestId('composer-classification-option-confidential').click();
+  });
+  await alice.getByRole('button', { name: 'Undo send' }).first().click({ timeout: 20_000 });
+  await expect(alice.locator('[data-testid="email-composer"]')).toBeVisible({ timeout: 20_000 });
+  // Not the default (Internal): the label it was sent with.
+  await expect(alice.getByTestId('composer-classification-trigger')).toContainText('Confidential');
+  await alice.locator('[data-testid="composer-subject"]').first().focus();
+  await alice.keyboard.press('Control+Enter');
+  await expect(alice.locator('[data-testid="email-composer"]')).toBeHidden({ timeout: 30_000 });
+  const got = await waitForMessage(ENT.bob, RUN, (m) => m.subject === `[Confidential] ${subject}`, 90_000);
+  expect(await rawMessage(ENT.bob, got.blobId)).toMatch(/^SIO-Label: marking="CONFIDENTIAL"/m);
+  // Undo send off again, for the other tests.
+  await alice.locator('a[href$="/settings"]').first().click();
+  await alice.locator('[data-testid="settings-tab-composing"]').first().click();
+  await alice.locator('[data-search-label="Undo send / send delay"] select').first().selectOption('0');
+  await alice.waitForTimeout(1500);
+  await alice.context().close();
 });
 
 test('item 3: a quick reply keeps the original’s label', async ({ browser }) => {
