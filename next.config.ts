@@ -47,8 +47,15 @@ if (isLite && (process.env.NEXT_PUBLIC_LOCALE_PREFIX ?? "never") !== "always") {
   throw new Error("Bulwark Lite requires NEXT_PUBLIC_LOCALE_PREFIX=always (use `npm run build:lite`)");
 }
 
+// Browser source maps, for resolving the stack traces in error reports.
+// Only CI turns them on (BULWARK_SOURCE_MAPS=1): it uploads them to the
+// error tracker and removes every .map file before anything ships
+// (scripts/sourcemaps.mjs). A plain build makes none.
+const sourceMaps = process.env.BULWARK_SOURCE_MAPS === "1";
+
 const nextConfig: NextConfig = {
   output: isLite ? "export" : "standalone",
+  productionBrowserSourceMaps: sourceMaps,
   // No `X-Powered-By: Next.js`; headers() below sends
   // `X-Powered-By: bulwarkmail.org` instead, without a version.
   poweredByHeader: false,
@@ -132,6 +139,7 @@ const nextConfig: NextConfig = {
   },
   turbopack: {
     root: process.env.NEXT_TURBOPACK_ROOT || import.meta.dirname,
+    ...(sourceMaps ? { debugIds: true } : {}),
   },
   env: {
     NEXT_PUBLIC_GIT_COMMIT: gitCommitHash,

@@ -178,8 +178,30 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             GIT_COMMIT=${{ github.sha }}
+            BULWARK_SOURCE_MAPS=1
           cache-from: type=gha,scope=lite
           cache-to: type=gha,mode=max,scope=lite
+
+      # The same build again, a cache hit, for the stage that holds only the
+      # source maps; the image never has them. One export for both platforms.
+      # https://bulwarkmail.org/docs/admin/monitoring
+      - name: Export source maps
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: Dockerfile.lite
+          platforms: linux/amd64
+          target: sourcemaps
+          build-args: |
+            GIT_COMMIT=${{ github.sha }}
+            BULWARK_SOURCE_MAPS=1
+          outputs: type=local,dest=sourcemaps
+          cache-from: type=gha,scope=lite
+
+      - name: Upload source maps to Bugsink
+        env:
+          BUGSINK_AUTH_TOKEN: ${{ secrets.BUGSINK_AUTH_TOKEN }}
+        run: bash scripts/upload-sourcemaps.sh sourcemaps
 
       - name: Inspect image
         run: docker buildx imagetools inspect ${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }}

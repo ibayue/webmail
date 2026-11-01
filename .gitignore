@@ -16,6 +16,8 @@
 # next.js
 /.next/
 /out/
+# Source maps CI collects for the error tracker (scripts/sourcemaps.mjs)
+/sourcemaps/
 /lite-image/
 # scripts/build-plugin-sandbox.mjs
 /public/plugin-sandbox-assets/
