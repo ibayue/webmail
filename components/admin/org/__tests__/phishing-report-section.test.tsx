@@ -55,10 +55,11 @@ describe('Phishing reports section', () => {
     await renderSection();
     const field = screen.getByTestId('org-phishing-address');
     fireEvent.change(field, { target: { value: 'security@' } });
-    expect(screen.getByRole('alert').textContent).toContain("isn't an email address");
+    // The field's own alert; other alerts (announcements) may be on the page.
+    await waitFor(() => expect(screen.getAllByRole('alert').some((el) => el.textContent?.includes("isn't an email address"))).toBe(true));
     expect(latest!.orgValue('phishingReport', 'address').value).toBe('');
     fireEvent.change(field, { target: { value: 'Security@Example.org' } });
-    expect(screen.queryByRole('alert')).toBeNull();
+    expect(screen.queryAllByRole('alert').some((el) => el.textContent?.includes("isn't an email address"))).toBe(false);
     fireEvent.click(screen.getByTestId('org-phishing-format-arf'));
     await act(async () => { await latest!.save(); });
     expect((puts[0].organisation as { phishingReport: unknown }).phishingReport).toEqual({ address: 'security@example.org', format: 'arf' });

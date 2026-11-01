@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { useAuthStore } from '@/stores/auth-store';
+import { useAccountSubjects } from '@/lib/org/account-subjects';
 import { DEFAULT_POLICY } from '@/lib/admin/types';
 import { DEFAULT_ORGANISATION_POLICY } from '@/lib/admin/organisation-policy';
 import { LABEL_PRESETS } from '@/lib/classification/presets';
@@ -10,6 +11,7 @@ import {
   classifyOutgoing,
   isLabelRequiredError,
   labelSourceHeaders,
+  labelsPolicyFor,
   reopenedLabelChoice,
   resolveLabel,
 } from '../classification';
@@ -118,5 +120,26 @@ describe('the policy of the sending account', () => {
     usePolicyStore.setState({ rawPolicy: { ...DEFAULT_POLICY, organisation: { ...DEFAULT_ORGANISATION_POLICY, labels: policy } } });
     expect(labelSourceHeaders({ 'SIO-Label': 'x', 'X-Classification': 'y', Received: 'z', Subject: 's' })).toEqual({ 'SIO-Label': 'x', 'X-Classification': 'y' });
     expect(labelSourceHeaders({ Received: 'z' })).toBeUndefined();
+  });
+});
+
+describe('the labels of another account', () => {
+  it('come from that account’s own scopes, not the active one’s', () => {
+    const team = { ...policy, list: [label('confidential')], defaultId: 'confidential' };
+    const other = { getUsername: () => 'b@team.example', getSharedAccounts: () => [] };
+    useAuthStore.setState({ activeAccountId: 'acct-a', getClientForAccount: (id: string) => (id === 'acct-b' ? other : undefined) } as never);
+    usePolicyStore.setState({
+      policy: { ...DEFAULT_POLICY, organisation: { ...DEFAULT_ORGANISATION_POLICY, labels: policy } },
+      rawPolicy: {
+        ...DEFAULT_POLICY,
+        organisation: { ...DEFAULT_ORGANISATION_POLICY, labels: policy },
+        scopes: [{ id: 'team', label: 'Team', match: { domains: ['team.example'] }, policy: { organisation: { labels: team } } }],
+      } as never,
+      subject: { email: 'me@example.org', groups: [] },
+    });
+    useAccountSubjects.setState({ subjects: { 'acct-b': { email: 'b@team.example', groups: [] } }, settled: { 'acct-b': true } });
+    expect(labelsPolicyFor({ accountId: 'acct-b', email: 'b@team.example' }).defaultId).toBe('confidential');
+    expect(labelsPolicyFor({}).defaultId).toBe('internal');
+    useAuthStore.setState({ activeAccountId: null, getClientForAccount: () => undefined } as never);
   });
 });

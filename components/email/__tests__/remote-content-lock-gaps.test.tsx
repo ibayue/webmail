@@ -141,6 +141,17 @@ describe('trusted senders settings', () => {
     expect(screen.queryByText('add_manually')).toBeNull();
     expect(screen.getAllByText('org_locked').length).toBeGreaterThan(0);
   });
+
+  it('still lets users take a sender off the list while it blocks', async () => {
+    restrict({ locked: true, value: 'block' });
+    useSettingsStore.setState({ trustedSenders: ['news@shop.example'], trustedSendersAddressBook: false });
+    render(<ReadingSettings />);
+    fireEvent.click(screen.getByText('trusted_senders.count_one'));
+    await act(async () => { await new Promise((r) => setTimeout(r, 10)); });
+    fireEvent.click(screen.getByTitle('remove'));
+    await act(async () => { await new Promise((r) => setTimeout(r, 10)); });
+    expect(useSettingsStore.getState().trustedSenders).toEqual([]);
+  });
 });
 
 describe('a re-opened draft', () => {
