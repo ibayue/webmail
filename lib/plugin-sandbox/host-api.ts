@@ -67,7 +67,9 @@ import { requestPanel } from './panel-requests';
 import { requestPageNavigation } from './page-navigation';
 import { requestOpenEmail } from './open-email';
 import { doComposerAttach, doComposerGetBody, doComposerGetSelection, doComposerReplaceBody, doComposerReplaceSelection } from './host-api-composer';
-import { pluginAllowed, wkdAllowed } from '../outgoing-hosts';
+import { wkdAllowed } from '../outgoing-hosts';
+import { noThirdPartyTraffic } from '../third-party-mode';
+import { openExternalLink } from '../plugin-hook-result';
 
 /**
  * Methods only callable from the privileged (same-origin) tier. These expose
@@ -697,8 +699,9 @@ async function readCapped(res: Response, limit: number): Promise<ArrayBuffer> {
 
 async function doHttpFetch(plugin: InstalledPlugin, rawUrl: string, init?: PluginFetchInit) {
   // Such a plugin isn't started in the no-third-party mode; this is the
-  // second lock in case one runs anyway (#903).
-  if (!pluginAllowed(plugin)) throw new Error('Outside requests are off: this server does not contact outside services');
+  // second lock in case one runs anyway (#903). A plugin the mode lets run
+  // (admin-entered servers through the proxy) has no outside fetch either.
+  if (noThirdPartyTraffic()) throw new Error('Outside requests are off: this server does not contact outside services');
   if (typeof rawUrl !== 'string') throw new Error('url must be a string');
   let url: URL;
   try { url = new URL(rawUrl); } catch { throw new Error('url must be absolute https://'); }
@@ -1891,8 +1894,14 @@ async function doSieveRegenerate(): Promise<void> {
 
 // ─── admin config (same as before) ────────────────────────────
 
+/**
+ * The plugin's admin settings without its secrets, also when this browser
+ * holds an admin session: the route hands an admin every field, and a
+ * plugin read the Safe Browsing key that way. Secrets go only to the server
+ * proxy (api.proxy), never into a plugin frame.
+ */
 async function adminGetAll(pluginId: string): Promise<Record<string, unknown>> {
-  const res = await apiFetch(`/api/admin/plugins/${encodeURIComponent(pluginId)}/config`);
+  const res = await apiFetch(`/api/admin/plugins/${encodeURIComponent(pluginId)}/config?public=1`);
   if (!res.ok) return {};
   return res.json();
 }
@@ -1933,6 +1942,18 @@ async function adminSet(pluginId: string, key: string, value: unknown): Promise<
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ key, value }),
   }));
+}
+
+/**
+ * A server address an admin types for a credential (`originKey`) is what
+ * stays reachable with no third-party traffic: the plugin itself may not
+ * write it, or it could point its proxy at a host of its choosing.
+ */
+function refuseServerField(plugin: InstalledPlugin, key: unknown, method: string): void {
+  const serverFields = Object.values(plugin.credentials ?? {}).flatMap((spec) => (spec.scope === 'admin' && spec.originKey ? [spec.originKey] : []));
+  if (typeof key === 'string' && serverFields.includes(key)) {
+    throw new Error(`${method}: "${key}" is a server address only an administrator can set, on the plugin's admin page`);
+  }
 }
 
 /** A failed admin config write used to look like success to the plugin. */
@@ -2122,8 +2143,8 @@ export async function dispatchApiCall(
     case 'admin.getConfig':    return adminGet(plugin.id, args[0] as string);
     case 'admin.getAllConfig': return adminGetAll(plugin.id);
     case 'plugin.getConfig':   return publicConfig(plugin.id);
-    case 'admin.setConfig':    await adminSet(plugin.id, args[0] as string, args[1]); return undefined;
-    case 'admin.deleteConfig': await adminDelete(plugin.id, args[0] as string); return undefined;
+    case 'admin.setConfig':    refuseServerField(plugin, args[0], 'admin.setConfig'); await adminSet(plugin.id, args[0] as string, args[1]); return undefined;
+    case 'admin.deleteConfig': refuseServerField(plugin, args[0], 'admin.deleteConfig'); await adminDelete(plugin.id, args[0] as string); return undefined;
 
     case 'ui.confirm': {
       const opts = (args[0] ?? {}) as { title?: string; message?: string; confirmLabel?: string; cancelLabel?: string; danger?: boolean };
@@ -2211,9 +2232,12 @@ export async function dispatchApiCall(
       if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
         throw new Error(`ui.openExternalUrl: ${parsed.protocol} not allowed`);
       }
-      // Always open in a new tab; plugins must not be able to navigate the
+      // Other plugins' link checks (onBeforeExternalLink) see it like a
+      // click in a message; the plugin's own handler isn't asked again, so a
+      // link check opens the link after its dialog.
+      // Always opens in a new tab; plugins must not be able to navigate the
       // host window (_self/_top/_parent) to an attacker-controlled origin.
-      window.open(parsed.toString(), '_blank', 'noopener,noreferrer');
+      await openExternalLink({ href: parsed.toString(), target: '_blank' }, { skipPluginId: plugin.id });
       return undefined;
     }
     case 'ui.print': return doUiPrint(plugin, args[0]);

@@ -6001,6 +6001,10 @@
       "error_save": "No s'ha pogut desar: {error}"
     }
   },
+  "send_guards": {
+    "not_running": "No s'ha enviat. Una comprovació que exigeix la vostra organització no s'està executant. Torneu-ho a provar d'aquí a un moment.",
+    "stopped_working": "No s'ha enviat. Una comprovació que exigeix la vostra organització ha deixat de funcionar. Torneu a carregar la pàgina. Si no ho soluciona, aviseu l'administrador."
+  },
   "plugin_list": {
     "filters": "Filtres",
     "remove_filter": "Treu el filtre {label}"

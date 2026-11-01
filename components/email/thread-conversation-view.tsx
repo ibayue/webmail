@@ -4,7 +4,7 @@ import React, { useState, useEffect, useLayoutEffect, useMemo, useRef, useCallba
 import DOMPurify from "dompurify";
 import { Email, ThreadGroup } from "@/lib/jmap/types";
 import { EMAIL_SANITIZE_CONFIG, TRANSPARENT_BLOCKED_PIXEL, blockExternalResourcesOnNode, collapseBlockedImageContainers, emailIframeCsp, isOpenableLinkHref, plainTextToSafeHtml, restrictDataUriResourcesOnNode, sanitizeEmailBodyForIframe, sanitizePlainTextRenderedHtml } from "@/lib/email-sanitization";
-import { resolveExternalLink } from "@/lib/plugin-hook-result";
+import { gateLinkClick, linkCheckActive, linkText, resolveExternalLink } from "@/lib/plugin-hook-result";
 import { stripBidiControls } from "@/lib/bidi";
 import { requestInternalMailto } from "@/lib/protocol-handlers/mailto";
 import { emailDisplayDate } from "@/lib/email-date";
@@ -879,7 +879,10 @@ export function ConversationEmailBody({
       // through onBeforeExternalLink, and nothing resolving inside our own
       // origin (a relative path, data:) is opened. mailto: is written here
       // when the mail page takes it; the blob: URLs of cid: parts are inert.
-      doc.addEventListener('click', (ev) => {
+      const onLinkClick = (ev: MouseEvent) => {
+        // A middle-click opens a link too, through the link check while one
+        // listens; other buttons are left alone.
+        if (ev.type === 'auxclick' && (ev.button !== 1 || !linkCheckActive())) return;
         const link = (ev.target as Element | null)?.closest?.('a[href], area[href]');
         if (!link) return;
         const href = link.getAttribute('href') || '';
@@ -891,9 +894,11 @@ export function ConversationEmailBody({
         ev.preventDefault();
         ev.stopPropagation();
         if (!isOpenableLinkHref(href)) return;
-        void resolveExternalLink({ href, target: link.getAttribute('target') ?? undefined, emailId: email.id })
+        void resolveExternalLink({ href, target: link.getAttribute('target') ?? undefined, emailId: email.id, text: linkText(link) })
           .then((target) => { if (target) window.open(target, '_blank', 'noopener,noreferrer'); });
-      }, true);
+      };
+      doc.addEventListener('click', onLinkClick, true);
+      doc.addEventListener('auxclick', onLinkClick, true);
       // Selected text: the onTextSelectionChange hook and the right-click
       // menu plugins may add entries to.
       watchBodySelection(doc, iframe, {
@@ -996,6 +1001,10 @@ export function ConversationEmailBody({
             data-plugin-source="email-body"
             data-email-id={email.id}
             onContextMenu={(e) => selectionMenu.onElementContextMenu(e, email.id)}
+            // A plain-text body renders in the page, not the iframe: its
+            // links go through the link check here.
+            onClick={(e) => gateLinkClick(e, { emailId: email.id })}
+            onAuxClick={(e) => gateLinkClick(e, { emailId: email.id })}
             dangerouslySetInnerHTML={plainBodyHtml}
           />
         )}

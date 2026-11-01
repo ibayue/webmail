@@ -197,6 +197,11 @@ export class HookBus<T extends (...args: any[]) => any> {
     return this.handlers.length;
   }
 
+  /** Whether a plugin other than `pluginId` has a handler here. */
+  hasHandlersBesides(pluginId: string | undefined): boolean {
+    return this.handlers.some((h) => h.pluginId !== pluginId);
+  }
+
   /** Fire all handlers (observer pattern - no return values used) */
   async emit(...args: Parameters<T>): Promise<void> {
     for (const { pluginId, handler } of this.handlers) {
@@ -285,16 +290,18 @@ export class HookBus<T extends (...args: any[]) => any> {
    * with the intercept budget; `accept` turns a return value into the next
    * value, or returns undefined to ignore it. A handler that throws or runs
    * out of time is skipped (fail open), and counts as a failure like any
-   * other hook error.
+   * other hook error. `skipPluginId` leaves one plugin's handlers out (a
+   * plugin opening a link itself isn't asked about it again).
    */
   async interceptWithValue<V>(
     initial: V,
     accept: (result: unknown, current: V) => V | undefined,
-    opts: { timeoutMs?: number } = {},
+    opts: { timeoutMs?: number; skipPluginId?: string } = {},
   ): Promise<{ allowed: false } | { allowed: true; value: V }> {
     const budget = opts.timeoutMs ?? Math.max(this.timeoutMs, INTERCEPT_TIMEOUT_MS);
     let value = initial;
     for (const { pluginId, handler } of this.handlers) {
+      if (pluginId === opts.skipPluginId) continue;
       if (pluginErrorTracker.isDisabled(pluginId)) continue;
       let result: unknown;
       try {
@@ -737,10 +744,11 @@ export const uiHooks = {
   onDeviceTypeChange: new HookBus(),
   onColumnResize: new HookBus(),
   onMobileBack: new HookBus(),
-  // Intercept hook - fires when the user clicks an external link inside the
-  // app (typically inside an email body iframe). Handler receives
-  // ExternalLinkContext; return false to cancel the navigation. Mutate
-  // `href` in place to rewrite (e.g. strip UTM params, route via a proxy).
+  // Intercept hook - fires when the user opens an outside link anywhere in
+  // the app (message bodies, the reader view, events, contacts,
+  // notifications, unsubscribe links, other plugins' ui.openExternalUrl;
+  // lib/plugin-hook-result.ts). Handler receives ExternalLinkContext; return
+  // false to cancel the navigation or { href } to send it elsewhere.
   onBeforeExternalLink: new HookBus(),
   // Observer (debounced) fired when the user changes the active text
   // selection inside an app surface. Receives SelectionContext.

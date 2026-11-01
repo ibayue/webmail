@@ -6001,6 +6001,10 @@
       "error_save": "Kunne ikke gemme: {error}"
     }
   },
+  "send_guards": {
+    "not_running": "Ikke sendt. En kontrol, som din organisation kræver, kører ikke. Prøv igen om et øjeblik.",
+    "stopped_working": "Ikke sendt. En kontrol, som din organisation kræver, virker ikke længere. Genindlæs siden. Hvis det ikke hjælper, så kontakt din administrator."
+  },
   "plugin_list": {
     "filters": "Filtre",
     "remove_filter": "Fjern filteret {label}"

@@ -34,6 +34,7 @@ import type { AnswerTarget } from "@/lib/calendar-delegate";
 import { isEditableEventTarget } from "@/lib/keyboard";
 import { isSingleKeyShortcutOff } from "@/lib/single-key-shortcuts";
 import { useCvdColor } from "@/hooks/use-cvd-color";
+import { gateLinkClick } from "@/lib/plugin-hook-result";
 
 interface EventDetailPopoverProps {
   event: CalendarEvent;
@@ -524,6 +525,8 @@ export function EventDetailPopover({
               href={locationHref ?? undefined}
               target="_blank"
               rel="noreferrer"
+              onClick={gateLinkClick}
+              onAuxClick={gateLinkClick}
               className={cn("text-sm min-w-0 break-words", locationHref ? "text-primary hover:underline" : "text-foreground")}
               dir="auto"
               title={locationName}
@@ -554,6 +557,8 @@ export function EventDetailPopover({
               href={virtualLocation}
               target="_blank"
               rel="noreferrer"
+              onClick={gateLinkClick}
+              onAuxClick={gateLinkClick}
               className="text-sm text-primary hover:underline truncate"
               title={virtualLocation}
             >

@@ -6001,6 +6001,10 @@
       "error_save": "Não foi possível salvar: {error}"
     }
   },
+  "send_guards": {
+    "not_running": "Não enviado. Uma verificação exigida pela sua organização não está em execução. Tente novamente daqui a pouco.",
+    "stopped_working": "Não enviado. Uma verificação exigida pela sua organização deixou de funcionar. Recarregue a página. Se não resolver, avise o administrador."
+  },
   "plugin_list": {
     "filters": "Filtros",
     "remove_filter": "Remover o filtro {label}"

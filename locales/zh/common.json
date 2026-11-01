@@ -6001,6 +6001,10 @@
       "error_save": "无法保存：{error}"
     }
   },
+  "send_guards": {
+    "not_running": "未发送。你的组织要求的一项检查当前未运行。请稍后再试。",
+    "stopped_working": "未发送。你的组织要求的一项检查已停止工作。请重新加载页面。如果仍不行，请告诉管理员。"
+  },
   "plugin_list": {
     "filters": "筛选",
     "remove_filter": "移除筛选条件 {label}"

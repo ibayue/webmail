@@ -13,6 +13,7 @@ import { authHeaderFor, credentialOrigin, privateProxyOrigins, type CredentialIn
 import { getUserCredential, setUserCredentialSecret, userKey, type VaultUser } from './vault';
 import { declaredUserCredential } from './known-plugins';
 import { isStoredDataUnavailable } from '@/lib/stored-data-errors';
+import { credentialAllowedInMode } from '@/lib/outgoing-hosts';
 
 /** Largest request body the proxy forwards (one upload chunk). */
 export const MAX_PROXY_REQUEST_BYTES = 100 * 1024 * 1024;
@@ -117,6 +118,44 @@ export async function adminCredentialStatus(pluginId: string): Promise<{ credent
  */
 export async function adminCredentialOrigins(pluginId: string): Promise<string[]> {
   return (await adminCredentials(pluginId)).flatMap(({ origin }) => (origin ? [origin] : []));
+}
+
+/**
+ * The servers the admin entered for a plugin's credentials (originKey), set
+ * or not yet set up with a secret: what stays reachable for it with
+ * third-party traffic off (Organisation > Security).
+ */
+export async function adminEnteredOrigins(pluginId: string): Promise<string[]> {
+  const plugin = await getPlugin(pluginId);
+  const specs = (plugin as { credentials?: Record<string, CredentialSpec> } | null)?.credentials;
+  if (!plugin || !plugin.enabled || !specs) return [];
+  const config = await getPluginConfig(pluginId);
+  const out = new Set<string>();
+  for (const spec of Object.values(specs)) {
+    const origin = adminEnteredOrigin(spec, config, plugin.configSchema);
+    if (origin) out.add(origin);
+  }
+  return [...out];
+}
+
+/**
+ * The server an admin typed for a credential (`originKey`), or null: not
+ * an originKey credential, nothing set, or the value the plugin's manifest
+ * brings as the field's default. That one the plugin chose, not the admin
+ * (the admin page saves defaults with the first Save), so with no
+ * third-party traffic it stays off like any server fixed in a manifest.
+ */
+export function adminEnteredOrigin(
+  spec: CredentialSpec | undefined,
+  config: Record<string, unknown>,
+  schema: Record<string, { default?: unknown }> | undefined,
+): string | null {
+  if (!spec || spec.scope !== 'admin' || !credentialAllowedInMode(spec) || !spec.originKey) return null;
+  const value = config[spec.originKey];
+  const origin = credentialOrigin(value);
+  if (!origin) return null;
+  const fallback = credentialOrigin(schema?.[spec.originKey]?.default);
+  return fallback && fallback === origin ? null : origin;
 }
 
 async function adminCredentials(pluginId: string): Promise<{ credentialId: string; origin: string | null }[]> {

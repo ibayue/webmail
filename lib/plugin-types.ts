@@ -876,6 +876,14 @@ export interface HostFeaturesView {
   externalSenderLabel: boolean;
   /** The admin turned on the confirm before sending outside the organisation (organisation.externalMail.recipientWarning). */
   externalRecipientWarning: boolean;
+  /**
+   * Bulwark 1.20 and later: "no third-party traffic" is on (or not known
+   * yet). Outside services are off: the proxy refuses servers fixed in a
+   * manifest and only reaches those the admin entered on the plugin's admin
+   * page. A plugin switches such a service off instead of treating it as
+   * down.
+   */
+  noThirdPartyTraffic: boolean;
 }
 
 /** One setting `api.app.searchSettings` found, in the user's language. */
@@ -1076,6 +1084,35 @@ export interface MailtoContext {
  * copy. Use to inject signatures, rewrite links, strip tracking pixels from
  * forwards, encrypt the body, etc. Return undefined to pass through unchanged.
  */
+/** An attachment of an OutgoingEmail. */
+export interface OutgoingAttachment {
+  name: string;
+  /** The type the file was attached with (often the browser's guess from the extension). */
+  type: string;
+  size: number;
+  /** onBeforeEmailSend, 1.20 and later: the uploaded blob. */
+  blobId?: string;
+  /** onBeforeEmailSend, 1.20 and later: an image shown in the body (pasted or quoted). */
+  inline?: boolean;
+  /**
+   * onBeforeEmailSend, 1.20 and later: the type the file's first bytes say
+   * it is (application/x-msdownload for a program, application/zip, ...);
+   * absent when Bulwark knows no signature for them or couldn't read them.
+   */
+  sniffedType?: string;
+  /**
+   * onBeforeEmailSend, 1.20 and later, plugins with `email:blob-read` only:
+   * up to the first megabyte of a text attachment (text/*, CSV, JSON, XML,
+   * calendar and contact files) as text.
+   */
+  textExcerpt?: string;
+  /**
+   * onBeforeEmailSend, 1.20 and later: Bulwark couldn't read the file, so
+   * there is no sniffedType or textExcerpt. Treat it as not checked.
+   */
+  unreadable?: boolean;
+}
+
 export interface OutgoingEmail {
   to: string[];
   cc: string[];
@@ -1086,11 +1123,33 @@ export interface OutgoingEmail {
   identityId: string;
   /** Sender email derived from the active identity (incl. sub-address tag, when set) */
   fromEmail?: string;
-  attachments: { name: string; type: string; size: number }[];
+  attachments: OutgoingAttachment[];
   /** Original message id when this is a reply or forward */
   inReplyTo?: string;
   /** Free-form custom headers added by the composer or earlier handlers */
   headers?: Record<string, string>;
+  /**
+   * Where the send comes from (onBeforeEmailSend, Bulwark 1.20 and later):
+   * the composer, a quick reply under a message, or a plugin's forward.
+   */
+  surface?: 'composer' | 'quick-reply' | 'plugin-forward';
+  /** compose, reply, replyAll or forward (onBeforeEmailSend, 1.20 and later). */
+  mode?: 'compose' | 'reply' | 'replyAll' | 'forward';
+  /**
+   * onBeforeEmailSend, 1.20 and later: what the user wrote, as plain text,
+   * without the quoted original of a reply or forward and without the
+   * signature. Check this rather than the bodies, or a number in the quoted
+   * mail warns on every reply.
+   */
+  authoredText?: string;
+  /**
+   * onBeforeEmailSend, 1.20 and later: the recipients (To, Cc and Bcc)
+   * outside the organisation of the account the mail goes out from, as bare
+   * lowercase addresses. The host works it out from the account's identity
+   * domains and the admin's organisation domains, also when the admin's
+   * recipient warning is off. Empty when every recipient is internal.
+   */
+  externalRecipients?: string[];
 }
 /**
  * Passed to onBeforeDraftAutoSave handlers as a transform value.
@@ -1177,6 +1236,13 @@ export interface AttachmentInfo {
   blobId?: string;
   /** The email this attachment belongs to (download / preview) */
   emailId?: string;
+  /**
+   * onBeforeAttachmentUpload, 1.20 and later, for a file from this device:
+   * the type its first bytes say it is (see OutgoingAttachment.sniffedType).
+   */
+  sniffedType?: string;
+  /** onBeforeAttachmentUpload, 1.20 and later: the file's bytes couldn't be read. */
+  unreadable?: boolean;
 }
 
 /**
@@ -1211,11 +1277,21 @@ export interface AttachmentPreview {
  * Return false to cancel the navigation. Mutate `href` to rewrite it.
  */
 export interface ExternalLinkContext {
+  /**
+   * The address as the browser parses it (`new URL(href).href`, Bulwark
+   * 1.20 and later); exactly this string opens.
+   */
   href: string;
   /** Anchor target ('_blank', '_self', etc.) when set */
   target?: string;
   /** Email currently in view, when the click came from an email body */
   emailId?: string;
+  /**
+   * What the link says (its text, else an image's alt text), trimmed to 200
+   * characters, when the host knows it (Bulwark 1.20 and later). A link
+   * whose text names another address than its target is a phishing sign.
+   */
+  text?: string;
 }
 
 /**

@@ -4099,6 +4099,12 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
           });
       }
     };
+    // RFC 5322 §3.6.4 threading - keep the conversation stitched together (#234).
+    const threading = computeReplyThreadingHeaders({
+      messageId: selectedEmail.messageId,
+      references: selectedEmail.references,
+    });
+    const replySubject = buildReplySubject(selectedEmail.subject || t('email_viewer.no_subject'), t('email_composer.prefix.reply'));
     const prepared = await prepareQuickReply({
       body,
       signatureIdentity,
@@ -4107,6 +4113,14 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       to: recipients,
       fromEmail: headerFromEmail,
       identityId: sendingIdentity?.id,
+      subject: replySubject,
+      inReplyTo: threading?.inReplyTo?.[0],
+      // A plugin that said no told the user; one that crashed didn't.
+      onSendCheckStopped: (outcome) => {
+        if (outcome === 'failed') toast.error(t('email_composer.send_guard_failed'));
+        if (outcome === 'guard-loading') toast.error(t('send_guards.not_running'));
+        if (outcome === 'guard-failed') toast.error(t('send_guards.stopped_working'));
+      },
       questions: {
         // The fill-in words of the UI language and of English, as the composer.
         placeholderWords: settings.placeholderWarningEnabled
@@ -4137,16 +4151,8 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       }
     }
 
-    // RFC 5322 §3.6.4 threading - keep the conversation stitched together (#234).
-    const threading = computeReplyThreadingHeaders({
-      messageId: selectedEmail.messageId,
-      references: selectedEmail.references,
-    });
-
     // The label goes on last, as in the composer.
-    const labelled = classifyOutgoing(quickLabel.policy, quickLabel.label, {
-      subject: buildReplySubject(selectedEmail.subject || t('email_viewer.no_subject'), t('email_composer.prefix.reply')),
-    });
+    const labelled = classifyOutgoing(quickLabel.policy, quickLabel.label, { subject: replySubject });
 
     // Send reply with just the body text
     const result = await sendEmail(

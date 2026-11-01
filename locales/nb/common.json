@@ -6001,6 +6001,10 @@
       "error_save": "Kunne ikke lagre: {error}"
     }
   },
+  "send_guards": {
+    "not_running": "Ikke sendt. En kontroll organisasjonen din krever, kjører ikke. Prøv igjen om et øyeblikk.",
+    "stopped_working": "Ikke sendt. En kontroll organisasjonen din krever, har sluttet å virke. Last inn siden på nytt. Hvis det ikke hjelper, si fra til administratoren."
+  },
   "plugin_list": {
     "filters": "Filtre",
     "remove_filter": "Fjern filteret {label}"

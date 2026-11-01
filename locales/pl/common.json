@@ -6001,6 +6001,10 @@
       "error_save": "Nie udało się zapisać: {error}"
     }
   },
+  "send_guards": {
+    "not_running": "Nie wysłano. Kontrola wymagana przez Twoją organizację nie działa. Spróbuj ponownie za chwilę.",
+    "stopped_working": "Nie wysłano. Kontrola wymagana przez Twoją organizację przestała działać. Odśwież stronę. Jeśli to nie pomoże, zgłoś to administratorowi."
+  },
   "plugin_list": {
     "filters": "Filtry",
     "remove_filter": "Usuń filtr {label}"

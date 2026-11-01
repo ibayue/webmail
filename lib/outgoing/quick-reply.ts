@@ -3,6 +3,8 @@ import { appendHtmlSignature, appendPlainTextSignature } from '@/lib/signature-u
 import { currentSignatureIdentity } from '@/lib/org/signature-state';
 import { findUnfilledPlaceholders, type PlaceholderWords } from '@/lib/placeholder-check';
 import { finalizeOutgoing, runPreSendChecks, type OutgoingBodies } from './send-pipeline';
+import { runPluginSendCheck, type PluginSendCheckOutcome } from './plugin-send-check';
+import { externalRecipientsFor } from './send-check-payload';
 // Registers the organisation signature check and the disclaimer.
 import '@/lib/org/outgoing';
 
@@ -29,7 +31,10 @@ export interface QuickReplyQuestions {
  * checks and finalisers as the composer's send. Null when one stopped the
  * send. The organisation signature applies as in the composer
  * (`signatureIdentity` is what the reply would sign with on its own,
- * `sendingIdentity` the identity it goes out from).
+ * `sendingIdentity` the identity it goes out from). Plugins' send checks
+ * (onBeforeEmailSend) run on it too, after the organisation signature and
+ * before the disclaimer, as in the composer; `onSendCheckStopped` hears
+ * why one stopped it.
  */
 export async function prepareQuickReply(input: {
   body: string;
@@ -39,7 +44,11 @@ export async function prepareQuickReply(input: {
   to: string[];
   fromEmail?: string;
   identityId?: string;
+  /** The reply's subject (without a classification prefix) and the original's Message-ID, for plugins. */
+  subject?: string;
+  inReplyTo?: string;
   questions?: QuickReplyQuestions;
+  onSendCheckStopped?: (outcome: Exclude<PluginSendCheckOutcome, 'allowed'>) => void;
 }): Promise<OutgoingBodies | null> {
   const { body, separator, questions } = input;
 
@@ -88,6 +97,28 @@ export async function prepareQuickReply(input: {
   if (!(await runPreSendChecks(context))) return null;
   // Asked last, as in the composer, so an answered warning doesn't ask twice.
   if (questions?.confirmSend && !(await questions.ask({ kind: 'send' }))) return null;
-  // Quick reply has no plugin step in between: both stages at once.
-  return finalizeOutgoing(finalizeOutgoing({ html, text }, context), context, 'last');
+  const bodies = finalizeOutgoing({ html, text }, context);
+  // A quick reply used to skip plugins' send checks: a way around them.
+  const outcome = await runPluginSendCheck(async () => ({
+    to: input.to,
+    cc: [],
+    bcc: [],
+    subject: input.subject ?? '',
+    htmlBody: bodies.html ?? '',
+    textBody: bodies.text,
+    identityId: input.identityId ?? '',
+    fromEmail: input.fromEmail,
+    attachments: [],
+    inReplyTo: input.inReplyTo,
+    surface: 'quick-reply',
+    mode: 'reply',
+    // The quote isn't part of a quick reply: the typed text is all the user wrote.
+    authoredText: body,
+    externalRecipients: await externalRecipientsFor(context),
+  }));
+  if (outcome !== 'allowed') {
+    input.onSendCheckStopped?.(outcome);
+    return null;
+  }
+  return finalizeOutgoing(bodies, context, 'last');
 }

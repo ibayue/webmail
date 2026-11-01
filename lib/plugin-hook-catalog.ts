@@ -57,7 +57,7 @@ export const HOOK_CATALOG = {
   onBeforeReply: H('mail-read', 'intercept', 'email:read', 'ReplyContext', 'when Reply is chosen, before the composer opens'),
   onBeforeReplyAll: H('mail-read', 'intercept', 'email:read', 'ReplyContext', 'when Reply all is chosen, before the composer opens'),
   onBeforeForward: H('mail-read', 'intercept', 'email:read', 'ReplyContext', 'when Forward is chosen, before the composer opens'),
-  onBeforeExternalLink: H('mail-read', 'intercept', 'ui:observe', 'ExternalLinkContext', 'when a link in a message is clicked; return false to stop it or { href } to change it'),
+  onBeforeExternalLink: H('mail-read', 'intercept', 'ui:observe', 'ExternalLinkContext', 'when a link is opened (mail, reader view, events, contacts, notifications, the unsubscribe link, links other plugins open); return false to stop it or { href } to change it'),
   onAvatarResolve: H('mail-read', 'transform', 'email:read', 'string | null (avatar URL), { email, name }', 'when a sender avatar is needed'),
 
   // ─── Mail: composing ───────────────────────────────────────
