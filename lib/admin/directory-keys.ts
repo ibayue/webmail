@@ -13,6 +13,7 @@
 // none (a custom directory that set none), bundles install as before.
 import { createHash, createPublicKey, verify as nodeVerify } from 'node:crypto';
 import { canonicalJson } from '@/lib/extension-package';
+import { isStoreUnavailableError } from '@/lib/shared-store';
 import { DIRECTORY_KEYRINGS_ID, directoryKeyringDocs } from './extension-store';
 
 export const OFFICIAL_DIRECTORY = 'https://extensions.bulwarkmail.org';
@@ -174,6 +175,9 @@ export async function checkBundleSignature(opts: {
   try {
     keys = await onlineKeys(opts.directoryUrl, rootKeys, opts.fetchImpl ?? fetch);
   } catch (err) {
+    // The shared store being down says nothing about the bundle: the
+    // install answers 503 instead of calling it badly signed.
+    if (isStoreUnavailableError(err)) throw err;
     return { status: 'invalid', reason: err instanceof Error ? err.message : String(err) };
   }
   const key = keys.find((k) => k.keyId === keyId);

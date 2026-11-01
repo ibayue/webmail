@@ -225,6 +225,22 @@ describe('plugins in the shared store', () => {
   });
 });
 
+describe('lists while the store is down', () => {
+  it('answer 503 on a replica that has no copy yet, not 500', async () => {
+    store.down = true;
+    const r = await otherReplica();
+    const history = await import('@/app/api/admin/extensions/[kind]/[id]/history/route');
+    const publicList = await import('@/app/api/plugins/route');
+    const responses = await Promise.all([
+      r.plugins.GET(new NextRequest('http://localhost/api/admin/plugins')),
+      r.themes.GET(new NextRequest('http://localhost/api/admin/themes')),
+      history.GET(new NextRequest('http://localhost/api/admin/extensions/plugin/demo-plugin/history'), { params: Promise.resolve({ kind: 'plugin', id: 'demo-plugin' }) }),
+      publicList.GET(new NextRequest('http://localhost/api/plugins')),
+    ]);
+    expect(responses.map((res) => res.status)).toEqual([503, 503, 503, 503]);
+  });
+});
+
 describe('one change of the registry at a time across replicas', () => {
   const LEASE = 'extension-registry-plugins';
 

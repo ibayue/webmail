@@ -92,9 +92,9 @@ describe('directory keyring dates in the shared store', () => {
     expect(existsSync(path.join(dir, 'state', 'directory-keyrings.json'))).toBe(false);
   });
 
-  it('refuses the bundle while the store is down', async () => {
+  it('fails with the store outage while the store is down, so the install answers 503', async () => {
     store.down = true;
     const a = await replica();
-    expect(await a(ringAt('2026-10-20T00:00:00.000Z'))).toMatchObject({ status: 'invalid' });
+    await expect(a(ringAt('2026-10-20T00:00:00.000Z'))).rejects.toMatchObject({ name: 'StoreUnavailableError' });
   });
 });
