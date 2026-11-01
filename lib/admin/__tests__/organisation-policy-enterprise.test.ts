@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  isLabelExtraHeaderName,
   DEFAULT_ORGANISATION_POLICY,
   MIN_FEED_REFRESH_MINUTES,
   mergeOrganisation,
@@ -56,6 +57,12 @@ describe('enterprise sections: defaults and sanitising', () => {
     for (const name of ['Subject', 'bcc', 'SIO-Label', 'Content-Type', 'X Bad']) {
       expect(sanitizeOrganisationPolicy({ labels: { extraHeader: name } }).labels.extraHeader).toBe('');
     }
+  });
+
+  it('refuses the header Bulwark keeps the label of a draft in', () => {
+    expect(sanitizeOrganisationPolicy({ labels: { extraHeader: 'X-Bulwark-Label' } }).labels.extraHeader).toBe('');
+    expect(isLabelExtraHeaderName('X-Bulwark-Label')).toBe(false);
+    expect(isLabelExtraHeaderName('X-Classification')).toBe(true);
   });
 
   it('keeps announcement text per locale and normalises times', () => {

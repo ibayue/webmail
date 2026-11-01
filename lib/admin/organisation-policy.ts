@@ -287,7 +287,7 @@ const RESERVED_HEADERS = new Set([
   'from', 'to', 'cc', 'bcc', 'subject', 'date', 'message-id', 'sender', 'reply-to', 'in-reply-to',
   'references', 'mime-version', 'content-type', 'content-transfer-encoding', 'content-disposition',
   'received', 'return-path', 'dkim-signature', 'arc-seal', 'arc-message-signature', 'authentication-results',
-  'sio-label', 'sio-label-history', 'sensitivity', 'importance', 'x-priority', 'disposition-notification-to',
+  'sio-label', 'sio-label-history', 'sensitivity', 'x-bulwark-label', 'importance', 'x-priority', 'disposition-notification-to',
 ]);
 const MAX_LABELS = 50;
 const MAX_FEEDS = 50;
@@ -365,6 +365,12 @@ function sanitizeLabels(value: unknown): ClassificationLabel[] | undefined {
       extraHeaderValue: line(item.extraHeaderValue, 500) ?? '',
     };
   });
+}
+
+/** Whether the admin page may store this as `labels.extraHeader` (the sanitiser's rule). */
+export function isLabelExtraHeaderName(value: string): boolean {
+  const v = value.trim();
+  return HEADER_NAME_RE.test(v) && !RESERVED_HEADERS.has(v.toLowerCase());
 }
 
 function headerName(value: unknown): string | undefined {
