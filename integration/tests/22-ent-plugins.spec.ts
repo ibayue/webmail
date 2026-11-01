@@ -25,14 +25,22 @@ import {
  *   blocked rule, ignores internal recipients for an external-only rule
  *   (with an organisation domain set in a group scope only), refuses a
  *   disallowed attachment type, and runs on quick reply too;
- * - both dialogs at 390 px, and the send-checks admin page.
+ *   (an unsafe verdict also blocks when the admin says so);
+ * - item 5 also: sending is held while the required check isn't running, and
+ *   a rule the admin changes on the plugin's admin page applies;
+ * - both dialogs at 390 px.
  *
  * Both plugins are installed from the local builds of the plugins worktree
- * (IT_PLUGINS_DIR) through the admin API and removed at the end. The server
- * must run with PLUGIN_PROXY_PRIVATE_ORIGINS=http://127.0.0.1:3195 (the
- * mock is plain HTTP on this PC) and NEXT_PUBLIC_APP_VERSION=1.20.0 (both
- * plugins need 1.20.0). No request goes to Google: the lookup mode is
- * "endpoint", the Safe Browsing key is a fake.
+ * (IT_PLUGINS_DIR) through the admin API and removed at the end. No request
+ * goes to Google: the lookup mode is "endpoint", the Safe Browsing key is a
+ * fake, so the Google verdict dialog is covered by the plugin's unit tests.
+ *
+ * The rig, from one shell (the spec checks both variables and stops early):
+ *
+ *   export PLUGIN_PROXY_PRIVATE_ORIGINS=http://127.0.0.1:3195   # the mock is plain HTTP on this PC
+ *   export NEXT_PUBLIC_APP_VERSION=1.20.0                       # both plugins need 1.20.0; VERSION says 1.19.1
+ *   BUILD=1 bash enterprise-rig/start-prod.sh <worktree> 3105 <jmap-url> e-1.0
+ *   bash enterprise-rig/run-spec.sh <worktree> 3105 <jmap-url> 1.0 integration/tests/22-ent-plugins.spec.ts
  */
 
 test.describe.configure({ mode: 'serial' });
@@ -49,6 +57,10 @@ const RUN = Date.now().toString(36);
 const LINK_HOST = 'ent-link.example.org';
 
 let original: Record<string, unknown>;
+/** The policy as it was before this spec, put back untouched at the end. */
+let untouched: Record<string, unknown> | undefined;
+/** No third-party traffic as it was before this spec. */
+let modeBefore: boolean | undefined;
 let mock: Server;
 const endpoint = { up: true, requests: [] as { url: string; host: string; auth: string }[] };
 
@@ -59,7 +71,23 @@ async function installPlugin(admin: BrowserContext, id: string, zip: string): Pr
   const installed = await admin.request.post('/api/admin/plugins', {
     multipart: { file: { name: `${id}.zip`, mimeType: 'application/zip', buffer: readFileSync(zip) } },
   });
-  expect(installed.ok(), await installed.text()).toBe(true);
+  const text = await installed.text();
+  if (/Needs Bulwark 1\.20\.0/.test(text)) {
+    throw new Error(`${id} needs Bulwark 1.20.0: build and start the server with NEXT_PUBLIC_APP_VERSION=1.20.0 (see the header of this spec)`);
+  }
+  expect(installed.ok(), text).toBe(true);
+}
+
+/** The rig variables the server needs; the same shell starts the server and this spec. */
+function requireRigEnv(): void {
+  const origins = process.env.PLUGIN_PROXY_PRIVATE_ORIGINS ?? '';
+  const missing = [
+    ...(origins.split(',').map((o) => o.trim()).includes(`http://127.0.0.1:${MOCK_PORT}`) ? [] : [`PLUGIN_PROXY_PRIVATE_ORIGINS=http://127.0.0.1:${MOCK_PORT}`]),
+    ...(process.env.NEXT_PUBLIC_APP_VERSION === '1.20.0' ? [] : ['NEXT_PUBLIC_APP_VERSION=1.20.0']),
+  ];
+  if (missing.length) {
+    throw new Error(`Set ${missing.join(' and ')} in the shell that builds and starts the server and runs this spec (see the header of this spec)`);
+  }
 }
 
 async function setConfig(browser: Browser, id: string, values: Record<string, unknown>): Promise<void> {
@@ -105,10 +133,13 @@ function startMock(): Promise<Server> {
 test.beforeAll(async ({ browser }) => {
   test.setTimeout(300_000);
   requireEntEnv();
+  requireRigEnv();
   test.skip(!existsSync(LINK_ZIP) || !existsSync(SEND_ZIP), `build the plugins first: ${LINK_ZIP}, ${SEND_ZIP}`);
   mock = await startMock();
   const admin = await adminContext(browser);
   original = await getPolicy(admin);
+  untouched = structuredClone(original);
+  modeBefore = (await (await admin.request.get('/api/admin/outgoing-hosts')).json()).noThirdPartyTraffic === true;
   await admin.request.get('/plugin-sandbox', { timeout: 120_000 });
   await installPlugin(admin, LINK, LINK_ZIP);
   await installPlugin(admin, SEND, SEND_ZIP);
@@ -148,11 +179,10 @@ test.afterAll(async ({ browser }) => {
     const ids = r.methodResponses?.[0]?.[1]?.ids ?? [];
     if (ids.length) await client.request([['Email/set', { accountId: client.accountId, destroy: ids }, '0']]).catch(() => {});
   }
-  if (!original) return;
+  if (!untouched) return;
   const admin = await adminContext(browser);
-  const forced = ((original.forceEnabledPlugins as string[] | undefined) ?? []).filter((id) => id !== LINK && id !== SEND);
-  await putPolicy(admin, { ...original, forceEnabledPlugins: forced });
-  await admin.request.patch('/api/admin/config', { data: { noThirdPartyTraffic: false } }).catch(() => {});
+  await putPolicy(admin, untouched);
+  if (modeBefore !== undefined) await admin.request.patch('/api/admin/config', { data: { noThirdPartyTraffic: modeBefore } }).catch(() => {});
   await admin.request.delete('/api/admin/plugins', { data: { id: LINK } });
   await admin.request.delete('/api/admin/plugins', { data: { id: SEND } });
   await admin.close();
@@ -177,16 +207,26 @@ async function waitForMessage(account: string, subject: string, timeoutMs = 60_0
   }
 }
 
-/** Nothing with `subject` arrived within a few seconds. */
-async function expectNotSent(account: string, subject: string): Promise<void> {
-  await new Promise((r) => setTimeout(r, 4000));
-  expect((await messages(account, RUN)).filter((m) => m.subject === subject)).toEqual([]);
+/**
+ * Exactly one message with `subject` arrived: the send that was stopped
+ * earlier went nowhere, and the one let through after it did. The later
+ * send is the fence, so nothing waits on a clock.
+ */
+async function expectSentOnce(account: string, subject: string): Promise<void> {
+  await waitForMessage(account, subject);
+  expect((await messages(account, RUN)).filter((m) => m.subject === subject)).toHaveLength(1);
 }
 
-/** Both plugins started: their background frames are there, and a moment for init. */
+/** Both plugins started: the host notes the hooks of every plugin once it has started it. */
 async function pluginsReady(page: Page): Promise<void> {
-  await expect(page.locator('iframe[src*="/plugin-sandbox"]')).toHaveCount(2, { timeout: 60_000 });
-  await page.waitForTimeout(1500);
+  await page.waitForFunction((ids) => ids.every((id) => localStorage.getItem(`plugin-declared-hooks:${id}`)), [LINK, SEND], { timeout: 60_000 });
+}
+
+async function clearBody(page: Page): Promise<void> {
+  const editor = page.locator('[data-testid="email-composer"] [contenteditable="true"]').first();
+  await editor.click();
+  await page.keyboard.press('Control+A');
+  await page.keyboard.press('Delete');
 }
 
 async function openMessage(page: Page, subject: string): Promise<void> {
@@ -405,12 +445,12 @@ test('item 5: an IBAN and a card number warn, masked; Go back keeps the mail, Se
   await shot(alice, 'e-send-warn');
   await dialog.getByRole('button', { name: 'Go back' }).click();
   await expect(alice.locator('[data-testid="email-composer"]')).toBeVisible();
-  await expectNotSent(ENT.bob, subject);
 
   await pressSend(alice);
   await expect(dialog).toContainText('Check before sending', { timeout: 20_000 });
   await dialog.getByRole('button', { name: 'Send anyway' }).click();
-  await waitForMessage(ENT.bob, subject);
+  // One message: Go back sent nothing.
+  await expectSentOnce(ENT.bob, subject);
   await alice.context().close();
 });
 
@@ -427,37 +467,67 @@ test('item 5: a block rule stops the send', async ({ browser }) => {
   await shot(alice, 'e-send-block');
   await alice.keyboard.press('Escape');
   await expect(alice.locator('[data-testid="email-composer"]')).toBeVisible();
-  await expectNotSent(ENT.bob, subject);
+  // Without the word it goes, once: the blocked send went nowhere.
+  await clearBody(alice);
+  await alice.keyboard.type('Nothing secret here.');
+  await pressSend(alice);
+  await expectSentOnce(ENT.bob, subject);
   await alice.context().close();
+});
+
+test('item 4: an unsafe verdict blocks the link when the admin says so', async ({ browser }) => {
+  const subject = `Links block ${RUN}`;
+  await deliverLinks(subject);
+  await setConfig(browser, LINK, { onUnsafe: 'block' });
+  try {
+    const alice = await userPage(browser, ENT.alice);
+    await routeLinks(alice.context());
+    await pluginsReady(alice);
+    await openMessage(alice, subject);
+    await body(alice).getByRole('link', { name: 'https://bank.example.com/login' }).click();
+    const dialog = linkDialog(alice);
+    await expect(dialog).toContainText('Link blocked', { timeout: 20_000 });
+    await expect(dialog).toContainText(`bad.${LINK_HOST}`);
+    await expect(dialog.getByRole('button', { name: 'Open anyway' })).toHaveCount(0);
+    await shot(alice, 'e-link-blocked');
+    await dialog.getByRole('button', { name: 'Close' }).click();
+    expect(alice.context().pages()).toHaveLength(1);
+    await alice.context().close();
+  } finally {
+    await setConfig(browser, LINK, { onUnsafe: 'warn' });
+  }
 });
 
 test('item 5: an external-only rule ignores internal recipients, with the domain from a group scope for its members only', async ({ browser }) => {
   await setConfig(browser, SEND, { ibanExternalOnly: true });
-  // partner.example.net is internal for ent-team (ent-alice) only.
+  // partner.invalid is internal for ent-team (ent-alice) only. An .invalid
+  // domain: the copy the server tries to deliver there goes nowhere real.
   await setPolicy(browser, {
-    scopes: [{ id: 'ent-e-partner', label: 'Partner', match: { groups: [ENT.team] }, policy: { organisation: { externalMail: { domains: ['partner.example.net'] } } } }],
+    scopes: [{ id: 'ent-e-partner', label: 'Partner', match: { groups: [ENT.team] }, policy: { organisation: { externalMail: { domains: ['partner.invalid'] } } } }],
   });
   try {
     const internal = `Send internal ${RUN}`;
     const alice = await userPage(browser, ENT.alice);
     await pluginsReady(alice);
-    await compose(alice, [ENT.bob, 'someone@partner.example.net'], internal, `IBAN ${IBAN}`);
+    await compose(alice, [ENT.bob, 'someone@partner.invalid'], internal, `IBAN ${IBAN}`);
     await pressSend(alice);
     await waitForMessage(ENT.bob, internal);
     await expect(sendDialog(alice)).toHaveCount(0);
     await alice.context().close();
 
-    // ent-carol is in no group: partner.example.net is outside for her.
+    // ent-carol is in no group: partner.invalid is outside for her.
     const outside = `Send outside ${RUN}`;
     const carol = await userPage(browser, ENT.carol);
     await pluginsReady(carol);
-    await compose(carol, [ENT.bob, 'someone@partner.example.net'], outside, `IBAN ${IBAN}`);
+    await compose(carol, [ENT.bob, 'someone@partner.invalid'], outside, `IBAN ${IBAN}`);
     await pressSend(carol);
     const dialog = sendDialog(carol);
     await expect(dialog).toContainText('IBAN DE89', { timeout: 20_000 });
     await expect(dialog).toContainText('goes outside your organisation');
     await dialog.getByRole('button', { name: 'Go back' }).click();
-    await expectNotSent(ENT.bob, outside);
+    await pressSend(carol);
+    await sendDialog(carol).getByRole('button', { name: 'Send anyway' }).click();
+    await expectSentOnce(ENT.bob, outside);
     await carol.context().close();
   } finally {
     await setConfig(browser, SEND, { ibanExternalOnly: false });
@@ -469,7 +539,7 @@ test('item 5: a program is refused as an attachment, also renamed to .pdf', asyn
   const alice = await userPage(browser, ENT.alice);
   await pluginsReady(alice);
   await compose(alice, [ENT.bob], `Send attachment ${RUN}`, 'See the file.');
-  const program = Buffer.concat([Buffer.from('MZ'), Buffer.alloc(200, 0x90)]);
+  const program = Buffer.concat([Buffer.from('MZ'), Buffer.from([0x90, 0, 3, 0, 0, 0, 4, 0]), Buffer.alloc(200, 0)]);
   const input = alice.locator('[data-testid="email-composer"] input[type="file"]').first();
   await input.setInputFiles({ name: 'tool.exe', mimeType: 'application/octet-stream', buffer: program });
   const dialog = sendDialog(alice);
@@ -500,9 +570,13 @@ test('item 5: a quick reply is checked too', async ({ browser }) => {
   const dialog = sendDialog(alice);
   await expect(dialog).toContainText('IBAN DE89', { timeout: 20_000 });
   await dialog.getByRole('button', { name: 'Go back' }).click();
-  // The typed text stays, nothing went out.
+  // The typed text stays.
   await expect(box).toHaveValue(`To ${IBAN} please`);
-  await expectNotSent(ENT.bob, `Re: ${subject}`);
+  await box.fill('I will pay by card in person.');
+  await box.press('Control+Enter');
+  await expect(box).toHaveValue('', { timeout: 30_000 });
+  // One reply: the stopped one went nowhere.
+  await expectSentOnce(ENT.bob, `Re: ${subject}`);
   await alice.context().close();
 });
 
@@ -530,13 +604,57 @@ test('item 5: the send dialog fits at 390 px', async ({ browser }) => {
   await alice.context().close();
 });
 
-test('item 5: the admin sets the rules on the plugin page', async ({ browser }) => {
+test('item 5: a keyword the admin adds on the plugin page warns at the next send', async ({ browser }) => {
+  const word = `Projekt-${RUN}`;
   const admin = await adminContext(browser);
   const page = await admin.newPage();
   await page.goto(`/admin/plugins/${SEND}`);
   await expect(page.getByText('IBANs', { exact: true }).first()).toBeVisible({ timeout: 30_000 });
-  await expect(page.getByText('Payment card numbers', { exact: true }).first()).toBeVisible();
-  await expect(page.getByText('Blocked file types', { exact: true }).first()).toBeVisible();
+  const keywords = page.getByRole('textbox', { name: 'Keywords', exact: true });
+  await keywords.fill(`TOPSECRET-${RUN}\n${word}`);
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
+  await expect.poll(async () => {
+    const res = await admin.request.get(`/api/admin/plugins/${SEND}/config?public=1`);
+    return String((await res.json()).keywords ?? '');
+  }, { timeout: 20_000 }).toContain(word);
   await shot(page, 'e-send-admin');
   await admin.close();
+
+  const subject = `Send admin keyword ${RUN}`;
+  const alice = await userPage(browser, ENT.alice);
+  await pluginsReady(alice);
+  await compose(alice, [ENT.bob], subject, `About ${word}.`);
+  await pressSend(alice);
+  // TOPSECRET is a block rule; the new word is on the same list, so it blocks too.
+  await expect(sendDialog(alice)).toContainText(word, { timeout: 20_000 });
+  await alice.keyboard.press('Escape');
+  await alice.context().close();
+  await setConfig(browser, SEND, { keywords: `TOPSECRET-${RUN}` });
+});
+
+// A required send check that never started used to let every message through.
+test('item 5: sending is held while the required check isn't running', async ({ browser }) => {
+  const subject = `Send held ${RUN}`;
+  const alice = await userPage(browser, ENT.alice);
+  await pluginsReady(alice);
+  // From now on the plugin frames can't load: the next start of the plugins fails.
+  await alice.context().route('**/plugin-sandbox**', (route) => route.abort());
+  await alice.reload();
+  await expect(alice.locator('[data-testid="email-list-item"]').first()).toBeVisible({ timeout: 60_000 });
+  await compose(alice, [ENT.bob], subject, 'Nothing to check here.');
+  await pressSend(alice);
+  // First it waits for the check, then says it isn't running; once the start
+  // has failed for good it says it stopped working.
+  await expect(alice.getByText(/A check your organisation requires (isn't running|has stopped working)/).first()).toBeVisible({ timeout: 45_000 });
+  await expect(alice.locator('[data-testid="email-composer"]')).toBeVisible();
+  await shot(alice, 'e-send-held');
+  // With the plugins running again the same message goes, once: the held
+  // send went nowhere.
+  await alice.context().unroute('**/plugin-sandbox**');
+  await alice.reload();
+  await pluginsReady(alice);
+  await compose(alice, [ENT.bob], subject, 'Nothing to check here.');
+  await pressSend(alice);
+  await expectSentOnce(ENT.bob, subject);
+  await alice.context().close();
 });
