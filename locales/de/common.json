@@ -1308,6 +1308,20 @@
     "severity_warning": "Warnung",
     "severity_critical": "Wichtig"
   },
+  "vacation_templates": {
+    "title": "Vorlagen Ihrer Organisation",
+    "description": "Beginnen Sie mit einer Antwort, die Ihre Organisation vorbereitet hat. Den Text können Sie danach ändern.",
+    "pick_label": "Vorlage verwenden",
+    "pick_placeholder": "Vorlage auswählen",
+    "deputy_label": "Adresse der Vertretung",
+    "deputy_placeholder": "kollegin@example.com",
+    "deputy_hint": "Die Antwort nennt diese Person für dringende Anliegen.",
+    "deputy_missing": "Geben Sie zuerst die Adresse Ihrer Vertretung ein.",
+    "deputy_name_label": "Name der Vertretung",
+    "deputy_name_missing": "Geben Sie zuerst den Namen Ihrer Vertretung ein.",
+    "apply": "Diesen Text verwenden",
+    "apply_hint": "Ersetzt Betreff und Text unten."
+  },
   "third_party": {
     "push_needs_relay": "Push-Benachrichtigungen brauchen ein Push-Relay Ihrer Organisation, und es ist keines eingerichtet. Neue E-Mails werden weiterhin angezeigt, solange die App geöffnet ist.",
     "relay_desc": "Es werden nur die eigenen Relays Ihrer Organisation angeboten, weil dieser Server keine externen Dienste kontaktiert.",

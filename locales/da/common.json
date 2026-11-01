@@ -1308,6 +1308,20 @@
     "severity_warning": "Advarsel",
     "severity_critical": "Vigtigt"
   },
+  "vacation_templates": {
+    "title": "Organisationens skabeloner",
+    "description": "Start med et svar, din organisation har skrevet. Du kan ændre teksten bagefter.",
+    "pick_label": "Brug en skabelon",
+    "pick_placeholder": "Vælg en skabelon",
+    "deputy_label": "Stedfortræderens adresse",
+    "deputy_placeholder": "kollega@example.com",
+    "deputy_hint": "Svaret nævner denne kollega ved hastesager.",
+    "deputy_missing": "Indtast først din stedfortræders adresse.",
+    "deputy_name_label": "Stedfortræderens navn",
+    "deputy_name_missing": "Indtast først din stedfortræders navn.",
+    "apply": "Brug denne tekst",
+    "apply_hint": "Erstatter emnet og teksten nedenfor."
+  },
   "third_party": {
     "push_needs_relay": "Push-notifikationer kræver et push-relæ, som din organisation driver, og der er ikke sat noget op. Ny mail vises stadig, mens appen er åben.",
     "relay_desc": "Kun din organisations egne relæer tilbydes, fordi denne server ikke kontakter eksterne tjenester.",

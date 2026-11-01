@@ -1308,6 +1308,20 @@
     "severity_warning": "Attenzione",
     "severity_critical": "Importante"
   },
+  "vacation_templates": {
+    "title": "Modelli dell'organizzazione",
+    "description": "Parti da una risposta scritta dalla tua organizzazione. Puoi modificare il testo dopo.",
+    "pick_label": "Usa un modello",
+    "pick_placeholder": "Scegli un modello",
+    "deputy_label": "Indirizzo del sostituto",
+    "deputy_placeholder": "collega@example.com",
+    "deputy_hint": "La risposta indica questa persona per le questioni urgenti.",
+    "deputy_missing": "Inserisci prima l'indirizzo del tuo sostituto.",
+    "deputy_name_label": "Nome del sostituto",
+    "deputy_name_missing": "Inserisci prima il nome del tuo sostituto.",
+    "apply": "Usa questo testo",
+    "apply_hint": "Sostituisce l'oggetto e il testo qui sotto."
+  },
   "third_party": {
     "push_needs_relay": "Le notifiche push richiedono un relay push gestito dalla tua organizzazione, e non ne è configurato nessuno. La nuova posta compare comunque finché l'app è aperta.",
     "relay_desc": "Vengono proposti solo i relay della tua organizzazione, perché questo server non contatta servizi esterni.",

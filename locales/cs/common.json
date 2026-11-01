@@ -1308,6 +1308,20 @@
     "severity_warning": "Upozornění",
     "severity_critical": "Důležité"
   },
+  "vacation_templates": {
+    "title": "Šablony organizace",
+    "description": "Začněte odpovědí, kterou připravila vaše organizace. Text pak můžete upravit.",
+    "pick_label": "Použít šablonu",
+    "pick_placeholder": "Vyberte šablonu",
+    "deputy_label": "Adresa zástupce",
+    "deputy_placeholder": "kolega@example.com",
+    "deputy_hint": "Odpověď uvede tohoto kolegu pro naléhavé záležitosti.",
+    "deputy_missing": "Nejdřív zadejte adresu svého zástupce.",
+    "deputy_name_label": "Jméno zástupce",
+    "deputy_name_missing": "Nejdřív zadejte jméno svého zástupce.",
+    "apply": "Použít tento text",
+    "apply_hint": "Nahradí předmět a text níže."
+  },
   "third_party": {
     "push_needs_relay": "Push oznámení potřebují push relay provozovaný vaší organizací a žádný není nastaven. Nová pošta se dál zobrazuje, dokud je aplikace otevřená.",
     "relay_desc": "Nabízejí se jen vlastní relaye vaší organizace, protože tento server nekontaktuje externí služby.",

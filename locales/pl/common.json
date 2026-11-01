@@ -1308,6 +1308,20 @@
     "severity_warning": "Ostrzeżenie",
     "severity_critical": "Ważne"
   },
+  "vacation_templates": {
+    "title": "Szablony organizacji",
+    "description": "Zacznij od odpowiedzi przygotowanej przez Twoją organizację. Tekst możesz potem zmienić.",
+    "pick_label": "Użyj szablonu",
+    "pick_placeholder": "Wybierz szablon",
+    "deputy_label": "Adres zastępcy",
+    "deputy_placeholder": "kolega@example.com",
+    "deputy_hint": "Odpowiedź wskaże tę osobę w pilnych sprawach.",
+    "deputy_missing": "Najpierw wpisz adres swojego zastępcy.",
+    "deputy_name_label": "Imię i nazwisko zastępcy",
+    "deputy_name_missing": "Najpierw wpisz imię i nazwisko zastępcy.",
+    "apply": "Użyj tego tekstu",
+    "apply_hint": "Zastępuje temat i tekst poniżej."
+  },
   "third_party": {
     "push_needs_relay": "Powiadomienia push wymagają przekaźnika push prowadzonego przez Twoją organizację, a żaden nie jest skonfigurowany. Nowe wiadomości nadal pojawiają się, gdy aplikacja jest otwarta.",
     "relay_desc": "Dostępne są tylko własne przekaźniki Twojej organizacji, ponieważ ten serwer nie łączy się z usługami zewnętrznymi.",

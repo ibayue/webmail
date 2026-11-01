@@ -1308,6 +1308,20 @@
     "severity_warning": "Avertissement",
     "severity_critical": "Important"
   },
+  "vacation_templates": {
+    "title": "Modèles de l'organisation",
+    "description": "Partez d'une réponse rédigée par votre organisation. Vous pouvez modifier le texte ensuite.",
+    "pick_label": "Utiliser un modèle",
+    "pick_placeholder": "Choisissez un modèle",
+    "deputy_label": "Adresse du suppléant",
+    "deputy_placeholder": "collegue@example.com",
+    "deputy_hint": "La réponse indique cette personne pour les urgences.",
+    "deputy_missing": "Saisissez d'abord l'adresse de votre suppléant.",
+    "deputy_name_label": "Nom du suppléant",
+    "deputy_name_missing": "Saisissez d'abord le nom de votre suppléant.",
+    "apply": "Utiliser ce texte",
+    "apply_hint": "Remplace l'objet et le texte ci-dessous."
+  },
   "third_party": {
     "push_needs_relay": "Les notifications push nécessitent un relais push géré par votre organisation, et aucun n'est configuré. Les nouveaux messages s'affichent toujours tant que l'application est ouverte.",
     "relay_desc": "Seuls les relais de votre organisation sont proposés, car ce serveur ne contacte pas de services extérieurs.",

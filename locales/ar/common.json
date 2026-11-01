@@ -1308,6 +1308,20 @@
     "severity_warning": "تحذير",
     "severity_critical": "هام"
   },
+  "vacation_templates": {
+    "title": "قوالب مؤسستك",
+    "description": "ابدأ من رد كتبته مؤسستك. يمكنك تغيير النص بعد ذلك.",
+    "pick_label": "استخدام قالب",
+    "pick_placeholder": "اختر قالبًا",
+    "deputy_label": "عنوان البديل",
+    "deputy_placeholder": "colleague@example.com",
+    "deputy_hint": "يذكر الرد هذا الزميل للأمور العاجلة.",
+    "deputy_missing": "أدخل عنوان بديلك أولًا.",
+    "deputy_name_label": "اسم البديل",
+    "deputy_name_missing": "أدخل اسم بديلك أولًا.",
+    "apply": "استخدام هذا النص",
+    "apply_hint": "يستبدل الموضوع والنص أدناه."
+  },
   "third_party": {
     "push_needs_relay": "تحتاج الإشعارات الفورية إلى خادم ترحيل تديره مؤسستك، ولم يُعدّ أي خادم. يستمر ظهور البريد الجديد ما دام التطبيق مفتوحًا.",
     "relay_desc": "لا تُعرض إلا خوادم الترحيل الخاصة بمؤسستك، لأن هذا الخادم لا يتصل بخدمات خارجية.",

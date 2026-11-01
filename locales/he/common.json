@@ -1273,6 +1273,20 @@
     "severity_warning": "אזהרה",
     "severity_critical": "חשוב"
   },
+  "vacation_templates": {
+    "title": "תבניות של הארגון",
+    "description": "התחילו מתשובה שהארגון שלכם כתב. אפשר לשנות את הטקסט אחר כך.",
+    "pick_label": "שימוש בתבנית",
+    "pick_placeholder": "בחרו תבנית",
+    "deputy_label": "כתובת הממלא מקום",
+    "deputy_placeholder": "colleague@example.com",
+    "deputy_hint": "התשובה מפנה לעמית הזה בעניינים דחופים.",
+    "deputy_missing": "הזינו קודם את כתובת הממלא מקום.",
+    "deputy_name_label": "שם הממלא מקום",
+    "deputy_name_missing": "הזינו קודם את שם הממלא מקום.",
+    "apply": "שימוש בטקסט הזה",
+    "apply_hint": "מחליף את הנושא והטקסט שלמטה."
+  },
   "third_party": {
     "push_needs_relay": "התראות Push דורשות ממסר Push שהארגון שלך מפעיל, ולא הוגדר אף אחד. דואר חדש עדיין מוצג כל עוד האפליקציה פתוחה.",
     "relay_desc": "מוצעים רק הממסרים של הארגון שלך, כי השרת הזה לא פונה לשירותים חיצוניים.",

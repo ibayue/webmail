@@ -1308,6 +1308,20 @@
     "severity_warning": "Brīdinājums",
     "severity_critical": "Svarīgi"
   },
+  "vacation_templates": {
+    "title": "Organizācijas veidnes",
+    "description": "Sāciet ar atbildi, ko uzrakstījusi jūsu organizācija. Tekstu pēc tam varat mainīt.",
+    "pick_label": "Izmantot veidni",
+    "pick_placeholder": "Izvēlieties veidni",
+    "deputy_label": "Aizvietotāja adrese",
+    "deputy_placeholder": "kolegis@example.com",
+    "deputy_hint": "Atbildē šis kolēģis būs norādīts steidzamiem jautājumiem.",
+    "deputy_missing": "Vispirms ievadiet sava aizvietotāja adresi.",
+    "deputy_name_label": "Aizvietotāja vārds",
+    "deputy_name_missing": "Vispirms ievadiet sava aizvietotāja vārdu.",
+    "apply": "Izmantot šo tekstu",
+    "apply_hint": "Aizstāj tālāk esošo tēmu un tekstu."
+  },
   "third_party": {
     "push_needs_relay": "Push paziņojumiem vajadzīgs jūsu organizācijas uzturēts push relejs, un neviens nav iestatīts. Jauns pasts joprojām tiek rādīts, kamēr lietotne ir atvērta.",
     "relay_desc": "Tiek piedāvāti tikai jūsu organizācijas pašas releji, jo šis serveris nesazinās ar ārējiem pakalpojumiem.",

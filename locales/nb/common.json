@@ -1308,6 +1308,20 @@
     "severity_warning": "Advarsel",
     "severity_critical": "Viktig"
   },
+  "vacation_templates": {
+    "title": "Organisasjonens maler",
+    "description": "Start med et svar organisasjonen din har skrevet. Du kan endre teksten etterpå.",
+    "pick_label": "Bruk en mal",
+    "pick_placeholder": "Velg en mal",
+    "deputy_label": "Stedfortrederens adresse",
+    "deputy_placeholder": "kollega@example.com",
+    "deputy_hint": "Svaret nevner denne kollegaen for hastesaker.",
+    "deputy_missing": "Skriv inn stedfortrederens adresse først.",
+    "deputy_name_label": "Stedfortrederens navn",
+    "deputy_name_missing": "Skriv inn stedfortrederens navn først.",
+    "apply": "Bruk denne teksten",
+    "apply_hint": "Erstatter emnet og teksten nedenfor."
+  },
   "third_party": {
     "push_needs_relay": "Push-varsler trenger et push-relé som organisasjonen din driver, og det er ikke satt opp noe. Ny e-post vises fortsatt mens appen er åpen.",
     "relay_desc": "Bare organisasjonens egne reléer tilbys, fordi denne serveren ikke kontakter eksterne tjenester.",

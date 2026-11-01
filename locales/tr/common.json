@@ -1308,6 +1308,20 @@
     "severity_warning": "Uyarı",
     "severity_critical": "Önemli"
   },
+  "vacation_templates": {
+    "title": "Kuruluş şablonları",
+    "description": "Kuruluşunuzun yazdığı bir yanıtla başlayın. Metni sonra değiştirebilirsiniz.",
+    "pick_label": "Şablon kullan",
+    "pick_placeholder": "Bir şablon seçin",
+    "deputy_label": "Vekilin adresi",
+    "deputy_placeholder": "meslektas@example.com",
+    "deputy_hint": "Yanıt, acil işler için bu kişiyi belirtir.",
+    "deputy_missing": "Önce vekilinizin adresini girin.",
+    "deputy_name_label": "Vekilin adı",
+    "deputy_name_missing": "Önce vekilinizin adını girin.",
+    "apply": "Bu metni kullan",
+    "apply_hint": "Aşağıdaki konu ve metnin yerine geçer."
+  },
   "third_party": {
     "push_needs_relay": "Anlık bildirimler için kuruluşunuzun işlettiği bir push rölesi gerekir ve hiçbiri ayarlanmamış. Uygulama açıkken yeni postalar yine de görünür.",
     "relay_desc": "Bu sunucu dış hizmetlerle bağlantı kurmadığı için yalnızca kuruluşunuzun kendi röleleri sunulur.",

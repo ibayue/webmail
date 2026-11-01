@@ -1308,6 +1308,20 @@
     "severity_warning": "Avertisment",
     "severity_critical": "Important"
   },
+  "vacation_templates": {
+    "title": "Șabloanele organizației",
+    "description": "Porniți de la un răspuns scris de organizația dvs. Puteți schimba textul după aceea.",
+    "pick_label": "Folosiți un șablon",
+    "pick_placeholder": "Alegeți un șablon",
+    "deputy_label": "Adresa înlocuitorului",
+    "deputy_placeholder": "coleg@example.com",
+    "deputy_hint": "Răspunsul îl indică pe acest coleg pentru probleme urgente.",
+    "deputy_missing": "Introduceți mai întâi adresa înlocuitorului.",
+    "deputy_name_label": "Numele înlocuitorului",
+    "deputy_name_missing": "Introduceți mai întâi numele înlocuitorului.",
+    "apply": "Folosiți acest text",
+    "apply_hint": "Înlocuiește subiectul și textul de mai jos."
+  },
   "third_party": {
     "push_needs_relay": "Notificările push au nevoie de un releu push administrat de organizația dvs., iar niciunul nu este configurat. E-mailurile noi apar în continuare cât timp aplicația este deschisă.",
     "relay_desc": "Sunt oferite doar releele proprii ale organizației dvs., deoarece acest server nu contactează servicii externe.",

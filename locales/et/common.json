@@ -1308,6 +1308,20 @@
     "severity_warning": "Hoiatus",
     "severity_critical": "Oluline"
   },
+  "vacation_templates": {
+    "title": "Organisatsiooni mallid",
+    "description": "Alusta vastusest, mille sinu organisatsioon on kirjutanud. Teksti saad hiljem muuta.",
+    "pick_label": "Kasuta malli",
+    "pick_placeholder": "Vali mall",
+    "deputy_label": "Asendaja aadress",
+    "deputy_placeholder": "kolleeg@example.com",
+    "deputy_hint": "Vastus nimetab selle kolleegi kiireloomuliste asjade jaoks.",
+    "deputy_missing": "Sisesta kõigepealt oma asendaja aadress.",
+    "deputy_name_label": "Asendaja nimi",
+    "deputy_name_missing": "Sisesta kõigepealt oma asendaja nimi.",
+    "apply": "Kasuta seda teksti",
+    "apply_hint": "Asendab allpool oleva teema ja teksti."
+  },
   "third_party": {
     "push_needs_relay": "Tõuketeavitused vajavad sinu organisatsiooni hallatavat push-releed, kuid ühtegi pole seadistatud. Uued kirjad kuvatakse endiselt, kuni rakendus on avatud.",
     "relay_desc": "Pakutakse ainult sinu organisatsiooni enda releesid, sest see server ei võta ühendust väliste teenustega.",
