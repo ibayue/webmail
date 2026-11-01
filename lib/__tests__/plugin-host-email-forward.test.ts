@@ -19,6 +19,7 @@ vi.mock('@/stores/toast-store', () => ({
 }));
 
 import { dispatchApiCall } from '../plugin-sandbox/host-api';
+import type { OutgoingEmail } from '../plugin-types';
 
 function plugin(perms: string[], id = 'e-invoice'): InstalledPlugin {
   return {
@@ -181,6 +182,29 @@ describe('api.email.forward', () => {
       expect(await pending).toEqual({ sent: false, reason: 'stopped' });
       expect(seen).toEqual([expect.objectContaining({ subject: 'Fwd: Rechnung 2026-117', to: ['books@example.com'] })]);
       expect(sendEmail).not.toHaveBeenCalled();
+    } finally {
+      off.dispose();
+    }
+  });
+
+  it("gives send checks the note, the recipients outside and what the attachments really are", async () => {
+    const seen: OutgoingEmail[] = [];
+    client.fetchBlobArrayBuffer = vi.fn(async (blobId: string) => new TextEncoder().encode(blobId === 'pdf-1' ? 'MZ' : '<Invoice/>').buffer);
+    const off = emailHooks.onBeforeEmailSend.register('send-checks', (outgoing: OutgoingEmail) => { seen.push(outgoing); return false; });
+    try {
+      const pending = call(FORWARDER, 'email.forward', 'E1', { to: ['books@outside.test', 'ann2@example.com'], text: 'Please book this.' });
+      await answerDialog(true);
+      expect(await pending).toEqual({ sent: false, reason: 'stopped' });
+      expect(seen[0]).toMatchObject({
+        surface: 'plugin-forward',
+        mode: 'forward',
+        authoredText: 'Please book this.',
+        externalRecipients: ['books@outside.test'],
+      });
+      expect(seen[0].attachments).toEqual([
+        { name: 'invoice.pdf', type: 'application/pdf', size: 5000, blobId: 'pdf-1', sniffedType: 'application/x-msdownload' },
+        { name: 'xrechnung.xml', type: 'application/xml', size: 3000, blobId: 'xml-1', sniffedType: 'text/plain', textExcerpt: '<Invoice/>' },
+      ]);
     } finally {
       off.dispose();
     }

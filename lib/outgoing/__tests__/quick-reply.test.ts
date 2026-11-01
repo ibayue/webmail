@@ -134,6 +134,14 @@ describe('prepareQuickReply and plugin send checks', () => {
     expect(seen[0].textBody).toContain('IBAN DE89370400440532013000');
   });
 
+  it('hands over the typed text and the recipients outside the organisation', async () => {
+    const seen: OutgoingEmail[] = [];
+    emailHooks.onBeforeEmailSend.register('guard', (email: OutgoingEmail) => { seen.push(email); return undefined; });
+    expect(await prepareQuickReply({ ...input(text), body: 'Card 4242 4242 4242 4242', to: ['bob@example.com', 'Eve@Other.test'] })).not.toBeNull();
+    expect(seen[0].authoredText).toBe('Card 4242 4242 4242 4242');
+    expect(seen[0].externalRecipients).toEqual(['eve@other.test']);
+  });
+
   it('fails closed when a check crashes', async () => {
     emailHooks.onBeforeEmailSend.register('guard', () => { throw new Error('boom'); });
     const stopped: string[] = [];

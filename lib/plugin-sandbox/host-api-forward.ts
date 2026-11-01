@@ -26,6 +26,8 @@ import { emailHooks } from '../plugin-hooks';
 import { announceSent } from '../plugin-after-send';
 import { buildForwardSubject } from '../subject-prefix';
 import { finalizeOutgoing, runPreSendChecks } from '../outgoing/send-pipeline';
+import { runPluginSendCheck } from '../outgoing/plugin-send-check';
+import { externalRecipientsFor, inspectAttachments } from '../outgoing/send-check-payload';
 import { automaticLabel, classifyOutgoing } from '../outgoing/classification';
 import { whenPolicySettled } from '@/stores/policy-store';
 import { toast } from '@/stores/toast-store';
@@ -193,9 +195,21 @@ export async function doEmailForward(
       textBody: body,
       identityId: identity.id,
       fromEmail: identity.email,
-      attachments: attachments.map((a) => ({ name: a.name || 'attachment', type: a.type || 'application/octet-stream', size: a.size })),
+      // The original's parts, read where they are (the message's own account).
+      attachments: await inspectAttachments(attachments.map((a) => ({
+        name: a.name || 'attachment',
+        type: a.type || 'application/octet-stream',
+        size: a.size,
+        blobId: a.blobId,
+        load: (bytes: number) => client.fetchBlobArrayBuffer(a.blobId, a.name || undefined, a.type || undefined, sourceAccountId, bytes),
+      }))),
+      surface: 'plugin-forward',
+      mode: 'forward',
+      // The plugin's note is the only text written for this forward.
+      authoredText: note,
+      externalRecipients: await externalRecipientsFor(context),
     };
-    if ((await emailHooks.onBeforeEmailSend.interceptOutcome(outgoing)) !== 'allowed') return { sent: false, reason: 'stopped' };
+    if ((await runPluginSendCheck(outgoing)) !== 'allowed') return { sent: false, reason: 'stopped' };
   }
 
   // The attachments are blobs of the account the original is in; a message

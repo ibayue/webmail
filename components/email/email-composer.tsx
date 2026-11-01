@@ -113,6 +113,8 @@ import { wantsSignatureSeparator } from "@/lib/signature-delimiter";
 import { finalizeOutgoing, runPreSendChecks, type OutgoingContext } from "@/lib/outgoing/send-pipeline";
 import { classifyOutgoing, isLabelRequiredError, labelMissing, labelsPolicyFor, resolveLabel, type OriginalMessage } from "@/lib/outgoing/classification";
 import { beginLabelTakeover, endLabelTakeover } from "@/lib/outgoing/classification-raw";
+import { runPluginSendCheck } from "@/lib/outgoing/plugin-send-check";
+import { externalRecipientsFor, inspectAttachments, sniffFile } from "@/lib/outgoing/send-check-payload";
 import { whenPolicySettled } from "@/stores/policy-store";
 import { ClassificationLabelPicker, type ClassificationPickerHandle } from "./classification-label-picker";
 import { useComposerClassification } from "./use-composer-classification";
@@ -2220,10 +2222,12 @@ export function EmailComposer({
     // Let plugins veto each upload before it's queued.
     const allowedFiles: File[] = [];
     for (const file of files) {
+      const sniffedType = emailHooks.onBeforeAttachmentUpload.size > 0 ? await sniffFile(file) : undefined;
       const ok = await emailHooks.onBeforeAttachmentUpload.intercept({
         name: file.name,
         type: file.type || 'application/octet-stream',
         size: file.size,
+        ...(sniffedType ? { sniffedType } : {}),
       });
       if (ok) allowedFiles.push(file);
     }
@@ -3608,8 +3612,16 @@ export function EmailComposer({
     try {
       const effectiveDelayedUntil = await resolveDelayedUntil(delayedUntil);
       // Let plugins veto the send (external-mail warning, mistyped-domain
-      // guards, etc.). Returning false from any handler aborts before either
-      // the S/MIME or standard JMAP path runs.
+      // guards, send checks). Returning false from any handler aborts before
+      // either the S/MIME or standard JMAP path runs. What a send check needs
+      // beyond the bodies (lib/outgoing/send-check-payload.ts) is worked out
+      // only while a plugin listens.
+      const checking = emailHooks.onBeforeEmailSend.size > 0;
+      const sendClient = composerClientRef.current ?? client;
+      const readBlob = (blobId: string, name: string, type: string, bytes: number) => (sendClient
+        ? sendClient.fetchBlobArrayBuffer(blobId, name, type, undefined, bytes)
+        : Promise.reject(new Error('No client')));
+      const sentAttachments = attachmentsRef.current.filter(att => att.blobId && !att.uploading && !att.error);
       const sendablePreview: OutgoingEmail = {
         to: toAddresses.map(r => formatRecipient(r.name, r.email)),
         cc: ccAddresses.map(r => formatRecipient(r.name, r.email)),
@@ -3619,12 +3631,28 @@ export function EmailComposer({
         textBody: finalBody,
         identityId: currentIdentity?.id || '',
         fromEmail,
-        attachments: attachmentsRef.current
-          .filter(att => att.blobId && !att.uploading && !att.error)
-          .map(a => ({ name: a.name, type: a.type || 'application/octet-stream', size: a.size })),
+        attachments: checking
+          ? await inspectAttachments([
+            ...sentAttachments.map(a => ({
+              name: a.name, type: a.type, size: a.size, blobId: a.blobId, file: a.file,
+              load: (bytes: number) => readBlob(a.blobId!, a.name, a.type, bytes),
+            })),
+            ...inlineAttachments.map(a => ({
+              name: a.name, type: a.type, size: a.size, blobId: a.blobId, inline: true,
+              load: (bytes: number) => readBlob(a.blobId, a.name, a.type, bytes),
+            })),
+          ])
+          : sentAttachments.map(a => ({ name: a.name, type: a.type || 'application/octet-stream', size: a.size, blobId: a.blobId })),
         inReplyTo: threadingHeaders?.inReplyTo?.[0],
+        surface: 'composer',
+        mode,
+        authoredText: extractUserAuthoredText(
+          plainTextMode ? plainTextBodyWithoutSignature(body, signatureIdentity) : stripEmbeddedSignatureHtml(body),
+          { plainTextMode, forwardedSeparator: tQuote('forwarded_separator') },
+        ),
+        externalRecipients: checking ? await externalRecipientsFor(outgoingContext) : [],
       };
-      const sendCheck = await emailHooks.onBeforeEmailSend.interceptOutcome(sendablePreview);
+      const sendCheck = await runPluginSendCheck(sendablePreview);
       if (sendCheck !== 'allowed') {
         // A plugin vetoed the send (it is expected to show its own UI).
         // Leave a trace so a silent no-op send is diagnosable (#592).

@@ -33,6 +33,7 @@ import { clearSectionTitle } from './section-titles';
 import { cancelPluginProxyRequests } from './proxy-client';
 import { cancelConnectFor } from './connect-dialog';
 import { isHookHandedOver } from './host-features';
+import { hookArgsFor } from './hook-payload';
 import type { SlotName } from '../plugin-types';
 import { PLUGIN_REFUSED_ERROR, pluginAllowed } from '../outgoing-hosts';
 
@@ -294,8 +295,10 @@ async function startSandboxedPlugin(plugin: InstalledPlugin): Promise<void> {
       // hook is skipped: copies older than the release that steps back on
       // its own would ask twice (host-features.ts). Asked per call, so
       // turning the core switch off gives the plugin its hook back.
+      // Parts of the arguments that need another permission are cut per
+      // plugin (hook-payload.ts).
       const pluginId = plugin.id;
-      const proxy = (...args: unknown[]) => (isHookHandedOver(pluginId, hookName) ? undefined : bg.invokeHook(hookName, args));
+      const proxy = (...args: unknown[]) => (isHookHandedOver(pluginId, hookName) ? undefined : bg.invokeHook(hookName, hookArgsFor(plugin, hookName, args)));
       hookDisposables.push(bus.register(plugin.id, proxy as (...a: unknown[]) => unknown));
       if (hookName === 'onEmailOpen') openHandler = proxy;
     }

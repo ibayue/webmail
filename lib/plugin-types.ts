@@ -1076,6 +1076,30 @@ export interface MailtoContext {
  * copy. Use to inject signatures, rewrite links, strip tracking pixels from
  * forwards, encrypt the body, etc. Return undefined to pass through unchanged.
  */
+/** An attachment of an OutgoingEmail. */
+export interface OutgoingAttachment {
+  name: string;
+  /** The type the file was attached with (often the browser's guess from the extension). */
+  type: string;
+  size: number;
+  /** onBeforeEmailSend, 1.20 and later: the uploaded blob. */
+  blobId?: string;
+  /** onBeforeEmailSend, 1.20 and later: an image shown in the body (pasted or quoted). */
+  inline?: boolean;
+  /**
+   * onBeforeEmailSend, 1.20 and later: the type the file's first bytes say
+   * it is (application/x-msdownload for a program, application/zip, ...);
+   * absent when Bulwark knows no signature for them or couldn't read them.
+   */
+  sniffedType?: string;
+  /**
+   * onBeforeEmailSend, 1.20 and later, plugins with `email:blob-read` only:
+   * up to the first megabyte of a text attachment (text/*, CSV, JSON, XML,
+   * calendar and contact files) as text.
+   */
+  textExcerpt?: string;
+}
+
 export interface OutgoingEmail {
   to: string[];
   cc: string[];
@@ -1086,7 +1110,7 @@ export interface OutgoingEmail {
   identityId: string;
   /** Sender email derived from the active identity (incl. sub-address tag, when set) */
   fromEmail?: string;
-  attachments: { name: string; type: string; size: number }[];
+  attachments: OutgoingAttachment[];
   /** Original message id when this is a reply or forward */
   inReplyTo?: string;
   /** Free-form custom headers added by the composer or earlier handlers */
@@ -1098,6 +1122,21 @@ export interface OutgoingEmail {
   surface?: 'composer' | 'quick-reply' | 'plugin-forward';
   /** compose, reply, replyAll or forward (onBeforeEmailSend, 1.20 and later). */
   mode?: 'compose' | 'reply' | 'replyAll' | 'forward';
+  /**
+   * onBeforeEmailSend, 1.20 and later: what the user wrote, as plain text,
+   * without the quoted original of a reply or forward and without the
+   * signature. Check this rather than the bodies, or a number in the quoted
+   * mail warns on every reply.
+   */
+  authoredText?: string;
+  /**
+   * onBeforeEmailSend, 1.20 and later: the recipients (To, Cc and Bcc)
+   * outside the organisation of the account the mail goes out from, as bare
+   * lowercase addresses. The host works it out from the account's identity
+   * domains and the admin's organisation domains, also when the admin's
+   * recipient warning is off. Empty when every recipient is internal.
+   */
+  externalRecipients?: string[];
 }
 /**
  * Passed to onBeforeDraftAutoSave handlers as a transform value.
@@ -1184,6 +1223,11 @@ export interface AttachmentInfo {
   blobId?: string;
   /** The email this attachment belongs to (download / preview) */
   emailId?: string;
+  /**
+   * onBeforeAttachmentUpload, 1.20 and later, for a file from this device:
+   * the type its first bytes say it is (see OutgoingAttachment.sniffedType).
+   */
+  sniffedType?: string;
 }
 
 /**

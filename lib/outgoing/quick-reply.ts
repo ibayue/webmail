@@ -4,6 +4,8 @@ import { currentSignatureIdentity } from '@/lib/org/signature-state';
 import { findUnfilledPlaceholders, type PlaceholderWords } from '@/lib/placeholder-check';
 import { finalizeOutgoing, runPreSendChecks, type OutgoingBodies } from './send-pipeline';
 import { runPluginSendCheck, type PluginSendCheckOutcome } from './plugin-send-check';
+import { externalRecipientsFor } from './send-check-payload';
+import { emailHooks } from '@/lib/plugin-hooks';
 // Registers the organisation signature check and the disclaimer.
 import '@/lib/org/outgoing';
 
@@ -111,6 +113,9 @@ export async function prepareQuickReply(input: {
     inReplyTo: input.inReplyTo,
     surface: 'quick-reply',
     mode: 'reply',
+    // The quote isn't part of a quick reply: the typed text is all the user wrote.
+    authoredText: body,
+    externalRecipients: emailHooks.onBeforeEmailSend.size > 0 ? await externalRecipientsFor(context) : [],
   });
   if (outcome !== 'allowed') {
     input.onSendCheckStopped?.(outcome);
