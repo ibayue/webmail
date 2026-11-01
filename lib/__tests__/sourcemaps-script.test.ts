@@ -4,9 +4,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { gzipSync } from 'node:zlib';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-// @ts-expect-error plain .mjs without types
 import { check, collect, mapReferences } from '../../scripts/sourcemaps.mjs';
-// @ts-expect-error plain .mjs without types
 import { buildZip } from '../../scripts/lite/lib.mjs';
 
 // CI builds source maps for the error tracker; none may ship (images, the
