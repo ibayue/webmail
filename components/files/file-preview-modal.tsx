@@ -13,6 +13,7 @@ import { EmlPreview, type EmlAttachment, type ParsedEml } from "@/components/fil
 import { FilePreviewPluginSection } from "@/components/files/file-preview-plugin-section";
 import { canOpenUrlInNewWindow } from "@/lib/standalone-display";
 import { saveBlobAs } from "@/lib/download-guard";
+import { noMediaSavingProps } from "@/lib/device-frame";
 import { useDevicePolicy, useStrictestDevices } from "@/hooks/use-device-policy";
 import { Watermark, useWatermarkText } from "@/components/device/watermark";
 import { stripBidiControls } from "@/lib/bidi";
@@ -383,7 +384,7 @@ export function FilePreviewModal({ name, onClose, onDownload, getFileContent, fi
         )}
 
         {!loading && !error && fileType === "image" && objectUrl && (
-          <div className="absolute inset-0" onContextMenu={downloadsOff ? (e) => e.preventDefault() : undefined}>
+          <div className="absolute inset-0" {...noMediaSavingProps(downloadsOff)}>
             <ZoomableImage src={objectUrl} alt={name} onBackgroundClick={onClose} />
           </div>
         )}

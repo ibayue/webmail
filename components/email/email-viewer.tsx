@@ -153,6 +153,7 @@ import { downloadAllowed, saveBlobAs } from "@/lib/download-guard";
 import { useDevicePolicy } from "@/hooks/use-device-policy";
 import { Watermark, useWatermarkText } from "@/components/device/watermark";
 import { watermarkForPrint } from "@/lib/watermark";
+import { NO_SAVE_MEDIA_CSS, blockMediaSaving } from "@/lib/device-frame";
 import { FilePreviewModal } from "@/components/files/file-preview-modal";
 import { useWopiStatus, canWopiOpen } from "@/hooks/use-wopi-status";
 import { parseTnef, isTnefAttachment } from "@/lib/tnef";
@@ -3256,8 +3257,8 @@ export function EmailViewer({
   pre { white-space: pre-wrap; word-wrap: break-word; }
   ${wordHtmlCSS}
   ${darkModeCSS}
-</style>${devices.noPrint ? '<style>@media print{html,body{display:none!important}}</style>' : ''}</head><body dir="auto">${resolveColorSchemeMedia(effectiveEmailContent.html, recolorDark)}<style>html,body{height:auto!important;min-height:0!important;max-height:none!important}body{overflow-y:hidden!important}</style>${reading.frameCss ? `<style>${reading.frameCss}</style>` : ''}</body></html>`;
-  }, [effectiveEmailContent.html, effectiveEmailContent.isHtml, effectiveEmailContent.hasStyleTag, effectiveEmailContent.externalBlocked, recolorDark, emailHasNativeDarkMode, messageSpacing, bodyLanguage, reading.frameKey, reading.frameCss, appFontSources, devices.noPrint]);
+</style>${devices.noPrint ? '<style>@media print{html,body{display:none!important}}</style>' : ''}${devices.noDownloads ? `<style>${NO_SAVE_MEDIA_CSS}</style>` : ''}</head><body dir="auto">${resolveColorSchemeMedia(effectiveEmailContent.html, recolorDark)}<style>html,body{height:auto!important;min-height:0!important;max-height:none!important}body{overflow-y:hidden!important}</style>${reading.frameCss ? `<style>${reading.frameCss}</style>` : ''}</body></html>`;
+  }, [effectiveEmailContent.html, effectiveEmailContent.isHtml, effectiveEmailContent.hasStyleTag, effectiveEmailContent.externalBlocked, recolorDark, emailHasNativeDarkMode, messageSpacing, bodyLanguage, reading.frameKey, reading.frameCss, appFontSources, devices.noPrint, devices.noDownloads]);
 
   // Unblocking external content is handled by rebuilding the iframe srcDoc:
   // toggling allowExternalContent (both "Load images" and "Trust sender" set
@@ -3556,6 +3557,8 @@ export function EmailViewer({
         // A press in the body closes a mention's card. The page never sees
         // it: the focus is already inside the iframe, so there is no blur.
         doc.addEventListener('mousedown', () => setBodyMention(null), true);
+        // "No downloads": the message's own pictures can't be saved or dragged out either.
+        blockMediaSaving(doc, () => downloadsOffRef.current);
         // Selected text, for the side panel, the onTextSelectionChange hook
         // and the right-click menu plugins may add entries to.
         watchBodySelection(doc, iframe, {

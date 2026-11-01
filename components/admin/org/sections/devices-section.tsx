@@ -45,7 +45,7 @@ export const DEVICE_FIELDS: DeviceField[] = [
   {
     key: 'pushWithoutContent',
     label: 'Push without sender and subject',
-    description: 'Notifications say only “New mail”. The server leaves sender, subject and text out of what it sends to the browser and the push service, also for browsers that still run an old Bulwark.',
+    description: 'Browser notifications say only “New mail”. The server leaves sender, subject and text out of what it sends to the browser and the push service, also for browsers that still run an old Bulwark. The Bulwark mobile app isn’t covered yet: its notifications still show sender and subject.',
     enforced: 'server',
   },
   {

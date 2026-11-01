@@ -8,6 +8,9 @@ import { ZoomableImage } from "@/components/files/zoomable-image";
 import { FilePreviewPluginSection } from "@/components/files/file-preview-plugin-section";
 import type { FileResourceView } from "@/lib/plugin-types";
 import { useCloseOnBack } from "@/hooks/use-close-on-back";
+import { useStrictestDevices } from "@/hooks/use-device-policy";
+import { Watermark, useWatermarkText } from "@/components/device/watermark";
+import { noMediaSavingProps } from "@/lib/device-frame";
 
 interface ImagePreviewModalProps {
   name: string;
@@ -23,6 +26,9 @@ interface ImagePreviewModalProps {
 
 export function ImagePreviewModal({ name, onClose, onDownload, getImageUrl, file, neighbours }: ImagePreviewModalProps) {
   const t = useTranslations("files");
+  // The Files app follows the strictest signed-in account (Organisation > Devices).
+  const downloadsOff = useStrictestDevices().noDownloads;
+  const watermark = useWatermarkText(undefined, { strictest: true });
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -58,7 +64,7 @@ export function ImagePreviewModal({ name, onClose, onDownload, getImageUrl, file
 
   return (
     <PreviewShell name={name} onClose={onClose} onDownload={onDownload ? () => void onDownload(name) : undefined} neighbours={neighbours}>
-      <div className="relative flex-1 min-h-0">
+      <div className="relative flex-1 min-h-0" {...noMediaSavingProps(downloadsOff)}>
         {loading && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             <Spinner label={t("loading")} className="w-8 h-8 text-white/80" />
@@ -72,6 +78,7 @@ export function ImagePreviewModal({ name, onClose, onDownload, getImageUrl, file
         {imageUrl && !error && (
           <ZoomableImage src={imageUrl} alt={name} onBackgroundClick={onClose} />
         )}
+        {imageUrl && !error && <Watermark text={watermark} />}
       </div>
       <FilePreviewPluginSection file={file} />
     </PreviewShell>

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { IconButton } from "@/components/ui/icon-button";
 import { getAttachmentDisplayName } from "@/lib/attachment-name";
 import { cn, formatFileSize } from "@/lib/utils";
+import { noMediaSavingProps } from "@/lib/device-frame";
 import { attachmentIcon } from "./attachment-chips";
 
 export interface ReaderAttachmentItem {
@@ -237,7 +238,7 @@ export function ReaderAttachments<T extends ReaderAttachmentItem>({
   const draw = layout === "cards" ? card : tile;
 
   return (
-    <section aria-label={t("attachments")} className={cn("flex flex-col gap-3", className)} data-testid="reader-attachments" data-layout={layout}>
+    <section aria-label={t("attachments")} className={cn("flex flex-col gap-3", className)} data-testid="reader-attachments" data-layout={layout} {...noMediaSavingProps(downloadsOff)}>
       <div className="flex items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2 text-sm text-muted-foreground">
           <Paperclip className="h-4 w-4 shrink-0" aria-hidden="true" />
