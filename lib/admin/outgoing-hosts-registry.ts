@@ -157,7 +157,7 @@ export const OUTGOING_HOSTS: readonly OutgoingHost[] = [
  * has to be looked at again.
  */
 export const NON_REQUEST_HOSTS: readonly { host: string; files: readonly string[]; why: string }[] = [
-  { host: 'bulwarkmail.org', why: 'docs links, comments and the contact URL in User-Agent headers', files: ['app/(main)/admin/_pages/telemetry.tsx', 'app/api/fetch-ical/route.ts', 'app/api/translate/route.ts','components/admin/org/sections/recovery-section.tsx', 'instrumentation.node.ts', 'lib/telemetry/state.ts', 'lib/telemetry/types.ts'] },
+  { host: 'bulwarkmail.org', why: 'docs links, comments and the contact URL in User-Agent headers', files: ['app/(main)/admin/_pages/telemetry.tsx', 'app/api/fetch-ical/route.ts', 'app/api/translate/route.ts','components/admin/org/sections/recovery-section.tsx', 'components/admin/org/sections/company-calendars-section.tsx', 'components/admin/org/sections/free-busy-section.tsx', 'components/admin/org/sections/labels-section.tsx', 'components/admin/org/sections/out-of-office-calendar-section.tsx', 'components/admin/org/sections/phishing-report-section.tsx', 'instrumentation.node.ts', 'lib/telemetry/state.ts', 'lib/telemetry/types.ts'] },
   { host: 'bulwarkmail.com', why: 'JMAP capability URI', files: ['lib/jmap/client.ts'] },
   { host: 'extensions.bulwarkmail.org', why: 'signed statement type URIs', files: ['lib/admin/directory-keys.ts'] },
   { host: 'www.w3.org', why: 'XML namespaces', files: ['components/ui/flag-icons.tsx', 'lib/favicon-badge.ts'] },
@@ -183,6 +183,8 @@ export const BUILT_URL_FILES: readonly { file: string; why: string }[] = [
   { file: 'app/(main)/admin/_pages/marketplace-detail.tsx', why: "link to an extension's source host, from the directory's answer" },
   { file: 'app/(main)/setup/page.tsx', why: "the instance's own origin, and scheme checks of the admin-entered server URL" },
   { file: 'app/api/plugin-secrets/route.ts', why: "scheme check of a credential's server URL" },
+  { file: 'lib/admin/organisation-policy.ts', why: 'parses and normalises the company calendar feed URLs an admin entered (webcal to https)' },
+  { file: 'components/admin/org/sections/company-calendars-section.tsx', why: 'checks the company calendar feed URL the admin is typing' },
   { file: 'components/calendar/ical-subscription-modal.tsx', why: "webcal:// rewritten to https:// for a feed the user enters" },
   { file: 'components/email/rich-text-editor.tsx', why: "adds the scheme to a link address the user types in the editor" },
   { file: 'lib/admin/branding-asset.ts', why: "scheme checks of admin-configured branding URLs" },
