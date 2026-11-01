@@ -9,6 +9,7 @@ import { getPlugin } from '@/lib/admin/plugin-registry';
 import { getPluginConfig } from '@/lib/admin/plugin-config';
 import { logger } from '@/lib/logger';
 import { DisallowedUrlError, fetchPublicUrl } from '@/lib/security/url-guard';
+import { observeUpstream } from '@/lib/metrics/upstream';
 import { authHeaderFor, credentialOrigin, privateProxyOrigins, type CredentialInject, type CredentialSpec } from './credentials';
 import { getUserCredential, setUserCredentialSecret, userKey, type VaultUser } from './vault';
 import { declaredUserCredential } from './known-plugins';
@@ -278,8 +279,10 @@ async function send(
     signal: init.signal,
     ...(init.body ? { body: init.body } : {}),
   };
-  if (trusted) return fetch(url, { ...request, redirect: 'manual' } as RequestInit);
-  return (await fetchPublicUrl(url, request as never)) as unknown as Response;
+  return observeUpstream('plugin_proxy', async () => {
+    if (trusted) return fetch(url, { ...request, redirect: 'manual' } as RequestInit);
+    return (await fetchPublicUrl(url, request as never)) as unknown as Response;
+  });
 }
 
 function responseHeaders(upstream: Response): Headers {

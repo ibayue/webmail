@@ -31,6 +31,7 @@ export const ADMIN_PAGE_IDS = [
   'marketplace',
   'version',
   'telemetry',
+  'monitoring',
   'logs',
 ] as const;
 
@@ -287,10 +288,24 @@ export const ADMIN_PAGES: readonly AdminPageDef[] = [
     group: 'system',
     keywords: 'telemetry heartbeat anonymous consent privacy',
     sections: [
-      { id: 'status', title: 'Status', keywords: 'enable disable consent' },
+      { id: 'status', title: 'Status', keywords: 'enable disable consent error counts' },
       { id: 'accounts', title: 'Account activity', keywords: 'active total logins' },
       { id: 'endpoint', title: 'Endpoint', keywords: 'collector url' },
       { id: 'payload', title: 'Payload preview', keywords: 'send now json' },
+    ],
+  },
+  {
+    id: 'monitoring',
+    label: 'Monitoring',
+    description: 'Error reports, metrics, health checks and tracing for your own tools',
+    group: 'system',
+    keywords: 'monitoring errors sentry bugsink glitchtip dsn prometheus metrics health probes tracing opentelemetry otel',
+    sections: [
+      { id: 'errors', title: 'Error reporting', keywords: 'dsn sentry bugsink glitchtip sample rate environment' },
+      { id: 'errors-today', title: 'Errors today', keywords: 'count fingerprint top' },
+      { id: 'metrics', title: 'Metrics', keywords: 'prometheus scrape token grafana' },
+      { id: 'health', title: 'Health checks', keywords: 'liveness readiness probe kubernetes docker' },
+      { id: 'tracing', title: 'Tracing', keywords: 'opentelemetry otel otlp jaeger tempo spans traceparent' },
     ],
   },
   {

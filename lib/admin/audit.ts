@@ -89,6 +89,10 @@ export async function auditLog(action: string, detail: Record<string, unknown>, 
     ip,
   };
 
+  // Also in the server log, so LOG_FORMAT=json shippers see admin actions.
+  // The audit file below stays the record the admin panel reads.
+  logger.info(`audit: ${action}`, { audit: entry });
+
   try {
     // One line per entry; the store rotates the local file (audit.log.3 →
     // deleted, .2 → .3, .1 → .2, audit.log → .1) once it passes 10 MB.
