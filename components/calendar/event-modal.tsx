@@ -17,7 +17,7 @@ import { alertRowToOffset, describeAlert, getCalendarDefaultAlerts, newAlertRow,
 import { RecurrenceEditor, buildRecurrenceSummary, isSimpleRecurrenceRule } from "./recurrence-editor";
 import { parseDuration, getEventColor } from "./event-card";
 import { buildAllDayDuration, getEventDisplayEndDate, getEventEndDate, getEventStartDate, getPrimaryCalendarId } from "@/lib/calendar-utils";
-import { displayNow, getEffectiveTimeZone } from "@/lib/timezone";
+import { displayNow, fromWallClock, getEffectiveTimeZone, parseLocalDateTime } from "@/lib/timezone";
 import { createRecurrenceRule, sameRecurrenceRules } from "@/lib/recurrence-rule";
 import { ParticipantInput, type ParticipantInputHandle } from "./participant-input";
 import { ParticipantAvailability } from "./participant-availability";
@@ -562,16 +562,22 @@ export function EventModal({
   // Leaving the form of an existing event goes back to its summary.
   const backToView = useCallback(() => whenDiscarded(() => { resetForm(); setMode("view"); }), [whenDiscarded, resetForm]);
 
-  // The event window the attendees' free/busy is checked against. Parsed in
-  // local time like the save path; an all-day event spans its whole days.
+  // The event window the attendees' free/busy is checked against. The
+  // fields are a wall clock in the effective zone, as the save path labels
+  // them, not in the browser's; an all-day event spans its whole days.
   const availabilityWindow = useMemo(() => {
+    const zone = getEffectiveTimeZone();
+    const instant = (value: string) => {
+      const wall = parseLocalDateTime(value);
+      if (!wall) return null;
+      const date = fromWallClock(wall, zone);
+      return Number.isNaN(date.getTime()) ? null : date;
+    };
     const startStr = allDay ? `${startDate}T00:00:00` : `${startDate}T${startTime || "00:00"}:00`;
     const endStr = allDay ? `${endDate}T23:59:59` : `${endDate}T${endTime || "00:00"}:00`;
-    const start = startDate ? new Date(startStr) : null;
-    const end = endDate ? new Date(endStr) : null;
     return {
-      start: start && !Number.isNaN(start.getTime()) ? start : null,
-      end: end && !Number.isNaN(end.getTime()) ? end : null,
+      start: startDate ? instant(startStr) : null,
+      end: endDate ? instant(endStr) : null,
     };
   }, [startDate, startTime, endDate, endTime, allDay]);
 
