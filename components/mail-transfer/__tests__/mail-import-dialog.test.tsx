@@ -48,6 +48,8 @@ describe('MailImportDialog', () => {
     pick([new File(['From a Tue May  5 10:11:12 2020\nSubject: x\n\nb\n'], 'old.mbox')]);
     await screen.findByText('old.mbox');
     expect(screen.getByText(/format_mbox/)).toBeTruthy();
+    // Import waits until it knows whether an earlier run can be continued.
+    await waitFor(() => expect((screen.getByTestId('mail-import-start') as HTMLButtonElement).disabled).toBe(false));
     fireEvent.click(screen.getByTestId('mail-import-start'));
     expect(startImport).toHaveBeenCalledWith(expect.objectContaining({
       accountId: 'acc2', targetMailboxId: 'shared', keepFolders: false, resume: false,
@@ -67,6 +69,8 @@ describe('MailImportDialog', () => {
     const keep = await screen.findByRole('checkbox', { name: /keep_folders/ });
     expect((keep as HTMLInputElement).checked).toBe(true);
     fireEvent.change(screen.getByTestId('mail-import-target'), { target: { value: '\u0000top' } });
+    // Import waits until it knows whether an earlier run can be continued.
+    await waitFor(() => expect((screen.getByTestId('mail-import-start') as HTMLButtonElement).disabled).toBe(false));
     fireEvent.click(screen.getByTestId('mail-import-start'));
     expect(startImport).toHaveBeenCalledWith(expect.objectContaining({ accountId: 'acc1', targetMailboxId: null, keepFolders: true }));
   });

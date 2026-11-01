@@ -96,7 +96,7 @@ export function MailExportDialog({ request }: { request: ExportRequest }) {
         footer={active ? (
           <>
             <Button variant="outline" onClick={hide}>{t("background")}</Button>
-            <Button variant="destructive" onClick={cancelJob} aria-describedby={`${id}-status`}>{t("cancel_export")}</Button>
+            <Button variant="destructive" onClick={() => cancelJob()} aria-describedby={`${id}-status`}>{t("cancel_export")}</Button>
           </>
         ) : (
           <>

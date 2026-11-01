@@ -5303,7 +5303,13 @@
     "pst_error_encrypted": "Tento soubor Outlooku používá vysoké šifrování, které Bulwark neumí přečíst. V Outlooku exportujte poštu do nového souboru .pst bez šifrování.",
     "pst_error_not_pst": "Tento soubor není datový soubor Outlooku, který by Bulwark uměl přečíst.",
     "pst_error_unreadable": "Bulwark tento soubor Outlooku nedokázal přečíst.",
-    "pst_error_worker": "Čtečka souborů Outlooku se nenačetla. Načtěte stránku znovu a zkuste to ještě jednou."
+    "pst_error_worker": "Čtečka souborů Outlooku se nenačetla. Načtěte stránku znovu a zkuste to ještě jednou.",
+    "error_over_quota": "Schránka je plná, proto se import zastavil. Uvolněte místo a importujte stejné soubory znovu do stejné složky, abyste pokračovali.",
+    "error_forbidden": "Do této složky nesmíte přidávat poštu, proto se import zastavil.",
+    "error_failures": "Příliš mnoho zpráv za sebou selhalo, proto se import zastavil. Importujte stejné soubory později znovu do stejné složky, abyste pokračovali.",
+    "error_network": "Spojení se serverem opakovaně selhalo, proto se import zastavil. Importujte stejné soubory znovu do stejné složky, abyste pokračovali.",
+    "error_busy": "Tyto soubory se už importují v jiné kartě.",
+    "retry_hint": "Importujte stejné soubory znovu do stejné složky, abyste zkusili neúspěšné ještě jednou."
   },
   "mail_export": {
     "menu_export": "Exportovat složku…",

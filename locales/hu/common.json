@@ -5433,7 +5433,13 @@
     "pst_error_encrypted": "Ez az Outlook-fájl erős titkosítást használ, amelyet a Bulwark nem tud olvasni. Az Outlookban exportálja a leveleket egy új, titkosítás nélküli .pst fájlba.",
     "pst_error_not_pst": "Ez a fájl nem olyan Outlook-adatfájl, amelyet a Bulwark olvasni tud.",
     "pst_error_unreadable": "A Bulwark nem tudta beolvasni ezt az Outlook-fájlt.",
-    "pst_error_worker": "Az Outlook-fájlok olvasója nem töltődött be. Töltse újra az oldalt, és próbálja meg ismét."
+    "pst_error_worker": "Az Outlook-fájlok olvasója nem töltődött be. Töltse újra az oldalt, és próbálja meg ismét.",
+    "error_over_quota": "A postafiók megtelt, ezért az importálás leállt. Szabadítson fel helyet, és importálja újra ugyanazokat a fájlokat ugyanabba a mappába a folytatáshoz.",
+    "error_forbidden": "Ebbe a mappába nem adhat hozzá leveleket, ezért az importálás leállt.",
+    "error_failures": "Túl sok üzenet hiúsult meg egymás után, ezért az importálás leállt. Később importálja újra ugyanazokat a fájlokat ugyanabba a mappába a folytatáshoz.",
+    "error_network": "A kapcsolat a szerverrel többször megszakadt, ezért az importálás leállt. Importálja újra ugyanazokat a fájlokat ugyanabba a mappába a folytatáshoz.",
+    "error_busy": "Ezeket a fájlokat már importálja egy másik lap.",
+    "retry_hint": "Importálja újra ugyanazokat a fájlokat ugyanabba a mappába, hogy a sikertelenekkel újra próbálkozzon."
   },
   "mail_export": {
     "menu_export": "Mappa exportálása…",

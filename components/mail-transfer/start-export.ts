@@ -1,5 +1,6 @@
 import { runExport, folderTree, type ExportFolder, type ExportFormat } from "@/lib/mail-export/engine";
 import type { ExportSink } from "@/lib/mail-export/sinks";
+import type { IJMAPClient } from "@/lib/jmap/client-interface";
 import { useAuthStore } from "@/stores/auth-store";
 import { useMailTransferStore } from "@/stores/mail-transfer-store";
 
@@ -14,15 +15,27 @@ export interface StartExportInput {
 
 /** Runs an export as the dialog's job. */
 export function startExport(input: StartExportInput): void {
-  const client = useAuthStore.getState().client;
-  if (!client) return;
+  const auth = useAuthStore.getState();
+  if (!auth.client) return;
+  const client: IJMAPClient = auth.client;
   const controller = new AbortController();
+  let ended: () => void = () => {};
+  const finished = new Promise<void>((resolve) => { ended = resolve; });
   useMailTransferStore.getState().startJob({
     kind: "export",
     controller,
+    scope: auth.activeAccountId ?? "default",
+    finished,
     progress: { phase: "running", exported: 0, failed: 0, failures: [], total: 0, fraction: 0 },
   });
   void (async () => {
+    try {
+      await run();
+    } finally {
+      ended();
+    }
+  })();
+  async function run() {
     let folders: ExportFolder[];
     try {
       folders = input.mailboxId
@@ -46,5 +59,5 @@ export function startExport(input: StartExportInput): void {
       onProgress: (progress) => useMailTransferStore.getState().updateProgress(progress),
     });
     useMailTransferStore.getState().updateProgress(result);
-  })();
+  }
 }

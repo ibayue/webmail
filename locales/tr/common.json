@@ -5433,7 +5433,13 @@
     "pst_error_encrypted": "Bu Outlook dosyası Bulwark'ın okuyamadığı yüksek şifreleme kullanıyor. Outlook'ta e-postaları şifrelemesiz yeni bir .pst dosyasına aktarın.",
     "pst_error_not_pst": "Bu dosya Bulwark'ın okuyabildiği bir Outlook veri dosyası değil.",
     "pst_error_unreadable": "Bulwark bu Outlook dosyasını okuyamadı.",
-    "pst_error_worker": "Outlook dosya okuyucusu yüklenmedi. Sayfayı yeniden yükleyip tekrar deneyin."
+    "pst_error_worker": "Outlook dosya okuyucusu yüklenmedi. Sayfayı yeniden yükleyip tekrar deneyin.",
+    "error_over_quota": "Posta kutusu dolu olduğundan içe aktarım durdu. Yer açın ve devam etmek için aynı dosyaları aynı klasöre yeniden içe aktarın.",
+    "error_forbidden": "Bu klasöre e-posta ekleyemezsiniz, bu yüzden içe aktarım durdu.",
+    "error_failures": "Arka arkaya çok fazla ileti başarısız olduğundan içe aktarım durdu. Devam etmek için aynı dosyaları daha sonra aynı klasöre yeniden içe aktarın.",
+    "error_network": "Sunucuya bağlantı tekrar tekrar başarısız olduğundan içe aktarım durdu. Devam etmek için aynı dosyaları aynı klasöre yeniden içe aktarın.",
+    "error_busy": "Bu dosyalar zaten başka bir sekmede içe aktarılıyor.",
+    "retry_hint": "Başarısız olanları bir kez daha denemek için aynı dosyaları aynı klasöre yeniden içe aktarın."
   },
   "mail_export": {
     "menu_export": "Klasörü dışa aktar…",

@@ -5303,7 +5303,13 @@
     "pst_error_encrypted": "Ce fichier Outlook utilise un chiffrement élevé que Bulwark ne sait pas lire. Dans Outlook, exportez les e-mails dans un nouveau fichier .pst sans chiffrement.",
     "pst_error_not_pst": "Ce fichier n'est pas un fichier de données Outlook que Bulwark sait lire.",
     "pst_error_unreadable": "Bulwark n'a pas pu lire ce fichier Outlook.",
-    "pst_error_worker": "Le lecteur de fichiers Outlook ne s'est pas chargé. Rechargez la page et réessayez."
+    "pst_error_worker": "Le lecteur de fichiers Outlook ne s'est pas chargé. Rechargez la page et réessayez.",
+    "error_over_quota": "La boîte aux lettres est pleine, l'import s'est donc arrêté. Libérez de la place et importez à nouveau les mêmes fichiers dans le même dossier pour reprendre.",
+    "error_forbidden": "Vous ne pouvez pas ajouter de messages à ce dossier, l'import s'est donc arrêté.",
+    "error_failures": "Trop de messages ont échoué à la suite, l'import s'est donc arrêté. Importez à nouveau les mêmes fichiers dans le même dossier plus tard pour reprendre.",
+    "error_network": "La connexion au serveur a échoué plusieurs fois, l'import s'est donc arrêté. Importez à nouveau les mêmes fichiers dans le même dossier pour reprendre.",
+    "error_busy": "Ces fichiers sont déjà en cours d'import dans un autre onglet.",
+    "retry_hint": "Importez à nouveau les mêmes fichiers dans le même dossier pour réessayer ceux qui ont échoué."
   },
   "mail_export": {
     "menu_export": "Exporter le dossier…",

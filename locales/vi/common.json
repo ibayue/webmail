@@ -5445,7 +5445,13 @@
     "pst_error_encrypted": "Tệp Outlook này dùng mã hóa mạnh mà Bulwark không đọc được. Trong Outlook, hãy xuất thư sang một tệp .pst mới không mã hóa.",
     "pst_error_not_pst": "Tệp này không phải tệp dữ liệu Outlook mà Bulwark đọc được.",
     "pst_error_unreadable": "Bulwark không đọc được tệp Outlook này.",
-    "pst_error_worker": "Không tải được trình đọc tệp Outlook. Hãy tải lại trang rồi thử lại."
+    "pst_error_worker": "Không tải được trình đọc tệp Outlook. Hãy tải lại trang rồi thử lại.",
+    "error_over_quota": "Hộp thư đã đầy nên việc nhập đã dừng. Hãy giải phóng dung lượng rồi nhập lại cùng các tệp vào cùng thư mục để tiếp tục.",
+    "error_forbidden": "Bạn không được thêm thư vào thư mục này nên việc nhập đã dừng.",
+    "error_failures": "Quá nhiều thư liên tiếp không nhập được nên việc nhập đã dừng. Hãy nhập lại cùng các tệp vào cùng thư mục sau để tiếp tục.",
+    "error_network": "Kết nối tới máy chủ liên tục thất bại nên việc nhập đã dừng. Hãy nhập lại cùng các tệp vào cùng thư mục để tiếp tục.",
+    "error_busy": "Các tệp này đang được nhập ở một thẻ khác.",
+    "retry_hint": "Nhập lại cùng các tệp vào cùng thư mục để thử lại những thư không nhập được."
   },
   "mail_export": {
     "menu_export": "Xuất thư mục…",

@@ -5433,7 +5433,13 @@
     "pst_error_encrypted": "Denne Outlook-filen bruker høy kryptering, som Bulwark ikke kan lese. Eksporter e-posten i Outlook til en ny .pst-fil uten kryptering.",
     "pst_error_not_pst": "Denne filen er ikke en Outlook-datafil som Bulwark kan lese.",
     "pst_error_unreadable": "Bulwark kunne ikke lese denne Outlook-filen.",
-    "pst_error_worker": "Leseren for Outlook-filer ble ikke lastet. Last inn siden på nytt og prøv igjen."
+    "pst_error_worker": "Leseren for Outlook-filer ble ikke lastet. Last inn siden på nytt og prøv igjen.",
+    "error_over_quota": "Postkassen er full, så importen stoppet. Frigjør plass og importer de samme filene til samme mappe igjen for å fortsette.",
+    "error_forbidden": "Du kan ikke legge e-post i denne mappen, så importen stoppet.",
+    "error_failures": "For mange meldinger på rad mislyktes, så importen stoppet. Importer de samme filene til samme mappe igjen senere for å fortsette.",
+    "error_network": "Tilkoblingen til serveren mislyktes gang på gang, så importen stoppet. Importer de samme filene til samme mappe igjen for å fortsette.",
+    "error_busy": "Disse filene importeres allerede i en annen fane.",
+    "retry_hint": "Importer de samme filene til samme mappe igjen for å prøve de som mislyktes, på nytt."
   },
   "mail_export": {
     "menu_export": "Eksporter mappe…",

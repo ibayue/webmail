@@ -346,6 +346,8 @@ export interface IJMAPClient {
     properties: string[],
     accountId?: string,
     limit?: number,
+    /** `transfer`: a mail export's own request (a 429 doesn't pause the rest of the client). */
+    opts?: { transfer?: boolean },
   ): Promise<Array<Record<string, unknown>>>;
 
   // ── Email mutations ───────────────────────────────────────────

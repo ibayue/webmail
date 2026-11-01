@@ -65,7 +65,7 @@ export async function* openPstSource(file: File, options: SourceOptions): ItemSo
   };
 
   try {
-    worker.postMessage({ type: "open", file, skipBefore: options.skipBefore, maxMessageBytes: options.maxMessageBytes });
+    worker.postMessage({ type: "open", file, skipBefore: options.skipBefore, skipAlso: [...(options.skipAlso ?? [])], maxMessageBytes: options.maxMessageBytes });
     const opened = await next();
     if (opened.type === "abort") throw new DOMException("Import cancelled", "AbortError");
     if (opened.type === "error") throw new PstReadError(opened.code, opened.message);

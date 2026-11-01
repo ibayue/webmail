@@ -104,6 +104,20 @@ describe('MailExportDialog', () => {
     expect(discard).toHaveBeenCalled();
   });
 
+  it('another account signing out leaves the job alone; its own sign-out stops it with the sign-out reason', async () => {
+    const { runBeforeSignOut } = await import('@/lib/sign-out-cleanup');
+    const controller = new AbortController();
+    render(<MailTransferHost />);
+    act(() => {
+      openMailExport({ mailboxId: 'inbox' });
+      useMailTransferStore.getState().startJob({ kind: 'export', controller, scope: 'bulwark-a', finished: Promise.resolve(), progress: { phase: 'running', exported: 1, failed: 0, failures: [], total: 4, fraction: 0.25 } });
+    });
+    await act(() => runBeforeSignOut('bulwark-b'));
+    expect(controller.signal.aborted).toBe(false);
+    await act(() => runBeforeSignOut('bulwark-a'));
+    expect(controller.signal.reason).toBe('signout');
+  });
+
   it('runs on in the background and the chip names the export', () => {
     const controller = new AbortController();
     render(<MailTransferHost />);

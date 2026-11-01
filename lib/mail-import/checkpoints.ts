@@ -12,8 +12,10 @@ export interface ImportCheckpoint {
   /** The Bulwark account that ran the import. */
   scope: string;
   fileName: string;
-  /** Items handled (imported, skipped or failed) from the start of the file. */
+  /** Items done for good (imported or skipped) from the start of the file, without a gap. */
   done: number;
+  /** Items done after the first gap (a message that failed and is tried again). */
+  ahead?: number[];
   imported: number;
   updatedAt: number;
 }

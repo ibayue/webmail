@@ -5433,7 +5433,13 @@
     "pst_error_encrypted": "此 Outlook 檔案使用了 Bulwark 無法讀取的高強度加密。請在 Outlook 中把郵件匯出到一個不加密的新 .pst 檔案。",
     "pst_error_not_pst": "此檔案不是 Bulwark 能讀取的 Outlook 資料檔。",
     "pst_error_unreadable": "Bulwark 無法讀取此 Outlook 檔案。",
-    "pst_error_worker": "Outlook 檔案讀取元件未能載入。請重新載入頁面後再試。"
+    "pst_error_worker": "Outlook 檔案讀取元件未能載入。請重新載入頁面後再試。",
+    "error_over_quota": "信箱已滿，匯入已停止。請騰出空間，然後把相同的檔案再次匯入同一個資料夾即可繼續。",
+    "error_forbidden": "您無權在此資料夾新增郵件，匯入已停止。",
+    "error_failures": "連續失敗的郵件太多，匯入已停止。請稍後把相同的檔案再次匯入同一個資料夾以繼續。",
+    "error_network": "與伺服器的連線多次失敗，匯入已停止。請把相同的檔案再次匯入同一個資料夾以繼續。",
+    "error_busy": "這些檔案已在另一個分頁中匯入。",
+    "retry_hint": "把相同的檔案再次匯入同一個資料夾，即可重試失敗的郵件。"
   },
   "mail_export": {
     "menu_export": "匯出資料夾…",

@@ -36,6 +36,28 @@ describe('importUploadedEmails', () => {
   });
 });
 
+describe('the transfer\'s own JMAP requests', () => {
+  const entry = { blobId: 'b1', mailboxIds: { inbox: true }, keywords: {} };
+
+  it('throw RateLimitError on a 429 without pausing the rest of the client', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('slow down', { status: 429, headers: { 'Retry-After': '20' } })));
+    const c = client();
+    Object.assign(c, { apiUrl: 'https://jmap.example.com/jmap/' });
+    await expect(c.importUploadedEmails([entry])).rejects.toMatchObject({ name: 'RateLimitError', retryAfterMs: 20_000 });
+    expect((c as unknown as { isRateLimited(): boolean }).isRateLimited()).toBe(false);
+  });
+
+  it('still go out while the client waits out a 429 of its own', async () => {
+    const fetch = vi.fn(async () => new Response(JSON.stringify({ methodResponses: [['Email/import', { created: { imp0: { id: 'e1' } } }, '0']] })));
+    vi.stubGlobal('fetch', fetch);
+    const c = client();
+    Object.assign(c, { apiUrl: 'https://jmap.example.com/jmap/' });
+    (c as unknown as { setRateLimited(ms: number): void }).setRateLimited(60_000);
+    await expect(c.importUploadedEmails([entry])).resolves.toEqual([{ id: 'e1' }]);
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe('fetchBlobForTransfer', () => {
   it('downloads with the account in the URL', async () => {
     const fetch = vi.fn(async () => new Response(new Uint8Array([1, 2, 3])));

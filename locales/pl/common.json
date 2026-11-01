@@ -5303,7 +5303,13 @@
     "pst_error_encrypted": "Ten plik programu Outlook używa silnego szyfrowania, którego Bulwark nie potrafi odczytać. W programie Outlook wyeksportuj pocztę do nowego pliku .pst bez szyfrowania.",
     "pst_error_not_pst": "Ten plik nie jest plikiem danych programu Outlook, który Bulwark potrafi odczytać.",
     "pst_error_unreadable": "Bulwark nie mógł odczytać tego pliku programu Outlook.",
-    "pst_error_worker": "Czytnik plików programu Outlook się nie wczytał. Odśwież stronę i spróbuj ponownie."
+    "pst_error_worker": "Czytnik plików programu Outlook się nie wczytał. Odśwież stronę i spróbuj ponownie.",
+    "error_over_quota": "Skrzynka jest pełna, więc import się zatrzymał. Zwolnij miejsce i zaimportuj te same pliki ponownie do tego samego folderu, aby kontynuować.",
+    "error_forbidden": "Nie możesz dodawać poczty do tego folderu, więc import się zatrzymał.",
+    "error_failures": "Zbyt wiele wiadomości z rzędu się nie udało, więc import się zatrzymał. Zaimportuj te same pliki później ponownie do tego samego folderu, aby kontynuować.",
+    "error_network": "Połączenie z serwerem wielokrotnie zawiodło, więc import się zatrzymał. Zaimportuj te same pliki ponownie do tego samego folderu, aby kontynuować.",
+    "error_busy": "Te pliki są już importowane w innej karcie.",
+    "retry_hint": "Zaimportuj te same pliki ponownie do tego samego folderu, aby jeszcze raz spróbować tych, które się nie udały."
   },
   "mail_export": {
     "menu_export": "Eksportuj folder…",

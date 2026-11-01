@@ -5303,7 +5303,13 @@
     "pst_error_encrypted": "此 Outlook 文件使用了 Bulwark 无法读取的高强度加密。请在 Outlook 中把邮件导出到一个不加密的新 .pst 文件。",
     "pst_error_not_pst": "此文件不是 Bulwark 能读取的 Outlook 数据文件。",
     "pst_error_unreadable": "Bulwark 无法读取此 Outlook 文件。",
-    "pst_error_worker": "Outlook 文件读取组件未能加载。请重新加载页面后再试。"
+    "pst_error_worker": "Outlook 文件读取组件未能加载。请重新加载页面后再试。",
+    "error_over_quota": "邮箱已满，导入已停止。请腾出空间，然后把相同的文件再次导入同一个文件夹即可继续。",
+    "error_forbidden": "您无权向此文件夹添加邮件，导入已停止。",
+    "error_failures": "连续失败的邮件太多，导入已停止。请稍后把相同的文件再次导入同一个文件夹以继续。",
+    "error_network": "与服务器的连接多次失败，导入已停止。请把相同的文件再次导入同一个文件夹以继续。",
+    "error_busy": "这些文件已在另一个标签页中导入。",
+    "retry_hint": "把相同的文件再次导入同一个文件夹，即可重试失败的邮件。"
   },
   "mail_export": {
     "menu_export": "导出文件夹…",

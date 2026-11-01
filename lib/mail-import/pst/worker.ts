@@ -4,7 +4,7 @@
  * folders and hands over one message at a time as MIME, only as many as the
  * page asked for, so a large file never piles up in memory.
  *
- *   page → worker  { type: "open", file, skipBefore, maxMessageBytes }
+ *   page → worker  { type: "open", file, skipBefore, skipAlso, maxMessageBytes }
  *                  { type: "pull", count }
  *   worker → page  { type: "opened", total }
  *                  { type: "item", item, fraction }   (item.mime is transferred)
@@ -37,12 +37,12 @@ function errorCode(error: unknown): string {
 }
 
 scope.onmessage = (event: MessageEvent) => {
-  const data = event.data as { type: string; file?: File; skipBefore?: number; maxMessageBytes?: number; count?: number };
+  const data = event.data as { type: string; file?: File; skipBefore?: number; skipAlso?: number[]; maxMessageBytes?: number; count?: number };
   try {
     if (data.type === "open" && data.file) {
       registerPstFile("import.pst", data.file);
       pst = new PSTFile("import.pst") as unknown as { close(): void };
-      const walk = walkPst(pst, { skipBefore: data.skipBefore ?? 0, maxMessageBytes: data.maxMessageBytes ?? Number.POSITIVE_INFINITY });
+      const walk = walkPst(pst, { skipBefore: data.skipBefore ?? 0, skipAlso: new Set(data.skipAlso ?? []), maxMessageBytes: data.maxMessageBytes ?? Number.POSITIVE_INFINITY });
       items = walk.items;
       total = walk.total;
       scope.postMessage({ type: "opened", total });

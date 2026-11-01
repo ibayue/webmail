@@ -23,9 +23,17 @@ export interface ExportRequest {
 
 export type TransferRequest = ImportRequest | ExportRequest;
 
+interface JobBase {
+  controller: AbortController;
+  /** The Bulwark account that runs it: its sign-out stops it. */
+  scope?: string;
+  /** Settles when the job has ended. */
+  finished?: Promise<unknown>;
+}
+
 export type TransferJob =
-  | { kind: "import"; progress: ImportProgress; controller: AbortController }
-  | { kind: "export"; progress: ExportProgress; controller: AbortController };
+  | (JobBase & { kind: "import"; progress: ImportProgress })
+  | (JobBase & { kind: "export"; progress: ExportProgress });
 
 interface MailTransferState {
   request: TransferRequest | null;
@@ -40,7 +48,8 @@ interface MailTransferState {
   close: () => void;
   startJob: (job: TransferJob) => void;
   updateProgress: (progress: ImportProgress | ExportProgress) => void;
-  cancelJob: () => void;
+  /** `reason` "signout": the account signs out, so nothing more is written for it. */
+  cancelJob: (reason?: string) => void;
 }
 
 export function isJobActive(job: TransferJob | null): boolean {
@@ -79,7 +88,7 @@ export const useMailTransferStore = create<MailTransferState>()((set, get) => ({
     const job = get().job;
     if (job) set({ job: { ...job, progress } as TransferJob });
   },
-  cancelJob: () => get().job?.controller.abort(),
+  cancelJob: (reason) => get().job?.controller.abort(reason),
 }));
 
 /** Opens the import dialog, for a folder or (from Settings) for none. */

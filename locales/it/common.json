@@ -5303,7 +5303,13 @@
     "pst_error_encrypted": "Questo file di Outlook usa la crittografia elevata, che Bulwark non sa leggere. In Outlook, esporta la posta in un nuovo file .pst senza crittografia.",
     "pst_error_not_pst": "Questo file non è un file di dati di Outlook che Bulwark sa leggere.",
     "pst_error_unreadable": "Bulwark non è riuscito a leggere questo file di Outlook.",
-    "pst_error_worker": "Il lettore dei file di Outlook non si è caricato. Ricarica la pagina e riprova."
+    "pst_error_worker": "Il lettore dei file di Outlook non si è caricato. Ricarica la pagina e riprova.",
+    "error_over_quota": "La casella è piena, quindi l'importazione si è fermata. Libera spazio e importa di nuovo gli stessi file nella stessa cartella per continuare.",
+    "error_forbidden": "Non puoi aggiungere posta a questa cartella, quindi l'importazione si è fermata.",
+    "error_failures": "Troppi messaggi di fila non sono riusciti, quindi l'importazione si è fermata. Importa di nuovo gli stessi file nella stessa cartella più tardi per continuare.",
+    "error_network": "La connessione al server non è riuscita più volte, quindi l'importazione si è fermata. Importa di nuovo gli stessi file nella stessa cartella per continuare.",
+    "error_busy": "Questi file sono già in importazione in un'altra scheda.",
+    "retry_hint": "Importa di nuovo gli stessi file nella stessa cartella per riprovare quelli non riusciti."
   },
   "mail_export": {
     "menu_export": "Esporta cartella…",

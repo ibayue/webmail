@@ -10,6 +10,9 @@ import { MailImportDialog } from "./mail-import-dialog";
 import { MailExportDialog } from "./mail-export-dialog";
 import { formatClock } from "./transfer-progress";
 
+/** How long sign-out waits for a cancelled job to stop (its budget is 2 s). */
+const SIGN_OUT_WAIT_MS = 1500;
+
 /**
  * Draws the mail import and export dialogs, and while it is hidden with a job running,
  * a chip in the corner that shows the progress and brings it back. Mounted
@@ -22,10 +25,18 @@ export function MailTransferHost() {
 
   // An account that signs out takes its running job, a finished export's
   // file in the browser's private storage, and its checkpoints with it.
+  // Another account signing out leaves the job alone. The job's checkpoint
+  // goes after the job has stopped, so a late write can't bring it back.
   useEffect(() => onBeforeSignOut(async (accountId) => {
     const store = useMailTransferStore.getState();
-    if (isJobActive(store.job)) store.cancelJob();
-    else store.close();
+    const job = store.job;
+    if (job && (accountId === "all" || !job.scope || job.scope === accountId)) {
+      if (isJobActive(job)) {
+        store.cancelJob("signout");
+        await Promise.race([job.finished, new Promise((resolve) => setTimeout(resolve, SIGN_OUT_WAIT_MS))]);
+      }
+      useMailTransferStore.getState().close();
+    }
     if (accountId !== "all") await clearCheckpointsFor(accountId);
   }), []);
 

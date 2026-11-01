@@ -40,6 +40,8 @@ export interface ImportMessage {
   label: string;
   /** Messages attached to this one that couldn't be read. */
   embeddedSkipped?: number;
+  /** The special folder (inbox, sent, drafts, trash, junk) the top folder of `folder` is, when the file says so. */
+  folderRole?: string;
 }
 
 export interface ImportSkip {
@@ -56,6 +58,8 @@ export interface SourceOptions {
   maxMessageBytes: number;
   /** Items before this index were handled by an earlier run: report them as `resumed`. */
   skipBefore: number;
+  /** Items after `skipBefore` an earlier run handled too (it stopped with gaps). */
+  skipAlso?: Set<number>;
   /** Called as the file is read: the part done, 0 to 1. */
   onProgress?: (fraction: number) => void;
   /** Called once the number of messages in the file is known. */
@@ -64,6 +68,11 @@ export interface SourceOptions {
 }
 
 export type ItemSource = AsyncGenerator<ImportItem, void, undefined>;
+
+/** Whether an earlier run of the same import handled item `index`. */
+export function isResumed(options: Pick<SourceOptions, "skipBefore" | "skipAlso">, index: number): boolean {
+  return index < options.skipBefore || !!options.skipAlso?.has(index);
+}
 
 const READ_CHUNK = 1 << 20;
 const MIME = "message/rfc822";
@@ -119,7 +128,7 @@ export function subjectOf(headerBlock: string): string {
 
 export async function* emlSource(file: File, options: SourceOptions): ItemSource {
   options.onTotal?.(1);
-  if (options.skipBefore > 0) {
+  if (isResumed(options, 0)) {
     yield { kind: "skipped", index: 0, reason: "resumed" };
     options.onProgress?.(1);
     return;
@@ -189,7 +198,7 @@ async function* mboxFromChunks(
     for (const m of messages) {
       onOffset?.(m.offset);
       const i = index++;
-      yield i < options.skipBefore ? { kind: "skipped", index: i, reason: "resumed" } : mboxItem(m, i, folder);
+      yield isResumed(options, i) ? { kind: "skipped", index: i, reason: "resumed" } : mboxItem(m, i, folder);
     }
   };
   for await (const chunk of chunks) {
@@ -249,7 +258,7 @@ export async function* zipSource(file: File, options: SourceOptions): ItemSource
       yield* mboxFromChunks(chunks, zipFolder(entry.name, true), options, index, (next) => { index = next; });
     } else if (isEml(entry.name)) {
       const i = index++;
-      if (i < options.skipBefore) {
+      if (isResumed(options, i)) {
         yield { kind: "skipped", index: i, reason: "resumed" };
       } else if (entry.size > options.maxMessageBytes) {
         yield { kind: "skipped", index: i, reason: "too_large", label: emlLabel(entry.name) };
@@ -269,7 +278,7 @@ export async function* zipSource(file: File, options: SourceOptions): ItemSource
       }
     } else {
       const i = index++;
-      yield i < options.skipBefore ? { kind: "skipped", index: i, reason: "resumed" } : { kind: "skipped", index: i, reason: "other", label: emlLabel(entry.name) };
+      yield isResumed(options, i) ? { kind: "skipped", index: i, reason: "resumed" } : { kind: "skipped", index: i, reason: "other", label: emlLabel(entry.name) };
     }
     doneBytes += entry.compressedSize;
     options.onProgress?.(doneBytes / totalBytes);

@@ -5433,7 +5433,13 @@
     "pst_error_encrypted": "Aquest fitxer d'Outlook fa servir xifratge alt, que Bulwark no pot llegir. A Outlook, exporteu el correu a un fitxer .pst nou sense xifratge.",
     "pst_error_not_pst": "Aquest fitxer no és un fitxer de dades d'Outlook que Bulwark pugui llegir.",
     "pst_error_unreadable": "Bulwark no ha pogut llegir aquest fitxer d'Outlook.",
-    "pst_error_worker": "El lector de fitxers d'Outlook no s'ha carregat. Torneu a carregar la pàgina i proveu-ho de nou."
+    "pst_error_worker": "El lector de fitxers d'Outlook no s'ha carregat. Torneu a carregar la pàgina i proveu-ho de nou.",
+    "error_over_quota": "La bústia és plena, així que la importació s'ha aturat. Feu espai i torneu a importar els mateixos fitxers a la mateixa carpeta per continuar.",
+    "error_forbidden": "No podeu afegir correu a aquesta carpeta, així que la importació s'ha aturat.",
+    "error_failures": "Han fallat massa missatges seguits, així que la importació s'ha aturat. Torneu a importar els mateixos fitxers a la mateixa carpeta més tard per continuar.",
+    "error_network": "La connexió amb el servidor ha fallat diverses vegades, així que la importació s'ha aturat. Torneu a importar els mateixos fitxers a la mateixa carpeta per continuar.",
+    "error_busy": "Aquests fitxers ja s'estan important en una altra pestanya.",
+    "retry_hint": "Torneu a importar els mateixos fitxers a la mateixa carpeta per tornar a provar els que han fallat."
   },
   "mail_export": {
     "menu_export": "Exporta la carpeta…",

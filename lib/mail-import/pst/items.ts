@@ -29,7 +29,7 @@ function utcDate(date: Date | undefined): string | undefined {
   return date.toISOString().replace(/\.\d{3}Z$/, "Z");
 }
 
-export function walkPst(pst: any, options: { skipBefore: number; maxMessageBytes: number; boundarySeed?: string }): PstWalk {
+export function walkPst(pst: any, options: { skipBefore: number; skipAlso?: Set<number>; maxMessageBytes: number; boundarySeed?: string }): PstWalk {
   const folders: PstFolderRef[] = [...pstFolders(pst)];
   const total = folders.reduce((n, f) => n + (Number(f.folder.contentCount) || 0), 0);
 
@@ -47,7 +47,7 @@ export function walkPst(pst: any, options: { skipBefore: number; maxMessageBytes
         }
         if (!child) break;
         const i = index++;
-        if (i < options.skipBefore) {
+        if (i < options.skipBefore || options.skipAlso?.has(i)) {
           yield { kind: "skipped", index: i, reason: "resumed" };
           continue;
         }

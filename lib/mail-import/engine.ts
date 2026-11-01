@@ -1,6 +1,7 @@
 import type { IJMAPClient, UploadedEmailImport, UploadedEmailImportResult } from "@/lib/jmap/client-interface";
 import type { Mailbox } from "@/lib/jmap/types";
 import { checkpointKey, deleteCheckpoint, readCheckpoint, writeCheckpoint } from "./checkpoints";
+import { holdLock } from "./locks";
 import { emlSource, mboxSource, zipSource, type ImportFormat, type ImportItem, type ItemSource, type SkipReason, type SourceOptions } from "./sources";
 
 /**
@@ -42,8 +43,10 @@ export interface ImportProgress {
   /** The limit the server named, when it did. */
   quota?: { files?: number; bytes?: number };
   foldersCreated: number;
-  /** Why the whole import stopped (phase failed). */
+  /** Why the whole import stopped (phase failed): `import:<code>`, `pst:<code>: ...` or the error's text. */
   error?: string;
+  /** Messages that failed for a passing reason; importing the same files again tries them again. */
+  retryable?: number;
 }
 
 export interface ImportFile {
@@ -138,17 +141,22 @@ function maxConcurrentUploads(client: IJMAPClient): number {
   return Math.max(1, Math.min(uploads, (client.getMaxConcurrentRequests?.() ?? 4) - 2));
 }
 
-/** Top-level folder names that mean a special folder, as Outlook and others name them. */
+/**
+ * Top-level folder names that mean a special folder, as Outlook, Thunderbird
+ * and others name them in the languages Outlook ships most often. Outlook
+ * files say which folder is which themselves (`folderRole`); for mbox and
+ * ZIP files the name is all there is.
+ */
 const ROLE_NAMES: Record<string, string[]> = {
-  inbox: ["inbox", "posteingang"],
-  sent: ["sent", "sent items", "sent mail", "sent messages", "gesendet", "gesendete elemente", "gesendete objekte"],
-  drafts: ["drafts", "entwürfe"],
-  trash: ["trash", "deleted items", "deleted messages", "papierkorb", "gelöschte elemente", "gelöschte objekte"],
-  junk: ["junk", "junk e-mail", "junk email", "junk mail", "spam", "junk-e-mail"],
-  archive: ["archive", "archiv"],
+  inbox: ["inbox", "posteingang", "boîte de réception", "bandeja de entrada", "posta in arrivo", "postvak in", "caixa de entrada", "skrzynka odbiorcza", "входящие", "doručená pošta", "inkorgen", "indbakke", "innboks", "saapuneet"],
+  sent: ["sent", "sent items", "sent mail", "sent messages", "gesendet", "gesendete elemente", "gesendete objekte", "éléments envoyés", "elementos enviados", "posta inviata", "verzonden items", "itens enviados", "elementy wysłane", "отправленные", "odeslaná pošta", "skickat", "sendt post", "sendte elementer", "lähetetyt"],
+  drafts: ["drafts", "entwürfe", "brouillons", "borradores", "bozze", "concepten", "rascunhos", "wersje robocze", "черновики", "koncepty", "utkast", "kladder", "luonnokset"],
+  trash: ["trash", "deleted items", "deleted messages", "papierkorb", "gelöschte elemente", "gelöschte objekte", "éléments supprimés", "elementos eliminados", "posta eliminata", "verwijderde items", "itens excluídos", "elementy usunięte", "удаленные", "удалённые", "odstraněná pošta", "borttaget", "slettet post", "slettede elementer", "poistetut"],
+  junk: ["junk", "junk e-mail", "junk email", "junk mail", "spam", "junk-e-mail", "courrier indésirable", "correo no deseado", "posta indesiderata", "ongewenste e-mail", "lixo eletrônico", "wiadomości-śmieci", "нежелательная почта", "nevyžádaná pošta", "skräppost", "uønsket e-mail", "søppelpost", "roskaposti"],
+  archive: ["archive", "archiv", "archives", "archivo", "archivio", "archief", "arquivo", "archiwum", "архив", "arkiv", "arkisto"],
 };
 
-function roleFor(name: string): string | undefined {
+export function roleFor(name: string): string | undefined {
   const key = name.trim().toLowerCase();
   return Object.keys(ROLE_NAMES).find((role) => ROLE_NAMES[role].includes(key));
 }
@@ -156,8 +164,9 @@ function roleFor(name: string): string | undefined {
 /**
  * Maps a file's folder paths to mailboxes in the account, creating what's
  * missing once. A folder with the same name under the same parent is used
- * again, so a resumed import doesn't make a second copy of the tree; at the
- * top level an "Inbox" or "Sent Items" means the account's own.
+ * again, so a resumed import doesn't make a second copy of the tree. At the
+ * top level a special folder (the file says so, or its name does) means the
+ * account's own Inbox, Sent, Drafts, Trash, Junk or Archive.
  */
 export class FolderResolver {
   private mailboxes: Mailbox[] | null = null;
@@ -185,11 +194,12 @@ export class FolderResolver {
     return FolderResolver.idOf(box);
   }
 
-  resolve(path: string[]): Promise<string> {
+  /** `topRole`: what the file says the first folder of `path` is. */
+  resolve(path: string[], topRole?: string): Promise<string> {
     const key = path.join("\u0000");
     let pending = this.cache.get(key);
     if (!pending) {
-      pending = this.resolveUncached(path);
+      pending = this.resolveUncached(path, topRole);
       // A failed creation may be tried again by the next message.
       pending.catch(() => this.cache.delete(key));
       this.cache.set(key, pending);
@@ -197,20 +207,20 @@ export class FolderResolver {
     return pending;
   }
 
-  private async resolveUncached(path: string[]): Promise<string> {
+  private async resolveUncached(path: string[], topRole?: string): Promise<string> {
     if (path.length === 0) return this.root ?? this.inbox();
-    const parentId = path.length === 1 ? this.root : await this.resolve(path.slice(0, -1));
+    const parentId = path.length === 1 ? this.root : await this.resolve(path.slice(0, -1), topRole);
     const name = path[path.length - 1].trim().slice(0, 255) || "Imported";
     const mailboxes = await this.list();
+    if (parentId === null) {
+      const role = (path.length === 1 && topRole) || roleFor(name);
+      const special = role && mailboxes.find((m) => m.role === role);
+      if (special) return FolderResolver.idOf(special);
+    }
     const same = (m: Mailbox) => m.name.trim().toLowerCase() === name.toLowerCase();
     const parentMatches = (m: Mailbox) => (parentId === null ? !m.parentId : m.parentId === parentId || m.parentId === mailboxes.find((p) => FolderResolver.idOf(p) === parentId)?.id);
     const existing = mailboxes.find((m) => parentMatches(m) && same(m));
     if (existing) return FolderResolver.idOf(existing);
-    if (parentId === null) {
-      const role = roleFor(name);
-      const special = role && mailboxes.find((m) => m.role === role);
-      if (special) return FolderResolver.idOf(special);
-    }
     const created = await this.client.createMailbox(name, parentId ?? undefined, this.accountId);
     this.created++;
     mailboxes.push({ ...created, parentId: parentId ?? undefined });
@@ -225,23 +235,66 @@ interface Uploaded {
   entry: UploadedEmailImport;
 }
 
-/** Counts handled items per file, so the checkpoint is the first index not handled yet. */
-class Watermark {
-  private next = 0;
-  private readonly ahead = new Set<number>();
-  constructor(start: number) { this.next = start; }
+/**
+ * Which items of a file are done for good (imported, or skipped for a reason
+ * that won't change): everything before `next`, and the ones in `ahead`
+ * past a gap. A message that failed for a passing reason leaves a gap, so
+ * the next run of the same import tries it again; nothing done is redone.
+ */
+export class Watermark {
+  private next: number;
+  private readonly ahead: Set<number>;
+  constructor(start: number, ahead: Iterable<number> = []) {
+    this.next = start;
+    this.ahead = new Set(ahead);
+    this.advance();
+  }
+  private advance(): void {
+    while (this.ahead.has(this.next)) { this.ahead.delete(this.next); this.next++; }
+  }
   mark(index: number): void {
     if (index < this.next) return;
     this.ahead.add(index);
-    while (this.ahead.has(this.next)) { this.ahead.delete(this.next); this.next++; }
+    this.advance();
+  }
+  has(index: number): boolean {
+    return index < this.next || this.ahead.has(index);
   }
   get value(): number { return this.next; }
+  get beyond(): number[] { return [...this.ahead].sort((a, b) => a - b); }
 }
 
+/** The whole import stops (phase failed); the checkpoint keeps what was done. */
+export class ImportStopped extends Error {
+  constructor(readonly code: "over_quota" | "forbidden" | "failures" | "network" | "busy") {
+    super(`import:${code}`);
+    this.name = "ImportStopped";
+  }
+}
+
+/** This many failures in a row stop the import instead of burning through the file. */
+const MAX_FAILURES_IN_A_ROW = 10;
+/** Pauses after uploads fail without an answer: a short one, then until the upload window ends. */
+const NETWORK_PAUSE_MS = 30_000;
+/** Email/import errors that stop the whole import: nothing more would go in. */
+const STOPPING_IMPORT_ERRORS: Record<string, ImportStopped["code"]> = { overQuota: "over_quota", forbidden: "forbidden" };
+
 export async function runImport(options: ImportOptions): Promise<ImportProgress> {
-  const { client, accountId, signal } = options;
+  const { client, accountId } = options;
   const now = options.now ?? Date.now;
   const sleep = options.sleep ?? defaultSleep;
+  // Our own signal: a cancel from outside, or a stop from inside.
+  const inner = new AbortController();
+  const outerAbort = () => inner.abort(options.signal.reason);
+  if (options.signal.aborted) outerAbort();
+  else options.signal.addEventListener("abort", outerAbort, { once: true });
+  const signal = inner.signal;
+  const state: { stopped: ImportStopped | null } = { stopped: null };
+  const stop = (error: ImportStopped) => {
+    if (!state.stopped) state.stopped = error;
+    inner.abort(error);
+  };
+
   const progress: ImportProgress = { phase: "running", imported: 0, failed: 0, skipped: {}, failures: [], fraction: 0, foldersCreated: 0 };
   const folders = new FolderResolver(client, accountId, options.targetMailboxId);
   const maxSize = client.getMaxSizeUpload() || Number.POSITIVE_INFINITY;
@@ -256,9 +309,15 @@ export async function runImport(options: ImportOptions): Promise<ImportProgress>
     options.onProgress({ ...progress, skipped: { ...progress.skipped }, failures: [...progress.failures] });
   };
   const skip = (reason: SkipReason, n = 1) => { progress.skipped[reason] = (progress.skipped[reason] ?? 0) + n; };
-  const fail = (label: string, reason: string) => {
+  let failuresInARow = 0;
+  let retryable = 0;
+  /** A failure; `permanent` ones (not a message at all) aren't tried again on the next run. */
+  const fail = (u: { fileIndex: number; index: number; label: string }, reason: string, permanent = false) => {
     progress.failed++;
-    if (progress.failures.length < MAX_FAILURES_LISTED) progress.failures.push({ label, reason });
+    if (progress.failures.length < MAX_FAILURES_LISTED) progress.failures.push({ label: u.label, reason });
+    if (permanent) { handled(u); return; }
+    progress.retryable = ++retryable;
+    if (++failuresInARow >= MAX_FAILURES_IN_A_ROW) stop(new ImportStopped("failures"));
   };
 
   // Shared pause: when the server refuses uploads, every lane waits.
@@ -292,10 +351,13 @@ export async function runImport(options: ImportOptions): Promise<ImportProgress>
   const importedPerFile: number[] = options.files.map(() => 0);
   let lastSaved = 0;
   const saveCheckpoints = async (force = false) => {
+    // After sign-out nothing about the account may be written again.
+    if (options.signal.reason === "signout") return;
     if (!force && now() - lastSaved < CHECKPOINT_EVERY_MS) return;
     lastSaved = now();
-    await Promise.all(marks.map((m, i) => m.value > 0 ? writeCheckpoint({
-      key: keys[i], scope: options.scope, fileName: options.files[i].file.name, done: m.value, imported: importedPerFile[i], updatedAt: now(),
+    await Promise.all(marks.map((m, i) => m.value > 0 || m.beyond.length > 0 ? writeCheckpoint({
+      key: keys[i], scope: options.scope, fileName: options.files[i].file.name,
+      done: m.value, ahead: m.beyond, imported: importedPerFile[i], updatedAt: now(),
     }) : Promise.resolve()));
   };
 
@@ -303,7 +365,9 @@ export async function runImport(options: ImportOptions): Promise<ImportProgress>
   let queue: Uploaded[] = [];
   let importing: Promise<void> = Promise.resolve();
   let flushTimer: ReturnType<typeof setTimeout> | null = null;
-  const handled = (u: { fileIndex: number; index: number }) => marks[u.fileIndex].mark(u.index);
+  function handled(u: { fileIndex: number; index: number }): void {
+    marks[u.fileIndex].mark(u.index);
+  }
 
   const importBatch = async (batch: Uploaded[]) => {
     let results: UploadedEmailImportResult[] | null = null;
@@ -318,22 +382,36 @@ export async function runImport(options: ImportOptions): Promise<ImportProgress>
       } catch (error) {
         const name = (error as { name?: string } | null)?.name;
         if (name === "RateLimitError" && attempt < 3) {
-          await sleep(Math.max(1000, (error as { retryAfterMs?: number }).retryAfterMs ?? 60_000), signal);
+          await sleep(Math.max(1000, (error as { retryAfterMs?: number }).retryAfterMs ?? 60_000), options.signal).catch(() => {});
+          if (options.signal.aborted) break;
           continue;
         }
-        if (attempt < 1 && !isAbort(error)) { await sleep(2000, signal); continue; }
+        if (attempt < 2 && !isAbort(error)) {
+          await sleep(2000 * (attempt + 1), options.signal).catch(() => {});
+          if (options.signal.aborted) break;
+          continue;
+        }
         results = batch.map(() => ({ error: error instanceof Error ? error.message : String(error) }));
       }
     }
+    if (!results) return;
     results.forEach((result, i) => {
       const item = batch[i];
       if ("id" in result) {
         progress.imported++;
         importedPerFile[item.fileIndex]++;
-      } else {
-        fail(item.label, result.type === "invalidEmail" ? "invalid" : result.error);
+        failuresInARow = 0;
+        handled(item);
+        return;
       }
-      handled(item);
+      const stopping = result.type ? STOPPING_IMPORT_ERRORS[result.type] : undefined;
+      if (stopping) {
+        progress.failed++;
+        stop(new ImportStopped(stopping));
+        return;
+      }
+      // A blob that isn't a message won't become one: don't try it again.
+      fail(item, result.type === "invalidEmail" ? "invalid" : result.error, result.type === "invalidEmail");
     });
     report();
     await saveCheckpoints();
@@ -355,14 +433,15 @@ export async function runImport(options: ImportOptions): Promise<ImportProgress>
 
   // ── Uploads, a few at a time ──
   const running = new Set<Promise<void>>();
+  let networkErrors = 0;
   const upload = async (item: Extract<ImportItem, { kind: "message" }>, fileIndex: number) => {
+    const u = { fileIndex, index: item.index, label: item.label };
     let mailboxId: string;
     try {
-      mailboxId = await folders.resolve(options.keepFolders ? item.folder : []);
+      mailboxId = await folders.resolve(options.keepFolders ? item.folder : [], item.folderRole);
     } catch (error) {
-      if (isAbort(error)) throw error;
-      fail(item.label, error instanceof Error ? error.message : String(error));
-      handled({ fileIndex, index: item.index });
+      if (isAbort(error) || signal.aborted) throw new ImportCancelled();
+      fail(u, error instanceof Error ? error.message : String(error));
       return;
     }
     const file = new File([item.data], "message.eml", { type: "message/rfc822" });
@@ -370,6 +449,7 @@ export async function runImport(options: ImportOptions): Promise<ImportProgress>
       await waitWhilePaused();
       try {
         const { blobId } = await client.uploadBlob(file, { accountId, signal });
+        networkErrors = 0;
         enqueue({
           index: item.index,
           fileIndex,
@@ -385,17 +465,25 @@ export async function runImport(options: ImportOptions): Promise<ImportProgress>
           progress.quota = quotaFrom(body);
           continue;
         }
+        if (status === undefined) {
+          // No answer at all: the connection dropped, or a refusal the browser
+          // couldn't read. Pause and try again rather than losing messages.
+          networkErrors++;
+          if (networkErrors > 2) { stop(new ImportStopped("network")); throw new ImportCancelled(); }
+          pausedUntil = Math.max(pausedUntil, networkErrors === 1 ? now() + NETWORK_PAUSE_MS : uploadWindowEnd(now()) + 5000);
+          continue;
+        }
         if (status === 413 || (status === 400 && /maxSizeUpload/.test(body))) {
           skip("too_large");
-          handled({ fileIndex, index: item.index });
+          handled(u);
           return;
         }
+        if (status === 403) { stop(new ImportStopped("forbidden")); throw new ImportCancelled(); }
         if (attempt < UPLOAD_RETRY_DELAYS_MS.length) {
           await sleep(UPLOAD_RETRY_DELAYS_MS[attempt], signal);
           continue;
         }
-        fail(item.label, status ? `HTTP ${status}` : body);
-        handled({ fileIndex, index: item.index });
+        fail(u, `HTTP ${status}`);
         return;
       }
     }
@@ -404,30 +492,36 @@ export async function runImport(options: ImportOptions): Promise<ImportProgress>
   const startUpload = async (item: Extract<ImportItem, { kind: "message" }>, fileIndex: number) => {
     while (running.size >= lanes) await Promise.race(running);
     if (signal.aborted) throw new ImportCancelled();
-    // A lane never rejects: a cancel shows in `signal`, anything else is a failure of this message.
+    // A lane never rejects: a cancel or a stop shows in `signal`, anything else is a failure of this message.
     const task: Promise<void> = upload(item, fileIndex)
       .catch((error) => {
-        if (!isAbort(error) && !signal.aborted) {
-          fail(item.label, error instanceof Error ? error.message : String(error));
-          handled({ fileIndex, index: item.index });
-        }
+        if (!isAbort(error) && !signal.aborted) fail({ fileIndex, index: item.index, label: item.label }, error instanceof Error ? error.message : String(error));
       })
       .finally(() => { running.delete(task); });
     running.add(task);
   };
 
+  // One import of a file at a time, across the tabs of this browser.
+  const releases: (() => void)[] = [];
+  let keepCheckpoints = false;
   try {
+    for (const key of keys) {
+      const release = await holdLock(`bulwark-mail-import:${key}`);
+      if (!release) throw new ImportStopped("busy");
+      releases.push(release);
+    }
     for (let f = 0; f < options.files.length; f++) {
       const { file, format } = options.files[f];
       const checkpoint = options.resume ? await readCheckpoint(keys[f]) : null;
       if (!options.resume) await deleteCheckpoint(keys[f]);
-      const skipBefore = checkpoint?.done ?? 0;
       if (checkpoint) { progress.imported += checkpoint.imported; importedPerFile[f] = checkpoint.imported; }
-      marks.push(new Watermark(skipBefore));
+      const mark = new Watermark(checkpoint?.done ?? 0, checkpoint?.ahead ?? []);
+      marks.push(mark);
       progress.fileName = file.name;
       const sourceOptions: SourceOptions = {
         maxMessageBytes: maxSize,
-        skipBefore,
+        skipBefore: mark.value,
+        skipAlso: new Set(mark.beyond),
         signal,
         onProgress: (fraction) => { fileFraction[f] = fraction; setFraction(); report(); },
         onTotal: (count) => {
@@ -446,7 +540,7 @@ export async function runImport(options: ImportOptions): Promise<ImportProgress>
 
       try {
         for await (const item of source) {
-          if (signal.aborted) throw new ImportCancelled();
+          if (signal.aborted) throw state.stopped ?? new ImportCancelled();
           if (item.kind === "skipped") {
             // Items an earlier run handled are already counted in its imported total.
             if (item.reason !== "resumed") skip(item.reason);
@@ -464,21 +558,32 @@ export async function runImport(options: ImportOptions): Promise<ImportProgress>
       setFraction();
     }
     while (running.size > 0) await Promise.race(running);
-    if (signal.aborted) throw new ImportCancelled();
+    if (signal.aborted) throw state.stopped ?? new ImportCancelled();
     await flush();
     await importing;
+    if (state.stopped) throw state.stopped;
     progress.phase = "done";
     progress.fraction = 1;
     progress.pausedUntil = undefined;
-    await Promise.all(keys.map((k) => deleteCheckpoint(k)));
+    // Messages that failed for a passing reason are tried again by the next run.
+    keepCheckpoints = retryable > 0;
+    if (keepCheckpoints) await saveCheckpoints(true);
+    else await Promise.all(keys.map((k) => deleteCheckpoint(k)));
   } catch (error) {
-    // Let the uploads in flight end (they were aborted) and keep what got imported.
+    const signedOut = options.signal.reason === "signout";
     await Promise.allSettled([...running]);
-    await flush().catch(() => {});
-    await importing.catch(() => {});
-    await saveCheckpoints(true).catch(() => {});
+    if (!signedOut) {
+      // Keep what was uploaded and where the import got to.
+      await flush().catch(() => {});
+      await importing.catch(() => {});
+      await saveCheckpoints(true).catch(() => {});
+    }
     progress.pausedUntil = undefined;
-    if (isAbort(error) || signal.aborted) {
+    const reason = state.stopped ?? error;
+    if ((reason as { name?: string } | null)?.name === "ImportStopped") {
+      progress.phase = "failed";
+      progress.error = (reason as ImportStopped).message;
+    } else if (isAbort(error) || options.signal.aborted) {
       progress.phase = "cancelled";
     } else {
       progress.phase = "failed";
@@ -486,6 +591,8 @@ export async function runImport(options: ImportOptions): Promise<ImportProgress>
     }
   } finally {
     if (flushTimer) clearTimeout(flushTimer);
+    options.signal.removeEventListener("abort", outerAbort);
+    for (const release of releases) release();
   }
   report(true);
   return progress;

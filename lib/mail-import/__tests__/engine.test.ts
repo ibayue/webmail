@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { runImport, uploadWindowEnd, quotaFrom, type ImportProgress, type ImportOptions } from '@/lib/mail-import/engine';
-import { checkpointKey, readCheckpoint } from '@/lib/mail-import/checkpoints';
+import { checkpointKey, deleteCheckpoint, readCheckpoint } from '@/lib/mail-import/checkpoints';
 import type { IJMAPClient, UploadedEmailImport } from '@/lib/jmap/client-interface';
 import type { Mailbox } from '@/lib/jmap/types';
 
@@ -19,7 +19,17 @@ const mailbox = (id: string, name: string, extra: Partial<Mailbox> = {}): Mailbo
   myRights: {} as Mailbox['myRights'], ...extra,
 });
 
-function fakeClient(opts: { failWhen?: (text: string) => boolean; quotaAfter?: number; uploadConcurrency?: number } = {}) {
+function fakeClient(opts: {
+  failWhen?: (text: string) => boolean;
+  quotaAfter?: number;
+  uploadConcurrency?: number;
+  /** Upload errors with no HTTP status (a dropped connection), for the first n uploads. */
+  networkErrors?: number;
+  /** Milliseconds an upload of a message takes. */
+  delay?: (text: string) => number;
+  /** An Email/import error for a message. */
+  importError?: (text: string) => { type: string; error: string } | undefined;
+} = {}) {
   let uploads = 0;
   let inFlight = 0;
   let maxInFlight = 0;
@@ -44,8 +54,10 @@ function fakeClient(opts: { failWhen?: (text: string) => boolean; quotaAfter?: n
       inFlight++;
       maxInFlight = Math.max(maxInFlight, inFlight);
       try {
-        await new Promise((r) => setTimeout(r, 1));
+        const body = await f.text();
+        await new Promise((r) => setTimeout(r, opts.delay?.(body) ?? 1));
         if (o.signal?.aborted) throw new DOMException('Upload aborted', 'AbortError');
+        if (opts.networkErrors && n < opts.networkErrors) throw new Error('Upload network error');
         if (opts.quotaAfter !== undefined && n >= opts.quotaAfter && !quotaHit) {
           quotaHit = true;
           throw new Error('Failed to upload file: 429 - {"title":"Quota exceeded","detail":"You have exceeded the blob upload quota of 1000 files or 50000000 bytes."}');
@@ -63,6 +75,8 @@ function fakeClient(opts: { failWhen?: (text: string) => boolean; quotaAfter?: n
       importCalls.push(entries.length);
       return entries.map((e) => {
         const text = blobs.get(e.blobId)!;
+        const refused = opts.importError?.(text);
+        if (refused) return refused;
         imported.push({ ...e, accountId, text });
         return { id: `email-${imported.length}` };
       });
@@ -199,6 +213,96 @@ describe('runImport', () => {
     expect(new Set(subjects).size).toBe(30);
     expect(subjects).toHaveLength(30);
     await expect(readCheckpoint(key)).resolves.toBeNull();
+  });
+
+  it('tries a message that failed again on the next run, and only that one', async () => {
+    const fake = fakeClient({ failWhen: (text) => text.startsWith('Subject: m1\n') });
+    const f = file(mbox(4));
+    const first = await runImport(options(fake.client, [f]));
+    expect(first).toMatchObject({ phase: 'done', imported: 3, failed: 1, retryable: 1 });
+    const again = fakeClient();
+    const second = await runImport(options(again.client, [f], { resume: true }));
+    expect(again.imported.map((e) => e.text.split('\n')[0])).toEqual(['Subject: m1']);
+    expect(second).toMatchObject({ phase: 'done', imported: 4, failed: 0 });
+  });
+
+  it('stops after ten failures in a row instead of burning through the file, and keeps the checkpoint', async () => {
+    const fake = fakeClient({ failWhen: () => true });
+    const f = file(mbox(40));
+    const result = await runImport(options(fake.client, [f]));
+    expect(result).toMatchObject({ phase: 'failed', error: 'import:failures' });
+    expect(fake.uploads).toBeLessThan(40 * 3);
+    const key = checkpointKey({ scope: 'bulwark-1', accountId: 'acc-shared', target: 'target', keepFolders: false, file: f });
+    // Nothing was done, so nothing is skipped next time: the failures are tried again.
+    expect((await readCheckpoint(key))?.done ?? 0).toBe(0);
+  });
+
+  it('stops at once when the mailbox is over quota', async () => {
+    const fake = fakeClient({ importError: (text) => (text.includes('Subject: m3\n') ? { type: 'overQuota', error: 'over quota' } : undefined) });
+    const result = await runImport(options(fake.client, [file(mbox(60))]));
+    expect(result).toMatchObject({ phase: 'failed', error: 'import:over_quota' });
+    expect(fake.uploads).toBeLessThan(60);
+  });
+
+  it('pauses on an upload with no answer and goes on, instead of failing the message', async () => {
+    const fake = fakeClient({ networkErrors: 1 });
+    const seen: ImportProgress[] = [];
+    const result = await runImport(options(fake.client, [file(mbox(3))], { onProgress: (p) => seen.push(p) }));
+    expect(seen.some((p) => p.phase === 'paused' && p.pausedUntil === T0 + 30_000)).toBe(true);
+    expect(result).toMatchObject({ phase: 'done', imported: 3, failed: 0 });
+  });
+
+  it('resumes without importing again what came in after a slow message', async () => {
+    // m2 is a slow upload; the messages after it are imported first.
+    const fake = fakeClient({ delay: (text) => (text.startsWith('Subject: m2\n') ? 300 : 1) });
+    const controller = new AbortController();
+    const f = file(mbox(12));
+    await runImport(options(fake.client, [f], {
+      signal: controller.signal,
+      onProgress: () => { if (fake.uploads >= 8 && !controller.signal.aborted) controller.abort(); },
+    }));
+    const firstRun = fake.imported.map((e) => e.text.split('\n')[0]);
+    expect(firstRun).not.toContain('Subject: m2');
+    expect(firstRun.some((s) => Number(s.slice(10)) > 2)).toBe(true);
+    await runImport(options(fake.client, [f], { resume: true }));
+    const subjects = fake.imported.map((e) => e.text.split('\n')[0]);
+    expect(subjects).toHaveLength(12);
+    expect(new Set(subjects).size).toBe(12);
+  });
+
+  it('writes no checkpoint and imports nothing more once the account signs out', async () => {
+    const fake = fakeClient({ delay: () => 20 });
+    const controller = new AbortController();
+    const f = file(mbox(30));
+    const key = checkpointKey({ scope: 'bulwark-1', accountId: 'acc-shared', target: 'target', keepFolders: false, file: f });
+    let callsAtSignOut = -1;
+    const result = await runImport(options(fake.client, [f], {
+      signal: controller.signal,
+      onProgress: (p) => {
+        if (p.imported >= 2 && !controller.signal.aborted) {
+          callsAtSignOut = fake.importCalls.length;
+          controller.abort('signout');
+          // What the sign-out does next: clear the account's checkpoints.
+          void deleteCheckpoint(key);
+        }
+      },
+    }));
+    expect(result.phase).toBe('cancelled');
+    expect(fake.importCalls.length).toBe(callsAtSignOut);
+    await expect(readCheckpoint(key)).resolves.toBeNull();
+  });
+
+  it('refuses a file another tab is importing', async () => {
+    const locks = { request: vi.fn(async (_n: string, _o: unknown, cb: (lock: unknown) => unknown) => cb(null)) };
+    vi.stubGlobal('navigator', { ...navigator, locks });
+    try {
+      const fake = fakeClient();
+      const result = await runImport(options(fake.client, [file(mbox(2))]));
+      expect(result).toMatchObject({ phase: 'failed', error: 'import:busy' });
+      expect(fake.uploads).toBe(0);
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
   it('starts again from the top when not resuming', async () => {

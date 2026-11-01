@@ -5433,7 +5433,13 @@
     "pst_error_encrypted": "This Outlook file uses high encryption, which Bulwark can't read. In Outlook, export the mail to a new .pst file without encryption.",
     "pst_error_not_pst": "This file isn't an Outlook data file Bulwark can read.",
     "pst_error_unreadable": "Bulwark couldn't read this Outlook file.",
-    "pst_error_worker": "The Outlook file reader didn't load. Reload the page and try again."
+    "pst_error_worker": "The Outlook file reader didn't load. Reload the page and try again.",
+    "error_over_quota": "The mailbox is full, so the import stopped. Make room and import the same files into the same folder again to go on.",
+    "error_forbidden": "You may not add mail to this folder, so the import stopped.",
+    "error_failures": "Too many messages failed in a row, so the import stopped. Import the same files into the same folder again later to go on.",
+    "error_network": "The connection to the server kept failing, so the import stopped. Import the same files into the same folder again to go on.",
+    "error_busy": "These files are being imported in another tab already.",
+    "retry_hint": "Import the same files into the same folder again to try the ones that failed once more."
   },
   "mail_export": {
     "menu_export": "Export folder…",

@@ -65,6 +65,7 @@ export function MailImportDialog({ request }: { request: ImportRequest }) {
   const [keepFolders, setKeepFolders] = useState(true);
   const [resume, setResume] = useState(true);
   const [resumable, setResumable] = useState(0);
+  const [checking, setChecking] = useState(false);
 
   const anyFolders = picked.some((p) => p.folders);
   const targetMailbox = targets.find((x) => x.mailbox.id === target)?.mailbox;
@@ -86,12 +87,16 @@ export function MailImportDialog({ request }: { request: ImportRequest }) {
   // An earlier import of the same file into the same place that stopped part way.
   useEffect(() => {
     let current = true;
-    if (picked.length === 0 || !accountId) { setResumable(0); return; }
+    if (picked.length === 0 || !accountId) { setResumable(0); setChecking(false); return; }
+    // Import waits for this: starting before it knows would throw the checkpoint away.
+    setChecking(true);
     void Promise.all(picked.map((p) => readCheckpoint(checkpointKey({
       scope: activeAccountId ?? "default", accountId, target: targetId, keepFolders: effectiveKeep, file: p.file,
     })))).then((found) => {
-      if (current) setResumable(found.reduce((n, c) => n + (c?.done ?? 0), 0));
-    });
+      if (!current) return;
+      setResumable(found.reduce((n, c) => n + (c?.done ?? 0) + (c?.ahead?.length ?? 0), 0));
+      setChecking(false);
+    }, () => { if (current) setChecking(false); });
     return () => { current = false; };
   }, [picked, accountId, targetId, effectiveKeep, activeAccountId]);
 
@@ -136,7 +141,7 @@ export function MailImportDialog({ request }: { request: ImportRequest }) {
         footer={active ? (
           <>
             <Button variant="outline" onClick={hide}>{t("background")}</Button>
-            <Button variant="destructive" onClick={cancelJob} aria-describedby={`${id}-status`}>{t("cancel_import")}</Button>
+            <Button variant="destructive" onClick={() => cancelJob()} aria-describedby={`${id}-status`}>{t("cancel_import")}</Button>
           </>
         ) : (
           <Button onClick={close}>{t("close")}</Button>
@@ -147,7 +152,7 @@ export function MailImportDialog({ request }: { request: ImportRequest }) {
     );
   }
 
-  const canStart = picked.length > 0 && !!accountId && !(target === TOP && !effectiveKeep);
+  const canStart = picked.length > 0 && !!accountId && !checking && !(target === TOP && !effectiveKeep);
 
   return (
     <Dialog
@@ -253,11 +258,15 @@ export function MailImportDialog({ request }: { request: ImportRequest }) {
 type T = ReturnType<typeof useTranslations>;
 
 const PST_ERRORS = ["encrypted", "not_pst", "unreadable", "worker"];
+const IMPORT_ERRORS = ["over_quota", "forbidden", "failures", "network", "busy"];
 
-/** The PST reader's errors in words; anything else as the server or browser said it. */
+/** Why an import stopped, in words; anything else as the server or browser said it. */
 function errorText(t: T, error: string): string {
-  const code = /^pst:(\w+):/.exec(error)?.[1];
-  return code && PST_ERRORS.includes(code) ? t(`pst_error_${code}`) : error;
+  const pst = /^pst:(\w+):/.exec(error)?.[1];
+  if (pst && PST_ERRORS.includes(pst)) return t(`pst_error_${pst}`);
+  const own = /^import:(\w+)$/.exec(error)?.[1];
+  if (own && IMPORT_ERRORS.includes(own)) return t(`error_${own}`);
+  return error;
 }
 
 function progressTitle(t: T, p: ImportProgress): string {
@@ -312,6 +321,7 @@ function ProgressBody({ progress: p, t, locale, statusId }: { progress: ImportPr
             </div>
           )}
           {p.phase === "cancelled" && <p className="text-muted-foreground">{t("cancelled_hint")}</p>}
+          {p.phase === "done" && (p.retryable ?? 0) > 0 && <p className="text-muted-foreground">{t("retry_hint")}</p>}
           {p.phase === "failed" && p.error && <p className="text-destructive break-words">{errorText(t, p.error)}</p>}
         </div>
       )}

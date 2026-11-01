@@ -5433,7 +5433,13 @@
     "pst_error_encrypted": "See Outlooki fail kasutab tugevat krüpteerimist, mida Bulwark lugeda ei saa. Eksportige kirjad Outlookis uude krüpteerimata .pst-faili.",
     "pst_error_not_pst": "See fail pole Outlooki andmefail, mida Bulwark lugeda oskab.",
     "pst_error_unreadable": "Bulwark ei saanud seda Outlooki faili lugeda.",
-    "pst_error_worker": "Outlooki failide lugeja ei laadinud. Laadige leht uuesti ja proovige veel kord."
+    "pst_error_worker": "Outlooki failide lugeja ei laadinud. Laadige leht uuesti ja proovige veel kord.",
+    "error_over_quota": "Postkast on täis, seega import peatus. Tehke ruumi ja importige samad failid uuesti samasse kausta, et jätkata.",
+    "error_forbidden": "Sellesse kausta ei tohi te kirju lisada, seega import peatus.",
+    "error_failures": "Liiga palju kirju järjest ebaõnnestus, seega import peatus. Importige samad failid hiljem uuesti samasse kausta, et jätkata.",
+    "error_network": "Ühendus serveriga katkes korduvalt, seega import peatus. Importige samad failid uuesti samasse kausta, et jätkata.",
+    "error_busy": "Neid faile imporditakse juba teisel vahelehel.",
+    "retry_hint": "Importige samad failid uuesti samasse kausta, et ebaõnnestunud kirju veel kord proovida."
   },
   "mail_export": {
     "menu_export": "Ekspordi kaust…",

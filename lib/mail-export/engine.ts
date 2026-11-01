@@ -268,6 +268,7 @@ export async function runExport(options: ExportOptions): Promise<ExportProgress>
         ["blobId", "keywords", "receivedAt", "size", "subject"],
         accountId,
         Number.MAX_SAFE_INTEGER,
+        { transfer: true },
       ));
       const refs = list
         .filter((e) => typeof e.blobId === "string")

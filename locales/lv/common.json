@@ -5303,7 +5303,13 @@
     "pst_error_encrypted": "Šis Outlook fails izmanto augstu šifrēšanu, ko Bulwark nevar nolasīt. Programmā Outlook eksportējiet pastu jaunā .pst failā bez šifrēšanas.",
     "pst_error_not_pst": "Šis fails nav Outlook datu fails, ko Bulwark var nolasīt.",
     "pst_error_unreadable": "Bulwark nevarēja nolasīt šo Outlook failu.",
-    "pst_error_worker": "Outlook failu lasītājs netika ielādēts. Pārlādējiet lapu un mēģiniet vēlreiz."
+    "pst_error_worker": "Outlook failu lasītājs netika ielādēts. Pārlādējiet lapu un mēģiniet vēlreiz.",
+    "error_over_quota": "Pastkaste ir pilna, tāpēc importēšana apstājās. Atbrīvojiet vietu un vēlreiz importējiet tos pašus failus tajā pašā mapē, lai turpinātu.",
+    "error_forbidden": "Šajā mapē nedrīkstat pievienot pastu, tāpēc importēšana apstājās.",
+    "error_failures": "Pārāk daudz ziņojumu pēc kārtas neizdevās, tāpēc importēšana apstājās. Vēlāk vēlreiz importējiet tos pašus failus tajā pašā mapē, lai turpinātu.",
+    "error_network": "Savienojums ar serveri atkārtoti neizdevās, tāpēc importēšana apstājās. Vēlreiz importējiet tos pašus failus tajā pašā mapē, lai turpinātu.",
+    "error_busy": "Šie faili jau tiek importēti citā cilnē.",
+    "retry_hint": "Vēlreiz importējiet tos pašus failus tajā pašā mapē, lai vēlreiz mēģinātu neizdevušos."
   },
   "mail_export": {
     "menu_export": "Eksportēt mapi…",
