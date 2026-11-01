@@ -1,10 +1,11 @@
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Email } from '@/lib/jmap/types';
 import { DEFAULT_POLICY } from '@/lib/admin/types';
 import { DEFAULT_ORGANISATION_POLICY } from '@/lib/admin/organisation-policy';
 import { usePolicyStore } from '@/stores/policy-store';
 import { useToastStore } from '@/stores/toast-store';
+import { usePhishingReportStore } from '@/stores/phishing-report-store';
 
 // The report flow through the real dialog: it names the address, Cancel
 // sends nothing, each message gets its own report, each moves to Junk with
@@ -27,6 +28,7 @@ const hoisted = vi.hoisted(() => {
     copyBlobs: async () => ({}),
     sendEmail: vi.fn(async () => ({ scheduled: false })),
     submitRawEmail: vi.fn(async () => ({ scheduled: false })),
+    fetchBlobArrayBuffer: vi.fn(async () => new TextEncoder().encode('Subject: x' + String.fromCharCode(13, 10, 13, 10) + 'hi').buffer),
     markAsSpam: vi.fn(async () => {}),
     undoSpam: vi.fn(async () => {}),
   };
@@ -54,9 +56,9 @@ vi.mock('@/stores/email-store', () => ({
 const { PhishingReportHost } = await import('../phishing-report-host');
 const { requestPhishingReport } = await import('@/hooks/use-phishing-report');
 
-function setAddress(address: string) {
+function setAddress(address: string, format: 'forward' | 'arf' = 'forward') {
   usePolicyStore.setState({
-    policy: { ...DEFAULT_POLICY, organisation: { ...DEFAULT_ORGANISATION_POLICY, phishingReport: { address, format: 'forward' } } },
+    policy: { ...DEFAULT_POLICY, organisation: { ...DEFAULT_ORGANISATION_POLICY, phishingReport: { address, format } } },
   });
 }
 
@@ -68,6 +70,7 @@ afterEach(() => {
   cleanup();
   usePolicyStore.setState({ policy: DEFAULT_POLICY });
   useToastStore.setState({ toasts: [] });
+  usePhishingReportStore.setState({ pending: null, busy: false, opener: null });
   vi.clearAllMocks();
 });
 
@@ -125,6 +128,18 @@ describe('Report phishing', () => {
     expect(hoisted.client.markAsSpam).toHaveBeenCalledWith('e1', undefined, true, ['$phishing']);
     await act(async () => { useToastStore.getState().toasts.at(-1)!.action!.onClick(); });
     expect(hoisted.client.undoSpam).toHaveBeenCalledWith('e1', 'inbox', undefined, ['$phishing']);
+  });
+
+  it('sends an ARF report raw when the admin picked ARF', async () => {
+    setAddress('abuse@example.org', 'arf');
+    render(<PhishingReportHost />);
+    act(() => requestPhishingReport([e1], 'inbox'));
+    await act(async () => { fireEvent.click(screen.getByTestId('phishing-report-confirm')); });
+    await waitFor(() => expect(hoisted.client.submitRawEmail).toHaveBeenCalledTimes(1));
+    expect(hoisted.client.sendEmail).not.toHaveBeenCalled();
+    const raw = await ((hoisted.client.submitRawEmail.mock.calls[0] as unknown[])[0] as Blob).text();
+    expect(raw).toContain('report-type=feedback-report');
+    await waitFor(() => expect(hoisted.store.markAsSpam).toHaveBeenCalledTimes(1));
   });
 
   it('skips messages of your own folders', () => {

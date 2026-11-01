@@ -51,9 +51,10 @@ export interface PhishingReportOutcome {
   moved: MovedReport[];
 }
 
-// ARF arrives in the next step; until then an 'arf' setup fails the report.
-async function loadArfBuilder(): Promise<((input: ArfInput) => Promise<Blob>) | undefined> {
-  return undefined;
+// Loaded only when an admin picked the ARF format.
+async function loadArfBuilder(): Promise<(input: ArfInput) => Promise<Blob>> {
+  const { buildArfReportBlob } = await import('./phishing-report-arf');
+  return buildArfReportBlob;
 }
 
 /** The folder a message is in, for a move back that the store can't do. */
