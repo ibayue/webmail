@@ -63,13 +63,15 @@ export function nextAnnouncementChange(announcement: Announcement | undefined | 
   return times.length > 0 ? Math.min(...times) : null;
 }
 
-/** FNV-1a over the content an admin edits: a new text, time or severity is a new announcement for dismissals. */
+/**
+ * FNV-1a over what the message says: a new text or severity is a new
+ * announcement for dismissals. Moving its start or end isn't; whoever
+ * closed it keeps it closed.
+ */
 export function announcementHash(announcement: Announcement): string {
   const content = JSON.stringify([
     Object.entries(announcement.text ?? {}).sort(([a], [b]) => a.localeCompare(b)),
     announcement.severity,
-    announcement.startsAt,
-    announcement.endsAt,
   ]);
   let hash = 0x811c9dc5;
   for (let i = 0; i < content.length; i++) {

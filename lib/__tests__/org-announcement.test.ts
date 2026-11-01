@@ -67,11 +67,17 @@ describe('dismissal', () => {
     expect(isAnnouncementDismissed(base, 'acc-2')).toBe(false);
   });
 
-  it('no longer holds once the admin edits the text, or for a new announcement', () => {
+  it('no longer holds once the admin edits the text or severity, or for a new announcement', () => {
     dismissAnnouncement(base, 'acc-1');
     expect(isAnnouncementDismissed({ ...base, text: { ...base.text, en: 'Maintenance moved to Friday' } }, 'acc-1')).toBe(false);
-    expect(isAnnouncementDismissed({ ...base, endsAt: '2026-12-01T00:00:00.000Z' }, 'acc-1')).toBe(false);
+    expect(isAnnouncementDismissed({ ...base, severity: 'critical' }, 'acc-1')).toBe(false);
     expect(isAnnouncementDismissed({ ...base, id: 'a2' }, 'acc-1')).toBe(false);
+  });
+
+  it('still holds when only the start or end time moves', () => {
+    dismissAnnouncement(base, 'acc-1');
+    expect(isAnnouncementDismissed({ ...base, endsAt: '2026-12-01T00:00:00.000Z' }, 'acc-1')).toBe(true);
+    expect(isAnnouncementDismissed({ ...base, startsAt: '2026-11-01T00:00:00.000Z' }, 'acc-1')).toBe(true);
   });
 
   it('does not depend on the order of the languages', () => {

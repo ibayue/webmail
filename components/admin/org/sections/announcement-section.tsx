@@ -280,7 +280,7 @@ export function AnnouncementSection({ draft }: { draft: OrgPolicyDraft }) {
             {!badRange && ended && <p className="text-xs text-amber-700 dark:text-amber-300">The end time has passed, so nobody sees it.</p>}
             <p className="text-xs text-muted-foreground">Times are in your browser&apos;s time zone. Open tabs show and hide the announcement on time without a reload.</p>
 
-            <SettingItem label="Users can close it" description="Closed stays closed for that account in that browser until you change the announcement. Turn this off for messages everyone must see.">
+            <SettingItem label="Users can close it" description="Closed stays closed for that account in that browser until you change its text or severity; moving the start or end doesn't show it again. Turn this off for messages everyone must see.">
               <ToggleSwitch checked={announcement.dismissible} onChange={(v) => set({ dismissible: v })} testId="org-announcement-dismissible" />
             </SettingItem>
 

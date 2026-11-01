@@ -36,16 +36,40 @@ const STYLES = {
 
 const ICONS = { info: Info, warning: AlertTriangle, critical: AlertCircle } as const;
 
-/** Re-renders when the announcement starts or ends. */
-function useNow(change: number | null): number {
-  const [now, setNow] = useState(() => Date.now());
+/**
+ * The time now, read on every render (an announcement that arrives with a
+ * policy refetch is judged by the real time), plus a re-render when the
+ * announcement starts or ends.
+ */
+function useClock(change: number | null): number {
+  const [tick, setTick] = useState(0);
   useEffect(() => {
     if (change === null) return;
     const wait = Math.min(MAX_TIMER_MS, Math.max(0, change - Date.now()) + 50);
-    const timer = setTimeout(() => setNow(Date.now()), wait);
+    const timer = setTimeout(() => setTick((n) => n + 1), wait);
     return () => clearTimeout(timer);
-  }, [change, now]);
-  return now;
+  }, [change, tick]);
+  return Date.now();
+}
+
+/**
+ * Reads the announcement out once: a live region that is in the page empty
+ * and gets the text a moment later (text already there when a live region
+ * appears isn't announced reliably), then empties again so browsing the
+ * page doesn't meet it twice.
+ */
+function LiveOnce({ text, assertive }: { text: string; assertive: boolean }) {
+  const [said, setSaid] = useState('');
+  useEffect(() => {
+    const fill = setTimeout(() => setSaid(text), 150);
+    const clear = setTimeout(() => setSaid(''), 15_000);
+    return () => { clearTimeout(fill); clearTimeout(clear); };
+  }, [text]);
+  return (
+    <div role={assertive ? 'alert' : 'status'} className="sr-only" data-testid="org-announcement-live">
+      {said}
+    </div>
+  );
 }
 
 function openLink(event: MouseEvent<HTMLAnchorElement>, href: string) {
@@ -71,7 +95,7 @@ export function OrgAnnouncement() {
   const [dismissedKey, setDismissedKey] = useState<string | null>(null);
 
   const text = announcement ? announcementText(announcement, locale) : '';
-  const now = useNow(text ? nextAnnouncementChange(announcement, Date.now()) : null);
+  const now = useClock(text ? nextAnnouncementChange(announcement, Date.now()) : null);
   const key = announcement && text ? announcementKey(announcement) : null;
   const active = !!key && announcementActive(announcement, now);
   const dismissed = !!key && !!announcement?.dismissible
@@ -87,19 +111,20 @@ export function OrgAnnouncement() {
   if (!visible || !announcement) return null;
   const severity = announcement.severity in STYLES ? announcement.severity : 'info';
   const Icon = ICONS[severity];
-  const role = firstShow ? (severity === 'critical' ? 'alert' : 'status') : 'region';
+  const severityLabel = t(`severity_${severity}`);
 
   return (
     <div
-      role={role}
-      aria-label={role === 'region' ? t('label') : undefined}
+      role="region"
+      aria-label={t('label')}
       data-testid="org-announcement"
       data-severity={severity}
       className={cn('flex shrink-0 items-start gap-2 border-b px-3 text-sm sm:px-4', STYLES[severity])}
     >
+      {firstShow && <LiveOnce text={`${severityLabel}: ${text}`} assertive={severity === 'critical'} />}
       <Icon className="mt-3 h-4 w-4 shrink-0" aria-hidden="true" />
       <p className="min-w-0 flex-1 whitespace-pre-line break-words py-2.5 leading-snug [overflow-wrap:anywhere]">
-        <span className="sr-only">{t(`severity_${severity}`)}: </span>
+        <span className="sr-only">{severityLabel}: </span>
         {parts.map((part, index) => part.kind === 'link' ? (
           <a
             key={index}

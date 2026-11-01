@@ -14,6 +14,7 @@ vi.mock('@/components/plugins/plugin-slot', () => ({
 }));
 
 import { AppTopBannerSlot } from '@/components/plugins/app-top-banner-slot';
+import { EmbeddedContext } from '@/hooks/use-is-embedded';
 import { useAccountStore } from '@/stores/account-store';
 import { useAuthStore } from '@/stores/auth-store';
 
@@ -45,5 +46,11 @@ describe('AppTopBannerSlot', () => {
     useAccountStore.setState({ accounts: [account], activeAccountId: account.id });
     render(<AppTopBannerSlot />);
     expect(screen.getByTestId('org-announcement')).toBeTruthy();
+  });
+
+  it('leaves the announcement to the Pro shell, which shows it once for all its panes', () => {
+    useAccountStore.setState({ accounts: [account], activeAccountId: account.id });
+    render(<EmbeddedContext.Provider value={true}><AppTopBannerSlot /></EmbeddedContext.Provider>);
+    expect(screen.queryByTestId('org-announcement')).toBeNull();
   });
 });

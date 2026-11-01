@@ -40,12 +40,18 @@ describe('OrgAnnouncement', () => {
     expect(screen.queryByTestId('org-announcement')).toBeNull();
   });
 
-  it('shows the text with the critical role for a critical announcement', () => {
+  it('shows the text, and reads a critical one out as an alert after it is in the page', () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
     setAnnouncement({ severity: 'critical' });
     render(<OrgAnnouncement />);
     const banner = screen.getByTestId('org-announcement');
     expect(banner.textContent).toContain('Mail is down tonight');
-    expect(banner.getAttribute('role')).toBe('alert');
+    const live = screen.getByTestId('org-announcement-live');
+    expect(live.getAttribute('role')).toBe('alert');
+    // Empty when it appears, filled a moment later: only a change is announced.
+    expect(live.textContent).toBe('');
+    act(() => { vi.advanceTimersByTime(200); });
+    expect(live.textContent).toBe('severity_critical: Mail is down tonight');
   });
 
   it('goes away at its end time without a reload', () => {
@@ -56,6 +62,18 @@ describe('OrgAnnouncement', () => {
     expect(screen.getByTestId('org-announcement')).toBeTruthy();
     act(() => { vi.advanceTimersByTime(61_000); });
     expect(screen.queryByTestId('org-announcement')).toBeNull();
+  });
+
+  it('shows one that arrives with a refetch after its start, in a tab open since before', () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] });
+    vi.setSystemTime(new Date('2026-11-02T08:00:00Z'));
+    usePolicyStore.setState({ policy: { ...DEFAULT_POLICY } });
+    render(<OrgAnnouncement />);
+    expect(screen.queryByTestId('org-announcement')).toBeNull();
+    // Two hours later a refetch brings an announcement that started at 09:00.
+    vi.setSystemTime(new Date('2026-11-02T10:05:00Z'));
+    act(() => setAnnouncement({ id: 'n-late', startsAt: '2026-11-02T09:00:00.000Z', endsAt: '2026-11-02T12:00:00.000Z' }));
+    expect(screen.getByTestId('org-announcement')).toBeTruthy();
   });
 
   it('appears at its start time without a reload', () => {
@@ -100,9 +118,10 @@ describe('OrgAnnouncement', () => {
   it('is read out once per page load, then is a plain region', () => {
     setAnnouncement({ id: 'n-once' });
     const { unmount } = render(<OrgAnnouncement />);
-    expect(screen.getByTestId('org-announcement').getAttribute('role')).toBe('status');
+    expect(screen.getByTestId('org-announcement').getAttribute('role')).toBe('region');
+    expect(screen.getByTestId('org-announcement-live').getAttribute('role')).toBe('status');
     unmount();
     render(<OrgAnnouncement />);
-    expect(screen.getByTestId('org-announcement').getAttribute('role')).toBe('region');
+    expect(screen.queryByTestId('org-announcement-live')).toBeNull();
   });
 });
