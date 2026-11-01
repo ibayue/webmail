@@ -15,7 +15,7 @@ import { useAccountStore } from '@/stores/account-store';
  * be sent again or deleted; one whose connection broke on the way is never
  * sent again on its own (it may have gone out).
  */
-export function OutboxList() {
+export function OutboxList({ heading = true }: { heading?: boolean }) {
   const t = useTranslations('offline.outbox');
   const format = useFormatter();
   const rows = useOfflineStore((s) => s.outbox);
@@ -40,8 +40,8 @@ export function OutboxList() {
   };
 
   return (
-    <div className="pt-2" data-testid="offline-outbox">
-      <h4 className="text-sm font-medium text-foreground">{t('title')}</h4>
+    <div className={heading ? 'pt-2' : undefined} data-testid="offline-outbox">
+      {heading && <h4 className="text-sm font-medium text-foreground">{t('title')}</h4>}
       <p className="mt-1 text-xs text-muted-foreground">{t('description')}</p>
       {rows.length === 0 ? (
         <p className="mt-3 text-sm text-muted-foreground" data-testid="offline-outbox-empty">{t('empty')}</p>

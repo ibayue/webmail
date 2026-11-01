@@ -74,3 +74,25 @@ describe('Settings > Offline', () => {
     expect(screen.getByRole('button', { name: 'retry' })).toBeInTheDocument();
   });
 });
+
+describe('the offline banner', () => {
+  it('says the app is offline and opens the outbox in place', async () => {
+    const { OfflineBanner } = await import('../offline-banner');
+    useOfflineStore.setState({
+      enabled: ['acc'],
+      browserOffline: true,
+      outbox: [{ id: 1, account: 'acc', createdAt: Date.now(), subject: 'Quarterly', to: ['b@example.org'], status: 'waiting' }],
+    });
+    render(<OfflineBanner />);
+    expect(screen.getByTestId('offline-banner').textContent).toContain('banner.offline');
+    fireEvent.click(screen.getByTestId('offline-banner-outbox'));
+    expect(screen.getByTestId('offline-outbox-row').textContent).toContain('Quarterly');
+  });
+
+  it('stays away for an account that doesn\'t keep mail here', async () => {
+    const { OfflineBanner } = await import('../offline-banner');
+    useOfflineStore.setState({ enabled: [], browserOffline: true, outbox: [] });
+    render(<OfflineBanner />);
+    expect(screen.queryByTestId('offline-banner')).toBeNull();
+  });
+});
