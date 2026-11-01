@@ -29,18 +29,8 @@ ARG NEXT_PUBLIC_DEFAULT_LOCALE=
 # Commit SHA shown in the About screen. .dockerignore excludes .git, so CI
 # must pass it in.
 ARG GIT_COMMIT=unknown
-# Browser source maps for the error tracker: CI passes 1. build:lite moves
-# them to /sourcemaps (exported with `--target sourcemaps`) and fails if one
-# would ship. https://bulwarkmail.org/docs/deployment/monitoring
-ARG BULWARK_SOURCE_MAPS=0
-RUN mkdir -p /sourcemaps && \
-    LITE_TARGET=static NEXT_PUBLIC_BASE_PATH= SOURCEMAPS_OUT=/sourcemaps npm run build:lite && \
-    node scripts/lite/container.mjs /image && \
-    node scripts/sourcemaps.mjs check /image/html
-
-# Only the maps, for CI to upload: never part of the image.
-FROM scratch AS sourcemaps
-COPY --from=builder /sourcemaps /
+RUN LITE_TARGET=static NEXT_PUBLIC_BASE_PATH= npm run build:lite && \
+    node scripts/lite/container.mjs /image
 
 FROM nginxinc/nginx-unprivileged:1.30-alpine-slim
 
