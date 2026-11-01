@@ -20,7 +20,7 @@ const signaturePlugin = vi.hoisted(() => ({ on: false }));
 // Send plugins: a footer added by onTransformOutgoingEmail, and a crypto
 // plugin taking the send over (onComposeSend).
 // What a send check plugin (onBeforeEmailSend) was handed.
-const sendChecks = vi.hoisted(() => ({ seen: [] as unknown[], size: 1, answers: [] as string[] }));
+const sendChecks = vi.hoisted(() => ({ seen: [] as unknown[], size: 1, answers: [] as string[], uploads: [] as unknown[] }));
 const sendPlugins = vi.hoisted(() => ({
   footer: false,
   addBcc: '' as string,
@@ -205,6 +205,10 @@ vi.mock('@/lib/plugin-hooks', () => ({
       get size() { return sendChecks.size; },
       intercept: async () => true,
       interceptOutcome: async (email: unknown) => { sendChecks.seen.push(email); return sendChecks.answers.shift() ?? 'allowed'; },
+    },
+    onBeforeAttachmentUpload: {
+      size: 1,
+      intercept: async (info: unknown) => { sendChecks.uploads.push(info); return false; },
     },
     onComposeSend: {
       takeOver: async (request: { htmlBody: string; textBody: string }) => {
@@ -400,5 +404,26 @@ describe('composer: recipients a plugin adds after the check', () => {
     fireEvent.click(screen.getAllByTestId('composer-send')[0]);
     await waitFor(() => expect(onSend).toHaveBeenCalledTimes(1));
     expect(sendChecks.seen).toHaveLength(1);
+  });
+});
+
+// A renamed program is refused before it is uploaded: the plugin learns
+// what the file's first bytes say, not only its name.
+describe('composer: attaching a file from this device', () => {
+  it('tells onBeforeAttachmentUpload what the file really is', async () => {
+    const { useAuthStore } = await import('@/stores/auth-store');
+    // Any client method answers "nothing": only the hook matters here.
+    useAuthStore.setState({ client: new Proxy({}, { get: () => () => undefined }) as never });
+    try {
+      sendChecks.uploads = [];
+      render(<EmailComposer initialData={DRAFT} onSend={vi.fn()} />);
+      const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+      const program = new File([new Uint8Array([0x4d, 0x5a, 0x90, 0, 3, 0])], 'invoice.pdf', { type: 'application/pdf' });
+      fireEvent.change(input, { target: { files: [program] } });
+      await waitFor(() => expect(sendChecks.uploads).toHaveLength(1));
+      expect(sendChecks.uploads[0]).toEqual({ name: 'invoice.pdf', type: 'application/pdf', size: 6, sniffedType: 'application/x-msdownload' });
+    } finally {
+      useAuthStore.setState({ client: null } as never);
+    }
   });
 });
