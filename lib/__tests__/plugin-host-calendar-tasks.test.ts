@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { InstalledPlugin } from '../plugin-types';
 import type { IJMAPClient } from '../jmap/client-interface';
-import type { Calendar, CalendarEvent, CalendarEventAlert, CalendarTask } from '../jmap/types';
+import type { Calendar, CalendarEvent, CalendarEventAlert, CalendarLink, CalendarTask } from '../jmap/types';
 import { useAuthStore } from '@/stores/auth-store';
 import { useCalendarStore } from '@/stores/calendar-store';
 import { useTaskStore } from '@/stores/task-store';
@@ -480,5 +480,90 @@ describe('api.tasks alerts', () => {
     useTaskStore.setState({ tasks: [task({ useDefaultAlerts: true, alerts: { d1: at('2026-05-04T06:00:00Z') } })] });
     await call(WRITE, 'tasks.update', 't1', { alerts: null });
     expect(updates()[0]).toEqual({ alerts: null, useDefaultAlerts: false });
+  });
+});
+
+describe('api.tasks links and relations', () => {
+  const link = (href: string, over: Partial<CalendarLink> = {}): CalendarLink => ({
+    '@type': 'Link', href, cid: null, contentType: null, size: null, rel: null, display: null, title: null, ...over,
+  });
+  const updates = () => client.updateCalendarTask.mock.calls.map((c) => c[1] as Record<string, unknown>);
+
+  it('creates a task with links and a related mail, a path of this Bulwark made a full URL', async () => {
+    await call(WRITE, 'tasks.create', {
+      title: 'Follow up: Offer',
+      links: {
+        mail: { href: '/mail/message/m1?mailAccount=a1', rel: 'describedby', title: 'Offer' },
+        from: { href: 'mailto:bob@example.com', rel: 'author', title: 'Bob' },
+      },
+      relatedTo: { '<offer-1@example.com>': { relation: ['parent'] } },
+    });
+    expect(client.createCalendarTask).toHaveBeenCalledWith(expect.objectContaining({
+      links: {
+        mail: link(`${window.location.origin}/mail/message/m1?mailAccount=a1`, { rel: 'describedby', title: 'Offer' }),
+        from: link('mailto:bob@example.com', { rel: 'author', title: 'Bob' }),
+      },
+      relatedTo: { '<offer-1@example.com>': { '@type': 'Relation', relation: { parent: true } } },
+    }));
+  });
+
+  it('returns them as any app wrote them, an attachment\'s link too', async () => {
+    client.getCalendarTasks.mockResolvedValue([task({
+      links: { file: link('cid:part1', { rel: 'enclosure', contentType: 'application/pdf', size: 12 }) },
+      relatedTo: { '<m@x>': { '@type': 'Relation', relation: null } },
+    })]);
+    expect(await call(READ, 'tasks.get', 't1')).toEqual(expect.objectContaining({
+      links: { file: { href: 'cid:part1', rel: 'enclosure', title: null, contentType: 'application/pdf' } },
+      relatedTo: { '<m@x>': { relation: [] } },
+    }));
+  });
+
+  it('refuses bad schemes, bad keys and over-long fields', async () => {
+    const create = (over: Record<string, unknown>) => call(WRITE, 'tasks.create', { title: 'x', ...over });
+    await expect(create({ links: { l: { href: 'javascript:alert(1)' } } })).rejects.toThrow(/http\(s\) URL, a mailto: address or a path/);
+    await expect(create({ links: { l: { href: '//evil.example/x' } } })).rejects.toThrow(/http\(s\) URL/);
+    await expect(create({ links: { l: { href: 'https://user:pw@example.com/' } } })).rejects.toThrow(/user name or password/);
+    await expect(create({ links: { l: { href: 'mailto:a@example.com?body=hi' } } })).rejects.toThrow(/one address/);
+    await expect(create({ links: { l: { href: `https://example.com/${'a'.repeat(2048)}` } } })).rejects.toThrow(/1-2048 characters/);
+    await expect(create({ links: { l: { href: 'https://example.com', rel: 'Described By' } } })).rejects.toThrow(/rel must be/);
+    await expect(create({ links: { l: { href: 'https://example.com', title: 'x'.repeat(501) } } })).rejects.toThrow(/title must be at most 500/);
+    await expect(create({ links: [{ id: 'l', href: 'https://a.example' }] })).rejects.toThrow(/object keyed by id/);
+    const eleven = Object.fromEntries(Array.from({ length: 11 }, (_, i) => [`l${i}`, { href: 'https://a.example' }]));
+    await expect(create({ links: eleven })).rejects.toThrow(/at most 10 entries/);
+    await expect(create({ relatedTo: { 'has space': {} } })).rejects.toThrow(/Message-ID/);
+    await expect(create({ relatedTo: { [`<${'a'.repeat(1000)}>`]: {} } })).rejects.toThrow(/at most 998/);
+    await expect(create({ relatedTo: { '<m@x>': { relation: ['Parent'] } } })).rejects.toThrow(/relation\[0\]/);
+    expect(client.createCalendarTask).not.toHaveBeenCalled();
+  });
+
+  it('merges by id with patch paths, keeping links another app wrote', async () => {
+    useTaskStore.setState({ tasks: [task({
+      links: { att: link('cid:part1', { rel: 'enclosure', contentType: 'application/pdf' }), old: link('https://old.example') },
+      relatedTo: null,
+    })] });
+    await call(WRITE, 'tasks.update', 't1', {
+      links: { mail: { href: 'https://mail.example/m1' }, old: null },
+      relatedTo: { '<m/1~x@y>': { relation: ['parent'] } },
+    });
+    expect(updates()[0]).toEqual({
+      'links/mail': link('https://mail.example/m1'),
+      'links/old': null,
+      // No relatedTo yet: written whole.
+      relatedTo: { '<m/1~x@y>': { '@type': 'Relation', relation: { parent: true } } },
+    });
+    expect(Object.keys(useTaskStore.getState().tasks[0].links ?? {})).toEqual(['att', 'mail']);
+
+    await call(WRITE, 'tasks.update', 't1', { relatedTo: { '<m/1~x@y>': null } });
+    expect(updates()[1]).toEqual({ 'relatedTo/<m~11~0x@y>': null });
+  });
+
+  it('decides on the links as the server holds them, not an older copy in the list', async () => {
+    useTaskStore.setState({ tasks: [task({ links: null })] });
+    client.getCalendarEvent.mockImplementation(async (id: string) => (id === 't1'
+      ? { id: 't1', links: { att: link('cid:part1', { rel: 'enclosure' }) }, alerts: null, relatedTo: null }
+      : null));
+    await call(WRITE, 'tasks.update', 't1', { links: { mail: { href: 'https://mail.example/m1' } } });
+    expect(updates()[0]).toEqual({ 'links/mail': link('https://mail.example/m1') });
+    expect(Object.keys(useTaskStore.getState().tasks[0].links ?? {})).toEqual(['att', 'mail']);
   });
 });

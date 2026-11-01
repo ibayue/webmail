@@ -997,9 +997,10 @@ function buildPluginApi(manifest: PluginManifest) {
       /** Resolves to the new task, or null when another plugin stopped it. */
       create: (task: TaskInput) => callApi('tasks.create', [task]) as Promise<TaskView | null>,
       /**
-       * Change the given fields. `alerts` merges by id: an alert given is
-       * set, one given null is removed, the rest stay as they are (each
-       * written by its own JMAP patch path); null for the whole map clears it.
+       * Change the given fields. `alerts`, `links` and `relatedTo` merge
+       * by id: an entry given is set, one given null is removed, the rest
+       * stay as they are (each written by its own JMAP patch path); null
+       * for the whole map clears it.
        */
       update: (id: string, patch: Partial<TaskInput>) => callApi('tasks.update', [id, patch]) as Promise<void>,
       /** Mark a task done or not done. */

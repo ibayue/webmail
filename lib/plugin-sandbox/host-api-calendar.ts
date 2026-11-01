@@ -11,7 +11,8 @@ import type {
   CalendarEventInput, CalendarEventView, CalendarView, TaskInput, TaskView,
 } from '../plugin-types';
 import type {
-  Calendar, CalendarEvent, CalendarEventAlert, CalendarParticipant, CalendarRecurrenceRule, CalendarTask,
+  Calendar, CalendarEvent, CalendarEventAlert, CalendarLink, CalendarParticipant, CalendarRecurrenceRule,
+  CalendarRelation, CalendarTask,
 } from '../jmap/types';
 import type { IJMAPClient } from '../jmap/client-interface';
 import { useCalendarStore } from '@/stores/calendar-store';
@@ -23,6 +24,7 @@ import { buildParticipantMap } from '../calendar-participants';
 import { parseDurationSeconds } from '../calendar-event-normalization';
 import { parseAlertOffset, withOwnAlertIds } from '../calendar-alerts';
 import { patchPath } from '../jmap/patch-object';
+import { isValidEmail } from '../validation';
 import { getEffectiveTimeZone } from '../timezone';
 import { generateUUID } from '../utils';
 import {
@@ -490,19 +492,33 @@ export async function doCalendarDeleteEvent(id: unknown): Promise<void> {
 
 // ─── Tasks ────────────────────────────────────────────────────
 
-const TASK_FIELDS = ['title', 'description', 'due', 'priority', 'calendarId', 'alerts'] as const;
+const TASK_FIELDS = [
+  'title', 'description', 'due', 'priority', 'calendarId', 'alerts', 'links', 'relatedTo',
+] as const;
 /** Most alerts a plugin may give a task. */
 export const MAX_PLUGIN_TASK_ALERTS = 5;
+/** Most links a plugin may give a task. */
+export const MAX_PLUGIN_TASK_LINKS = 10;
+/** Most relations a plugin may give a task. */
+export const MAX_PLUGIN_TASK_RELATIONS = 10;
+const MAX_HREF = 2048;
+const MAX_LINK_TITLE = 500;
+const MAX_RELATED_UID = 998;
+const MAX_RELATIONS_PER_UID = 4;
 const MAX_ALERT_OFFSET_MS = MAX_PLUGIN_EVENT_RANGE_DAYS * DAY_MS;
 /** Longest key a plugin may name to remove an entry it did not write. */
 const MAX_REMOVED_KEY = 1024;
 
 const MEMBER_ID_RE = /^[A-Za-z0-9._-]{1,64}$/;
 const OFFSET_RE = /^-?P(?:\d+W|(?:\d+D)?(?:T(?:\d+H)?(?:\d+M)?(?:\d+S)?)?)$/;
+const REL_RE = /^[a-z][a-z0-9.-]{0,63}$/;
+const RELATION_RE = /^[a-z][a-z0-9-]{0,31}$/;
+// Printable ASCII without spaces; a Message-ID keeps its angle brackets.
+const RELATED_UID_RE = /^(?:<[!-;=?-~]+>|[!-;=?-~]+)$/;
 const CONTROL_RE = /\p{Cc}/u;
 
 /** The maps a plugin edits on a task, each keyed as JSCalendar keys it. */
-const TASK_MAPS = ['alerts'] as const;
+const TASK_MAPS = ['alerts', 'links', 'relatedTo'] as const;
 type TaskMap = typeof TASK_MAPS[number];
 
 /**
@@ -589,14 +605,89 @@ function alertsOf(value: unknown, method: string): MapChange<CalendarEventAlert>
     });
 }
 
+/** A link's target: http(s), a `mailto:` address, or a path of this Bulwark made a full URL. */
+function readHref(value: unknown, method: string, field: string): string {
+  const href = readString(value, method, field, MAX_HREF, { min: 1 });
+  if (/[\s\p{Cc}\\]/u.test(href)) throw new Error(`${method}: ${field} must not contain spaces, control characters or backslashes`);
+  if (href.startsWith('/') && !href.startsWith('//')) return new URL(href, window.location.origin).href;
+  let url: URL;
+  try {
+    url = new URL(href);
+  } catch {
+    throw new Error(`${method}: ${field} must be an http(s) URL, a mailto: address or a path starting with /`);
+  }
+  if (url.protocol === 'mailto:') {
+    let address: string;
+    try {
+      address = decodeURIComponent(url.pathname);
+    } catch {
+      address = '';
+    }
+    if (url.search || url.hash || !isValidEmail(address)) throw new Error(`${method}: ${field} must be mailto: and one address`);
+    return href;
+  }
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+    throw new Error(`${method}: ${field} must be an http(s) URL, a mailto: address or a path starting with /`);
+  }
+  if (url.username || url.password) throw new Error(`${method}: ${field} must not carry a user name or password`);
+  return href;
+}
+
+function linksOf(value: unknown, method: string): MapChange<CalendarLink> {
+  return readMapChange(value, method, 'links', MAX_PLUGIN_TASK_LINKS, (k) => MEMBER_ID_RE.test(k),
+    '1-64 letters, digits or . _ -', (entry, field) => {
+      const l = readObject(entry, method, field, ['href', 'rel', 'title']);
+      if (l.rel !== undefined && (typeof l.rel !== 'string' || !REL_RE.test(l.rel))) {
+        throw new Error(`${method}: ${field}.rel must be a lower-case link relation such as describedby`);
+      }
+      const title = l.title === undefined ? '' : readString(l.title, method, `${field}.title`, MAX_LINK_TITLE, { trim: true });
+      return {
+        '@type': 'Link',
+        href: readHref(l.href, method, `${field}.href`),
+        cid: null,
+        contentType: null,
+        size: null,
+        rel: (l.rel as string | undefined) ?? null,
+        display: null,
+        title: title || null,
+      };
+    });
+}
+
+function relatedToOf(value: unknown, method: string): MapChange<CalendarRelation> {
+  return readMapChange(value, method, 'relatedTo', MAX_PLUGIN_TASK_RELATIONS,
+    (k) => k.length <= MAX_RELATED_UID && RELATED_UID_RE.test(k),
+    `a Message-ID like <id@example.com> or a UID, at most ${MAX_RELATED_UID} printable characters without spaces`,
+    (entry, field) => {
+      const r = readObject(entry, method, field, ['relation']);
+      let relation: Record<string, boolean> | null = null;
+      if (r.relation !== undefined) {
+        if (!Array.isArray(r.relation) || r.relation.length > MAX_RELATIONS_PER_UID) {
+          throw new Error(`${method}: ${field}.relation must be an array of at most ${MAX_RELATIONS_PER_UID} relation types`);
+        }
+        r.relation.forEach((type, j) => {
+          if (typeof type !== 'string' || !RELATION_RE.test(type)) {
+            throw new Error(`${method}: ${field}.relation[${j}] must be a lower-case relation type such as parent`);
+          }
+        });
+        if (r.relation.length) relation = Object.fromEntries((r.relation as string[]).map((type) => [type, true]));
+      }
+      return { '@type': 'Relation', relation };
+    });
+}
+
 interface TaskMapChanges {
   alerts?: MapChange<CalendarEventAlert>;
+  links?: MapChange<CalendarLink>;
+  relatedTo?: MapChange<CalendarRelation>;
 }
 
 /** The plugin's map changes, read and checked before anything is asked of the server. */
 function mapChangesOf(data: Record<string, unknown>, method: string): TaskMapChanges {
   const changes: TaskMapChanges = {};
   if (data.alerts !== undefined) changes.alerts = alertsOf(data.alerts, method);
+  if (data.links !== undefined) changes.links = linksOf(data.links, method);
+  if (data.relatedTo !== undefined) changes.relatedTo = relatedToOf(data.relatedTo, method);
   return changes;
 }
 
@@ -644,6 +735,8 @@ function updateMaps(method: string, task: CalendarTask, changes: TaskMapChanges)
   const patch: Record<string, unknown> = {};
   const limits: Record<TaskMap, number> = {
     alerts: MAX_PLUGIN_TASK_ALERTS,
+    links: MAX_PLUGIN_TASK_LINKS,
+    relatedTo: MAX_PLUGIN_TASK_RELATIONS,
   };
   for (const name of TASK_MAPS) {
     const change = changes[name] as MapChange<unknown> | undefined;
@@ -749,7 +842,8 @@ async function requireTask(client: IJMAPClient, method: string, id: string): Pro
 }
 
 /**
- * The task with its alerts as the server holds them now: the store's copy may be older, and a map the task seems
+ * The task with its alerts, links and relations as the server
+ * holds them now: the store's copy may be older, and a map the task seems
  * not to have is written whole, which would drop what the server gained.
  */
 async function withServerMaps(client: IJMAPClient, task: CalendarTask): Promise<CalendarTask> {
@@ -758,6 +852,8 @@ async function withServerMaps(client: IJMAPClient, task: CalendarTask): Promise<
   return {
     ...task,
     alerts: server.alerts ?? null,
+    links: server.links ?? null,
+    relatedTo: server.relatedTo ?? null,
     useDefaultAlerts: server.useDefaultAlerts,
   };
 }

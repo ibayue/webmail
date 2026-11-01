@@ -597,6 +597,19 @@ export interface TaskInput {
    * own under new ids; `{}` does only that.
    */
   alerts?: Record<string, TaskAlertInput | null> | null;
+  /**
+   * Links by id (1-64 of `A-Z a-z 0-9 . _ -`), at most 10: an http(s) URL,
+   * a `mailto:` address or a path of this Bulwark (`/mail/...`), stored as
+   * its full URL. Merged by id on update as `alerts` is; links another app
+   * wrote stay unless named with null.
+   */
+  links?: Record<string, TaskLinkInput | null> | null;
+  /**
+   * What the task relates to, by a mail's Message-ID (with its angle
+   * brackets) or another calendar object's UID; at most 10. Merged by key on
+   * update as `alerts` is.
+   */
+  relatedTo?: Record<string, TaskRelationInput | null> | null;
 }
 
 /**
@@ -613,6 +626,20 @@ export interface TaskAlertInput {
   trigger: TaskAlertTrigger;
   /** `display` (the default) shows a reminder; `email` has the server send one. */
   action?: 'display' | 'email';
+}
+
+export interface TaskLinkInput {
+  /** Up to 2048 characters. */
+  href: string;
+  /** A link relation such as `describedby` or `author` (RFC 8288), lower case. */
+  rel?: string;
+  /** Up to 500 characters. */
+  title?: string;
+}
+
+export interface TaskRelationInput {
+  /** How it relates, as in JSCalendar: `parent`, `child`, `first`, `next` or another lower-case type; at most 4. */
+  relation?: string[];
 }
 
 export interface ContactView {
@@ -686,6 +713,10 @@ export interface TaskView {
    * `alerts` makes them the task's own (under new ids).
    */
   useDefaultAlerts: boolean;
+  /** By id; as written by any app (an attachment's link too). */
+  links: Record<string, TaskLinkView>;
+  /** By Message-ID or UID. */
+  relatedTo: Record<string, TaskRelationView>;
 }
 
 export interface TaskAlertView {
@@ -694,6 +725,17 @@ export interface TaskAlertView {
   action: 'display' | 'email';
   /** When the alert was dismissed (UTC), or null while it is not. */
   acknowledged: string | null;
+}
+
+export interface TaskLinkView {
+  href: string;
+  rel: string | null;
+  title: string | null;
+  contentType: string | null;
+}
+
+export interface TaskRelationView {
+  relation: string[];
 }
 
 export interface TemplateView {

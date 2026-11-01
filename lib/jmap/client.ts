@@ -738,6 +738,7 @@ const CALENDAR_TASK_PROPERTIES = [
   'useDefaultAlerts',
   'alerts',
   'relatedTo',
+  'links',
   'percentComplete',  // Task-only per RFC 8984 §5.2.4 - used in detection heuristic
 ] as const;
 

@@ -183,6 +183,15 @@ export function taskToView(task: CalendarTask): TaskView {
       acknowledged: alert.acknowledged || null,
     }])),
     useDefaultAlerts: !!task.useDefaultAlerts,
+    links: Object.fromEntries(Object.entries(task.links || {}).map(([id, link]) => [id, {
+      href: link.href,
+      rel: link.rel || null,
+      title: link.title || null,
+      contentType: link.contentType || null,
+    }])),
+    relatedTo: Object.fromEntries(Object.entries(task.relatedTo || {}).map(([uid, relation]) => [uid, {
+      relation: trueKeys(relation?.relation),
+    }])),
   };
 }
 
