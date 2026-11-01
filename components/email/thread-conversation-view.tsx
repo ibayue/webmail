@@ -4,7 +4,7 @@ import React, { useState, useEffect, useLayoutEffect, useMemo, useRef, useCallba
 import DOMPurify from "dompurify";
 import { Email, ThreadGroup } from "@/lib/jmap/types";
 import { EMAIL_SANITIZE_CONFIG, TRANSPARENT_BLOCKED_PIXEL, blockExternalResourcesOnNode, collapseBlockedImageContainers, emailIframeCsp, isOpenableLinkHref, plainTextToSafeHtml, restrictDataUriResourcesOnNode, sanitizeEmailBodyForIframe, sanitizePlainTextRenderedHtml } from "@/lib/email-sanitization";
-import { linkText, resolveExternalLink } from "@/lib/plugin-hook-result";
+import { gateLinkClick, linkCheckActive, linkText, resolveExternalLink } from "@/lib/plugin-hook-result";
 import { stripBidiControls } from "@/lib/bidi";
 import { requestInternalMailto } from "@/lib/protocol-handlers/mailto";
 import { emailDisplayDate } from "@/lib/email-date";
@@ -880,8 +880,9 @@ export function ConversationEmailBody({
       // origin (a relative path, data:) is opened. mailto: is written here
       // when the mail page takes it; the blob: URLs of cid: parts are inert.
       const onLinkClick = (ev: MouseEvent) => {
-        // A middle-click opens a link too; other buttons are left alone.
-        if (ev.type === 'auxclick' && ev.button !== 1) return;
+        // A middle-click opens a link too, through the link check while one
+        // listens; other buttons are left alone.
+        if (ev.type === 'auxclick' && (ev.button !== 1 || !linkCheckActive())) return;
         const link = (ev.target as Element | null)?.closest?.('a[href], area[href]');
         if (!link) return;
         const href = link.getAttribute('href') || '';
@@ -1000,6 +1001,10 @@ export function ConversationEmailBody({
             data-plugin-source="email-body"
             data-email-id={email.id}
             onContextMenu={(e) => selectionMenu.onElementContextMenu(e, email.id)}
+            // A plain-text body renders in the page, not the iframe: its
+            // links go through the link check here.
+            onClick={(e) => gateLinkClick(e, { emailId: email.id })}
+            onAuxClick={(e) => gateLinkClick(e, { emailId: email.id })}
             dangerouslySetInnerHTML={plainBodyHtml}
           />
         )}

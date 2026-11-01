@@ -128,3 +128,47 @@ describe("other plugins' ui.openExternalUrl", () => {
     expect(open).toHaveBeenCalledWith('https://evil.example/p', '_blank', 'noopener,noreferrer');
   });
 });
+
+// What is checked is what opens: the host hands plugins the address as the
+// browser parses it, and opens exactly that.
+describe('one address end to end', () => {
+  it('checks and opens the address the browser really goes to', async () => {
+    const { seen, open } = watchLinks();
+    render(<div onClick={gateLinkClick}><a href={'http://evil.example\\@good.example/login'}>login</a></div>);
+    fireEvent.click(screen.getByRole('link'));
+    await waitFor(() => expect(open).toHaveBeenCalledWith('http://evil.example/@good.example/login', '_blank', 'noopener,noreferrer'));
+    expect(seen[0].href).toBe('http://evil.example/@good.example/login');
+  });
+
+  it('hands over international names in their punycode form', async () => {
+    const { seen } = watchLinks(() => false);
+    expect(await resolveExternalLink({ href: 'https://b\u00fccher.example/a' })).toBeNull();
+    expect(seen[0].href).toBe('https://xn--bcher-kva.example/a');
+  });
+});
+
+// Without a link check listening, clicks stay exactly as they were.
+describe('no link check listening', () => {
+  it('leaves clicks and middle-clicks to the browser', () => {
+    const open = vi.spyOn(window, 'open').mockReturnValue(null);
+    render(<div onClick={gateLinkClick} onAuxClick={gateLinkClick}><a href="https://a.example/">a</a></div>);
+    expect(fireEvent.click(screen.getByRole('link'))).toBe(true);
+    expect(fireEvent(screen.getByRole('link'), new MouseEvent('auxclick', { bubbles: true, cancelable: true, button: 1 }))).toBe(true);
+    expect(open).not.toHaveBeenCalled();
+  });
+
+  it('opens at once, inside the click, from code that opens a link itself', () => {
+    const open = vi.spyOn(window, 'open').mockReturnValue(null);
+    void openExternalLink({ href: 'https://a.example/' });
+    expect(open).toHaveBeenCalledWith('https://a.example/', '_blank', 'noopener,noreferrer');
+  });
+
+  it("opens a plugin's own link at once when only that plugin listens", async () => {
+    const { dispatchApiCall } = await import('@/lib/plugin-sandbox/host-api');
+    uiHooks.onBeforeExternalLink.register('link-check', () => false);
+    const open = vi.spyOn(window, 'open').mockReturnValue(null);
+    const call = dispatchApiCall({ id: 'link-check', name: 'x', version: '1', author: '', description: '', type: 'hook', permissions: [], entrypoint: 'index.js', enabled: true, status: 'running', settings: {} } as never, 'ui.openExternalUrl', ['https://a.example/']);
+    expect(open).toHaveBeenCalledTimes(1);
+    await call;
+  });
+});

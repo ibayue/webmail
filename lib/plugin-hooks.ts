@@ -197,6 +197,11 @@ export class HookBus<T extends (...args: any[]) => any> {
     return this.handlers.length;
   }
 
+  /** Whether a plugin other than `pluginId` has a handler here. */
+  hasHandlersBesides(pluginId: string | undefined): boolean {
+    return this.handlers.some((h) => h.pluginId !== pluginId);
+  }
+
   /** Fire all handlers (observer pattern - no return values used) */
   async emit(...args: Parameters<T>): Promise<void> {
     for (const { pluginId, handler } of this.handlers) {

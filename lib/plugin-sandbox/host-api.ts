@@ -69,7 +69,7 @@ import { requestOpenEmail } from './open-email';
 import { doComposerAttach, doComposerGetBody, doComposerGetSelection, doComposerReplaceBody, doComposerReplaceSelection } from './host-api-composer';
 import { wkdAllowed } from '../outgoing-hosts';
 import { noThirdPartyTraffic } from '../third-party-mode';
-import { resolveExternalLink } from '../plugin-hook-result';
+import { openExternalLink } from '../plugin-hook-result';
 
 /**
  * Methods only callable from the privileged (same-origin) tier. These expose
@@ -2223,11 +2223,9 @@ export async function dispatchApiCall(
       // Other plugins' link checks (onBeforeExternalLink) see it like a
       // click in a message; the plugin's own handler isn't asked again, so a
       // link check opens the link after its dialog.
-      const target = await resolveExternalLink({ href: parsed.toString(), target: '_blank' }, { skipPluginId: plugin.id });
-      if (!target) return undefined;
-      // Always open in a new tab; plugins must not be able to navigate the
+      // Always opens in a new tab; plugins must not be able to navigate the
       // host window (_self/_top/_parent) to an attacker-controlled origin.
-      window.open(target, '_blank', 'noopener,noreferrer');
+      await openExternalLink({ href: parsed.toString(), target: '_blank' }, { skipPluginId: plugin.id });
       return undefined;
     }
     case 'ui.print': return doUiPrint(plugin, args[0]);

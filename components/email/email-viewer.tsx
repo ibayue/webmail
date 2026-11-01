@@ -169,7 +169,7 @@ import { usePluginSlotOffers } from "@/hooks/use-plugin-slot-offers";
 import { ResizeHandle } from "@/components/layout/resize-handle";
 import { emailHooks, renderHooks } from "@/lib/plugin-hooks";
 import { emitThreadExpand } from "@/lib/plugin-thread-expand";
-import { linkText, resolveExternalLink } from "@/lib/plugin-hook-result";
+import { gateLinkClick, linkCheckActive, linkText, resolveExternalLink } from "@/lib/plugin-hook-result";
 import type { AttachmentInfo, AttachmentPreview } from "@/lib/plugin-types";
 import { useAttachmentDrag, isDragOutSupported, type AttachmentDragSource } from "@/hooks/use-attachment-drag";
 import type { IJMAPClient } from "@/lib/jmap/client-interface";
@@ -3522,8 +3522,9 @@ export function EmailViewer({
         // the email body before navigation happens. Bound on the iframe doc so
         // it survives later DOM mutations.
         const onLinkClick = async (ev: MouseEvent) => {
-          // A middle-click opens a link too; other buttons are left alone.
-          if (ev.type === 'auxclick' && ev.button !== 1) return;
+          // A middle-click opens a link too, through the link check while one
+          // listens; other buttons are left alone.
+          if (ev.type === 'auxclick' && (ev.button !== 1 || !linkCheckActive())) return;
           const targetEl = (ev.target as Element | null)?.closest?.('a[href], area[href]') as HTMLAnchorElement | HTMLAreaElement | null;
           if (!targetEl) return;
           const href = targetEl.getAttribute('href') || '';
@@ -5802,6 +5803,10 @@ export function EmailViewer({
                 data-plugin-source="email-body"
                 data-email-id={email?.id}
                 onContextMenu={(e) => selectionMenu.onElementContextMenu(e, email?.id)}
+                // A plain-text body renders in the page, not the iframe: its
+                // links go through the link check here.
+                onClick={(e) => gateLinkClick(e, { emailId: email?.id })}
+                onAuxClick={(e) => gateLinkClick(e, { emailId: email?.id })}
                 dangerouslySetInnerHTML={plainBodyHtml}
                 style={{
                   ...(plainTextFont === 'mono' && { fontFamily: 'ui-monospace, "SF Mono", Consolas, monospace' }),
