@@ -132,14 +132,26 @@ export function VacationSettings() {
   // The date fields as typed ("yyyy-mm-ddThh:mm" on the browser's clock).
   const [fromInput, setFromInput] = useState(() => (fromDate ? utcToLocalDatetime(fromDate, timeZone) : ''));
   const [toInput, setToInput] = useState(() => (toDate ? utcToLocalDatetime(toDate, timeZone) : ''));
+  // The zone the fields' wall-clock text is in. The time zone setting can
+  // arrive or change after the fields were filled (settings sync): the text
+  // is read in the zone it was written in, then rewritten for the new zone.
+  const [inputZone, setInputZone] = useState(timeZone);
   // A field the browser holds half filled in (a date without its time) reads
   // as empty, without an event when it was empty before: told apart here, so
   // it does not pass for "no date", which leaves that end of the period open.
   const [halfFilled, setHalfFilled] = useState({ from: false, to: false });
   const fromRef = useRef<HTMLInputElement>(null);
   const toRef = useRef<HTMLInputElement>(null);
-  const localFromDate = fieldMoment(fromInput, fromDate, timeZone);
-  const localToDate = fieldMoment(toInput, toDate, timeZone);
+  const localFromDate = fieldMoment(fromInput, fromDate, inputZone);
+  const localToDate = fieldMoment(toInput, toDate, inputZone);
+  useEffect(() => {
+    if (timeZone === inputZone) return;
+    // The same moments, shown on the new zone's clock; nothing is saved for it.
+    if (localFromDate) setFromInput(utcToLocalDatetime(localFromDate, timeZone));
+    if (localToDate) setToInput(utcToLocalDatetime(localToDate, timeZone));
+    setInputZone(timeZone);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [timeZone]);
   const datesUnusable = localFromDate === null || localToDate === null || halfFilled.from || halfFilled.to;
   const [localSubject, setLocalSubject] = useState(subject);
   const [localTextBody, setLocalTextBody] = useState(textBody);
@@ -195,6 +207,7 @@ export function VacationSettings() {
       setLocalEnabled(stored.isEnabled);
       setFromInput(stored.fromDate ? utcToLocalDatetime(stored.fromDate, timeZone) : '');
       setToInput(stored.toDate ? utcToLocalDatetime(stored.toDate, timeZone) : '');
+      setInputZone(timeZone);
       setHalfFilled({ from: false, to: false });
       setLocalSubject(stored.subject);
       setLocalTextBody(stored.textBody);

@@ -100,6 +100,21 @@ describe('out-of-office templates', () => {
     expect(sent.subject).toMatch(/^Away until Monday,? 4 January 2027$/);
   });
 
+  it('follows a time zone that arrives after the page opened, without saving or shifting the dates', async () => {
+    const server = await openCard([], 'UTC');
+    const inputs = () => document.querySelectorAll('input[type="datetime-local"]') as NodeListOf<HTMLInputElement>;
+    expect(inputs()[1].value).toBe('2027-01-03T23:00');
+    // Settings sync brings the user's zone a moment later.
+    act(() => useSettingsStore.setState({ timeZone: 'Asia/Tokyo' }));
+    expect(inputs()[1].value).toBe('2027-01-04T08:00');
+    await settle();
+    expect(server.client.setVacationResponse).not.toHaveBeenCalled();
+    // An edit afterwards is read on the new clock.
+    fireEvent.change(inputs()[0], { target: { value: '2026-12-22T09:00' } });
+    await waitFor(() => expect(server.client.setVacationResponse).toHaveBeenCalled(), { timeout: 3000 });
+    expect(server.client.setVacationResponse.mock.calls[0][0]).toMatchObject({ fromDate: '2026-12-22T00:00:00.000Z', toDate: '2027-01-03T23:00:00Z' });
+  });
+
   it('shows and fills the dates in the time zone set in Bulwark, not the browser’s', async () => {
     await openCard([{ ...TEMPLATE, text: 'Back {end}', subject: '' }], 'Asia/Tokyo');
     const inputs = document.querySelectorAll('input[type="datetime-local"]');
