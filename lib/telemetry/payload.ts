@@ -115,8 +115,17 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
  * and a message only when it is one of Bulwark's fixed error codes.
  */
 export function errorsForPayload(agg: Aggregate, now = Date.now()): TelemetryError[] {
-  const day = utcDay(now - 86_400_000);
-  const recentDays = Array.from({ length: 7 }, (_, i) => utcDay(now - (i + 1) * 86_400_000));
+  return errorsForDay(agg, utcDay(now - 86_400_000));
+}
+
+/**
+ * The error counts of one UTC day, shaped as in errorsForPayload. `days`
+ * counts the days of the week ending on `day` the error occurred on.
+ * Instant mode sends the current day's this way.
+ */
+export function errorsForDay(agg: Aggregate, day: string): TelemetryError[] {
+  const end = Date.parse(`${day}T00:00:00Z`);
+  const recentDays = Array.from({ length: 7 }, (_, i) => utcDay(end - i * 86_400_000));
   return Object.entries(agg[day] ?? {})
     .sort(([, a], [, b]) => b.count - a.count)
     .slice(0, MAX_TELEMETRY_ERRORS)
@@ -145,7 +154,8 @@ export function errorsForPayload(agg: Aggregate, now = Date.now()): TelemetryErr
  */
 export async function buildPayload(): Promise<AnyTelemetryPayload> {
   const base = await buildPayloadV1();
-  if ((await effectiveErrorsConsent()).consent !== 'on') return base;
+  // Daily and instant mode both send the last complete day with the heartbeat.
+  if ((await effectiveErrorsConsent()).consent === 'off') return base;
   return { ...base, schema: '2', errors: errorsForPayload(await readErrors()) };
 }
 

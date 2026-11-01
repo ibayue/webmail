@@ -14,8 +14,8 @@ import {
   resolveEndpointAllowed,
 } from '@/lib/telemetry';
 import { storedDataUnavailableResponse } from '@/lib/stored-data-errors';
-import { errorsForPayload } from '@/lib/telemetry/payload';
-import { readErrors } from '@/lib/error-reporting/aggregate';
+import { errorsForDay, errorsForPayload } from '@/lib/telemetry/payload';
+import { readErrors, utcDay } from '@/lib/error-reporting/aggregate';
 
 /**
  * GET /api/admin/telemetry
@@ -51,6 +51,8 @@ export async function GET(request: NextRequest) {
         // What `errors` would hold, so the page can show the v2 payload as soon
         // as the switch is flipped, before anything is saved or sent.
         errorsPreview: errorsForPayload(counted),
+        // What instant mode would send now: today's counts so far.
+        instantErrorsPreview: errorsForDay(counted, utcDay()),
         accountCounts,
       },
       { headers: { 'Cache-Control': 'no-store' } },
@@ -69,7 +71,7 @@ export async function GET(request: NextRequest) {
  * POST /api/admin/telemetry
  * Body: { action: 'set-consent' | 'set-endpoint' | 'send-now', ... }
  *   set-consent  : { action, consent: 'on' | 'off' } (off also switches error counts off)
- *   set-errors-consent : { action, consent: 'on' | 'off' }
+ *   set-errors-consent : { action, consent: 'on' | 'instant' | 'off' } ('on' is daily)
  *   set-endpoint : { action, endpoint: string }
  *   send-now     : { action }
  */
@@ -129,10 +131,10 @@ export async function POST(request: NextRequest) {
       if (errors.source === 'no-third-party') {
         return NextResponse.json({ error: 'telemetry is off while NO_THIRD_PARTY_TRAFFIC is on' }, { status: 409 });
       }
-      if (body.consent !== 'on' && body.consent !== 'off') {
-        return NextResponse.json({ error: 'consent must be "on" or "off"' }, { status: 400 });
+      if (body.consent !== 'on' && body.consent !== 'off' && body.consent !== 'instant') {
+        return NextResponse.json({ error: 'consent must be "on", "instant" or "off"' }, { status: 400 });
       }
-      if (body.consent === 'on' && errors.source === 'telemetry') {
+      if (body.consent !== 'off' && errors.source === 'telemetry') {
         return NextResponse.json({ error: 'turn on the heartbeat first' }, { status: 409 });
       }
       const consent = body.consent;

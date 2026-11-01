@@ -73,6 +73,30 @@ export interface TelemetryPayloadV2 extends Omit<TelemetryPayload, 'schema'> {
 
 export type AnyTelemetryPayload = TelemetryPayload | TelemetryPayloadV2;
 
+/**
+ * Error counts: off, daily (with the heartbeat, for the day before) or
+ * instant (daily, plus the current day's counts within about a minute).
+ * 'on' is the daily mode; the stored value predates the instant one.
+ */
+export type ErrorsConsent = 'on' | 'off' | 'instant';
+
+/**
+ * What instant mode posts to the collector's /v1/errors: the current UTC
+ * day's errors that are new or whose count bucket changed since the last send.
+ */
+export interface TelemetryErrorBatch {
+  schema: '1';
+  instance_id: string;
+  /** The UTC day the counts are for (YYYY-MM-DD). */
+  day: string;
+  errors: TelemetryError[];
+}
+
+/** The collector's errors URL next to its heartbeat URL: `.../v1/heartbeat` -> `.../v1/errors`. */
+export function errorsEndpointFor(heartbeatEndpoint: string): string {
+  return new URL('errors', heartbeatEndpoint).toString();
+}
+
 export interface TelemetryStateFile {
   consent: ConsentState;
   endpoint: string;
@@ -85,10 +109,11 @@ export interface TelemetryStateFile {
   lastScheduledSentAt?: string | null;
   nextScheduledAt: string | null;
   /**
-   * The separate consent to add error counts (schema v2). Off unless an
-   * admin turns it on; switching telemetry off switches it off too.
+   * The separate consent to add error counts (schema v2), and whether they
+   * also go out instantly. Off unless an admin turns it on; switching
+   * telemetry off switches it off too.
    */
-  errorsConsent?: 'on' | 'off';
+  errorsConsent?: ErrorsConsent;
 }
 
 export const DEFAULT_ENDPOINT = 'https://telemetry.bulwarkmail.org/v1/heartbeat';

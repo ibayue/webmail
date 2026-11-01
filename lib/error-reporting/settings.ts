@@ -46,7 +46,7 @@ export function errorReportingSettings(): ErrorReportingSettings {
 export async function shouldCollectErrors(): Promise<boolean> {
   await configManager.ensureLoaded();
   if (errorReportingSettings().dsn || metricsEnabled()) return true;
-  return (await effectiveErrorsConsent()).consent === 'on';
+  return (await effectiveErrorsConsent()).consent !== 'off';
 }
 
 /** What /api/config hands the browser. */

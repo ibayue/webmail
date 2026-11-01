@@ -119,15 +119,19 @@ migrateLegacyAdminLayout()
     // See https://bulwarkmail.org/docs/legal/privacy/telemetry
     const { startScheduler, stopScheduler, markProcessStart } = await import("./lib/telemetry");
     markProcessStart();
+    // Instant error counts: a one-minute tick that sends only while the
+    // error-count consent is "instant".
+    const instantErrors = await import("./lib/telemetry/instant-errors");
     // Hourly check against version.telemetry.bulwarkmail.org. Disable with
     // BULWARK_UPDATE_CHECK=off or override the endpoint with
     // BULWARK_UPDATE_CHECK_URL.
     const versionCheck = await import("./lib/version-check");
-    // Both run on one replica of the deployment, the scheduler leader
+    // All run on one replica of the deployment, the scheduler leader
     // (#1066); a single instance always leads.
     const { startSchedulerLeader } = await import("./lib/scheduler-leader");
     await startSchedulerLeader([
       { name: "telemetry", start: startScheduler, stop: stopScheduler },
+      { name: "telemetry-errors", start: instantErrors.startInstantErrors, stop: instantErrors.stopInstantErrors },
       { name: "version-check", start: versionCheck.startScheduler, stop: versionCheck.stopScheduler },
     ]);
   })

@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { logger } from '@/lib/logger';
 import { getStore, type CollectionOptions } from '@/lib/shared-store';
 import { isStoreUnavailable, StoredDataUnreadableError } from '@/lib/stored-data-errors';
-import type { TelemetryStateFile, ConsentState } from './types';
+import type { TelemetryStateFile, ConsentState, ErrorsConsent } from './types';
 import { DEFAULT_ENDPOINT } from './types';
 import { isNoThirdPartyTrafficOn } from '@/lib/admin/third-party-mode';
 
@@ -174,10 +174,11 @@ export async function saveStateIfUnchanged(state: TelemetryStateFile, version: s
   return (await telemetryDocs().put(STATE_DOC, serialize(state), { ifVersion: version })).ok;
 }
 
-function errorsEnvOverride(): 'on' | 'off' | null {
+function errorsEnvOverride(): ErrorsConsent | null {
   const v = (process.env.BULWARK_TELEMETRY_ERRORS ?? '').toLowerCase();
   if (v === 'off' || v === 'false' || v === '0' || v === 'no') return 'off';
-  if (v === 'on' || v === 'true' || v === '1' || v === 'yes') return 'on';
+  if (v === 'on' || v === 'true' || v === '1' || v === 'yes' || v === 'daily') return 'on';
+  if (v === 'instant') return 'instant';
   return null;
 }
 
@@ -185,9 +186,11 @@ function errorsEnvOverride(): 'on' | 'off' | null {
  * Effective consent to send error counts (schema v2): off whenever
  * telemetry itself is off (which covers the no-third-party mode), then
  * BULWARK_TELEMETRY_ERRORS, then the stored choice, off by default.
+ * 'on' sends them daily with the heartbeat; 'instant' does that too and
+ * also sends the current day's counts as they change.
  */
 export async function effectiveErrorsConsent(): Promise<{
-  consent: 'on' | 'off';
+  consent: ErrorsConsent;
   source: 'telemetry' | 'no-third-party' | 'env' | 'file';
 }> {
   const telemetry = await effectiveConsent();
@@ -195,7 +198,8 @@ export async function effectiveErrorsConsent(): Promise<{
   if (telemetry.consent !== 'on') return { consent: 'off', source: 'telemetry' };
   const env = errorsEnvOverride();
   if (env) return { consent: env, source: 'env' };
-  return { consent: telemetry.state.errorsConsent === 'on' ? 'on' : 'off', source: 'file' };
+  const stored = telemetry.state.errorsConsent;
+  return { consent: stored === 'on' || stored === 'instant' ? stored : 'off', source: 'file' };
 }
 
 // Effective consent: the no-third-party mode wins over everything (#903),

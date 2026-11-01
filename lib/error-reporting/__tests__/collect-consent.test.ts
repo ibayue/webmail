@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it, vi } from 'vitest';
 
-const consent = vi.hoisted(() => ({ value: 'off' as 'on' | 'off' }));
+const consent = vi.hoisted(() => ({ value: 'off' as 'on' | 'off' | 'instant' }));
 vi.mock('@/lib/admin/config-manager', () => ({
   configManager: { ensureLoaded: async () => {}, get: (_key: string, fallback: unknown) => fallback },
 }));
@@ -21,6 +21,11 @@ describe('error collection', () => {
 
   it('is on with the error-count consent alone', async () => {
     consent.value = 'on';
+    expect(await shouldCollectErrors()).toBe(true);
+  });
+
+  it('is on in instant mode too', async () => {
+    consent.value = 'instant';
     expect(await shouldCollectErrors()).toBe(true);
   });
 });
