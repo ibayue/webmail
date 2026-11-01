@@ -1091,6 +1091,13 @@ export interface OutgoingEmail {
   inReplyTo?: string;
   /** Free-form custom headers added by the composer or earlier handlers */
   headers?: Record<string, string>;
+  /**
+   * Where the send comes from (onBeforeEmailSend, Bulwark 1.20 and later):
+   * the composer, a quick reply under a message, or a plugin's forward.
+   */
+  surface?: 'composer' | 'quick-reply' | 'plugin-forward';
+  /** compose, reply, replyAll or forward (onBeforeEmailSend, 1.20 and later). */
+  mode?: 'compose' | 'reply' | 'replyAll' | 'forward';
 }
 /**
  * Passed to onBeforeDraftAutoSave handlers as a transform value.
