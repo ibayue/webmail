@@ -4845,6 +4845,13 @@
     "cancelled": "{name} ha cancel·lat \"{title}\"",
     "untitled": "Esdeveniment sense títol"
   },
+  "vacation_calendar": {
+    "label": "Bloca el meu calendari",
+    "description": "Afegeix un esdeveniment ocupat mentre sou fora, perquè ningú us convoqui a reunions aleshores.",
+    "no_access_managed": "No es pot blocar el calendari d’aquest compte: no hi teniu accés d’escriptura.",
+    "no_calendar": "No es pot blocar el calendari: Bulwark no ha trobat cap calendari on afegir l’esdeveniment.",
+    "filter_warning": "Si ho activeu, el vostre propi script de filtres s’aturarà mentre la resposta estigui activa."
+  },
   "calendar_delegate": {
     "answer_for": "Respon en nom de {name}",
     "no_write": "Podeu veure les invitacions de {name}, però no podeu respondre en nom seu. Demaneu-li accés d’edició.",

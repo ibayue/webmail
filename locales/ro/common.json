@@ -4845,6 +4845,13 @@
     "cancelled": "{name} a anulat „{title}”",
     "untitled": "Eveniment fără titlu"
   },
+  "vacation_calendar": {
+    "label": "Blochează-mi calendarul",
+    "description": "Adaugă un eveniment ocupat pe durata absenței, ca nimeni să nu vă programeze ședințe atunci.",
+    "no_access_managed": "Calendarul acestui cont nu poate fi blocat: nu aveți acces de scriere la el.",
+    "no_calendar": "Calendarul nu poate fi blocat: Bulwark nu a găsit un calendar în care să adauge evenimentul.",
+    "filter_warning": "Activarea oprește scriptul dvs. de filtre cât timp răspunsul este activ."
+  },
   "calendar_delegate": {
     "answer_for": "Răspunde în numele {name}",
     "no_write": "Vedeți invitațiile lui {name}, dar nu puteți răspunde în numele său. Cereți acces de editare.",

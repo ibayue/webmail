@@ -4857,6 +4857,13 @@
     "cancelled": "{name} đã hủy \"{title}\"",
     "untitled": "Sự kiện không có tiêu đề"
   },
+  "vacation_calendar": {
+    "label": "Chặn lịch của tôi",
+    "description": "Thêm một sự kiện bận trong thời gian bạn vắng mặt để không ai đặt cuộc họp với bạn lúc đó.",
+    "no_access_managed": "Không thể chặn lịch của tài khoản này: bạn không có quyền ghi.",
+    "no_calendar": "Không thể chặn lịch: Bulwark không tìm thấy lịch để thêm sự kiện.",
+    "filter_warning": "Bật tính năng này sẽ tắt tập lệnh lọc của riêng bạn trong thời gian trả lời tự động bật."
+  },
   "calendar_delegate": {
     "answer_for": "Trả lời thay {name}",
     "no_write": "Bạn xem được lời mời của {name} nhưng không thể trả lời thay. Hãy xin quyền chỉnh sửa.",

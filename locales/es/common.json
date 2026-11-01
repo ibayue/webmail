@@ -5283,6 +5283,13 @@
     "cancelled": "{name} ha cancelado \"{title}\"",
     "untitled": "Evento sin título"
   },
+  "vacation_calendar": {
+    "label": "Bloquear mi calendario",
+    "description": "Añade un evento ocupado mientras estás fuera, para que nadie te convoque a reuniones entonces.",
+    "no_access_managed": "No se puede bloquear el calendario de esta cuenta: no tienes acceso de escritura.",
+    "no_calendar": "No se puede bloquear tu calendario: Bulwark no encontró ningún calendario donde añadir el evento.",
+    "filter_warning": "Si lo activas, tu propio script de filtros se desactiva mientras la respuesta esté activa."
+  },
   "calendar_delegate": {
     "answer_for": "Responder por {name}",
     "no_write": "Puedes ver las invitaciones de {name}, pero no responder por esa persona. Pídele acceso de edición.",

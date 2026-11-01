@@ -5283,6 +5283,13 @@
     "cancelled": "{name} heeft \"{title}\" geannuleerd",
     "untitled": "Afspraak zonder titel"
   },
+  "vacation_calendar": {
+    "label": "Mijn agenda blokkeren",
+    "description": "Zet een bezette afspraak in je agenda voor de tijd dat je weg bent, zodat niemand dan vergaderingen met je plant.",
+    "no_access_managed": "De agenda van dit account kan niet worden geblokkeerd: je hebt er geen schrijfrechten voor.",
+    "no_calendar": "Je agenda kan niet worden geblokkeerd: Bulwark vond geen agenda om de afspraak in te zetten.",
+    "filter_warning": "Als je dit aanzet, staat je eigen filterscript uit zolang het antwoord actief is."
+  },
   "calendar_delegate": {
     "answer_for": "Antwoorden namens {name}",
     "no_write": "Je ziet de uitnodigingen van {name}, maar kunt er niet namens hen op antwoorden. Vraag om bewerkrechten.",

@@ -5283,6 +5283,13 @@
     "cancelled": "{name} atcēla “{title}”",
     "untitled": "Notikums bez nosaukuma"
   },
+  "vacation_calendar": {
+    "label": "Bloķēt manu kalendāru",
+    "description": "Pievieno aizņemtu notikumu prombūtnes laikam, lai tad neviens neplānotu ar jums sapulces.",
+    "no_access_managed": "Šī konta kalendāru nevar bloķēt: jums nav rakstīšanas piekļuves.",
+    "no_calendar": "Kalendāru nevar bloķēt: Bulwark neatrada kalendāru, kur pievienot notikumu.",
+    "filter_warning": "To ieslēdzot, jūsu filtru skripts ir izslēgts, kamēr atbilde ir aktīva."
+  },
   "calendar_delegate": {
     "answer_for": "Atbildēt {name} vārdā",
     "no_write": "Jūs redzat {name} ielūgumus, bet nevarat atbildēt viņa vārdā. Palūdziet rediģēšanas piekļuvi.",

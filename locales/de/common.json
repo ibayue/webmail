@@ -5283,6 +5283,13 @@
     "cancelled": "{name} hat „{title}“ abgesagt",
     "untitled": "Unbenannter Termin"
   },
+  "vacation_calendar": {
+    "label": "Meinen Kalender blockieren",
+    "description": "Trägt für Ihre Abwesenheit einen belegten Termin ein, damit Ihnen niemand Besprechungen in dieser Zeit einträgt.",
+    "no_access_managed": "Der Kalender dieses Kontos kann nicht blockiert werden: Sie haben keinen Schreibzugriff darauf.",
+    "no_calendar": "Ihr Kalender kann nicht blockiert werden: Bulwark hat keinen Kalender für den Termin gefunden.",
+    "filter_warning": "Wenn Sie dies einschalten, ist Ihr eigenes Filterskript ausgeschaltet, solange die Antwort aktiv ist."
+  },
   "calendar_delegate": {
     "answer_for": "Für {name} antworten",
     "no_write": "Sie sehen die Einladungen von {name}, können aber nicht dafür antworten. Bitten Sie um Bearbeitungszugriff.",

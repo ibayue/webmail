@@ -5283,6 +5283,13 @@
     "cancelled": "{name}님이 \"{title}\"을(를) 취소했습니다",
     "untitled": "제목 없는 일정"
   },
+  "vacation_calendar": {
+    "label": "내 캘린더 차단",
+    "description": "부재 기간에 바쁨 일정을 추가해 그동안 회의가 잡히지 않게 합니다.",
+    "no_access_managed": "이 계정의 캘린더는 차단할 수 없습니다. 쓰기 권한이 없습니다.",
+    "no_calendar": "캘린더를 차단할 수 없습니다. 일정을 추가할 캘린더를 찾지 못했습니다.",
+    "filter_warning": "이 기능을 켜면 응답이 활성화된 동안 내 필터 스크립트가 꺼집니다."
+  },
   "calendar_delegate": {
     "answer_for": "{name} 대신 응답",
     "no_write": "{name}의 초대는 볼 수 있지만 대신 응답할 수는 없습니다. 편집 권한을 요청하세요.",

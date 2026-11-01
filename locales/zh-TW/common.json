@@ -4845,6 +4845,13 @@
     "cancelled": "{name} 取消了「{title}」",
     "untitled": "未命名活動"
   },
+  "vacation_calendar": {
+    "label": "佔用我的行事曆",
+    "description": "在你外出期間新增一個忙碌活動，這樣別人不會在這段時間約你開會。",
+    "no_access_managed": "無法佔用此帳號的行事曆：你沒有寫入權限。",
+    "no_calendar": "無法佔用你的行事曆：Bulwark 找不到可以新增活動的行事曆。",
+    "filter_warning": "開啟後，在自動回覆生效期間你自己的過濾指令碼會被關閉。"
+  },
   "calendar_delegate": {
     "answer_for": "代表 {name} 回覆",
     "no_write": "你能看到 {name} 的邀請，但不能代為回覆。請向對方申請編輯權限。",

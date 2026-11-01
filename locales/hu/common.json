@@ -4845,6 +4845,13 @@
     "cancelled": "{name} lemondta a(z) „{title}” eseményt",
     "untitled": "Névtelen esemény"
   },
+  "vacation_calendar": {
+    "label": "Naptáram foglalása",
+    "description": "Foglalt eseményt tesz a távollét idejére, hogy addig senki ne szervezzen Önnel megbeszélést.",
+    "no_access_managed": "Ennek a fióknak a naptára nem foglalható: nincs hozzá írási joga.",
+    "no_calendar": "A naptár nem foglalható: a Bulwark nem talált naptárt az eseményhez.",
+    "filter_warning": "Ha bekapcsolja, a saját szűrőszkriptje kikapcsol, amíg a válasz aktív."
+  },
   "calendar_delegate": {
     "answer_for": "Válasz {name} nevében",
     "no_write": "Látja {name} meghívóit, de nem válaszolhat a nevében. Kérjen szerkesztési jogot.",

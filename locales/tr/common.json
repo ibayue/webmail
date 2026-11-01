@@ -4845,6 +4845,13 @@
     "cancelled": "{name} \"{title}\" etkinliğini iptal etti",
     "untitled": "Başlıksız etkinlik"
   },
+  "vacation_calendar": {
+    "label": "Takvimimi kapat",
+    "description": "Uzakta olduğunuz süre için meşgul bir etkinlik ekler, böylece o sırada kimse sizinle toplantı ayarlamaz.",
+    "no_access_managed": "Bu hesabın takvimi kapatılamaz: yazma erişiminiz yok.",
+    "no_calendar": "Takviminiz kapatılamıyor: Bulwark etkinliği ekleyecek bir takvim bulamadı.",
+    "filter_warning": "Bunu açmak, yanıt etkin olduğu sürece kendi filtre betiğinizi kapatır."
+  },
   "calendar_delegate": {
     "answer_for": "{name} adına yanıtla",
     "no_write": "{name} kişisinin davetlerini görebilirsiniz ama onun adına yanıtlayamazsınız. Düzenleme erişimi isteyin.",

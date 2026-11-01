@@ -5283,6 +5283,13 @@
     "cancelled": "{name} odwołał(a) „{title}”",
     "untitled": "Wydarzenie bez tytułu"
   },
+  "vacation_calendar": {
+    "label": "Zablokuj mój kalendarz",
+    "description": "Dodaje zajęte wydarzenie na czas Twojej nieobecności, żeby nikt nie umawiał wtedy z Tobą spotkań.",
+    "no_access_managed": "Nie można zablokować kalendarza tego konta: nie masz do niego prawa zapisu.",
+    "no_calendar": "Nie można zablokować kalendarza: Bulwark nie znalazł kalendarza, do którego można dodać wydarzenie.",
+    "filter_warning": "Włączenie tego wyłącza Twój własny skrypt filtrów, dopóki odpowiedź jest aktywna."
+  },
   "calendar_delegate": {
     "answer_for": "Odpowiedz w imieniu: {name}",
     "no_write": "Widzisz zaproszenia użytkownika {name}, ale nie możesz za niego odpowiadać. Poproś o prawo do edycji.",

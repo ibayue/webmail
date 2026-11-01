@@ -4845,6 +4845,13 @@
     "cancelled": "{name} zrušil(a) „{title}“",
     "untitled": "Udalosť bez názvu"
   },
+  "vacation_calendar": {
+    "label": "Zablokovať môj kalendár",
+    "description": "Pridá obsadenú udalosť na čas vašej neprítomnosti, aby vám vtedy nikto neplánoval stretnutia.",
+    "no_access_managed": "Kalendár tohto účtu nemožno zablokovať: nemáte doň prístup na zápis.",
+    "no_calendar": "Kalendár nemožno zablokovať: Bulwark nenašiel kalendár, kam udalosť pridať.",
+    "filter_warning": "Zapnutím sa vypne váš vlastný skript filtrov, kým je odpoveď aktívna."
+  },
   "calendar_delegate": {
     "answer_for": "Odpovedať za: {name}",
     "no_write": "Vidíte pozvánky používateľa {name}, ale nemôžete za neho odpovedať. Požiadajte o prístup na úpravy.",

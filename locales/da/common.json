@@ -4845,6 +4845,13 @@
     "cancelled": "{name} har aflyst \"{title}\"",
     "untitled": "Unavngivet begivenhed"
   },
+  "vacation_calendar": {
+    "label": "Bloker min kalender",
+    "description": "Tilføjer en optaget begivenhed, mens du er væk, så ingen booker møder med dig imens.",
+    "no_access_managed": "Kalenderen for denne konto kan ikke blokeres: du har ikke skriveadgang til den.",
+    "no_calendar": "Din kalender kan ikke blokeres: Bulwark fandt ingen kalender at tilføje begivenheden til.",
+    "filter_warning": "Slår du dette til, slås dit eget filterscript fra, mens svaret er aktivt."
+  },
   "calendar_delegate": {
     "answer_for": "Svar for {name}",
     "no_write": "Du kan se invitationerne til {name}, men kan ikke svare for dem. Bed om redigeringsadgang.",

@@ -4845,6 +4845,13 @@
     "cancelled": "{name} tühistas sündmuse \"{title}\"",
     "untitled": "Nimetu sündmus"
   },
+  "vacation_calendar": {
+    "label": "Blokeeri minu kalender",
+    "description": "Lisab äraoleku ajaks hõivatud sündmuse, et keegi sel ajal sulle koosolekuid ei paneks.",
+    "no_access_managed": "Selle konto kalendrit ei saa blokeerida: sul pole sinna kirjutusõigust.",
+    "no_calendar": "Kalendrit ei saa blokeerida: Bulwark ei leidnud kalendrit, kuhu sündmus lisada.",
+    "filter_warning": "Selle sisselülitamine lülitab sinu oma filtriskripti välja, kuni vastus on aktiivne."
+  },
   "calendar_delegate": {
     "answer_for": "Vasta isiku {name} eest",
     "no_write": "Näed isiku {name} kutseid, aga ei saa tema eest vastata. Küsi temalt muutmisõigust.",
