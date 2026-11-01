@@ -134,6 +134,7 @@ import { useEmailStore, resolveEmailBlobContext, emailWriteSource, type EmailBlo
 import { useThemeStore } from "@/stores/theme-store";
 import { EmailIdentityBadge } from "./email-identity-badge";
 import { ExternalSenderChip } from "./external-sender-chip";
+import { ReceivedLabelChip } from "./received-label-chip";
 import { UnsubscribeBanner } from "./unsubscribe-banner";
 import { CalendarInvitationBanner } from "./calendar-invitation-banner";
 import { ReadReceiptBanner } from "./read-receipt-banner";
@@ -860,6 +861,7 @@ export function MvExpandedConversationCard({
             )}
             <BrandVerifiedBadge domain={brandIndicatorDomain(email)} />
             <ExternalSenderChip from={email.from} accountId={email.sourceClientAccountId} className="self-center" />
+            <ReceivedLabelChip email={email} className="self-center" />
             <span className="ms-auto ps-2 text-xs text-muted-foreground whitespace-nowrap">
               {compact ? formatDate(emailDisplayDate(email)) : mvSenderDate(emailDisplayDate(email), timeFormat)}
             </span>
@@ -4922,6 +4924,7 @@ export function EmailViewer({
                     )}
                     <BrandVerifiedBadge domain={brandIndicatorDomain(email)} />
                     <ExternalSenderChip from={email.from} accountId={email.sourceClientAccountId} />
+                    <ReceivedLabelChip email={email} />
                     <EmailIdentityBadge email={email} identities={identities} />
                     {shouldShowUnsubBanner && listHeaders?.listUnsubscribe && (
                       <UnsubscribeBanner
@@ -5103,6 +5106,7 @@ export function EmailViewer({
                 )}
                 <BrandVerifiedBadge domain={brandIndicatorDomain(email)} />
                 <ExternalSenderChip from={email.from} accountId={email.sourceClientAccountId} />
+                <ReceivedLabelChip email={email} />
                 <EmailIdentityBadge email={email} identities={identities} />
                 {shouldShowUnsubBanner && listHeaders?.listUnsubscribe && (
                   <UnsubscribeBanner
@@ -5323,6 +5327,7 @@ export function EmailViewer({
                         />
                         <BrandVerifiedBadge domain={brandIndicatorDomain(email)} />
                         <ExternalSenderChip from={email.from} accountId={email.sourceClientAccountId} />
+                        <ReceivedLabelChip email={email} />
                         {senderVerification && (
                           <span
                             className={cn(

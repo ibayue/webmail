@@ -16,6 +16,7 @@ import { BookingCalendarActions } from "./structured-mail/booking-calendar-actio
 import { useStructuredMail } from "./structured-mail/use-structured-mail";
 import { attachmentIcon } from "./attachment-chips";
 import { ExternalSenderChip } from "./external-sender-chip";
+import { ReceivedLabelChip } from "./received-label-chip";
 import { collectReferencedCids, isEmbeddedInBody, isReportPart, normalizeCid, rewriteCidReferences } from "@/lib/attachment-visibility";
 import { collapsePlainTextQuotes, setupQuoteCollapse } from "@/lib/quote-collapse";
 import { measureEmailFrameHeight } from "@/lib/email-frame-height";
@@ -397,6 +398,7 @@ function EmailCard({
               {sender?.name || (sender?.email && formatAddress(sender.email)) || t('email_viewer.unknown_sender')}
             </span>
             <ExternalSenderChip from={email.from} accountId={email.sourceClientAccountId} interactive={false} />
+            <ReceivedLabelChip email={email} />
             {email.isScheduled && (
               <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium bg-primary/10 text-primary shrink-0">
                 <CalendarClock className="w-3.5 h-3.5" />
