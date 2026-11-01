@@ -4845,6 +4845,34 @@
     "cancelled": "{name} zrušil(a) „{title}“",
     "untitled": "Udalosť bez názvu"
   },
+  "free_busy_share": {
+    "button": "Zdieľať môj voľný čas so skupinou {group}",
+    "already": "Váš voľný čas je zdieľaný so skupinou {group}",
+    "done": "Váš voľný čas je teraz zdieľaný so skupinou {group}.",
+    "error": "Voľný čas sa nepodarilo zdieľať. Skúste to znova.",
+    "group_label": "Skupina",
+    "title": "Voľno/obsadené",
+    "description": "Kolegovia v skupine vidia, kedy ste obsadení, nie aké máte udalosti. Používa to funkcia Navrhnúť časy."
+  },
+  "find_time": {
+    "suggest": "Navrhnúť časy",
+    "searching": "Hľadajú sa voľné časy",
+    "slots_title": "Voľno pre všetkých, ktorých Bulwark mohol overiť",
+    "slot": "{day}, {start} až {end}",
+    "none": "V nasledujúcich 10 pracovných dňoch nie je voľný čas.",
+    "picked": "Udalosť presunutá na {slot}",
+    "rate_limited": "V poslednej minúte bolo príliš veľa dopytov. Skúste to znova o minútu.",
+    "unavailable": "Informácie o voľnom čase nie sú na tomto serveri dostupné, takže Bulwark nemôže navrhnúť časy.",
+    "not_checked": "Neoverené:",
+    "not_checked_item": "{who}: {reason}",
+    "reason_external": "mimo vašej organizácie",
+    "reason_unknown": "obsadené časy neznáme",
+    "reason_not_found": "na tomto serveri sa nenašiel",
+    "reason_error": "nepodarilo sa overiť",
+    "unknown_note": "Bulwark vidí obsadené časy len v kalendároch, ktoré s vami niekto zdieľa. Pri týchto ľuďoch nerozlíši voľno od nezdieľaného kalendára.",
+    "directory_off": "Bulwark na tomto serveri nemôže vyhľadávať ľudí. Správca môže v Stalwarte zapnúť dopyty do adresára.",
+    "not_looked_up": "Nedá sa vyhľadať"
+  },
   "share_notifications": {
     "someone": "Niekto",
     "shared": "{name} s vami zdieľa {kind} „{object}“",

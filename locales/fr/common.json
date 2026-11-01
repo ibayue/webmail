@@ -5283,6 +5283,34 @@
     "cancelled": "{name} a annulé « {title} »",
     "untitled": "Événement sans titre"
   },
+  "free_busy_share": {
+    "button": "Partager mes disponibilités avec {group}",
+    "already": "Vos disponibilités sont partagées avec {group}",
+    "done": "Vos disponibilités sont maintenant partagées avec {group}.",
+    "error": "Impossible de partager vos disponibilités. Réessayez.",
+    "group_label": "Groupe",
+    "title": "Disponibilités",
+    "description": "Les collègues du groupe voient quand vous êtes occupé, pas le contenu de vos événements. « Suggérer des créneaux » s’en sert."
+  },
+  "find_time": {
+    "suggest": "Suggérer des créneaux",
+    "searching": "Recherche de créneaux libres",
+    "slots_title": "Libre pour toutes les personnes que Bulwark a pu vérifier",
+    "slot": "{day}, de {start} à {end}",
+    "none": "Aucun créneau libre dans les 10 prochains jours ouvrés.",
+    "picked": "Événement déplacé : {slot}",
+    "rate_limited": "Trop de recherches dans la dernière minute. Réessayez dans une minute.",
+    "unavailable": "La disponibilité n’est pas accessible sur ce serveur, Bulwark ne peut donc pas suggérer de créneaux.",
+    "not_checked": "Non vérifiés :",
+    "not_checked_item": "{who} : {reason}",
+    "reason_external": "hors de votre organisation",
+    "reason_unknown": "disponibilités inconnues",
+    "reason_not_found": "introuvable sur ce serveur",
+    "reason_error": "vérification impossible",
+    "unknown_note": "Bulwark ne voit les disponibilités que dans les calendriers partagés avec vous. Pour ces personnes, il ne peut pas distinguer « libre » de « non partagé ».",
+    "directory_off": "Bulwark ne peut pas rechercher de personnes sur ce serveur. Votre administrateur peut activer les requêtes d’annuaire dans Stalwart.",
+    "not_looked_up": "Recherche impossible"
+  },
   "share_notifications": {
     "someone": "Quelqu'un",
     "shared": "{name} a partagé {kind} « {object} » avec vous",

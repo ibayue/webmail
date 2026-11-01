@@ -4845,6 +4845,34 @@
     "cancelled": "{name} cancelled \"{title}\"",
     "untitled": "Untitled event"
   },
+  "free_busy_share": {
+    "button": "Share my free/busy with {group}",
+    "already": "Your free/busy is shared with {group}",
+    "done": "Your free/busy is now shared with {group}.",
+    "error": "Couldn’t share your free/busy. Try again.",
+    "group_label": "Group",
+    "title": "Free/busy",
+    "description": "Colleagues in the group see when you’re busy, not what your events are. Suggest times uses it."
+  },
+  "find_time": {
+    "suggest": "Suggest times",
+    "searching": "Looking for free times",
+    "slots_title": "Free for everyone Bulwark could check",
+    "slot": "{day}, {start} to {end}",
+    "none": "No free time in the next 10 working days.",
+    "picked": "Event moved to {slot}",
+    "rate_limited": "Too many lookups in the last minute. Try again in a minute.",
+    "unavailable": "Free/busy isn’t available on this server, so Bulwark can’t suggest times.",
+    "not_checked": "Not checked:",
+    "not_checked_item": "{who}: {reason}",
+    "reason_external": "outside your organisation",
+    "reason_unknown": "busy times unknown",
+    "reason_not_found": "not found on this server",
+    "reason_error": "couldn’t be checked",
+    "unknown_note": "Bulwark only sees busy times in calendars shared with you. For these people it can’t tell free from not shared.",
+    "directory_off": "Bulwark can’t look up people on this server. Your administrator can turn on directory queries in Stalwart.",
+    "not_looked_up": "Can’t look up"
+  },
   "share_notifications": {
     "someone": "Someone",
     "shared": "{name} shared the {kind} \"{object}\" with you",

@@ -5283,6 +5283,34 @@
     "cancelled": "{name} cancelou \"{title}\"",
     "untitled": "Evento sem título"
   },
+  "free_busy_share": {
+    "button": "Partilhar a minha disponibilidade com {group}",
+    "already": "A sua disponibilidade está partilhada com {group}",
+    "done": "A sua disponibilidade está agora partilhada com {group}.",
+    "error": "Não foi possível partilhar a sua disponibilidade. Tente novamente.",
+    "group_label": "Grupo",
+    "title": "Disponibilidade",
+    "description": "Os colegas do grupo veem quando está ocupado, não quais são os seus eventos. «Sugerir horários» usa isto."
+  },
+  "find_time": {
+    "suggest": "Sugerir horários",
+    "searching": "A procurar horários livres",
+    "slots_title": "Livre para todos os que o Bulwark conseguiu verificar",
+    "slot": "{day}, das {start} às {end}",
+    "none": "Não há tempo livre nos próximos 10 dias úteis.",
+    "picked": "Evento movido para {slot}",
+    "rate_limited": "Demasiadas consultas no último minuto. Tente novamente daqui a um minuto.",
+    "unavailable": "A disponibilidade não está acessível neste servidor, por isso o Bulwark não pode sugerir horários.",
+    "not_checked": "Não verificados:",
+    "not_checked_item": "{who}: {reason}",
+    "reason_external": "fora da sua organização",
+    "reason_unknown": "horas ocupadas desconhecidas",
+    "reason_not_found": "não encontrado neste servidor",
+    "reason_error": "não foi possível verificar",
+    "unknown_note": "O Bulwark só vê horas ocupadas nos calendários partilhados consigo. Para estas pessoas não consegue distinguir livre de não partilhado.",
+    "directory_off": "O Bulwark não consegue procurar pessoas neste servidor. O administrador pode ativar as consultas ao diretório no Stalwart.",
+    "not_looked_up": "Não é possível procurar"
+  },
   "share_notifications": {
     "someone": "Alguém",
     "shared": "{name} partilhou consigo {kind} \"{object}\"",

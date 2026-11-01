@@ -5283,6 +5283,34 @@
     "cancelled": "{name} heeft \"{title}\" geannuleerd",
     "untitled": "Afspraak zonder titel"
   },
+  "free_busy_share": {
+    "button": "Mijn vrij/bezet delen met {group}",
+    "already": "Je vrij/bezet is gedeeld met {group}",
+    "done": "Je vrij/bezet is nu gedeeld met {group}.",
+    "error": "Kon je vrij/bezet niet delen. Probeer het opnieuw.",
+    "group_label": "Groep",
+    "title": "Vrij/bezet",
+    "description": "Collega’s in de groep zien wanneer je bezet bent, niet wat je afspraken zijn. ‘Tijden voorstellen’ gebruikt dit."
+  },
+  "find_time": {
+    "suggest": "Tijden voorstellen",
+    "searching": "Vrije tijden zoeken",
+    "slots_title": "Vrij voor iedereen die Bulwark kon controleren",
+    "slot": "{day}, {start} tot {end}",
+    "none": "Geen vrije tijd in de komende 10 werkdagen.",
+    "picked": "Afspraak verplaatst naar {slot}",
+    "rate_limited": "Te veel opvragingen in de afgelopen minuut. Probeer het over een minuut opnieuw.",
+    "unavailable": "Vrij/bezet is niet beschikbaar op deze server, dus Bulwark kan geen tijden voorstellen.",
+    "not_checked": "Niet gecontroleerd:",
+    "not_checked_item": "{who}: {reason}",
+    "reason_external": "buiten je organisatie",
+    "reason_unknown": "bezette tijden onbekend",
+    "reason_not_found": "niet gevonden op deze server",
+    "reason_error": "kon niet worden gecontroleerd",
+    "unknown_note": "Bulwark ziet bezette tijden alleen in agenda’s die met je zijn gedeeld. Bij deze mensen kan het vrij niet onderscheiden van niet gedeeld.",
+    "directory_off": "Bulwark kan op deze server geen mensen opzoeken. Je beheerder kan directoryquery’s aanzetten in Stalwart.",
+    "not_looked_up": "Kan niet opzoeken"
+  },
   "share_notifications": {
     "someone": "Iemand",
     "shared": "{name} heeft {kind} \"{object}\" met je gedeeld",

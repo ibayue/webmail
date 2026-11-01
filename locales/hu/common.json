@@ -4845,6 +4845,34 @@
     "cancelled": "{name} lemondta a(z) „{title}” eseményt",
     "untitled": "Névtelen esemény"
   },
+  "free_busy_share": {
+    "button": "Szabad/foglalt időim megosztása ezzel: {group}",
+    "already": "Szabad/foglalt idői meg vannak osztva ezzel: {group}",
+    "done": "Szabad/foglalt idői mostantól meg vannak osztva ezzel: {group}.",
+    "error": "Nem sikerült megosztani a szabad/foglalt időket. Próbálja újra.",
+    "group_label": "Csoport",
+    "title": "Szabad/foglalt",
+    "description": "A csoport tagjai látják, mikor foglalt, de az eseményeit nem. Az Időpontok javaslata ezt használja."
+  },
+  "find_time": {
+    "suggest": "Időpontok javaslata",
+    "searching": "Szabad időpontok keresése",
+    "slots_title": "Szabad mindenkinek, akit a Bulwark ellenőrizni tudott",
+    "slot": "{day}, {start}–{end}",
+    "none": "A következő 10 munkanapon nincs szabad idő.",
+    "picked": "Az esemény áthelyezve: {slot}",
+    "rate_limited": "Túl sok lekérdezés az elmúlt percben. Próbálja újra egy perc múlva.",
+    "unavailable": "A szabad/foglalt adatok ezen a szerveren nem érhetők el, ezért a Bulwark nem tud időpontot javasolni.",
+    "not_checked": "Nem ellenőrzött:",
+    "not_checked_item": "{who}: {reason}",
+    "reason_external": "a szervezetén kívül",
+    "reason_unknown": "foglalt idők ismeretlenek",
+    "reason_not_found": "nem található ezen a szerveren",
+    "reason_error": "nem sikerült ellenőrizni",
+    "unknown_note": "A Bulwark csak az Önnel megosztott naptárakban látja a foglalt időket. Ezeknél a személyeknél nem tudja megkülönböztetni a szabadot a nem megosztottól.",
+    "directory_off": "A Bulwark ezen a szerveren nem tud személyeket keresni. A rendszergazda a Stalwartban bekapcsolhatja a címtár-lekérdezéseket.",
+    "not_looked_up": "Nem kereshető"
+  },
   "share_notifications": {
     "someone": "Valaki",
     "shared": "{name} megosztotta veled a(z) {kind} „{object}” elemet",

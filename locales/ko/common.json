@@ -5283,6 +5283,34 @@
     "cancelled": "{name}님이 \"{title}\"을(를) 취소했습니다",
     "untitled": "제목 없는 일정"
   },
+  "free_busy_share": {
+    "button": "내 일정 가능 여부를 {group}과(와) 공유",
+    "already": "일정 가능 여부가 {group}과(와) 공유되어 있습니다",
+    "done": "이제 일정 가능 여부가 {group}과(와) 공유됩니다.",
+    "error": "일정 가능 여부를 공유하지 못했습니다. 다시 시도하세요.",
+    "group_label": "그룹",
+    "title": "일정 가능 여부",
+    "description": "그룹의 동료는 내가 바쁜 시간만 보고 일정 내용은 보지 못합니다. 시간 제안에 사용됩니다."
+  },
+  "find_time": {
+    "suggest": "시간 제안",
+    "searching": "빈 시간을 찾는 중",
+    "slots_title": "Bulwark가 확인할 수 있었던 모든 사람이 비어 있는 시간",
+    "slot": "{day} {start}~{end}",
+    "none": "다음 10 영업일 동안 빈 시간이 없습니다.",
+    "picked": "일정을 {slot}(으)로 옮겼습니다",
+    "rate_limited": "지난 1분 동안 조회가 너무 많았습니다. 1분 후에 다시 시도하세요.",
+    "unavailable": "이 서버에서는 일정 가능 여부를 사용할 수 없어 Bulwark가 시간을 제안할 수 없습니다.",
+    "not_checked": "확인하지 못함:",
+    "not_checked_item": "{who}: {reason}",
+    "reason_external": "조직 외부",
+    "reason_unknown": "바쁜 시간 알 수 없음",
+    "reason_not_found": "이 서버에서 찾을 수 없음",
+    "reason_error": "확인할 수 없음",
+    "unknown_note": "Bulwark는 나와 공유된 캘린더의 바쁜 시간만 볼 수 있습니다. 이 사람들은 비어 있는지 공유하지 않은 것인지 구분할 수 없습니다.",
+    "directory_off": "Bulwark가 이 서버에서 사람을 찾을 수 없습니다. 관리자가 Stalwart에서 디렉터리 조회를 켤 수 있습니다.",
+    "not_looked_up": "찾을 수 없음"
+  },
   "share_notifications": {
     "someone": "누군가",
     "shared": "{name}님이 {kind} \"{object}\"을(를) 공유했습니다",

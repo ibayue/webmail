@@ -4857,6 +4857,34 @@
     "cancelled": "{name} đã hủy \"{title}\"",
     "untitled": "Sự kiện không có tiêu đề"
   },
+  "free_busy_share": {
+    "button": "Chia sẻ lịch rảnh/bận của tôi với {group}",
+    "already": "Lịch rảnh/bận của bạn đã được chia sẻ với {group}",
+    "done": "Đã chia sẻ lịch rảnh/bận của bạn với {group}.",
+    "error": "Không chia sẻ được lịch rảnh/bận. Hãy thử lại.",
+    "group_label": "Nhóm",
+    "title": "Rảnh/bận",
+    "description": "Đồng nghiệp trong nhóm thấy khi nào bạn bận, không thấy nội dung sự kiện. Tính năng gợi ý thời gian dùng thông tin này."
+  },
+  "find_time": {
+    "suggest": "Gợi ý thời gian",
+    "searching": "Đang tìm thời gian trống",
+    "slots_title": "Trống với mọi người mà Bulwark kiểm tra được",
+    "slot": "{day}, {start} đến {end}",
+    "none": "Không có thời gian trống trong 10 ngày làm việc tới.",
+    "picked": "Đã dời sự kiện sang {slot}",
+    "rate_limited": "Quá nhiều lượt tra cứu trong phút vừa qua. Hãy thử lại sau một phút.",
+    "unavailable": "Máy chủ này không có thông tin rảnh/bận, nên Bulwark không thể gợi ý thời gian.",
+    "not_checked": "Chưa kiểm tra:",
+    "not_checked_item": "{who}: {reason}",
+    "reason_external": "ngoài tổ chức của bạn",
+    "reason_unknown": "không rõ giờ bận",
+    "reason_not_found": "không tìm thấy trên máy chủ này",
+    "reason_error": "không kiểm tra được",
+    "unknown_note": "Bulwark chỉ thấy giờ bận trong các lịch được chia sẻ với bạn. Với những người này, nó không phân biệt được rảnh hay chưa chia sẻ.",
+    "directory_off": "Bulwark không thể tra cứu người trên máy chủ này. Quản trị viên có thể bật truy vấn thư mục trong Stalwart.",
+    "not_looked_up": "Không tra cứu được"
+  },
   "share_notifications": {
     "someone": "Ai đó",
     "shared": "{name} đã chia sẻ {kind} \"{object}\" với bạn",

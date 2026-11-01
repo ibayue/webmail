@@ -4845,6 +4845,34 @@
     "cancelled": "{name} tühistas sündmuse \"{title}\"",
     "untitled": "Nimetu sündmus"
   },
+  "free_busy_share": {
+    "button": "Jaga minu vaba/hõivatud aega grupiga {group}",
+    "already": "Sinu vaba/hõivatud aeg on jagatud grupiga {group}",
+    "done": "Sinu vaba/hõivatud aeg on nüüd jagatud grupiga {group}.",
+    "error": "Vaba/hõivatud aega ei saanud jagada. Proovi uuesti.",
+    "group_label": "Grupp",
+    "title": "Vaba/hõivatud",
+    "description": "Grupi kolleegid näevad, millal oled hõivatud, aga mitte sinu sündmusi. Seda kasutab „Soovita aegu“."
+  },
+  "find_time": {
+    "suggest": "Soovita aegu",
+    "searching": "Vabu aegu otsitakse",
+    "slots_title": "Vaba kõigile, keda Bulwark sai kontrollida",
+    "slot": "{day}, {start} kuni {end}",
+    "none": "Järgmise 10 tööpäeva jooksul pole vaba aega.",
+    "picked": "Sündmus viidi aega {slot}",
+    "rate_limited": "Viimase minuti jooksul oli liiga palju päringuid. Proovi minuti pärast uuesti.",
+    "unavailable": "Vaba/hõivatud teave pole selles serveris saadaval, seega ei saa Bulwark aegu soovitada.",
+    "not_checked": "Kontrollimata:",
+    "not_checked_item": "{who}: {reason}",
+    "reason_external": "väljaspool sinu organisatsiooni",
+    "reason_unknown": "hõivatud ajad teadmata",
+    "reason_not_found": "selles serveris ei leitud",
+    "reason_error": "ei saanud kontrollida",
+    "unknown_note": "Bulwark näeb hõivatud aegu ainult sinuga jagatud kalendrites. Nende inimeste puhul ei saa ta eristada vaba ajast jagamata kalendrit.",
+    "directory_off": "Bulwark ei saa selles serveris inimesi otsida. Administraator saab Stalwartis kataloogipäringud sisse lülitada.",
+    "not_looked_up": "Ei saa otsida"
+  },
   "share_notifications": {
     "someone": "Keegi",
     "shared": "{name} jagas sinuga {kind} \"{object}\"",

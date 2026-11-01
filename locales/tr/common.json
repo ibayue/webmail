@@ -4845,6 +4845,34 @@
     "cancelled": "{name} \"{title}\" etkinliğini iptal etti",
     "untitled": "Başlıksız etkinlik"
   },
+  "free_busy_share": {
+    "button": "Müsaitlik durumumu {group} ile paylaş",
+    "already": "Müsaitlik durumunuz {group} ile paylaşılıyor",
+    "done": "Müsaitlik durumunuz artık {group} ile paylaşılıyor.",
+    "error": "Müsaitlik durumunuz paylaşılamadı. Yeniden deneyin.",
+    "group_label": "Grup",
+    "title": "Müsaitlik",
+    "description": "Gruptaki iş arkadaşlarınız ne zaman meşgul olduğunuzu görür, etkinliklerinizi görmez. Saat öner bunu kullanır."
+  },
+  "find_time": {
+    "suggest": "Saat öner",
+    "searching": "Boş saatler aranıyor",
+    "slots_title": "Bulwark’ın kontrol edebildiği herkes için boş",
+    "slot": "{day}, {start} - {end}",
+    "none": "Önümüzdeki 10 iş gününde boş zaman yok.",
+    "picked": "Etkinlik {slot} zamanına taşındı",
+    "rate_limited": "Son bir dakikada çok fazla sorgu yapıldı. Bir dakika sonra yeniden deneyin.",
+    "unavailable": "Bu sunucuda müsaitlik bilgisi yok, bu yüzden Bulwark saat öneremiyor.",
+    "not_checked": "Kontrol edilmedi:",
+    "not_checked_item": "{who}: {reason}",
+    "reason_external": "kuruluşunuzun dışında",
+    "reason_unknown": "meşgul saatler bilinmiyor",
+    "reason_not_found": "bu sunucuda bulunamadı",
+    "reason_error": "kontrol edilemedi",
+    "unknown_note": "Bulwark meşgul saatleri yalnızca sizinle paylaşılan takvimlerde görür. Bu kişiler için boş olmayı paylaşılmamaktan ayıramaz.",
+    "directory_off": "Bulwark bu sunucuda kişi arayamıyor. Yöneticiniz Stalwart’ta dizin sorgularını açabilir.",
+    "not_looked_up": "Aranamıyor"
+  },
   "share_notifications": {
     "someone": "Birisi",
     "shared": "{name}, \"{object}\" {kind} sizinle paylaştı",

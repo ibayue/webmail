@@ -17,10 +17,11 @@ import { alertRowToOffset, describeAlert, getCalendarDefaultAlerts, newAlertRow,
 import { RecurrenceEditor, buildRecurrenceSummary, isSimpleRecurrenceRule } from "./recurrence-editor";
 import { parseDuration, getEventColor } from "./event-card";
 import { buildAllDayDuration, getEventDisplayEndDate, getEventEndDate, getEventStartDate, getPrimaryCalendarId } from "@/lib/calendar-utils";
-import { displayNow, fromWallClock, getEffectiveTimeZone, parseLocalDateTime } from "@/lib/timezone";
+import { displayNow, fromWallClock, getEffectiveTimeZone, parseLocalDateTime, toZonedDisplayDate } from "@/lib/timezone";
 import { createRecurrenceRule, sameRecurrenceRules } from "@/lib/recurrence-rule";
 import { ParticipantInput, type ParticipantInputHandle } from "./participant-input";
 import { ParticipantAvailability } from "./participant-availability";
+import { FindATime } from "./find-a-time";
 import {
   eventOrganizer,
   getUserParticipantId,
@@ -580,6 +581,18 @@ export function EventModal({
       end: endDate ? instant(endStr) : null,
     };
   }, [startDate, startTime, endDate, endTime, allDay]);
+
+  // A suggested slot moves the event there; the fields are a wall clock in
+  // the effective zone, so the instants are turned back into one.
+  const handlePickSlot = useCallback((slot: { start: Date; end: Date }) => {
+    const zone = getEffectiveTimeZone();
+    const from = toZonedDisplayDate(slot.start, zone);
+    const to = toZonedDisplayDate(slot.end, zone);
+    setStartDate(formatDateInput(from));
+    setStartTime(formatTimeInput(from));
+    setEndDate(formatDateInput(to));
+    setEndTime(formatTimeInput(to));
+  }, []);
 
   // Plugin transform: collect conflict warnings for the current event form.
   // Re-runs (debounced) whenever fields that affect scheduling change.
@@ -1329,6 +1342,14 @@ export function EventModal({
               start={availabilityWindow.start}
               end={availabilityWindow.end}
             />
+            {userIsOrganizer && !allDay && (
+              <FindATime
+                attendees={attendees}
+                start={availabilityWindow.start}
+                end={availabilityWindow.end}
+                onPick={handlePickSlot}
+              />
+            )}
             {isEdit && statusCounts && (existingParticipants.length > 0) && (
               <p className="text-xs text-muted-foreground mt-1.5">
                 {t("participants.status_summary", {

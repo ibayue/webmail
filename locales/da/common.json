@@ -4845,6 +4845,34 @@
     "cancelled": "{name} har aflyst \"{title}\"",
     "untitled": "Unavngivet begivenhed"
   },
+  "free_busy_share": {
+    "button": "Del min ledig/optaget med {group}",
+    "already": "Din ledig/optaget er delt med {group}",
+    "done": "Din ledig/optaget er nu delt med {group}.",
+    "error": "Din ledig/optaget kunne ikke deles. Prøv igen.",
+    "group_label": "Gruppe",
+    "title": "Ledig/optaget",
+    "description": "Kolleger i gruppen ser, hvornår du er optaget, ikke hvad dine begivenheder er. Foreslå tidspunkter bruger det."
+  },
+  "find_time": {
+    "suggest": "Foreslå tidspunkter",
+    "searching": "Leder efter ledige tidspunkter",
+    "slots_title": "Ledigt for alle, Bulwark kunne tjekke",
+    "slot": "{day}, {start} til {end}",
+    "none": "Ingen ledig tid i de næste 10 arbejdsdage.",
+    "picked": "Begivenhed flyttet til {slot}",
+    "rate_limited": "For mange opslag i det sidste minut. Prøv igen om et minut.",
+    "unavailable": "Ledig/optaget er ikke tilgængelig på denne server, så Bulwark kan ikke foreslå tidspunkter.",
+    "not_checked": "Ikke tjekket:",
+    "not_checked_item": "{who}: {reason}",
+    "reason_external": "uden for din organisation",
+    "reason_unknown": "optagede tider ukendte",
+    "reason_not_found": "ikke fundet på denne server",
+    "reason_error": "kunne ikke tjekkes",
+    "unknown_note": "Bulwark ser kun optagede tider i kalendere, der er delt med dig. For disse personer kan den ikke skelne ledig fra ikke delt.",
+    "directory_off": "Bulwark kan ikke slå personer op på denne server. Din administrator kan slå katalogforespørgsler til i Stalwart.",
+    "not_looked_up": "Kan ikke slås op"
+  },
   "share_notifications": {
     "someone": "Nogen",
     "shared": "{name} har delt {kind} \"{object}\" med dig",

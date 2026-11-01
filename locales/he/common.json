@@ -5255,6 +5255,34 @@
     "cancelled": "{name} ביטל/ה את \"{title}\"",
     "untitled": "אירוע ללא כותרת"
   },
+  "free_busy_share": {
+    "button": "שתף את הזמינות שלי עם {group}",
+    "already": "הזמינות שלך משותפת עם {group}",
+    "done": "הזמינות שלך משותפת עכשיו עם {group}.",
+    "error": "לא ניתן היה לשתף את הזמינות שלך. נסו שוב.",
+    "group_label": "קבוצה",
+    "title": "פנוי/תפוס",
+    "description": "עמיתים בקבוצה רואים מתי אתה תפוס, לא מה האירועים שלך. \"הצע זמנים\" משתמש בזה."
+  },
+  "find_time": {
+    "suggest": "הצע זמנים",
+    "searching": "מחפש זמנים פנויים",
+    "slots_title": "פנוי לכל מי ש-Bulwark הצליח לבדוק",
+    "slot": "{day}, {start} עד {end}",
+    "none": "אין זמן פנוי ב-10 ימי העבודה הבאים.",
+    "picked": "האירוע הועבר אל {slot}",
+    "rate_limited": "יותר מדי בדיקות בדקה האחרונה. נסו שוב בעוד דקה.",
+    "unavailable": "מידע על פנוי/תפוס אינו זמין בשרת הזה, ולכן Bulwark לא יכול להציע זמנים.",
+    "not_checked": "לא נבדקו:",
+    "not_checked_item": "{who}: {reason}",
+    "reason_external": "מחוץ לארגון שלך",
+    "reason_unknown": "זמנים תפוסים לא ידועים",
+    "reason_not_found": "לא נמצא בשרת הזה",
+    "reason_error": "לא ניתן היה לבדוק",
+    "unknown_note": "Bulwark רואה זמנים תפוסים רק ביומנים ששותפו איתך. אצל האנשים האלה הוא לא יכול להבדיל בין פנוי ללא משותף.",
+    "directory_off": "Bulwark לא יכול לחפש אנשים בשרת הזה. מנהל המערכת יכול להפעיל שאילתות ספרייה ב-Stalwart.",
+    "not_looked_up": "לא ניתן לחפש"
+  },
   "share_notifications": {
     "someone": "מישהו",
     "shared": "{name} שיתף/ה איתך את {kind} \"{object}\"",

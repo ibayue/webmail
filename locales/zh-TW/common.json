@@ -4845,6 +4845,34 @@
     "cancelled": "{name} 取消了「{title}」",
     "untitled": "未命名活動"
   },
+  "free_busy_share": {
+    "button": "與 {group} 共用我的忙碌/空閒時間",
+    "already": "你的忙碌/空閒時間已與 {group} 共用",
+    "done": "你的忙碌/空閒時間現已與 {group} 共用。",
+    "error": "無法共用你的忙碌/空閒時間，請再試一次。",
+    "group_label": "群組",
+    "title": "忙碌/空閒",
+    "description": "群組中的同事能看到你何時忙碌，看不到活動內容。「建議時間」會用到它。"
+  },
+  "find_time": {
+    "suggest": "建議時間",
+    "searching": "正在尋找空閒時間",
+    "slots_title": "Bulwark 能查到的所有人都有空",
+    "slot": "{day} {start} 至 {end}",
+    "none": "未來 10 個工作天內沒有空閒時間。",
+    "picked": "活動已移到 {slot}",
+    "rate_limited": "過去一分鐘內查詢過多，請一分鐘後再試。",
+    "unavailable": "此伺服器不提供忙碌/空閒資訊，Bulwark 無法建議時間。",
+    "not_checked": "未檢查：",
+    "not_checked_item": "{who}：{reason}",
+    "reason_external": "組織外部",
+    "reason_unknown": "忙碌時間未知",
+    "reason_not_found": "在此伺服器上找不到",
+    "reason_error": "無法檢查",
+    "unknown_note": "Bulwark 只能看到與你共用的行事曆中的忙碌時間。對這些人，它無法區分有空和未共用。",
+    "directory_off": "Bulwark 無法在此伺服器上查詢使用者。管理員可以在 Stalwart 中開啟目錄查詢。",
+    "not_looked_up": "無法查詢"
+  },
   "share_notifications": {
     "someone": "有人",
     "shared": "{name} 與您共用了{kind}「{object}」",

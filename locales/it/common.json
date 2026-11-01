@@ -5283,6 +5283,34 @@
     "cancelled": "{name} ha annullato \"{title}\"",
     "untitled": "Evento senza titolo"
   },
+  "free_busy_share": {
+    "button": "Condividi la mia disponibilità con {group}",
+    "already": "La tua disponibilità è condivisa con {group}",
+    "done": "Ora la tua disponibilità è condivisa con {group}.",
+    "error": "Impossibile condividere la tua disponibilità. Riprova.",
+    "group_label": "Gruppo",
+    "title": "Disponibilità",
+    "description": "I colleghi del gruppo vedono quando sei occupato, non quali eventi hai. «Suggerisci orari» lo usa."
+  },
+  "find_time": {
+    "suggest": "Suggerisci orari",
+    "searching": "Ricerca di orari liberi",
+    "slots_title": "Libero per tutti quelli che Bulwark ha potuto controllare",
+    "slot": "{day}, dalle {start} alle {end}",
+    "none": "Nessun orario libero nei prossimi 10 giorni lavorativi.",
+    "picked": "Evento spostato a {slot}",
+    "rate_limited": "Troppe richieste nell’ultimo minuto. Riprova tra un minuto.",
+    "unavailable": "La disponibilità non è accessibile su questo server, quindi Bulwark non può suggerire orari.",
+    "not_checked": "Non controllati:",
+    "not_checked_item": "{who}: {reason}",
+    "reason_external": "esterno alla tua organizzazione",
+    "reason_unknown": "orari occupati sconosciuti",
+    "reason_not_found": "non trovato su questo server",
+    "reason_error": "impossibile controllare",
+    "unknown_note": "Bulwark vede gli orari occupati solo nei calendari condivisi con te. Per queste persone non può distinguere libero da non condiviso.",
+    "directory_off": "Bulwark non può cercare persone su questo server. L’amministratore può attivare le query della rubrica in Stalwart.",
+    "not_looked_up": "Ricerca non possibile"
+  },
   "share_notifications": {
     "someone": "Qualcuno",
     "shared": "{name} ha condiviso con te {kind} \"{object}\"",
