@@ -13,6 +13,7 @@ import { markTracingActive } from '../config';
 import { scrubAttributes, scrubSpanName } from '../scrub';
 import { observeUpstream } from '@/lib/metrics/upstream';
 import { fetchJmapServer } from '@/lib/stalwart/server-fetch';
+import { verifyJmapAuth } from '@/lib/auth/verify-jmap-auth';
 
 const exporter = new InMemorySpanExporter();
 const provider = createProvider(exporter, false);
@@ -51,6 +52,20 @@ describe('spans for upstream calls', () => {
       const headers = new Headers((fetchSpy.mock.calls[0][1] as RequestInit).headers);
       expect(headers.get('traceparent')).toMatch(/^00-[0-9a-f]{32}-[0-9a-f]{16}-01$/);
       expect(headers.get('accept')).toBe('application/json');
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('reach Stalwart from the sign-in check too', async () => {
+    const fetchSpy = vi.fn().mockResolvedValue(new Response(JSON.stringify({ apiUrl: 'https://mail.example.org/jmap/', username: 'u@example.org' }), { status: 200 }));
+    vi.stubGlobal('fetch', fetchSpy);
+    try {
+      await verifyJmapAuth('https://mail.example.org', 'Basic dTpw', { trusted: true }).catch(() => undefined);
+      const headers = new Headers((fetchSpy.mock.calls[0][1] as RequestInit).headers);
+      expect(String(fetchSpy.mock.calls[0][0])).toBe('https://mail.example.org/.well-known/jmap');
+      expect(headers.get('traceparent')).toMatch(/^00-[0-9a-f]{32}-[0-9a-f]{16}-01$/);
+      expect(headers.get('authorization')).toBe('Basic dTpw');
     } finally {
       vi.unstubAllGlobals();
     }
