@@ -115,8 +115,10 @@ describe('service worker with offline mode on', () => {
     const worker = loadWorker({ buildId: 'a', caches, clients: [], fetch: fetchMock });
     await worker.dispatch('message', { data: { type: 'offline-shell', on: true, urls: ['/_next/static/chunks/a.js', '/mail', 'https://evil.example/x.js'] } });
     const shell = await caches.open('bulwark-shell-a');
-    expect(await shell.match(`${ORIGIN}/_next/static/chunks/a.js`)).toBeDefined();
-    expect(await shell.match(`${ORIGIN}/mail`)).toBeDefined();
+    await vi.waitFor(async () => {
+      expect(await shell.match(`${ORIGIN}/_next/static/chunks/a.js`)).toBeDefined();
+      expect(await shell.match(`${ORIGIN}/mail`)).toBeDefined();
+    });
     expect(fetchMock).toHaveBeenCalledTimes(2);
 
     await worker.dispatch('message', { data: { type: 'offline-shell', on: false } });
@@ -129,7 +131,21 @@ describe('service worker with offline mode on', () => {
     const fetchMock = vi.fn(async () => sameOrigin('x', 'text/javascript'));
     const worker = loadWorker({ buildId: 'old', caches, clients: [], fetch: fetchMock });
     await worker.dispatch('message', { data: { type: 'offline-shell', on: true, urls: ['/_next/static/chunks/n.js'], buildId: 'new' } });
-    expect(await caches.has('bulwark-shell-new')).toBe(true);
+    await vi.waitFor(async () => expect(await caches.has('bulwark-shell-new')).toBe(true));
     expect(await caches.has('bulwark-shell-old')).toBe(false);
+  });
+
+  it('doesn’t hold the message open while it fetches the shell, so a new build’s worker can take over', async () => {
+    const caches = new FakeCaches();
+    // The network never answers.
+    const worker = loadWorker({ buildId: 'a', caches, clients: [], fetch: () => new Promise<Response>(() => {}) });
+    let settled = false;
+    const done = worker.dispatch('message', { data: { type: 'offline-shell', on: true, urls: ['/_next/static/chunks/a.js'] } }).then(() => { settled = true; });
+    await new Promise((r) => setTimeout(r, 50));
+    expect(settled).toBe(true);
+    await done;
+    // The switch was kept all the same.
+    const state = await caches.open('bulwark-sw-state-v1');
+    expect(await (await state.match('/__bulwark/offline-shell'))?.json()).toEqual({ on: true });
   });
 });

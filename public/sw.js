@@ -328,7 +328,16 @@ self.addEventListener("message", (event) => {
     return;
   }
   if (data.type === "offline-shell") {
-    event.waitUntil(setOfflineShell(data.on === true, data.urls, data.buildId));
+    // The switch is kept before the event ends. The shell's files are
+    // fetched without holding the event open: a worker busy with an event
+    // can't hand over to a new build's worker, and the fetch is tried again
+    // whenever a tab asks.
+    if (data.on !== true) {
+      event.waitUntil(setOfflineShell(false));
+      return;
+    }
+    event.waitUntil(writeOfflineShell(true));
+    setOfflineShell(true, data.urls, data.buildId).catch(() => {});
     return;
   }
   if (data.type === "skip-waiting") {
