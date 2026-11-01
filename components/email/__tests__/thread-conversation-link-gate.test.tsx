@@ -75,6 +75,19 @@ describe('conversation view link gate', () => {
     expect(hook).toHaveBeenCalledTimes(1);
   }, 30_000);
 
+  it('sends a middle-click through the check too, with the link text', async () => {
+    const open = vi.spyOn(window, 'open').mockReturnValue(null);
+    const hook = vi.fn(() => false);
+    uiHooks.onBeforeExternalLink.register('p1', hook);
+    const doc = renderBody();
+
+    const ev = new MouseEvent('auxclick', { bubbles: true, cancelable: true, button: 1 });
+    doc.getElementById('web')!.dispatchEvent(ev);
+    expect(ev.defaultPrevented).toBe(true);
+    await waitFor(() => expect(hook).toHaveBeenCalledWith(expect.objectContaining({ href: 'https://site.example/a', text: 'web' })));
+    expect(open).not.toHaveBeenCalled();
+  }, 30_000);
+
   it('opens nothing when a plugin stops the link', async () => {
     const open = vi.spyOn(window, 'open').mockReturnValue(null);
     const hook = vi.fn(() => false);

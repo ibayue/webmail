@@ -53,6 +53,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 import { useFocusTrap } from "@/hooks/use-focus-trap";
 import { useCvdColor } from "@/hooks/use-cvd-color";
+import { gateLinkClick } from "@/lib/plugin-hook-result";
 
 export interface PendingEventPreview {
   start: Date;
@@ -1128,7 +1129,7 @@ export function EventModal({
               <div className="flex items-start gap-2.5">
                 <MapPin className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
                 {/* A URL opens as a link, a postal address in the maps, as on the card. */}
-                <a href={locationHref ?? undefined} target="_blank" rel="noreferrer" className="text-sm text-primary hover:underline min-w-0 break-words" title={locationName}>
+                <a href={locationHref ?? undefined} target="_blank" rel="noreferrer" onClick={gateLinkClick} onAuxClick={gateLinkClick} className="text-sm text-primary hover:underline min-w-0 break-words" title={locationName}>
                   {/^https?:\/\//i.test(locationName)
                     ? (() => { try { return new URL(locationName).hostname; } catch { return locationName; } })()
                     : locationName}
@@ -1140,7 +1141,7 @@ export function EventModal({
             {virtualLoc && (
               <div className="flex items-start gap-2.5">
                 <Video className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-                <a href={virtualLoc} target="_blank" rel="noreferrer" className="text-sm text-primary hover:underline truncate" title={virtualLoc}>
+                <a href={virtualLoc} target="_blank" rel="noreferrer" onClick={gateLinkClick} onAuxClick={gateLinkClick} className="text-sm text-primary hover:underline truncate" title={virtualLoc}>
                   {(() => { try { return new URL(virtualLoc).hostname; } catch { return virtualLoc; } })()}
                 </a>
               </div>

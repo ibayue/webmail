@@ -169,7 +169,7 @@ import { usePluginSlotOffers } from "@/hooks/use-plugin-slot-offers";
 import { ResizeHandle } from "@/components/layout/resize-handle";
 import { emailHooks, renderHooks } from "@/lib/plugin-hooks";
 import { emitThreadExpand } from "@/lib/plugin-thread-expand";
-import { resolveExternalLink } from "@/lib/plugin-hook-result";
+import { linkText, resolveExternalLink } from "@/lib/plugin-hook-result";
 import type { AttachmentInfo, AttachmentPreview } from "@/lib/plugin-types";
 import { useAttachmentDrag, isDragOutSupported, type AttachmentDragSource } from "@/hooks/use-attachment-drag";
 import type { IJMAPClient } from "@/lib/jmap/client-interface";
@@ -3521,7 +3521,9 @@ export function EmailViewer({
         // Plugin intercept: let plugins cancel or rewrite external links inside
         // the email body before navigation happens. Bound on the iframe doc so
         // it survives later DOM mutations.
-        const onLinkClick = async (ev: Event) => {
+        const onLinkClick = async (ev: MouseEvent) => {
+          // A middle-click opens a link too; other buttons are left alone.
+          if (ev.type === 'auxclick' && ev.button !== 1) return;
           const targetEl = (ev.target as Element | null)?.closest?.('a[href], area[href]') as HTMLAnchorElement | HTMLAreaElement | null;
           if (!targetEl) return;
           const href = targetEl.getAttribute('href') || '';
@@ -3567,6 +3569,7 @@ export function EmailViewer({
             href,
             target: targetEl.getAttribute('target') ?? undefined,
             emailId: email?.id,
+            text: linkText(targetEl),
           };
           // A plugin returns false to stop the link or { href } to send it
           // somewhere else (a web address only).
@@ -3575,6 +3578,7 @@ export function EmailViewer({
           window.open(target, '_blank', 'noopener,noreferrer');
         };
         doc.addEventListener('click', onLinkClick, true);
+        doc.addEventListener('auxclick', onLinkClick, true);
         // A press in the body closes a mention's card. The page never sees
         // it: the focus is already inside the iframe, so there is no blur.
         doc.addEventListener('mousedown', () => setBodyMention(null), true);

@@ -1267,6 +1267,12 @@ export interface ExternalLinkContext {
   target?: string;
   /** Email currently in view, when the click came from an email body */
   emailId?: string;
+  /**
+   * What the link says (its text, else an image's alt text), trimmed to 200
+   * characters, when the host knows it (Bulwark 1.20 and later). A link
+   * whose text names another address than its target is a phishing sign.
+   */
+  text?: string;
 }
 
 /**
