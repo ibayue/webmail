@@ -44,7 +44,9 @@ export async function groupPrincipalId(client: ShareClient, address: string): Pr
   if (!client.findPrincipalByEmail) return null;
   const found = await client.findPrincipalByEmail(wanted).catch(() => null);
   const principal = found?.principal;
-  return principal && (!principal.type || principal.type === 'group') ? principal.id : null;
+  // Only a principal that says it is a group: an address typed by mistake
+  // must not share everyone's free/busy with one person.
+  return principal?.type === 'group' ? principal.id : null;
 }
 
 /** Whether `calendar` already lets the principal see its free/busy. */

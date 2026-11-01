@@ -73,6 +73,15 @@ describe('ensureFreeBusyShare', () => {
     expect(none.setCalendarShare).not.toHaveBeenCalled();
   });
 
+  it('never shares with a directory entry that is no group', async () => {
+    const { client, setCalendarShare } = fakeClient([calendar('a', { isDefault: true })], { groupAccount: false });
+    client.findPrincipalByEmail.mockResolvedValue({ principal: { id: 'p', name: 'x' } as never, status: 'ok' });
+    expect(await ensureFreeBusyShare(client, 'person@example.org')).toBe('no-group');
+    client.findPrincipalByEmail.mockResolvedValue({ principal: { id: 'p', type: 'individual', name: 'x' } as never, status: 'ok' });
+    expect(await ensureFreeBusyShare(client, 'person@example.org')).toBe('no-group');
+    expect(setCalendarShare).not.toHaveBeenCalled();
+  });
+
   it('never takes a person\'s shared account for the group', async () => {
     const { client } = fakeClient([], { groupAccount: false, directory: null });
     expect(await groupPrincipalId(client, 'bob@example.org')).toBeNull();
