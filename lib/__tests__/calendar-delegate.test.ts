@@ -45,6 +45,13 @@ describe('resolveAnswerTargets', () => {
     expect(view.targets[0].sentBy).toBeUndefined();
   });
 
+  it('answers as the group also when the member has the group address as an identity', () => {
+    const view = resolveAnswerTargets(base(invitation(['team@example.org'], { accountId: 'team' }), {
+      owner: TEAM, userEmails: ['bob@example.org', 'team@example.org'], canRsvpSelf: true,
+    }));
+    expect(view.targets.map((t) => [t.kind, t.participantId, t.sentBy])).toEqual([['owner', 'team', undefined]]);
+  });
+
   it('offers no answer for the owner without edit access, and says why', () => {
     for (const rights of [CALENDAR_PRESETS.read, { ...CALENDAR_PRESETS.read, mayRSVP: true }]) {
       const view = resolveAnswerTargets(base(invitation(['alice@example.org']), { calendar: { isShared: true, myRights: rights } }));

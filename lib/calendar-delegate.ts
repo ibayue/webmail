@@ -99,27 +99,31 @@ export function resolveAnswerTargets(input: ResolveAnswerInput): AnswerView {
 
   if (calendar?.isShared && owner) {
     const ownerId = getUserParticipantId(event, owner.emails);
-    if (ownerId && ownerId !== selfId && !isOrganizer(event, owner.emails) && !eventHasNoOwner(event)) {
-      const participant = event.participants![ownerId];
+    // Members of a group often have the group's address as an identity of
+    // their own: the group's participant is still answered as the group.
+    const ownersOwn = ownerId && (ownerId !== selfId || owner.isGroup);
+    if (ownersOwn && !isOrganizer(event, owner.emails) && !eventHasNoOwner(event)) {
+      const participant = event.participants![ownerId!];
       const answeredBy = addressOf(participant.sentBy);
       if (!calendar.myRights?.mayWriteAll) {
         return { targets: selfTarget(), note: { kind: 'no_write', owner: owner.name }, answeredBy };
       }
-      if (input.server016 && selfId) {
+      const alsoInvited = !!selfId && selfId !== ownerId;
+      if (input.server016 && alsoInvited) {
         return { targets: ownCopyTarget(), note: { kind: 'also_invited', owner: owner.name }, answeredBy };
       }
       const delegate = userEmails[0]?.trim().toLowerCase();
       const ownerTarget: AnswerTarget = {
         kind: 'owner',
         eventId: event.id,
-        participantId: ownerId,
+        participantId: ownerId!,
         status: participant.participationStatus ?? null,
         ownerName: owner.name,
         // Always the mailto: form: Stalwart passes sentBy through unchecked,
         // and RFC 5545's SENT-BY needs a cal-address.
         ...(!owner.isGroup && delegate ? { sentBy: `mailto:${delegate}` } : {}),
       };
-      return { targets: [ownerTarget, ...(selfId ? ownCopyTarget() : [])], note: null, answeredBy };
+      return { targets: [ownerTarget, ...(alsoInvited ? ownCopyTarget() : [])], note: null, answeredBy };
     }
   }
 
