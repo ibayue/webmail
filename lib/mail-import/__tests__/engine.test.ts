@@ -115,6 +115,14 @@ describe('runImport', () => {
     expect(fake.imported[0].keywords).toEqual({ $seen: true });
   });
 
+  it('reads Thunderbird state headers in .eml files, and imports a plain .eml as read like before', async () => {
+    const fake = fakeClient();
+    const unread = new File(['X-Mozilla-Status: 0004\r\nSubject: u\r\n\r\nStatus: R in the body\r\n'], 'u.eml');
+    const plain = new File(['Subject: p\r\n\r\nbody\r\n'], 'p.eml');
+    await runImport(options(fake.client, [unread, plain]));
+    expect(fake.imported.map((e) => e.keywords)).toEqual([{ $flagged: true }, { $seen: true }]);
+  });
+
   it('falls back to the Date header when the envelope line has no usable date', async () => {
     const fake = fakeClient();
     await runImport(options(fake.client, [file('From MAILER-DAEMON Thu Jan  1 00:00:00 1970\nSubject: s\nDate: Tue, 5 May 2020 10:00:00 +0000\n\nb\n')]));

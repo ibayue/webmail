@@ -129,14 +129,15 @@ export async function* emlSource(file: File, options: SourceOptions): ItemSource
     options.onProgress?.(1);
     return;
   }
-  const head = await file.slice(0, 64 * 1024).text();
+  const head = new TextDecoder("latin1").decode(await file.slice(0, 64 * 1024).arrayBuffer());
   yield {
     kind: "message",
     index: 0,
     folder: [],
     data: file.slice(0, file.size, MIME),
     size: file.size,
-    keywords: { $seen: true },
+    // Thunderbird writes X-Mozilla-Status into the .eml files it saves; none means read, as before.
+    keywords: mboxState(head.split(/\r?\n\r?\n/, 1)[0]).keywords,
     receivedAt: dateFromHeaderBlock(head),
     label: emlLabel(file.name),
   };
@@ -257,7 +258,7 @@ export async function* zipSource(file: File, options: SourceOptions): ItemSource
           folder: zipFolder(entry.name, false),
           data: new Blob([bytes as BlobPart], { type: MIME }),
           size: bytes.length,
-          keywords: { $seen: true },
+          keywords: mboxState(head.split(/\r?\n\r?\n/, 1)[0]).keywords,
           receivedAt: dateFromHeaderBlock(head),
           label: emlLabel(entry.name),
         };
