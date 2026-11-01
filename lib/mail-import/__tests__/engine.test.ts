@@ -129,6 +129,14 @@ describe('runImport', () => {
     expect(fake.imported[0].receivedAt).toBe('2020-05-05T10:00:00Z');
   });
 
+  it('moves the progress message by message through a small mbox', async () => {
+    const fake = fakeClient();
+    const fractions: number[] = [];
+    await runImport(options(fake.client, [file(mbox(10))], { onProgress: (p) => { if (p.phase === 'running') fractions.push(p.fraction); } }));
+    const between = new Set(fractions.filter((f) => f > 0 && f < 1).map((f) => f.toFixed(2)));
+    expect(between.size).toBeGreaterThanOrEqual(5);
+  });
+
   it('puts several messages in one Email/import and keeps uploads within the server limit', async () => {
     const fake = fakeClient({ uploadConcurrency: 4 });
     await runImport(options(fake.client, [file(mbox(45))]));

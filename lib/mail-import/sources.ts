@@ -180,11 +180,14 @@ async function* mboxFromChunks(
   options: SourceOptions,
   startIndex: number,
   onIndex: (next: number) => void,
+  /** Called with each message's offset in the stream, for a progress that moves message by message. */
+  onOffset?: (offset: number) => void,
 ): ItemSource {
   const splitter = new MboxSplitter({ maxMessageBytes: options.maxMessageBytes });
   let index = startIndex;
   const emit = function* (messages: MboxMessage[]): Generator<ImportItem> {
     for (const m of messages) {
+      onOffset?.(m.offset);
       const i = index++;
       yield i < options.skipBefore ? { kind: "skipped", index: i, reason: "resumed" } : mboxItem(m, i, folder);
     }
@@ -206,7 +209,8 @@ async function* fileChunks(file: Blob, onProgress?: (fraction: number) => void):
 }
 
 export async function* mboxSource(file: File, options: SourceOptions): ItemSource {
-  yield* mboxFromChunks(fileChunks(file, options.onProgress), [], options, 0, () => {});
+  // Reads run ahead in 1 MB pieces; the messages handed over say how far the import really is.
+  yield* mboxFromChunks(fileChunks(file), [], options, 0, () => {}, (offset) => options.onProgress?.(offset / Math.max(1, file.size)));
   options.onProgress?.(1);
 }
 
