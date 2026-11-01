@@ -65,13 +65,13 @@ describe('Settings > Offline', () => {
   });
 
   it('lists the outbox', () => {
-    useOfflineStore.setState({ outbox: [{ id: 1, account: 'acc', createdAt: Date.now(), subject: 'Quarterly', to: ['b@example.org'], status: 'failed', error: 'Rejected' }] });
+    useOfflineStore.setState({ outbox: [{ id: 1, account: 'acc', createdAt: Date.now(), subject: 'Quarterly', to: ['b@example.org'], status: 'failed', error: { text: 'Rejected' } }] });
     render(<OfflineSettings />);
     const rows = screen.getAllByTestId('offline-outbox-row');
     expect(rows).toHaveLength(1);
     expect(rows[0].textContent).toContain('Quarterly');
     expect(rows[0].getAttribute('data-status')).toBe('failed');
-    expect(screen.getByRole('button', { name: 'retry' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'retry_label' })).toBeInTheDocument();
   });
 });
 

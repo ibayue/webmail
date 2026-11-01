@@ -5667,11 +5667,15 @@
       "delete": "Elimina",
       "delete_confirm_title": "Eliminare questo messaggio?",
       "delete_confirm_message": "Non è stato inviato e non si potrà recuperare.",
-      "changes": "{count, plural, one {# modifica} other {# modifiche}} a letti, contrassegni o cartelle verranno inviate quando sarai di nuovo online."
+      "changes": "{count, plural, one {# modifica} other {# modifiche}} a letti, contrassegni o cartelle verranno inviate quando sarai di nuovo online.",
+      "status_held": "Le regole della tua organizzazione sono cambiate mentre il messaggio aspettava. Scrivilo di nuovo per inviarlo.",
+      "retry_label": "Invia di nuovo: {subject}",
+      "delete_label": "Elimina: {subject}"
     },
     "banner": {
       "offline": "Sei offline. Vedi la posta conservata su questo dispositivo. Ciò che modifichi o scrivi viene inviato quando torni online.",
-      "outbox": "{count, plural, one {# messaggio} other {# messaggi}} nella posta in uscita"
+      "outbox": "{count, plural, one {# messaggio} other {# messaggi}} nella posta in uscita",
+      "server_down": "Il server di posta non è raggiungibile. Vedi la posta conservata su questo dispositivo. Ciò che modifichi o scrivi viene inviato quando risponde di nuovo."
     },
     "toast": {
       "queued": "Salvato nella posta in uscita. Verrà inviato quando sarai di nuovo online.",
@@ -5681,13 +5685,22 @@
       "refused_other": "Serve una connessione. Riprova quando sei online.",
       "forbidden": "La tua organizzazione ha disattivato la modalità offline. La posta conservata su questo dispositivo è stata rimossa.",
       "back_online": "Sei di nuovo online. Ricarica per accedere e inviare ciò che è in attesa.",
-      "reload": "Ricarica"
+      "reload": "Ricarica",
+      "held": "Un messaggio nella posta in uscita richiede la tua attenzione: {subject}",
+      "lost": "Questi messaggi non sono stati inviati e sono stati eliminati: {subjects}"
     },
     "signout": {
       "title": "Uscire con messaggi non inviati?",
       "message": "{count, plural, one {# messaggio non è stato inviato.} other {# messaggi non sono stati inviati.}} Uscendo vengono eliminati.",
       "confirm": "Esci",
       "lost": "Questi messaggi non sono stati inviati e sono stati eliminati quando sei uscito: {subjects}"
+    },
+    "errors": {
+      "unavailable": "Serve una connessione. Riprova quando sei online.",
+      "plugins_down": "Il tuo plugin di firma o cifratura non funziona offline. Invia questo messaggio quando sarai di nuovo online.",
+      "file_missing": "Un file allegato offline non è più su questo dispositivo. Allegalo di nuovo.",
+      "no_sent_mailbox": "Impossibile trovare la cartella Inviati.",
+      "no_drafts_mailbox": "Impossibile trovare la cartella Bozze."
     }
   },
   "deep_link": {

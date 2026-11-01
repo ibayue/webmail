@@ -13,7 +13,7 @@
  * Email/changes once the server is back, which refuses it.
  */
 
-import { emailIndex, getBody, getMisc, patchEmails, putMisc, type CachedEmail } from './cache';
+import { BLOBS, emailIndex, getBody, getMisc, patchEmails, putMisc, type CachedEmail } from './cache';
 import type { OfflineMethodCall, OfflineResponse } from '@/lib/jmap/offline-hooks';
 
 export type MethodResult = Record<string, unknown>;
@@ -26,6 +26,20 @@ export interface ResponderContext {
   queuePatch: (jmap: string, update: Record<string, Record<string, unknown>>) => Promise<void>;
   /** A change offline mode refuses (delete for good); the caller tells the user. */
   onRefused: (what: 'destroy' | 'other') => void;
+  /**
+   * The folders whose mail is kept here, per JMAP account. A list of any
+   * other folder isn't answered (it would look empty while its count says
+   * otherwise). Without it, every folder is answered.
+   */
+  keptFolders?: Record<string, readonly string[]>;
+}
+
+/** The folders a filter lists, as far as it names them. */
+function filterFolders(filter: Filter | undefined | null, out: string[] = []): string[] {
+  if (!filter) return out;
+  if (typeof filter.inMailbox === 'string') out.push(filter.inMailbox);
+  if (Array.isArray(filter.conditions)) for (const c of filter.conditions as Filter[]) filterFolders(c, out);
+  return out;
 }
 
 class Unanswerable extends Error {}
@@ -160,6 +174,10 @@ async function emailsOf(ctx: ResponderContext, jmap: string): Promise<CachedEmai
 async function emailQuery(ctx: ResponderContext, args: Record<string, unknown>): Promise<MethodResult> {
   const jmap = (args.accountId as string) || ctx.defaultJmap;
   if (args.anchor !== undefined) throw new Unanswerable();
+  if (ctx.keptFolders) {
+    const kept = ctx.keptFolders[jmap] ?? [];
+    if (filterFolders(args.filter as Filter).some((id) => !kept.includes(id))) throw new Unanswerable();
+  }
   let list = (await emailsOf(ctx, jmap)).filter((email) => matches(email, args.filter as Filter));
   list.sort(compareBy((args.sort as Comparator[]) ?? []));
   if (args.collapseThreads) {
@@ -183,7 +201,11 @@ async function emailQuery(ctx: ResponderContext, args: Record<string, unknown>):
 }
 
 function pick(email: Record<string, unknown>, properties: unknown): Record<string, unknown> {
-  if (!Array.isArray(properties)) return email;
+  if (!Array.isArray(properties)) {
+    const all = { ...email };
+    delete all[BLOBS];
+    return all;
+  }
   const out: Record<string, unknown> = { id: email.id };
   for (const prop of properties as string[]) if (prop in email) out[prop] = email[prop];
   return out;
@@ -319,7 +341,8 @@ async function adjustFolderCounts(
     const d = delta.get(box.id as string);
     if (!d) return box;
     const count = (key: string, by: number) => (typeof box[key] === 'number' ? Math.max(0, (box[key] as number) + by) : box[key]);
-    return { ...box, totalEmails: count('totalEmails', d.total), unreadEmails: count('unreadEmails', d.unread), totalThreads: count('totalThreads', d.total), unreadThreads: count('unreadThreads', d.unread) };
+    // Messages only: how the conversations change can't be told from here.
+    return { ...box, totalEmails: count('totalEmails', d.total), unreadEmails: count('unreadEmails', d.unread) };
   });
   await putMisc(ctx.account, 'mailboxes', all);
 }

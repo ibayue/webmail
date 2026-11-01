@@ -7,7 +7,7 @@
  */
 
 import { create } from 'zustand';
-import type { OutboxEntry } from './queue';
+import type { OutboxEntry, OutboxError } from './queue';
 
 /** localStorage: the local account ids that keep mail on this device. */
 export const OFFLINE_ACCOUNTS_KEY = 'bulwark-offline-accounts';
@@ -19,7 +19,7 @@ export interface OutboxRow {
   subject: string;
   to: string[];
   status: OutboxEntry['status'];
-  error?: string;
+  error?: OutboxError;
 }
 
 interface OfflineState {
@@ -27,8 +27,8 @@ interface OfflineState {
   enabled: string[];
   /** The browser says it has no network. */
   browserOffline: boolean;
-  /** The last request to the mail server failed on the network. */
-  networkDown: boolean;
+  /** Mail servers (their URLs) that couldn't be reached at the last request. */
+  downServers: string[];
   /** The app started without the server, from the mail on this device. */
   startedOffline: boolean;
   outbox: OutboxRow[];
@@ -52,7 +52,7 @@ function readEnabled(): string[] {
 export const useOfflineStore = create<OfflineState>()(() => ({
   enabled: readEnabled(),
   browserOffline: typeof navigator !== 'undefined' && navigator.onLine === false,
-  networkDown: false,
+  downServers: [],
   startedOffline: false,
   outbox: [],
   pendingChanges: 0,
@@ -71,8 +71,31 @@ export function writeEnabled(enabled: string[]): void {
   }
 }
 
-/** The browser is offline, or the mail server couldn't be reached. */
-export function isOfflineNow(): boolean {
-  const { browserOffline, networkDown } = useOfflineStore.getState();
-  return browserOffline || networkDown;
+export function serverKey(url: string): string {
+  return url.replace(/\/+$/, '').toLowerCase();
+}
+
+/** The browser is offline, or this mail server (any, without one) couldn't be reached. */
+export function isOfflineNow(serverUrl?: string): boolean {
+  const { browserOffline, downServers } = useOfflineStore.getState();
+  if (browserOffline) return true;
+  return serverUrl ? downServers.includes(serverKey(serverUrl)) : downServers.length > 0;
+}
+
+export function setServerDown(serverUrl: string, down: boolean): boolean {
+  const key = serverKey(serverUrl);
+  const { downServers } = useOfflineStore.getState();
+  const was = downServers.includes(key);
+  if (was !== down) useOfflineStore.setState({ downServers: down ? [...downServers, key] : downServers.filter((s) => s !== key) });
+  return was;
+}
+
+/** The switch as another tab left it (it changed in localStorage there). */
+export function readEnabledFrom(raw: string | null): string[] {
+  try {
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed.filter((id): id is string => typeof id === 'string') : [];
+  } catch {
+    return [];
+  }
 }

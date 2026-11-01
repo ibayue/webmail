@@ -5667,11 +5667,15 @@
       "delete": "Slett",
       "delete_confirm_title": "Slette denne meldingen?",
       "delete_confirm_message": "Den er ikke sendt og kan ikke hentes tilbake.",
-      "changes": "{count, plural, one {# endring} other {# endringer}} av lest, flagg eller mapper sendes når du er tilkoblet igjen."
+      "changes": "{count, plural, one {# endring} other {# endringer}} av lest, flagg eller mapper sendes når du er tilkoblet igjen.",
+      "status_held": "Organisasjonens regler endret seg mens meldingen ventet. Skriv den på nytt for å sende den.",
+      "retry_label": "Send igjen: {subject}",
+      "delete_label": "Slett: {subject}"
     },
     "banner": {
       "offline": "Du er frakoblet. Du ser e-posten som er lagret på denne enheten. Det du endrer eller skriver, sendes når du er tilkoblet igjen.",
-      "outbox": "{count, plural, one {# melding} other {# meldinger}} i utboksen"
+      "outbox": "{count, plural, one {# melding} other {# meldinger}} i utboksen",
+      "server_down": "E-postserveren kan ikke nås. Du ser e-posten som er lagret på denne enheten. Det du endrer eller skriver, sendes når den svarer igjen."
     },
     "toast": {
       "queued": "Lagret i utboksen. Den sendes når du er tilkoblet igjen.",
@@ -5681,13 +5685,22 @@
       "refused_other": "Dette krever tilkobling. Prøv igjen når du er tilkoblet.",
       "forbidden": "Organisasjonen din har slått av frakoblet modus. E-posten som var lagret på denne enheten, er fjernet.",
       "back_online": "Du er tilkoblet igjen. Last inn på nytt for å logge på og sende det som venter.",
-      "reload": "Last inn på nytt"
+      "reload": "Last inn på nytt",
+      "held": "En melding i utboksen trenger deg: {subject}",
+      "lost": "Disse meldingene ble ikke sendt og er slettet: {subjects}"
     },
     "signout": {
       "title": "Logge av med usendte meldinger?",
       "message": "{count, plural, one {# melding er ikke sendt.} other {# meldinger er ikke sendt.}} Når du logger av, slettes de.",
       "confirm": "Logg av",
       "lost": "Disse meldingene ble ikke sendt og ble slettet da du ble logget av: {subjects}"
+    },
+    "errors": {
+      "unavailable": "Dette krever tilkobling. Prøv igjen når du er tilkoblet.",
+      "plugins_down": "Programtillegget for signering eller kryptering kjører ikke uten tilkobling. Send dette når du er tilkoblet igjen.",
+      "file_missing": "En fil som ble lagt ved uten tilkobling, er ikke lenger på denne enheten. Legg den ved på nytt.",
+      "no_sent_mailbox": "Fant ikke mappen Sendt.",
+      "no_drafts_mailbox": "Fant ikke mappen Utkast."
     }
   },
   "deep_link": {

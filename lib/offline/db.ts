@@ -22,6 +22,33 @@ export const STORES = ['keys', 'emails', 'bodies', 'blobs', 'misc', 'ledger', 'q
 export type StoreName = (typeof STORES)[number];
 
 let dbPromise: Promise<IDBDatabase> | null = null;
+/**
+ * Only switching offline mode on may create the database. Everything else
+ * opens it only when it exists: another tab may have deleted it (offline
+ * mode switched off, a sign-out), and opening it would create it anew.
+ */
+let mayCreate = false;
+
+export function allowOfflineDbCreation(): void {
+  mayCreate = true;
+}
+
+async function offlineDbExists(): Promise<boolean> {
+  try {
+    if (typeof indexedDB.databases !== 'function') return true;
+    return (await indexedDB.databases()).some((d) => d.name === OFFLINE_DB_NAME);
+  } catch {
+    return true;
+  }
+}
+
+/** Thrown when the database was deleted (or never made) and may not be created here. */
+export class OfflineDbMissingError extends Error {
+  constructor() {
+    super('The offline database is not set up');
+    this.name = 'OfflineDbMissingError';
+  }
+}
 
 export function hasIndexedDb(): boolean {
   try {
@@ -33,7 +60,19 @@ export function hasIndexedDb(): boolean {
 
 export function openOfflineDb(): Promise<IDBDatabase> {
   if (dbPromise) return dbPromise;
-  const opening = new Promise<IDBDatabase>((resolve, reject) => {
+  const opening = (async () => {
+    if (!mayCreate && !(await offlineDbExists())) throw new OfflineDbMissingError();
+    return openNow();
+  })();
+  dbPromise = opening;
+  opening.catch(() => {
+    if (dbPromise === opening) dbPromise = null;
+  });
+  return opening;
+}
+
+function openNow(): Promise<IDBDatabase> {
+  return new Promise<IDBDatabase>((resolve, reject) => {
     const request = indexedDB.open(OFFLINE_DB_NAME, VERSION);
     request.onupgradeneeded = () => {
       const db = request.result;
@@ -53,21 +92,17 @@ export function openOfflineDb(): Promise<IDBDatabase> {
       // A sign-out in this or another tab deletes the database: let it.
       db.onversionchange = () => {
         db.close();
-        if (dbPromise === opening) dbPromise = null;
+        dbPromise = null;
+        mayCreate = false;
       };
       db.onclose = () => {
-        if (dbPromise === opening) dbPromise = null;
+        dbPromise = null;
       };
       resolve(db);
     };
     request.onerror = () => reject(request.error);
     request.onblocked = () => reject(new Error('offline database blocked'));
   });
-  dbPromise = opening;
-  opening.catch(() => {
-    if (dbPromise === opening) dbPromise = null;
-  });
-  return opening;
 }
 
 function done(tx: IDBTransaction): Promise<void> {
@@ -114,6 +149,27 @@ export async function idbWrite(ops: Array<{ store: StoreName; put?: unknown; del
   await done(tx);
 }
 
+/**
+ * Reads a record and writes what `change` makes of it in one transaction;
+ * `change` returns undefined to leave it. True when it wrote.
+ */
+export async function idbUpdate<T>(store: StoreName, key: IDBValidKey, change: (value: T | undefined) => T | undefined): Promise<boolean> {
+  const db = await openOfflineDb();
+  const tx = db.transaction(store, 'readwrite');
+  const objects = tx.objectStore(store);
+  let wrote = false;
+  const read = objects.get(key);
+  read.onsuccess = () => {
+    const next = change(read.result as T | undefined);
+    if (next !== undefined) {
+      objects.put(next);
+      wrote = true;
+    }
+  };
+  await done(tx);
+  return wrote;
+}
+
 export async function idbAdd(store: StoreName, value: unknown): Promise<IDBValidKey> {
   const db = await openOfflineDb();
   const tx = db.transaction(store, 'readwrite');
@@ -142,6 +198,7 @@ export async function idbDeleteAccount(account: string, stores: readonly StoreNa
 /** Deletes the whole database (sign-out, offline mode off everywhere). */
 export async function deleteOfflineDb(): Promise<void> {
   if (!hasIndexedDb()) return;
+  mayCreate = false;
   const open = dbPromise;
   dbPromise = null;
   try {

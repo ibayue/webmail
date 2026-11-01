@@ -5667,11 +5667,15 @@
       "delete": "Eliminar",
       "delete_confirm_title": "¿Eliminar este mensaje?",
       "delete_confirm_message": "No se ha enviado y no se puede recuperar.",
-      "changes": "{count, plural, one {# cambio} other {# cambios}} de leído, marcas o carpetas se enviarán cuando vuelvas a tener conexión."
+      "changes": "{count, plural, one {# cambio} other {# cambios}} de leído, marcas o carpetas se enviarán cuando vuelvas a tener conexión.",
+      "status_held": "Las reglas de tu organización cambiaron mientras esperaba. Escríbelo de nuevo para enviarlo.",
+      "retry_label": "Enviar otra vez: {subject}",
+      "delete_label": "Eliminar: {subject}"
     },
     "banner": {
       "offline": "No tienes conexión. Ves el correo guardado en este dispositivo. Lo que cambies o escribas se envía cuando vuelvas a tener conexión.",
-      "outbox": "{count, plural, one {# mensaje} other {# mensajes}} en la bandeja de salida"
+      "outbox": "{count, plural, one {# mensaje} other {# mensajes}} en la bandeja de salida",
+      "server_down": "No se puede conectar con el servidor de correo. Ves el correo guardado en este dispositivo. Lo que cambies o escribas se envía cuando vuelva a responder."
     },
     "toast": {
       "queued": "Guardado en la bandeja de salida. Se envía cuando vuelvas a tener conexión.",
@@ -5681,13 +5685,22 @@
       "refused_other": "Esto necesita conexión. Inténtalo de nuevo cuando tengas conexión.",
       "forbidden": "Tu organización desactivó el modo sin conexión. Se borró el correo guardado en este dispositivo.",
       "back_online": "Vuelves a tener conexión. Recarga para iniciar sesión y enviar lo pendiente.",
-      "reload": "Recargar"
+      "reload": "Recargar",
+      "held": "Un mensaje de la bandeja de salida te necesita: {subject}",
+      "lost": "Estos mensajes no se enviaron y se borraron: {subjects}"
     },
     "signout": {
       "title": "¿Cerrar sesión con mensajes sin enviar?",
       "message": "{count, plural, one {# mensaje no se ha enviado.} other {# mensajes no se han enviado.}} Al cerrar sesión se borran.",
       "confirm": "Cerrar sesión",
       "lost": "Estos mensajes no se enviaron y se borraron al cerrar la sesión: {subjects}"
+    },
+    "errors": {
+      "unavailable": "Esto necesita conexión. Inténtalo de nuevo cuando tengas conexión.",
+      "plugins_down": "Tu plugin de firma o cifrado no funciona sin conexión. Envía esto cuando vuelvas a tener conexión.",
+      "file_missing": "Un archivo adjuntado sin conexión ya no está en este dispositivo. Adjúntalo de nuevo.",
+      "no_sent_mailbox": "No se encontró tu carpeta Enviados.",
+      "no_drafts_mailbox": "No se encontró tu carpeta Borradores."
     }
   },
   "deep_link": {

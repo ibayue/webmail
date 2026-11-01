@@ -116,7 +116,12 @@ const nextConfig: NextConfig = {
               // Lets people see a site runs Bulwark. No version, so it tells
               // a scanner nothing about which fixes are missing.
               source: "/:path*",
-              headers: [{ key: "X-Powered-By", value: "bulwarkmail.org" }],
+              headers: [
+                { key: "X-Powered-By", value: "bulwarkmail.org" },
+                // Which build answered (#523): the service worker files a page
+                // or a chunk under that build, not under its own.
+                { key: "X-Bulwark-Build", value: buildId },
+              ],
             },
             {
               // Untrusted plugin iframes have opaque origins and load these public,

@@ -5667,11 +5667,15 @@
       "delete": "Usuń",
       "delete_confirm_title": "Usunąć tę wiadomość?",
       "delete_confirm_message": "Nie została wysłana i nie da się jej przywrócić.",
-      "changes": "{count, plural, one {# zmiana} few {# zmiany} many {# zmian} other {# zmiany}} przeczytania, flag lub folderów zostanie wysłana, gdy znów będziesz online."
+      "changes": "{count, plural, one {# zmiana} few {# zmiany} many {# zmian} other {# zmiany}} przeczytania, flag lub folderów zostanie wysłana, gdy znów będziesz online.",
+      "status_held": "Zasady Twojej organizacji zmieniły się, gdy wiadomość czekała. Napisz ją ponownie, aby ją wysłać.",
+      "retry_label": "Wyślij ponownie: {subject}",
+      "delete_label": "Usuń: {subject}"
     },
     "banner": {
       "offline": "Jesteś offline. Widzisz pocztę przechowywaną na tym urządzeniu. To, co zmienisz lub napiszesz, zostanie wysłane, gdy znów będziesz online.",
-      "outbox": "{count, plural, one {# wiadomość} few {# wiadomości} many {# wiadomości} other {# wiadomości}} w skrzynce nadawczej"
+      "outbox": "{count, plural, one {# wiadomość} few {# wiadomości} many {# wiadomości} other {# wiadomości}} w skrzynce nadawczej",
+      "server_down": "Serwer poczty jest niedostępny. Widzisz pocztę przechowywaną na tym urządzeniu. To, co zmienisz lub napiszesz, zostanie wysłane, gdy znów odpowie."
     },
     "toast": {
       "queued": "Zapisano w skrzynce nadawczej. Zostanie wysłana, gdy znów będziesz online.",
@@ -5681,13 +5685,22 @@
       "refused_other": "To wymaga połączenia. Spróbuj ponownie, gdy będziesz online.",
       "forbidden": "Twoja organizacja wyłączyła tryb offline. Poczta przechowywana na tym urządzeniu została usunięta.",
       "back_online": "Znów jesteś online. Odśwież, aby się zalogować i wysłać to, co czeka.",
-      "reload": "Odśwież"
+      "reload": "Odśwież",
+      "held": "Wiadomość w skrzynce nadawczej wymaga Twojej uwagi: {subject}",
+      "lost": "Te wiadomości nie zostały wysłane i zostały usunięte: {subjects}"
     },
     "signout": {
       "title": "Wylogować się z niewysłanymi wiadomościami?",
       "message": "{count, plural, one {# wiadomość nie została wysłana.} few {# wiadomości nie zostały wysłane.} many {# wiadomości nie zostało wysłanych.} other {# wiadomości nie zostało wysłanych.}} Wylogowanie je usuwa.",
       "confirm": "Wyloguj się",
       "lost": "Te wiadomości nie zostały wysłane i zostały usunięte przy wylogowaniu: {subjects}"
+    },
+    "errors": {
+      "unavailable": "To wymaga połączenia. Spróbuj ponownie, gdy będziesz online.",
+      "plugins_down": "Twoja wtyczka do podpisywania lub szyfrowania nie działa offline. Wyślij to, gdy znów będziesz online.",
+      "file_missing": "Plik dołączony offline nie znajduje się już na tym urządzeniu. Dołącz go ponownie.",
+      "no_sent_mailbox": "Nie znaleziono folderu Wysłane.",
+      "no_drafts_mailbox": "Nie znaleziono folderu Wersje robocze."
     }
   },
   "deep_link": {

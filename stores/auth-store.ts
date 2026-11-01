@@ -136,6 +136,12 @@ interface AuthState {
   refreshIdentities: () => Promise<void>;
   getClientForAccount: (accountId: string) => JMAPClient | undefined;
   getAllConnectedClients: () => Map<string, JMAPClient>;
+  /**
+   * After a start without the server (offline mode, #523): sign the
+   * accounts that run from this device in for real, now that the server
+   * answers. True when every one of them got a real client.
+   */
+  reconnectOfflineClients: () => Promise<boolean>;
 }
 
 export interface LogoutOptions {
@@ -1319,6 +1325,9 @@ async function startOfflineClient(accountId: string, serverUrl: string, username
   if (IS_LITE) return null;
   try {
     const offline = await import('@/lib/offline/offline-mode');
+    // Only without a network or a server: a server that refused one request
+    // (an overload without CORS headers, a 5xx) gets the usual error.
+    if (!(await offline.serverUnreachable(serverUrl))) return null;
     const session = await offline.offlineSessionFor(accountId);
     if (!session) return null;
     offline.markStartedOffline();
@@ -3277,6 +3286,17 @@ export const useAuthStore = create<AuthState>()(
 
       getAllConnectedClients: () => {
         return new Map(clients);
+      },
+
+      reconnectOfflineClients: async () => {
+        const offline = [...clients.entries()].filter(([, c]) => c.isOfflineOnly());
+        if (offline.length === 0) return true;
+        for (const [id] of offline) clients.delete(id);
+        await get().checkAuth();
+        return offline.every(([id]) => {
+          const client = clients.get(id);
+          return !!client && !client.isOfflineOnly();
+        });
       },
     }),
     {

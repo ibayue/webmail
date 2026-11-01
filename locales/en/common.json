@@ -5667,11 +5667,15 @@
       "delete": "Delete",
       "delete_confirm_title": "Delete this message?",
       "delete_confirm_message": "It hasn't been sent, and it can't be brought back.",
-      "changes": "{count, plural, one {# change} other {# changes}} to read state, flags or folders will be sent when you're online again."
+      "changes": "{count, plural, one {# change} other {# changes}} to read state, flags or folders will be sent when you're online again.",
+      "status_held": "Your organisation's rules changed while this waited. Write it again to send it.",
+      "retry_label": "Send again: {subject}",
+      "delete_label": "Delete: {subject}"
     },
     "banner": {
       "offline": "You're offline. You see the mail kept on this device. What you change or write is sent when you're online again.",
-      "outbox": "{count, plural, one {# message} other {# messages}} in the outbox"
+      "outbox": "{count, plural, one {# message} other {# messages}} in the outbox",
+      "server_down": "The mail server can't be reached. You see the mail kept on this device. What you change or write is sent when it answers again."
     },
     "toast": {
       "queued": "Saved in the outbox. It's sent when you're online again.",
@@ -5681,13 +5685,22 @@
       "refused_other": "This needs a connection. Try again when you're online.",
       "forbidden": "Your organisation turned off offline mode. The mail kept on this device was removed.",
       "back_online": "You're online again. Reload to sign in and send what's waiting.",
-      "reload": "Reload"
+      "reload": "Reload",
+      "held": "A message in the outbox needs you: {subject}",
+      "lost": "These messages weren't sent and were deleted: {subjects}"
     },
     "signout": {
       "title": "Sign out with unsent mail?",
       "message": "{count, plural, one {# message hasn't been sent.} other {# messages haven't been sent.}} Signing out deletes them.",
       "confirm": "Sign out",
       "lost": "These messages weren't sent and were deleted when you were signed out: {subjects}"
+    },
+    "errors": {
+      "unavailable": "This needs a connection. Try again when you're online.",
+      "plugins_down": "Your signing or encryption plugin isn't running offline. Send this when you're back online.",
+      "file_missing": "A file attached offline is no longer on this device. Attach it again.",
+      "no_sent_mailbox": "Your Sent folder couldn't be found.",
+      "no_drafts_mailbox": "Your Drafts folder couldn't be found."
     }
   },
   "deep_link": {

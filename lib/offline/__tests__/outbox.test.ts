@@ -11,7 +11,7 @@ import { flushQueue } from '../flush';
 import { holdFile, queuePatch, readQueue } from '../queue';
 import { emailIndex, forgetIndexes, putEmails } from '../cache';
 import { forgetDeviceKey } from '../crypto';
-import { deleteOfflineDb } from '../db';
+import { allowOfflineDbCreation, deleteOfflineDb } from '../db';
 import { useOfflineStore, writeEnabled, OFFLINE_ACCOUNTS_KEY } from '../state';
 import type { JMAPClient } from '@/lib/jmap/client';
 
@@ -44,8 +44,9 @@ beforeEach(async () => {
   forgetIndexes();
   forgetDeviceKey();
   await deleteOfflineDb();
+  allowOfflineDbCreation();
   localStorage.clear();
-  useOfflineStore.setState({ enabled: [], outbox: [], pendingChanges: 0, browserOffline: false, networkDown: false, startedOffline: false });
+  useOfflineStore.setState({ enabled: [], outbox: [], pendingChanges: 0, browserOffline: false, downServers: [], startedOffline: false });
   usePolicyStore.setState({ loaded: true, subject: null, policy: { ...usePolicyStore.getState().policy, organisation: DEFAULT_ORGANISATION_POLICY } });
   useAccountStore.setState({ accounts: [{ id: 'acc', label: 'alice', serverUrl: 'https://mail.example.org', username: 'alice@example.org' } as never] });
 });
@@ -143,10 +144,11 @@ describe('the outbox', () => {
     await flushQueue('acc', client as unknown as JMAPClient, { notify: vi.fn(), allowed: () => true });
     let { outbox } = await readQueue('acc');
     expect(outbox[0].status).toBe('failed');
-    expect(outbox[0].error).toBe('Recipient address rejected');
+    expect(outbox[0].error).toEqual({ text: 'Recipient address rejected' });
 
     const cut = fakeClient({ sendEmail: vi.fn(async () => { throw new TypeError('Failed to fetch'); }) });
     await wipeEverything();
+    allowOfflineDbCreation();
     writeEnabled(['acc']);
     useAuthStore.setState({ client: cut as never, activeAccountId: 'acc' });
     setOnline(false);
@@ -178,10 +180,8 @@ describe('wiping offline data', () => {
     usePolicyStore.setState({ policy: { ...usePolicyStore.getState().policy, organisation: { ...DEFAULT_ORGANISATION_POLICY, devices: { ...DEFAULT_ORGANISATION_POLICY.devices, noOffline: true } } } });
     enforcePolicy();
     await vi.waitFor(async () => expect(useOfflineStore.getState().enabled).toEqual([]));
-    await vi.waitFor(async () => {
-      forgetIndexes();
-      expect((await emailIndex('acc')).size).toBe(0);
-    });
+    // Its only account: the whole database goes.
+    await vi.waitFor(async () => expect((await indexedDB.databases()).map((d) => d.name)).not.toContain('bulwark-offline'));
     expect(localStorage.getItem(OFFLINE_ACCOUNTS_KEY)).toBeNull();
   });
 

@@ -151,6 +151,16 @@ async function cachedDocument(url) {
   return null;
 }
 
+/**
+ * The cache of the build that answered (the X-Bulwark-Build header): after a
+ * deploy the old worker still fetches the new build's pages and chunks, which
+ * belong in the new build's cache, not in its own.
+ */
+function shellCacheFor(response) {
+  const build = response.headers.get("x-bulwark-build") || "";
+  return /^[\w.-]{1,80}$/.test(build) ? SHELL_CACHE_PREFIX + build : SHELL_CACHE;
+}
+
 async function respondWithDocument(request) {
   const url = new URL(request.url);
   try {
@@ -158,7 +168,7 @@ async function respondWithDocument(request) {
     const type = response.headers.get("content-type") || "";
     if (response.ok && response.type === "basic" && !response.redirected && type.includes("text/html")) {
       const copy = response.clone();
-      caches.open(SHELL_CACHE).then((cache) => cache.put(documentKey(url), copy)).catch(() => {});
+      caches.open(shellCacheFor(response)).then((cache) => cache.put(documentKey(url), copy)).catch(() => {});
     }
     return response;
   } catch (error) {
@@ -174,7 +184,7 @@ async function respondWithStatic(request) {
   const response = await fetch(request);
   if (response.ok && response.type === "basic") {
     const copy = response.clone();
-    caches.open(SHELL_CACHE).then((cache) => cache.put(request.url, copy)).catch(() => {});
+    caches.open(shellCacheFor(response)).then((cache) => cache.put(request.url, copy)).catch(() => {});
   }
   return response;
 }

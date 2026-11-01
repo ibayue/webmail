@@ -5679,11 +5679,15 @@
       "delete": "Xóa",
       "delete_confirm_title": "Xóa thư này?",
       "delete_confirm_message": "Thư chưa được gửi và không thể khôi phục.",
-      "changes": "{count, plural, other {# thay đổi}} về trạng thái đọc, cờ hoặc thư mục sẽ được gửi khi bạn trực tuyến trở lại."
+      "changes": "{count, plural, other {# thay đổi}} về trạng thái đọc, cờ hoặc thư mục sẽ được gửi khi bạn trực tuyến trở lại.",
+      "status_held": "Quy tắc của tổ chức đã thay đổi trong lúc thư chờ. Hãy viết lại để gửi.",
+      "retry_label": "Gửi lại: {subject}",
+      "delete_label": "Xóa: {subject}"
     },
     "banner": {
       "offline": "Bạn đang ngoại tuyến. Bạn đang xem thư được giữ trên thiết bị này. Những gì bạn thay đổi hoặc viết sẽ được gửi khi bạn trực tuyến trở lại.",
-      "outbox": "{count, plural, other {# thư}} trong Hộp thư đi"
+      "outbox": "{count, plural, other {# thư}} trong Hộp thư đi",
+      "server_down": "Không thể kết nối máy chủ thư. Bạn đang xem thư được giữ trên thiết bị này. Những gì bạn thay đổi hoặc viết sẽ được gửi khi máy chủ phản hồi trở lại."
     },
     "toast": {
       "queued": "Đã lưu vào Hộp thư đi. Thư sẽ được gửi khi bạn trực tuyến trở lại.",
@@ -5693,13 +5697,22 @@
       "refused_other": "Việc này cần có kết nối. Hãy thử lại khi bạn trực tuyến.",
       "forbidden": "Tổ chức của bạn đã tắt chế độ ngoại tuyến. Thư được giữ trên thiết bị này đã bị xóa.",
       "back_online": "Bạn đã trực tuyến trở lại. Hãy tải lại để đăng nhập và gửi những gì đang chờ.",
-      "reload": "Tải lại"
+      "reload": "Tải lại",
+      "held": "Một thư trong Hộp thư đi cần bạn xem: {subject}",
+      "lost": "Các thư này chưa được gửi và đã bị xóa: {subjects}"
     },
     "signout": {
       "title": "Đăng xuất khi còn thư chưa gửi?",
       "message": "{count, plural, other {Có # thư chưa được gửi.}} Đăng xuất sẽ xóa chúng.",
       "confirm": "Đăng xuất",
       "lost": "Các thư này chưa được gửi và đã bị xóa khi bạn bị đăng xuất: {subjects}"
+    },
+    "errors": {
+      "unavailable": "Việc này cần có kết nối. Hãy thử lại khi bạn trực tuyến.",
+      "plugins_down": "Plugin ký hoặc mã hóa của bạn không chạy khi ngoại tuyến. Hãy gửi thư này khi bạn trực tuyến trở lại.",
+      "file_missing": "Tệp đính kèm khi ngoại tuyến không còn trên thiết bị này. Hãy đính kèm lại.",
+      "no_sent_mailbox": "Không tìm thấy thư mục Thư đã gửi.",
+      "no_drafts_mailbox": "Không tìm thấy thư mục Thư nháp."
     }
   },
   "deep_link": {

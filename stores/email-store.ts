@@ -4335,9 +4335,10 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
       });
       return result;
     } catch (error) {
-      // The browser went offline on the way, before anything reached the
-      // server (the client refused without a network): keep it.
-      if (outbox && error instanceof Error && error.name === 'OfflineUnavailableError' && outbox.shouldQueue(client)) {
+      // The network went away before anything was handed to the server
+      // (the client says so: SendNotStartedError): keep it. Any other
+      // failure may have come after the server took the message.
+      if (outbox && error instanceof Error && error.name === 'SendNotStartedError' && outbox.shouldQueue(client)) {
         set({ isLoading: false });
         return outbox.queueEmail(client, queueArgs());
       }

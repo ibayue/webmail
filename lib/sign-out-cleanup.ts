@@ -133,7 +133,9 @@ function forgetOfflineShell(): void {
   try {
     if (typeof caches === 'undefined') return;
     void caches.keys()
-      .then((keys) => Promise.all(keys.filter((key) => key.startsWith('bulwark-shell-')).map((key) => caches.delete(key))))
+      // The shell, and the push notifications' state (which messages were
+      // shown, the quiet hours), which belongs to the accounts too.
+      .then((keys) => Promise.all(keys.filter((key) => key.startsWith('bulwark-shell-') || key === 'bulwark-push-state-v1').map((key) => caches.delete(key))))
       .then(() => caches.open('bulwark-sw-state-v1'))
       .then((cache) => cache.put('/__bulwark/offline-shell', new Response(JSON.stringify({ on: false }), { headers: { 'Content-Type': 'application/json' } })))
       .catch(() => {});

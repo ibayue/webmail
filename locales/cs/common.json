@@ -5667,11 +5667,15 @@
       "delete": "Smazat",
       "delete_confirm_title": "Smazat tuto zprávu?",
       "delete_confirm_message": "Nebyla odeslána a nelze ji obnovit.",
-      "changes": "{count, plural, one {# změna} few {# změny} many {# změny} other {# změn}} přečtení, příznaků nebo složek se odešle, až budete znovu online."
+      "changes": "{count, plural, one {# změna} few {# změny} many {# změny} other {# změn}} přečtení, příznaků nebo složek se odešle, až budete znovu online.",
+      "status_held": "Pravidla vaší organizace se změnila, zatímco zpráva čekala. Napište ji znovu, abyste ji odeslali.",
+      "retry_label": "Odeslat znovu: {subject}",
+      "delete_label": "Smazat: {subject}"
     },
     "banner": {
       "offline": "Jste offline. Vidíte poštu uchovanou na tomto zařízení. Co změníte nebo napíšete, se odešle, až budete znovu online.",
-      "outbox": "{count, plural, one {# zpráva} few {# zprávy} many {# zprávy} other {# zpráv}} k odeslání"
+      "outbox": "{count, plural, one {# zpráva} few {# zprávy} many {# zprávy} other {# zpráv}} k odeslání",
+      "server_down": "Poštovní server není dostupný. Vidíte poštu uchovanou na tomto zařízení. Co změníte nebo napíšete, se odešle, až znovu odpoví."
     },
     "toast": {
       "queued": "Uloženo k odeslání. Odešle se, až budete znovu online.",
@@ -5681,13 +5685,22 @@
       "refused_other": "Na to je potřeba připojení. Zkuste to znovu, až budete online.",
       "forbidden": "Vaše organizace vypnula režim offline. Pošta uchovaná na tomto zařízení byla odstraněna.",
       "back_online": "Jste znovu online. Načtěte stránku znovu, abyste se přihlásili a odeslali, co čeká.",
-      "reload": "Načíst znovu"
+      "reload": "Načíst znovu",
+      "held": "Zpráva k odeslání potřebuje vaši pozornost: {subject}",
+      "lost": "Tyto zprávy nebyly odeslány a byly smazány: {subjects}"
     },
     "signout": {
       "title": "Odhlásit se s neodeslanými zprávami?",
       "message": "{count, plural, one {# zpráva nebyla odeslána.} few {# zprávy nebyly odeslány.} many {# zprávy nebylo odesláno.} other {# zpráv nebylo odesláno.}} Odhlášením se smažou.",
       "confirm": "Odhlásit se",
       "lost": "Tyto zprávy nebyly odeslány a při odhlášení byly smazány: {subjects}"
+    },
+    "errors": {
+      "unavailable": "Na to je potřeba připojení. Zkuste to znovu, až budete online.",
+      "plugins_down": "Váš plugin pro podepisování nebo šifrování offline neběží. Odešlete to, až budete znovu online.",
+      "file_missing": "Soubor přiložený offline už na tomto zařízení není. Přiložte ho znovu.",
+      "no_sent_mailbox": "Složka Odeslané nebyla nalezena.",
+      "no_drafts_mailbox": "Složka Koncepty nebyla nalezena."
     }
   },
   "deep_link": {

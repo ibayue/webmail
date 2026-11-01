@@ -13,10 +13,12 @@ import { useAccountStore } from '@/stores/account-store';
  * The offline outbox (#523): messages written offline that wait for the
  * network, with what happened to them. A message that couldn't be sent can
  * be sent again or deleted; one whose connection broke on the way is never
- * sent again on its own (it may have gone out).
+ * sent again on its own (it may have gone out); one held because the
+ * organisation's rules changed can only be deleted (and written again).
  */
 export function OutboxList({ heading = true }: { heading?: boolean }) {
   const t = useTranslations('offline.outbox');
+  const tErrors = useTranslations('offline.errors');
   const format = useFormatter();
   const rows = useOfflineStore((s) => s.outbox);
   const changes = useOfflineStore((s) => s.pendingChanges);
@@ -27,8 +29,9 @@ export function OutboxList({ heading = true }: { heading?: boolean }) {
   const status = (row: OutboxRow) => {
     switch (row.status) {
       case 'sending': return t('status_sending');
-      case 'failed': return t('status_failed', { error: row.error ?? '' });
+      case 'failed': return t('status_failed', { error: row.error?.code ? tErrors(row.error.code) : (row.error?.text ?? '') });
       case 'uncertain': return t('status_uncertain');
+      case 'held': return t('status_held');
       default: return t('status_waiting');
     }
   };
@@ -55,16 +58,16 @@ export function OutboxList({ heading = true }: { heading?: boolean }) {
                   {t('to', { recipients: row.to.join(', ') })}
                   {several && <> · {accounts.find((a) => a.id === row.account)?.label ?? row.account}</>}
                 </p>
-                <p className={row.status === 'failed' || row.status === 'uncertain' ? 'text-xs text-destructive [overflow-wrap:anywhere]' : 'text-xs text-muted-foreground'}>
+                <p className={row.status === 'failed' || row.status === 'uncertain' || row.status === 'held' ? 'text-xs text-destructive [overflow-wrap:anywhere]' : 'text-xs text-muted-foreground'}>
                   {status(row)} · {format.dateTime(row.createdAt, { dateStyle: 'short', timeStyle: 'short' })}
                 </p>
               </div>
               <div className="flex shrink-0 gap-2">
                 {(row.status === 'failed' || row.status === 'uncertain') && (
-                  <Button variant="outline" size="sm" onClick={() => void retry(row)}>{t('retry')}</Button>
+                  <Button variant="outline" size="sm" aria-label={t('retry_label', { subject: row.subject || t('no_subject') })} onClick={() => void retry(row)}>{t('retry')}</Button>
                 )}
                 {row.status !== 'sending' && (
-                  <Button variant="outline" size="sm" onClick={() => setDeleting(row)}>{t('delete')}</Button>
+                  <Button variant="outline" size="sm" aria-label={t('delete_label', { subject: row.subject || t('no_subject') })} onClick={() => setDeleting(row)}>{t('delete')}</Button>
                 )}
               </div>
             </li>

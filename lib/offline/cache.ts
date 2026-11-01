@@ -22,6 +22,9 @@ export const CACHE_CAP_BYTES = 250 * 1024 * 1024;
 export const CACHE_DAYS = 30;
 export const CACHE_WINDOW_MS = CACHE_DAYS * 24 * 60 * 60 * 1000;
 
+/** Where the metadata keeps the blob ids of a message's parts (never handed out). */
+export const BLOBS = '_bulwarkBlobs';
+
 /** The parts of a message that only the reader needs. */
 const BODY_KEYS = ['bodyValues', 'textBody', 'htmlBody', 'bodyStructure', 'headers', 'attachments'] as const;
 
@@ -118,6 +121,10 @@ export async function putEmails(account: string, jmap: string, emails: CachedEma
     const key = emailKey(account, jmap, email.id);
     const { meta, body } = splitBody(email);
     const merged = { ...(index.get(key) ?? {}), ...meta } as CachedEmail;
+    // The attachments and inline images of the message: only these blobs are kept (blobsOf).
+    if (body && Array.isArray(body.attachments)) {
+      merged[BLOBS] = (body.attachments as Array<{ blobId?: unknown }>).map((a) => a.blobId).filter((id): id is string => typeof id === 'string');
+    }
     index.set(key, merged);
     const at = dateOf(merged);
     const sealed = await sealJson(merged);
@@ -166,12 +173,31 @@ export async function removeEmails(account: string, keys: string[]): Promise<voi
   if (keys.length === 0) return;
   const index = await emailIndex(account);
   const ops: Array<{ store: StoreName; del: IDBValidKey }> = [];
+  const gone = new Set(keys);
   for (const key of keys) {
     index.delete(key);
     ops.push({ store: 'emails', del: key }, { store: 'bodies', del: key });
     ops.push({ store: 'ledger', del: ledgerKey('emails', key) }, { store: 'ledger', del: ledgerKey('bodies', key) });
   }
+  // Their attachments go with them.
+  for (const entry of await idbGetAllByAccount<LedgerEntry>('ledger', account)) {
+    if (entry.store === 'blobs' && entry.emailKey && gone.has(entry.emailKey)) {
+      ops.push({ store: 'blobs', del: entry.ref }, { store: 'ledger', del: entry.key });
+    }
+  }
   await idbWrite(ops);
+}
+
+/** The kept message a blob (attachment, inline image) belongs to, with its date. */
+export async function messageOfBlob(account: string, jmap: string, blobId: string): Promise<{ key: string; at: number } | null> {
+  const index = await emailIndex(account);
+  const prefix = `${account}\u0001${jmap}\u0001`;
+  for (const [key, email] of index) {
+    if (!key.startsWith(prefix)) continue;
+    const blobs = email[BLOBS];
+    if (Array.isArray(blobs) && blobs.includes(blobId)) return { key, at: dateOf(email) };
+  }
+  return null;
 }
 
 /** A message's body parts, or null when only its list entry is kept. */
@@ -192,17 +218,20 @@ export async function hasBody(account: string, jmap: string, id: string): Promis
 export async function putBlob(account: string, jmap: string, blobId: string, blob: Blob, at: number, ofEmail?: string): Promise<void> {
   const key = blobKey(account, jmap, blobId);
   const sealed = await sealBytes(await blob.arrayBuffer());
+  // The media type too says something about the message: sealed as well.
+  const meta = await sealJson({ type: blob.type });
   await idbWrite([
-    { store: 'blobs', put: { key, account, type: blob.type, ...sealed } },
+    { store: 'blobs', put: { key, account, meta, ...sealed } },
     { store: 'ledger', put: { key: ledgerKey('blobs', key), account, store: 'blobs', ref: key, at, bytes: byteSize(sealed), emailKey: ofEmail } satisfies LedgerEntry },
   ]);
 }
 
 export async function getBlob(account: string, jmap: string, blobId: string): Promise<Blob | null> {
-  const record = await idbGet<SealedRecord & { type?: string }>('blobs', blobKey(account, jmap, blobId));
+  const record = await idbGet<SealedRecord & { meta?: Sealed }>('blobs', blobKey(account, jmap, blobId));
   if (!record) return null;
   try {
-    return new Blob([await openBytes(record)], { type: record.type || 'application/octet-stream' });
+    const meta = record.meta ? await openJson<{ type?: string }>(record.meta) : {};
+    return new Blob([await openBytes(record)], { type: meta.type || 'application/octet-stream' });
   } catch {
     return null;
   }

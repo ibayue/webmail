@@ -5667,11 +5667,15 @@
       "delete": "Vymazať",
       "delete_confirm_title": "Vymazať túto správu?",
       "delete_confirm_message": "Nebola odoslaná a nedá sa obnoviť.",
-      "changes": "{count, plural, one {# zmena} few {# zmeny} many {# zmeny} other {# zmien}} prečítania, príznakov alebo priečinkov sa odošle, keď budete znova online."
+      "changes": "{count, plural, one {# zmena} few {# zmeny} many {# zmeny} other {# zmien}} prečítania, príznakov alebo priečinkov sa odošle, keď budete znova online.",
+      "status_held": "Pravidlá vašej organizácie sa zmenili, kým správa čakala. Napíšte ju znova, aby ste ju odoslali.",
+      "retry_label": "Odoslať znova: {subject}",
+      "delete_label": "Vymazať: {subject}"
     },
     "banner": {
       "offline": "Ste offline. Vidíte poštu uchovanú na tomto zariadení. Čo zmeníte alebo napíšete, sa odošle, keď budete znova online.",
-      "outbox": "{count, plural, one {# správa} few {# správy} many {# správy} other {# správ}} na odoslanie"
+      "outbox": "{count, plural, one {# správa} few {# správy} many {# správy} other {# správ}} na odoslanie",
+      "server_down": "Poštový server nie je dostupný. Vidíte poštu uchovanú na tomto zariadení. Čo zmeníte alebo napíšete, sa odošle, keď znova odpovie."
     },
     "toast": {
       "queued": "Uložené na odoslanie. Odošle sa, keď budete znova online.",
@@ -5681,13 +5685,22 @@
       "refused_other": "Na to je potrebné pripojenie. Skúste to znova, keď budete online.",
       "forbidden": "Vaša organizácia vypla režim offline. Pošta uchovaná na tomto zariadení bola odstránená.",
       "back_online": "Ste znova online. Načítajte stránku znova, aby ste sa prihlásili a odoslali, čo čaká.",
-      "reload": "Načítať znova"
+      "reload": "Načítať znova",
+      "held": "Správa na odoslanie potrebuje vašu pozornosť: {subject}",
+      "lost": "Tieto správy neboli odoslané a boli vymazané: {subjects}"
     },
     "signout": {
       "title": "Odhlásiť sa s neodoslanými správami?",
       "message": "{count, plural, one {# správa nebola odoslaná.} few {# správy neboli odoslané.} many {# správy nebolo odoslaných.} other {# správ nebolo odoslaných.}} Odhlásením sa vymažú.",
       "confirm": "Odhlásiť sa",
       "lost": "Tieto správy neboli odoslané a pri odhlásení boli vymazané: {subjects}"
+    },
+    "errors": {
+      "unavailable": "Na to je potrebné pripojenie. Skúste to znova, keď budete online.",
+      "plugins_down": "Váš doplnok na podpisovanie alebo šifrovanie offline nebeží. Odošlite to, keď budete znova online.",
+      "file_missing": "Súbor priložený offline už na tomto zariadení nie je. Priložte ho znova.",
+      "no_sent_mailbox": "Priečinok Odoslané sa nenašiel.",
+      "no_drafts_mailbox": "Priečinok Koncepty sa nenašiel."
     }
   },
   "deep_link": {

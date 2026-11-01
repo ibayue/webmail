@@ -5667,11 +5667,15 @@
       "delete": "Kustuta",
       "delete_confirm_title": "Kas kustutada see kiri?",
       "delete_confirm_message": "Seda pole saadetud ja seda ei saa taastada.",
-      "changes": "{count, plural, one {# muudatus} other {# muudatust}} loetuse, märgiste või kaustade kohta saadetakse, kui oled jälle võrgus."
+      "changes": "{count, plural, one {# muudatus} other {# muudatust}} loetuse, märgiste või kaustade kohta saadetakse, kui oled jälle võrgus.",
+      "status_held": "Sinu organisatsiooni reeglid muutusid, kuni kiri ootas. Kirjuta see saatmiseks uuesti.",
+      "retry_label": "Saada uuesti: {subject}",
+      "delete_label": "Kustuta: {subject}"
     },
     "banner": {
       "offline": "Oled võrguta. Näed selles seadmes hoitud kirju. Mida muudad või kirjutad, saadetakse, kui oled jälle võrgus.",
-      "outbox": "{count, plural, one {# kiri} other {# kirja}} väljuvate kirjade kastis"
+      "outbox": "{count, plural, one {# kiri} other {# kirja}} väljuvate kirjade kastis",
+      "server_down": "Meiliserveriga ei saa ühendust. Näed selles seadmes hoitud kirju. Mida muudad või kirjutad, saadetakse, kui server jälle vastab."
     },
     "toast": {
       "queued": "Salvestatud väljuvate kirjade kasti. See saadetakse, kui oled jälle võrgus.",
@@ -5681,13 +5685,22 @@
       "refused_other": "Selleks on vaja ühendust. Proovi uuesti, kui oled võrgus.",
       "forbidden": "Sinu organisatsioon lülitas võrguta režiimi välja. Selles seadmes hoitud kirjad eemaldati.",
       "back_online": "Oled jälle võrgus. Laadi uuesti, et sisse logida ja ootav saata.",
-      "reload": "Laadi uuesti"
+      "reload": "Laadi uuesti",
+      "held": "Väljuvate kirjade kasti kiri vajab sind: {subject}",
+      "lost": "Need kirjad jäid saatmata ja kustutati: {subjects}"
     },
     "signout": {
       "title": "Kas logida välja saatmata kirjadega?",
       "message": "{count, plural, one {# kiri on saatmata.} other {# kirja on saatmata.}} Välja logimine kustutab need.",
       "confirm": "Logi välja",
       "lost": "Need kirjad jäid saatmata ja kustutati väljalogimisel: {subjects}"
+    },
+    "errors": {
+      "unavailable": "Selleks on vaja ühendust. Proovi uuesti, kui oled võrgus.",
+      "plugins_down": "Sinu allkirjastamise või krüptimise pistikprogramm ei tööta võrguta. Saada see, kui oled jälle võrgus.",
+      "file_missing": "Võrguta lisatud faili pole enam selles seadmes. Lisa see uuesti.",
+      "no_sent_mailbox": "Kausta Saadetud ei leitud.",
+      "no_drafts_mailbox": "Kausta Mustandid ei leitud."
     }
   },
   "deep_link": {

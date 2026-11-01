@@ -10,11 +10,17 @@ import { currentBuildId, SW_SCOPE } from '@/lib/app-update';
 /** The app's pages kept for a start without the network. */
 const SHELL_PAGES = ['/', '/mail', '/settings'];
 
-async function shellFiles(): Promise<string[]> {
+/**
+ * The files of this tab's build. After a deploy the server lists the new
+ * build's files: nothing then, rather than another build's files under this
+ * build's name.
+ */
+export async function shellFiles(): Promise<string[]> {
   try {
     const res = await apiFetch('/api/offline/shell', { cache: 'no-store' });
     if (!res.ok) return [];
-    const data = (await res.json()) as { files?: unknown };
+    const data = (await res.json()) as { files?: unknown; buildId?: unknown };
+    if (data.buildId !== currentBuildId()) return [];
     return Array.isArray(data.files) ? data.files.filter((f): f is string => typeof f === 'string') : [];
   } catch {
     return [];
@@ -34,7 +40,10 @@ async function activeWorker(): Promise<ServiceWorker | null> {
 export async function tellServiceWorker(on: boolean): Promise<void> {
   const worker = await activeWorker();
   if (!worker) return;
-  const urls = on ? [...SHELL_PAGES.map((p) => withBasePath(p)), ...(await shellFiles())] : [];
+  const files = on ? await shellFiles() : [];
+  // Without this build's files (a deploy happened), not its pages either:
+  // they would be the new build's.
+  const urls = on && files.length > 0 ? [...SHELL_PAGES.map((p) => withBasePath(p)), ...files] : [];
   worker.postMessage({ type: 'offline-shell', on, urls, buildId: currentBuildId() });
 }
 

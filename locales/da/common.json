@@ -5667,11 +5667,15 @@
       "delete": "Slet",
       "delete_confirm_title": "Slet denne besked?",
       "delete_confirm_message": "Den er ikke sendt og kan ikke hentes tilbage.",
-      "changes": "{count, plural, one {# ændring} other {# ændringer}} af læst, markeringer eller mapper sendes, når du er online igen."
+      "changes": "{count, plural, one {# ændring} other {# ændringer}} af læst, markeringer eller mapper sendes, når du er online igen.",
+      "status_held": "Din organisations regler blev ændret, mens beskeden ventede. Skriv den igen for at sende den.",
+      "retry_label": "Send igen: {subject}",
+      "delete_label": "Slet: {subject}"
     },
     "banner": {
       "offline": "Du er offline. Du ser den mail, der er gemt på denne enhed. Det, du ændrer eller skriver, sendes, når du er online igen.",
-      "outbox": "{count, plural, one {# besked} other {# beskeder}} i udbakken"
+      "outbox": "{count, plural, one {# besked} other {# beskeder}} i udbakken",
+      "server_down": "Mailserveren kan ikke nås. Du ser den mail, der er gemt på denne enhed. Det, du ændrer eller skriver, sendes, når den svarer igen."
     },
     "toast": {
       "queued": "Gemt i udbakken. Den sendes, når du er online igen.",
@@ -5681,13 +5685,22 @@
       "refused_other": "Det kræver forbindelse. Prøv igen, når du er online.",
       "forbidden": "Din organisation har slået offlinetilstand fra. Den mail, der var gemt på denne enhed, er fjernet.",
       "back_online": "Du er online igen. Genindlæs for at logge ind og sende det, der venter.",
-      "reload": "Genindlæs"
+      "reload": "Genindlæs",
+      "held": "En besked i udbakken venter på dig: {subject}",
+      "lost": "Disse beskeder blev ikke sendt og er slettet: {subjects}"
     },
     "signout": {
       "title": "Log ud med usendte beskeder?",
       "message": "{count, plural, one {# besked er ikke sendt.} other {# beskeder er ikke sendt.}} Når du logger ud, slettes de.",
       "confirm": "Log ud",
       "lost": "Disse beskeder blev ikke sendt og blev slettet, da du blev logget ud: {subjects}"
+    },
+    "errors": {
+      "unavailable": "Det kræver forbindelse. Prøv igen, når du er online.",
+      "plugins_down": "Dit plugin til signering eller kryptering kører ikke offline. Send dette, når du er online igen.",
+      "file_missing": "En fil, der blev vedhæftet offline, er ikke længere på denne enhed. Vedhæft den igen.",
+      "no_sent_mailbox": "Mappen Sendt blev ikke fundet.",
+      "no_drafts_mailbox": "Mappen Kladder blev ikke fundet."
     }
   },
   "deep_link": {

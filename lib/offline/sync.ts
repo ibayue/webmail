@@ -55,13 +55,21 @@ export async function syncAccount(account: string, client: JMAPClient, deps: Syn
   const since = new Date(Date.now() - CACHE_WINDOW_MS).toISOString();
   const wanted = new Map<string, Set<string>>();
   const scopes = await deps.scopeMailboxes(account);
-  let complete = scopes.length > 0;
+  // Per folder: which ones were asked, and which couldn't be.
+  const scopeFolders = new Map<string, Set<string>>();
+  const failedFolders = new Map<string, Set<string>>();
+  const add = (map: Map<string, Set<string>>, jmap: string, id: string) => {
+    const set = map.get(jmap) ?? new Set<string>();
+    set.add(id);
+    map.set(jmap, set);
+  };
   for (const { jmap, mailboxId, isInbox } of scopes) {
+    add(scopeFolders, jmap, mailboxId);
     let ids: string[];
     try {
       ids = await twice(() => client.getRecentEmailIds(mailboxId, jmap, since, isInbox ? INBOX_LIMIT : FOLDER_LIMIT));
     } catch {
-      complete = false;
+      add(failedFolders, jmap, mailboxId);
       continue;
     }
     const set = wanted.get(jmap) ?? new Set<string>();
@@ -78,21 +86,27 @@ export async function syncAccount(account: string, client: JMAPClient, deps: Syn
     const missing: string[] = [];
     for (const id of ids) if (!(await hasBody(account, jmap, id))) missing.push(id);
     for (let i = 0; i < missing.length; i += 20) {
-      await twice(() => client.getFullEmails(missing.slice(i, i + 20), jmap)).catch(() => { complete = false; });
+      // Fetched again at the next sync.
+      await twice(() => client.getFullEmails(missing.slice(i, i + 20), jmap)).catch(() => {});
       if (!deps.stillActive()) return;
     }
   }
   await deps.recorded();
 
-  // What left the window or the folders goes.
+  // What left the window or the folders goes; a folder that couldn't be
+  // asked keeps what it had, the others are brought up to date.
   const index = await emailIndex(account);
   const stale: string[] = [];
-  for (const [key, email] of index) {
-    const jmap = key.split('\u0001')[1];
-    if (!wanted.get(jmap)?.has(email.id)) stale.push(key);
+  if (scopes.length > 0) {
+    for (const [key, email] of index) {
+      const jmap = key.split('\u0001')[1];
+      if (wanted.get(jmap)?.has(email.id)) continue;
+      const folders = Object.keys(email.mailboxIds ?? {}).filter((id) => scopeFolders.get(jmap)?.has(id));
+      if (folders.some((id) => failedFolders.get(jmap)?.has(id))) continue;
+      stale.push(key);
+    }
   }
-  // Only after a complete pass: a folder that couldn't be asked keeps what it had.
-  if (complete) await removeEmails(account, stale);
+  await removeEmails(account, stale);
 
   // Attachments and inline images, newest messages first, within the budget.
   let budget = ATTACHMENT_BUDGET_BYTES;

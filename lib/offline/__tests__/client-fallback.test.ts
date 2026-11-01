@@ -8,7 +8,7 @@ import { DEFAULT_ORGANISATION_POLICY } from '@/lib/admin/organisation-policy';
 import { startOfflineMode, wipeEverything } from '../offline-mode';
 import { forgetIndexes, putEmails, putMisc, emailIndex } from '../cache';
 import { forgetDeviceKey } from '../crypto';
-import { deleteOfflineDb } from '../db';
+import { allowOfflineDbCreation, deleteOfflineDb } from '../db';
 import { useOfflineStore, writeEnabled } from '../state';
 import { syncAccount } from '../sync';
 
@@ -30,10 +30,11 @@ beforeEach(async () => {
   forgetIndexes();
   forgetDeviceKey();
   await deleteOfflineDb();
+  allowOfflineDbCreation();
   localStorage.clear();
   probeOk = true;
   apiFails = false;
-  useOfflineStore.setState({ networkDown: false, browserOffline: false });
+  useOfflineStore.setState({ downServers: [], browserOffline: false });
   usePolicyStore.setState({ loaded: true, subject: null, policy: { ...usePolicyStore.getState().policy, organisation: DEFAULT_ORGANISATION_POLICY } });
   useAccountStore.setState({ accounts: [{ id: 'acc', serverUrl: SERVER, username: 'alice@example.org' } as never] });
   vi.stubGlobal('fetch', vi.fn(async (url: string, init?: RequestInit) => {
@@ -69,7 +70,7 @@ describe('falling back to the device', () => {
     probeOk = false;
     const email = await client.getEmail('m1');
     expect(email?.subject).toBe('Kept');
-    expect(useOfflineStore.getState().networkDown).toBe(true);
+    expect(useOfflineStore.getState().downServers).toEqual(['https://mail.example.org']);
     stop();
   });
 
@@ -82,7 +83,7 @@ describe('falling back to the device', () => {
     probeOk = true;
     // getEmail swallows errors into null: the device's copy isn't passed off as the server's answer.
     expect(await client.getEmail('m1')).toBeNull();
-    expect(useOfflineStore.getState().networkDown).toBe(false);
+    expect(useOfflineStore.getState().downServers).toEqual([]);
     stop();
   });
 });

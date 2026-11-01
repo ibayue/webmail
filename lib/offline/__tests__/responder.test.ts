@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { answerOffline, type ResponderContext } from '../responder';
 import { emailIndex, emailKey, forgetIndexes, putEmails, putMisc } from '../cache';
 import { forgetDeviceKey } from '../crypto';
-import { deleteOfflineDb } from '../db';
+import { allowOfflineDbCreation, deleteOfflineDb } from '../db';
 
 const day = 24 * 60 * 60 * 1000;
 const at = (ageDays: number) => new Date(Date.now() - ageDays * day).toISOString();
@@ -21,6 +21,7 @@ beforeEach(async () => {
   forgetIndexes();
   forgetDeviceKey();
   await deleteOfflineDb();
+  allowOfflineDbCreation();
   queued = [];
   refused = [];
   await putEmails('acc', 'j1', [

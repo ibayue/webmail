@@ -5667,11 +5667,15 @@
       "delete": "삭제",
       "delete_confirm_title": "이 메시지를 삭제하시겠습니까?",
       "delete_confirm_message": "전송되지 않았으며 되돌릴 수 없습니다.",
-      "changes": "읽음, 플래그, 폴더 {count, plural, other {변경 #건}}은 다시 온라인이 되면 전송됩니다."
+      "changes": "읽음, 플래그, 폴더 {count, plural, other {변경 #건}}은 다시 온라인이 되면 전송됩니다.",
+      "status_held": "메시지가 대기하는 동안 조직 규칙이 바뀌었습니다. 보내려면 다시 작성하세요.",
+      "retry_label": "다시 보내기: {subject}",
+      "delete_label": "삭제: {subject}"
     },
     "banner": {
       "offline": "오프라인 상태입니다. 이 기기에 보관한 메일이 표시됩니다. 변경하거나 작성한 내용은 다시 온라인이 되면 전송됩니다.",
-      "outbox": "보낼편지함에 {count, plural, other {#개}}"
+      "outbox": "보낼편지함에 {count, plural, other {#개}}",
+      "server_down": "메일 서버에 연결할 수 없습니다. 이 기기에 보관한 메일이 표시됩니다. 변경하거나 작성한 내용은 서버가 다시 응답하면 전송됩니다."
     },
     "toast": {
       "queued": "보낼편지함에 저장했습니다. 다시 온라인이 되면 전송됩니다.",
@@ -5681,13 +5685,22 @@
       "refused_other": "이 작업에는 연결이 필요합니다. 온라인이 되면 다시 시도하세요.",
       "forbidden": "조직에서 오프라인 모드를 껐습니다. 이 기기에 보관한 메일이 삭제되었습니다.",
       "back_online": "다시 온라인입니다. 새로고침해서 로그인하고 대기 중인 항목을 보내세요.",
-      "reload": "새로고침"
+      "reload": "새로고침",
+      "held": "보낼편지함의 메시지에 확인이 필요합니다: {subject}",
+      "lost": "다음 메시지는 전송되지 않고 삭제되었습니다: {subjects}"
     },
     "signout": {
       "title": "보내지 않은 메시지가 있는데 로그아웃하시겠습니까?",
       "message": "{count, plural, other {메시지 #개가 전송되지 않았습니다.}} 로그아웃하면 삭제됩니다.",
       "confirm": "로그아웃",
       "lost": "다음 메시지는 전송되지 않았으며 로그아웃 시 삭제되었습니다: {subjects}"
+    },
+    "errors": {
+      "unavailable": "이 작업에는 연결이 필요합니다. 온라인이 되면 다시 시도하세요.",
+      "plugins_down": "서명 또는 암호화 플러그인이 오프라인에서 실행되지 않습니다. 다시 온라인이 되면 보내세요.",
+      "file_missing": "오프라인에서 첨부한 파일이 이 기기에 더 이상 없습니다. 다시 첨부하세요.",
+      "no_sent_mailbox": "보낸편지함 폴더를 찾을 수 없습니다.",
+      "no_drafts_mailbox": "임시보관함 폴더를 찾을 수 없습니다."
     }
   },
   "deep_link": {

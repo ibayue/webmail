@@ -118,6 +118,8 @@ export interface SendEmailResult {
    * server can be reached again. Nothing else is set then.
    */
   queued?: boolean;
+  /** The outbox entry, when queued (see lib/offline/offline-mode.ts afterOutboxSend). */
+  outboxId?: number;
   emailId?: string;
   emailSubmissionId?: string;
   sendAt?: string;

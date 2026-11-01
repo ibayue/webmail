@@ -5667,11 +5667,15 @@
       "delete": "Dzēst",
       "delete_confirm_title": "Dzēst šo vēstuli?",
       "delete_confirm_message": "Tā nav nosūtīta, un to nevar atgūt.",
-      "changes": "{count, plural, zero {# izmaiņas} one {# izmaiņa} other {# izmaiņas}} lasīšanas statusā, atzīmēs vai mapēs tiks nosūtītas, kad atkal būsiet tiešsaistē."
+      "changes": "{count, plural, zero {# izmaiņas} one {# izmaiņa} other {# izmaiņas}} lasīšanas statusā, atzīmēs vai mapēs tiks nosūtītas, kad atkal būsiet tiešsaistē.",
+      "status_held": "Jūsu organizācijas noteikumi mainījās, kamēr vēstule gaidīja. Uzrakstiet to vēlreiz, lai nosūtītu.",
+      "retry_label": "Sūtīt vēlreiz: {subject}",
+      "delete_label": "Dzēst: {subject}"
     },
     "banner": {
       "offline": "Jūs esat bezsaistē. Redzat šajā ierīcē glabāto e-pastu. Ko maināt vai rakstāt, tiek nosūtīts, kad atkal būsiet tiešsaistē.",
-      "outbox": "{count, plural, zero {# vēstules} one {# vēstule} other {# vēstules}} izsūtnē"
+      "outbox": "{count, plural, zero {# vēstules} one {# vēstule} other {# vēstules}} izsūtnē",
+      "server_down": "E-pasta serveris nav sasniedzams. Redzat šajā ierīcē glabāto e-pastu. Ko maināt vai rakstāt, tiek nosūtīts, kad tas atkal atbild."
     },
     "toast": {
       "queued": "Saglabāta izsūtnē. Tā tiks nosūtīta, kad atkal būsiet tiešsaistē.",
@@ -5681,13 +5685,22 @@
       "refused_other": "Tam vajag savienojumu. Mēģiniet vēlreiz, kad būsiet tiešsaistē.",
       "forbidden": "Jūsu organizācija izslēdza bezsaistes režīmu. Šajā ierīcē glabātais e-pasts tika noņemts.",
       "back_online": "Jūs atkal esat tiešsaistē. Pārlādējiet, lai pierakstītos un nosūtītu gaidošo.",
-      "reload": "Pārlādēt"
+      "reload": "Pārlādēt",
+      "held": "Vēstulei izsūtnē nepieciešama jūsu uzmanība: {subject}",
+      "lost": "Šīs vēstules netika nosūtītas un tika izdzēstas: {subjects}"
     },
     "signout": {
       "title": "Izrakstīties ar nenosūtītām vēstulēm?",
       "message": "{count, plural, zero {# vēstules nav nosūtītas.} one {# vēstule nav nosūtīta.} other {# vēstules nav nosūtītas.}} Izrakstoties tās tiek izdzēstas.",
       "confirm": "Izrakstīties",
       "lost": "Šīs vēstules netika nosūtītas un tika izdzēstas, kad jūs izrakstījāt: {subjects}"
+    },
+    "errors": {
+      "unavailable": "Tam vajag savienojumu. Mēģiniet vēlreiz, kad būsiet tiešsaistē.",
+      "plugins_down": "Jūsu parakstīšanas vai šifrēšanas spraudnis bezsaistē nedarbojas. Nosūtiet to, kad atkal būsiet tiešsaistē.",
+      "file_missing": "Bezsaistē pievienotā datne vairs nav šajā ierīcē. Pievienojiet to vēlreiz.",
+      "no_sent_mailbox": "Mape Nosūtītās netika atrasta.",
+      "no_drafts_mailbox": "Mape Melnraksti netika atrasta."
     }
   },
   "deep_link": {

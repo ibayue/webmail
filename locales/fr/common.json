@@ -5667,11 +5667,15 @@
       "delete": "Supprimer",
       "delete_confirm_title": "Supprimer ce message ?",
       "delete_confirm_message": "Il n'a pas été envoyé et ne pourra pas être récupéré.",
-      "changes": "{count, plural, one {# modification} other {# modifications}} (lu, indicateurs ou dossiers) seront envoyées dès que vous serez en ligne."
+      "changes": "{count, plural, one {# modification} other {# modifications}} (lu, indicateurs ou dossiers) seront envoyées dès que vous serez en ligne.",
+      "status_held": "Les règles de votre organisation ont changé pendant l'attente. Écrivez-le à nouveau pour l'envoyer.",
+      "retry_label": "Renvoyer : {subject}",
+      "delete_label": "Supprimer : {subject}"
     },
     "banner": {
       "offline": "Vous êtes hors ligne. Vous voyez les e-mails gardés sur cet appareil. Ce que vous modifiez ou écrivez est envoyé dès que vous êtes de nouveau en ligne.",
-      "outbox": "{count, plural, one {# message} other {# messages}} dans la boîte d'envoi"
+      "outbox": "{count, plural, one {# message} other {# messages}} dans la boîte d'envoi",
+      "server_down": "Le serveur de messagerie est injoignable. Vous voyez les e-mails gardés sur cet appareil. Ce que vous modifiez ou écrivez est envoyé dès qu'il répond de nouveau."
     },
     "toast": {
       "queued": "Enregistré dans la boîte d'envoi. Il sera envoyé dès que vous serez en ligne.",
@@ -5681,13 +5685,22 @@
       "refused_other": "Cette action demande une connexion. Réessayez quand vous serez en ligne.",
       "forbidden": "Votre organisation a désactivé le mode hors ligne. Les e-mails gardés sur cet appareil ont été supprimés.",
       "back_online": "Vous êtes de nouveau en ligne. Rechargez pour vous connecter et envoyer ce qui attend.",
-      "reload": "Recharger"
+      "reload": "Recharger",
+      "held": "Un message de la boîte d'envoi a besoin de vous : {subject}",
+      "lost": "Ces messages n'ont pas été envoyés et ont été supprimés : {subjects}"
     },
     "signout": {
       "title": "Se déconnecter avec des messages non envoyés ?",
       "message": "{count, plural, one {# message n'a pas été envoyé.} other {# messages n'ont pas été envoyés.}} La déconnexion les supprime.",
       "confirm": "Se déconnecter",
       "lost": "Ces messages n'ont pas été envoyés et ont été supprimés lors de votre déconnexion : {subjects}"
+    },
+    "errors": {
+      "unavailable": "Cette action demande une connexion. Réessayez quand vous serez en ligne.",
+      "plugins_down": "Votre plugin de signature ou de chiffrement ne fonctionne pas hors ligne. Envoyez ce message quand vous serez de nouveau en ligne.",
+      "file_missing": "Un fichier joint hors ligne n'est plus sur cet appareil. Joignez-le à nouveau.",
+      "no_sent_mailbox": "Votre dossier Envoyés est introuvable.",
+      "no_drafts_mailbox": "Votre dossier Brouillons est introuvable."
     }
   },
   "deep_link": {

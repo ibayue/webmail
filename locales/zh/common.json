@@ -5667,11 +5667,15 @@
       "delete": "删除",
       "delete_confirm_title": "删除这封邮件？",
       "delete_confirm_message": "它尚未发送，删除后无法恢复。",
-      "changes": "{count, plural, other {# 项}}已读、标记或文件夹的更改将在恢复联网后发送。"
+      "changes": "{count, plural, other {# 项}}已读、标记或文件夹的更改将在恢复联网后发送。",
+      "status_held": "等待期间你的组织规则发生了变化。请重新撰写后再发送。",
+      "retry_label": "再次发送：{subject}",
+      "delete_label": "删除：{subject}"
     },
     "banner": {
       "offline": "你已离线。显示的是此设备上保留的邮件。你所做的更改或写的邮件会在恢复联网后发送。",
-      "outbox": "发件箱中有 {count, plural, other {# 封}}"
+      "outbox": "发件箱中有 {count, plural, other {# 封}}",
+      "server_down": "无法连接邮件服务器。显示的是此设备上保留的邮件。你所做的更改或写的邮件会在服务器恢复响应后发送。"
     },
     "toast": {
       "queued": "已保存到发件箱。恢复联网后会发送。",
@@ -5681,13 +5685,22 @@
       "refused_other": "此操作需要网络连接。请在联网后重试。",
       "forbidden": "你的组织关闭了离线模式。此设备上保留的邮件已被删除。",
       "back_online": "已恢复联网。请重新加载以登录并发送等待中的内容。",
-      "reload": "重新加载"
+      "reload": "重新加载",
+      "held": "发件箱中有一封邮件需要你处理：{subject}",
+      "lost": "这些邮件未发送，已被删除：{subjects}"
     },
     "signout": {
       "title": "有未发送的邮件，仍要退出登录？",
       "message": "{count, plural, other {# 封邮件尚未发送。}}退出登录会删除它们。",
       "confirm": "退出登录",
       "lost": "这些邮件未发送，并在你退出登录时被删除：{subjects}"
+    },
+    "errors": {
+      "unavailable": "此操作需要网络连接。请在联网后重试。",
+      "plugins_down": "你的签名或加密插件在离线时无法运行。请在恢复联网后再发送。",
+      "file_missing": "离线时附加的文件已不在此设备上。请重新附加。",
+      "no_sent_mailbox": "找不到“已发送”文件夹。",
+      "no_drafts_mailbox": "找不到“草稿”文件夹。"
     }
   },
   "deep_link": {

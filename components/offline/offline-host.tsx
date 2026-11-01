@@ -6,7 +6,7 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { useConfirmDialog } from '@/hooks/use-confirm-dialog';
 import { addSignOutGate } from '@/lib/sign-out-cleanup';
 import { reloadToNewBuild } from '@/lib/app-update';
-import { setOfflineNotifier, startOfflineMode, type OfflineNotice } from '@/lib/offline/offline-mode';
+import { confirmLoss, setOfflineNotifier, startOfflineMode, type OfflineNotice } from '@/lib/offline/offline-mode';
 import { useOfflineStore } from '@/lib/offline/state';
 import { toast } from '@/stores/toast-store';
 
@@ -35,7 +35,15 @@ export function OfflineHost() {
           toast.success(tr('toast.sent', { subject: notice.subject || tr('outbox.no_subject') }));
           break;
         case 'send-failed':
-          toast.error(tr('toast.send_failed', { subject: notice.subject || tr('outbox.no_subject') }), { message: notice.error });
+          toast.error(tr('toast.send_failed', { subject: notice.subject || tr('outbox.no_subject') }), {
+            message: notice.error.code ? tr(`errors.${notice.error.code}`) : notice.error.text,
+          });
+          break;
+        case 'held':
+          toast.warning(tr('toast.held', { subject: notice.subject || tr('outbox.no_subject') }));
+          break;
+        case 'lost':
+          toast.warning(tr('toast.lost', { subjects: notice.subjects.map((s) => s || tr('outbox.no_subject')).join(', ') }), { duration: 0 });
           break;
         case 'refused-delete':
           toast.warning(tr('toast.refused_delete'));
@@ -61,12 +69,15 @@ export function OfflineHost() {
       const unsent = useOfflineStore.getState().outbox.filter((row) => accountId === 'all' || row.account === accountId).length;
       if (unsent === 0) return true;
       const tr = tRef.current;
-      return confirmRef.current({
+      const ok = await confirmRef.current({
         title: tr('signout.title'),
         message: tr('signout.message', { count: unsent }),
         confirmText: tr('signout.confirm'),
         variant: 'destructive',
       });
+      // The user agreed: no word about these messages afterwards.
+      if (ok) confirmLoss(accountId);
+      return ok;
     });
     return () => {
       removeGate();

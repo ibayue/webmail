@@ -9,9 +9,13 @@
  * S/MIME or PGP with the user present). What is kept is the arguments of the
  * final send, with the files that couldn't be uploaded yet, or the finished
  * raw message of a plugin's send. Sending it later can't skip any of that.
+ *
+ * The state of an outbox entry (waiting, sending, ...) is kept unencrypted
+ * next to it, so that taking an entry for sending is one database
+ * transaction: two tabs can't both take it (claimForSending).
  */
 
-import { idbAdd, idbDeleteAccount, idbGet, idbGetAll, idbGetAllByAccount, idbWrite } from './db';
+import { idbAdd, idbDeleteAccount, idbGet, idbGetAll, idbGetAllByAccount, idbUpdate, idbWrite } from './db';
 import { openBytes, openJson, sealBytes, sealJson, type Sealed } from './crypto';
 import { generateUUID } from '@/lib/utils';
 
@@ -45,7 +49,28 @@ export interface OutboxSummary {
   to: string[];
 }
 
-export type OutboxStatus = 'waiting' | 'sending' | 'failed' | 'uncertain';
+/**
+ * - waiting: goes out by itself when the server answers;
+ * - sending: on its way (a tab took it);
+ * - failed: the server refused it; the error says why;
+ * - uncertain: the connection broke after it may have reached the server;
+ *   never sent again by itself;
+ * - held: the organisation's rules got stricter while it waited.
+ */
+export type OutboxStatus = 'waiting' | 'sending' | 'failed' | 'uncertain' | 'held';
+
+/** Why an entry failed: one of ours (a code the UI translates) or the server's own words. */
+export interface OutboxError {
+  code?: 'file_missing' | 'no_sent_mailbox' | 'no_drafts_mailbox';
+  text?: string;
+}
+
+/** What the organisation required when the message was finished (see offline-mode.ts policyFingerprint). */
+export interface PolicyFingerprint {
+  labelRequired: boolean;
+  hasLabel: boolean;
+  guards: string[];
+}
 
 export interface OutboxEntry {
   id: number;
@@ -53,8 +78,11 @@ export interface OutboxEntry {
   createdAt: number;
   summary: OutboxSummary;
   status: OutboxStatus;
-  error?: string;
+  /** When a tab took it for sending (ms). */
+  sendingSince?: number;
+  error?: OutboxError;
   item: SendItem;
+  fingerprint?: PolicyFingerprint;
 }
 
 interface QueueRecord extends Sealed {
@@ -62,13 +90,15 @@ interface QueueRecord extends Sealed {
   account: string;
   kind: 'patch' | 'send';
   createdAt: number;
+  status?: OutboxStatus;
+  sendingSince?: number;
 }
 
 interface SendPayload {
   summary: OutboxSummary;
-  status: OutboxStatus;
-  error?: string;
+  error?: OutboxError;
   item: SendItem;
+  fingerprint?: PolicyFingerprint;
 }
 
 export async function queuePatch(account: string, jmap: string, update: PatchItem['update']): Promise<void> {
@@ -76,9 +106,9 @@ export async function queuePatch(account: string, jmap: string, update: PatchIte
   await idbAdd('queue', { account, kind: 'patch', createdAt: Date.now(), ...(await sealJson(item)) } satisfies QueueRecord);
 }
 
-export async function queueSend(account: string, summary: OutboxSummary, item: SendItem): Promise<number> {
-  const payload: SendPayload = { summary, status: 'waiting', item };
-  return Number(await idbAdd('queue', { account, kind: 'send', createdAt: Date.now(), ...(await sealJson(payload)) } satisfies QueueRecord));
+export async function queueSend(account: string, summary: OutboxSummary, item: SendItem, fingerprint?: PolicyFingerprint): Promise<number> {
+  const payload: SendPayload = { summary, item, fingerprint };
+  return Number(await idbAdd('queue', { account, kind: 'send', createdAt: Date.now(), status: 'waiting', ...(await sealJson(payload)) } satisfies QueueRecord));
 }
 
 export interface QueuedPatch { id: number; account: string; item: PatchItem }
@@ -95,7 +125,14 @@ export async function readQueue(account?: string): Promise<{ patches: QueuedPatc
         patches.push({ id: record.id!, account: record.account, item: await openJson<PatchItem>(record) });
       } else {
         const payload = await openJson<SendPayload>(record);
-        outbox.push({ id: record.id!, account: record.account, createdAt: record.createdAt, ...payload });
+        outbox.push({
+          id: record.id!,
+          account: record.account,
+          createdAt: record.createdAt,
+          status: record.status ?? 'waiting',
+          sendingSince: record.sendingSince,
+          ...payload,
+        });
       }
     } catch {
       // Sealed with a key that is gone; removed with the account.
@@ -104,9 +141,34 @@ export async function readQueue(account?: string): Promise<{ patches: QueuedPatc
   return { patches, outbox };
 }
 
-export async function updateOutboxEntry(entry: OutboxEntry, patch: Partial<Pick<OutboxEntry, 'status' | 'error'>>): Promise<void> {
-  const payload: SendPayload = { summary: entry.summary, status: patch.status ?? entry.status, error: patch.error, item: entry.item };
-  await idbWrite([{ store: 'queue', put: { id: entry.id, account: entry.account, kind: 'send', createdAt: entry.createdAt, ...(await sealJson(payload)) } satisfies QueueRecord }]);
+/**
+ * Takes a waiting entry for sending, in one transaction: false when it
+ * isn't waiting any more (another tab took it, the user deleted it).
+ */
+export async function claimForSending(id: number): Promise<boolean> {
+  return idbUpdate<QueueRecord>('queue', id, (record) => {
+    if (!record || record.kind !== 'send' || (record.status ?? 'waiting') !== 'waiting') return undefined;
+    return { ...record, status: 'sending', sendingSince: Date.now() };
+  });
+}
+
+/** Sets an entry's state; with an error or a new after-send list, its payload too. */
+export async function updateOutboxEntry(
+  entry: OutboxEntry,
+  patch: { status: OutboxStatus; error?: OutboxError },
+): Promise<void> {
+  const payload: SendPayload = {
+    summary: entry.summary,
+    item: entry.item,
+    fingerprint: entry.fingerprint,
+    error: patch.error,
+  };
+  const sealed = await sealJson(payload);
+  await idbUpdate<QueueRecord>('queue', entry.id, (record) => {
+    // Deleted meanwhile: stays deleted.
+    if (!record) return undefined;
+    return { ...record, status: patch.status, sendingSince: patch.status === 'sending' ? Date.now() : undefined, ...sealed };
+  });
 }
 
 export async function removeQueued(ids: number[]): Promise<void> {
@@ -133,19 +195,29 @@ export function isLocalBlobId(blobId: unknown): blobId is string {
   return typeof blobId === 'string' && blobId.startsWith(LOCAL_BLOB_PREFIX);
 }
 
+interface UploadRecord extends Sealed {
+  key: string;
+  account: string;
+  createdAt: number;
+  /** The file's name and type, sealed: names say a lot about a message. */
+  meta: Sealed;
+}
+
 /** Keeps a file under a stand-in blob id until its message is sent. */
 export async function holdFile(account: string, file: Blob, name: string): Promise<{ blobId: string; size: number; type: string }> {
   const blobId = `${LOCAL_BLOB_PREFIX}${generateUUID()}`;
   const sealed = await sealBytes(await file.arrayBuffer());
-  await idbWrite([{ store: 'uploads', put: { key: uploadKey(account, blobId), account, name, type: file.type, size: file.size, createdAt: Date.now(), ...sealed } }]);
+  const meta = await sealJson({ name, type: file.type });
+  await idbWrite([{ store: 'uploads', put: { key: uploadKey(account, blobId), account, createdAt: Date.now(), meta, ...sealed } satisfies UploadRecord }]);
   return { blobId, size: file.size, type: file.type || 'application/octet-stream' };
 }
 
 export async function heldFile(account: string, blobId: string): Promise<File | null> {
-  const record = await idbGet<Sealed & { name: string; type: string }>('uploads', uploadKey(account, blobId));
+  const record = await idbGet<UploadRecord>('uploads', uploadKey(account, blobId));
   if (!record) return null;
   try {
-    return new File([await openBytes(record)], record.name || 'attachment', { type: record.type || 'application/octet-stream' });
+    const meta = await openJson<{ name?: string; type?: string }>(record.meta);
+    return new File([await openBytes(record)], meta.name || 'attachment', { type: meta.type || 'application/octet-stream' });
   } catch {
     return null;
   }

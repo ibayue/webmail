@@ -73,3 +73,15 @@ export class OfflineUnavailableError extends Error {
     this.name = 'OfflineUnavailableError';
   }
 }
+
+/**
+ * A send failed before its submission request reached the network: nothing
+ * left, so the offline outbox may keep it and try again (#523). Any other
+ * failure of a send may have come after the server took the message.
+ */
+export class SendNotStartedError extends Error {
+  constructor(readonly cause?: unknown) {
+    super(cause instanceof Error ? cause.message : 'The send did not start');
+    this.name = 'SendNotStartedError';
+  }
+}

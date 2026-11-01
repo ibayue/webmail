@@ -16,7 +16,7 @@ import {
   wipeAccountCache,
 } from '../cache';
 import { forgetDeviceKey, openJson, sealJson } from '../crypto';
-import { deleteOfflineDb, idbGet, idbGetAll } from '../db';
+import { allowOfflineDbCreation, deleteOfflineDb, idbGet, idbGetAll } from '../db';
 
 const day = 24 * 60 * 60 * 1000;
 const email = (id: string, ageDays: number, extra: Record<string, unknown> = {}) => ({
@@ -33,6 +33,7 @@ beforeEach(async () => {
   forgetIndexes();
   forgetDeviceKey();
   await deleteOfflineDb();
+  allowOfflineDbCreation();
 });
 
 describe('offline encryption', () => {

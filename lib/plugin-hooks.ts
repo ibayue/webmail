@@ -131,6 +131,16 @@ function withTimeout<T>(pluginId: string, promise: T | Promise<T>, ms: number = 
  */
 export type TakeOverOutcome = 'default' | 'handled' | 'aborted' | 'failed';
 
+/**
+ * The plugins whose `takeOver` handler runs right now (onComposeSend): a raw
+ * send from one of them completes the composer's send (offline outbox, #523).
+ */
+const runningTakeOvers = new Map<string, number>();
+
+export function pluginRunsTakeOver(pluginId: string): boolean {
+  return (runningTakeOvers.get(pluginId) ?? 0) > 0;
+}
+
 /** A handler returns `{ abort: true }` to stop a `takeOver` operation. */
 export function isAbortResult(value: unknown): value is { abort: true } {
   return typeof value === 'object' && value !== null && (value as { abort?: unknown }).abort === true;
@@ -272,11 +282,16 @@ export class HookBus<T extends (...args: any[]) => any> {
     for (const { pluginId, handler } of this.handlers) {
       if (pluginErrorTracker.isDisabled(pluginId)) continue;
       let result: unknown;
+      runningTakeOvers.set(pluginId, (runningTakeOvers.get(pluginId) ?? 0) + 1);
       try {
         result = await withTimeout(pluginId, handler(...args), Math.max(this.timeoutMs, INTERCEPT_TIMEOUT_MS));
       } catch (err) {
         pluginErrorTracker.record(pluginId, err);
         return 'failed';
+      } finally {
+        const left = (runningTakeOvers.get(pluginId) ?? 1) - 1;
+        if (left > 0) runningTakeOvers.set(pluginId, left);
+        else runningTakeOvers.delete(pluginId);
       }
       if (result === false) return 'handled';
       if (isAbortResult(result)) return 'aborted';
