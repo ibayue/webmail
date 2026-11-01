@@ -1322,6 +1322,9 @@
     "apply": "Folosiți acest text",
     "apply_hint": "Înlocuiește subiectul și textul de mai jos."
   },
+  "retention_notice": {
+    "line": "Mesajele de aici sunt șterse la {count, plural, one {# zi} few {# zile} other {# de zile}} după ce au fost mutate aici."
+  },
   "third_party": {
     "push_needs_relay": "Notificările push au nevoie de un releu push administrat de organizația dvs., iar niciunul nu este configurat. E-mailurile noi apar în continuare cât timp aplicația este deschisă.",
     "relay_desc": "Sunt oferite doar releele proprii ale organizației dvs., deoarece acest server nu contactează servicii externe.",

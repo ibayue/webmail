@@ -1322,6 +1322,9 @@
     "apply": "Diesen Text verwenden",
     "apply_hint": "Ersetzt Betreff und Text unten."
   },
+  "retention_notice": {
+    "line": "Nachrichten hier werden {count, plural, one {# Tag} other {# Tage}} nach dem Verschieben hierher gelöscht."
+  },
   "third_party": {
     "push_needs_relay": "Push-Benachrichtigungen brauchen ein Push-Relay Ihrer Organisation, und es ist keines eingerichtet. Neue E-Mails werden weiterhin angezeigt, solange die App geöffnet ist.",
     "relay_desc": "Es werden nur die eigenen Relays Ihrer Organisation angeboten, weil dieser Server keine externen Dienste kontaktiert.",

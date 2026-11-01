@@ -1322,6 +1322,9 @@
     "apply": "Izmantot šo tekstu",
     "apply_hint": "Aizstāj tālāk esošo tēmu un tekstu."
   },
+  "retention_notice": {
+    "line": "Šeit esošie ziņojumi tiek dzēsti {count, plural, zero {# dienas} one {# dienu} other {# dienas}} pēc to pārvietošanas šeit."
+  },
   "third_party": {
     "push_needs_relay": "Push paziņojumiem vajadzīgs jūsu organizācijas uzturēts push relejs, un neviens nav iestatīts. Jauns pasts joprojām tiek rādīts, kamēr lietotne ir atvērta.",
     "relay_desc": "Tiek piedāvāti tikai jūsu organizācijas pašas releji, jo šis serveris nesazinās ar ārējiem pakalpojumiem.",

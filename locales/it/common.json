@@ -1322,6 +1322,9 @@
     "apply": "Usa questo testo",
     "apply_hint": "Sostituisce l'oggetto e il testo qui sotto."
   },
+  "retention_notice": {
+    "line": "I messaggi qui vengono eliminati {count, plural, one {# giorno} other {# giorni}} dopo essere stati spostati qui."
+  },
   "third_party": {
     "push_needs_relay": "Le notifiche push richiedono un relay push gestito dalla tua organizzazione, e non ne è configurato nessuno. La nuova posta compare comunque finché l'app è aperta.",
     "relay_desc": "Vengono proposti solo i relay della tua organizzazione, perché questo server non contatta servizi esterni.",

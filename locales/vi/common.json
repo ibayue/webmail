@@ -1334,6 +1334,9 @@
     "apply": "Dùng nội dung này",
     "apply_hint": "Thay thế tiêu đề và nội dung bên dưới."
   },
+  "retention_notice": {
+    "line": "Thư ở đây sẽ bị xóa {count, plural, other {# ngày}} sau khi được chuyển vào đây."
+  },
   "third_party": {
     "push_needs_relay": "Thông báo đẩy cần có một chuyển tiếp đẩy do tổ chức của bạn điều hành và chưa có cài đặt nào. Thư mới vẫn hiển thị khi ứng dụng đang mở.",
     "relay_desc": "Chỉ các rơle riêng của tổ chức bạn mới được cung cấp vì máy chủ này không liên hệ với các dịch vụ bên ngoài.",

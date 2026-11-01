@@ -1322,6 +1322,9 @@
     "apply": "Użyj tego tekstu",
     "apply_hint": "Zastępuje temat i tekst poniżej."
   },
+  "retention_notice": {
+    "line": "Wiadomości są tu usuwane {count, plural, one {# dzień} few {# dni} many {# dni} other {# dnia}} po przeniesieniu."
+  },
   "third_party": {
     "push_needs_relay": "Powiadomienia push wymagają przekaźnika push prowadzonego przez Twoją organizację, a żaden nie jest skonfigurowany. Nowe wiadomości nadal pojawiają się, gdy aplikacja jest otwarta.",
     "relay_desc": "Dostępne są tylko własne przekaźniki Twojej organizacji, ponieważ ten serwer nie łączy się z usługami zewnętrznymi.",

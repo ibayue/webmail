@@ -1322,6 +1322,9 @@
     "apply": "Kasuta seda teksti",
     "apply_hint": "Asendab allpool oleva teema ja teksti."
   },
+  "retention_notice": {
+    "line": "Siin olevad kirjad kustutatakse {count, plural, one {# päev} other {# päeva}} pärast siia teisaldamist."
+  },
   "third_party": {
     "push_needs_relay": "Tõuketeavitused vajavad sinu organisatsiooni hallatavat push-releed, kuid ühtegi pole seadistatud. Uued kirjad kuvatakse endiselt, kuni rakendus on avatud.",
     "relay_desc": "Pakutakse ainult sinu organisatsiooni enda releesid, sest see server ei võta ühendust väliste teenustega.",

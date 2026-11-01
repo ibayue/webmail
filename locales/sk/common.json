@@ -1322,6 +1322,9 @@
     "apply": "Použiť tento text",
     "apply_hint": "Nahradí predmet a text nižšie."
   },
+  "retention_notice": {
+    "line": "Správy tu sa vymažú {count, plural, one {# deň} few {# dni} many {# dňa} other {# dní}} po presunutí sem."
+  },
   "third_party": {
     "push_needs_relay": "Push oznámenia potrebujú push relay prevádzkovaný vašou organizáciou a žiadny nie je nastavený. Nová pošta sa naďalej zobrazuje, kým je aplikácia otvorená.",
     "relay_desc": "Ponúkajú sa iba vlastné relaye vašej organizácie, pretože tento server nekontaktuje externé služby.",

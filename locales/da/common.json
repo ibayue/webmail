@@ -1322,6 +1322,9 @@
     "apply": "Brug denne tekst",
     "apply_hint": "Erstatter emnet og teksten nedenfor."
   },
+  "retention_notice": {
+    "line": "Beskeder her slettes {count, plural, one {# dag} other {# dage}} efter, at de blev flyttet hertil."
+  },
   "third_party": {
     "push_needs_relay": "Push-notifikationer kræver et push-relæ, som din organisation driver, og der er ikke sat noget op. Ny mail vises stadig, mens appen er åben.",
     "relay_desc": "Kun din organisations egne relæer tilbydes, fordi denne server ikke kontakter eksterne tjenester.",

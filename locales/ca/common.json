@@ -1322,6 +1322,9 @@
     "apply": "Utilitza aquest text",
     "apply_hint": "Substitueix l'assumpte i el text de sota."
   },
+  "retention_notice": {
+    "line": "Els missatges d'aquí s'eliminen {count, plural, one {# dia} other {# dies}} després de moure'ls aquí."
+  },
   "third_party": {
     "push_needs_relay": "Les notificacions push necessiten un repetidor push gestionat per la vostra organització, i no n'hi ha cap de configurat. El correu nou es continua mostrant mentre l'aplicació està oberta.",
     "relay_desc": "Només s'ofereixen els repetidors propis de la vostra organització, perquè aquest servidor no contacta amb serveis externs.",

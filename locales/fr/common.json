@@ -1322,6 +1322,9 @@
     "apply": "Utiliser ce texte",
     "apply_hint": "Remplace l'objet et le texte ci-dessous."
   },
+  "retention_notice": {
+    "line": "Les messages ici sont supprimés {count, plural, one {# jour} other {# jours}} après y avoir été déplacés."
+  },
   "third_party": {
     "push_needs_relay": "Les notifications push nécessitent un relais push géré par votre organisation, et aucun n'est configuré. Les nouveaux messages s'affichent toujours tant que l'application est ouverte.",
     "relay_desc": "Seuls les relais de votre organisation sont proposés, car ce serveur ne contacte pas de services extérieurs.",

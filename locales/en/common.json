@@ -1322,6 +1322,9 @@
     "apply": "Use this text",
     "apply_hint": "Replaces the subject and text below."
   },
+  "retention_notice": {
+    "line": "Messages here are deleted {count, plural, one {# day} other {# days}} after they were moved here."
+  },
   "third_party": {
     "push_needs_relay": "Push notifications need a push relay run by your organisation, and none is set up. New mail still shows while the app is open.",
     "relay_desc": "Only your organisation's own relays are offered, because this server doesn't contact outside services.",

@@ -1322,6 +1322,9 @@
     "apply": "Ennek a szövegnek a használata",
     "apply_hint": "Lecseréli a lenti tárgyat és szöveget."
   },
+  "retention_notice": {
+    "line": "Az itt lévő üzenetek az ide helyezésük után {count, plural, one {# nappal} other {# nappal}} törlődnek."
+  },
   "third_party": {
     "push_needs_relay": "A push-értesítésekhez a szervezeted által üzemeltetett push relé kell, és nincs beállítva egy sem. Az új levelek továbbra is megjelennek, amíg az alkalmazás nyitva van.",
     "relay_desc": "Csak a szervezeted saját reléi választhatók, mert ez a szerver nem kapcsolódik külső szolgáltatásokhoz.",
