@@ -81,8 +81,11 @@ const PUSH_TYPES = ['EmailDelivery'] as const;
 // capability and get the plain EmailDelivery subscription as before.
 export const EMAIL_PUSH_CAPABILITY = 'urn:ietf:params:jmap:emailpush';
 
-// Only ids: the relay stays content-blind and the SW dedupes on them.
-const EMAIL_PUSH_PROPERTIES = ['id', 'threadId'];
+// Only ids: the relay stays content-blind and the SW dedupes on them. Never
+// add from, subject or preview: they would reach the push service around
+// the device policy "Push without sender and subject" (its text is held
+// back in app/api/push/preview). A test keeps this list as it is.
+export const EMAIL_PUSH_PROPERTIES: readonly string[] = ['id', 'threadId'];
 
 function sameTypes(a: readonly string[] | null | undefined, b: readonly string[]): boolean {
   if (!a || a.length !== b.length) return false;
