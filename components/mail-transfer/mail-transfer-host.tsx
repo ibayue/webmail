@@ -7,10 +7,11 @@ import { isJobActive, useMailTransferStore } from "@/stores/mail-transfer-store"
 import { onBeforeSignOut } from "@/lib/sign-out-cleanup";
 import { clearCheckpointsFor } from "@/lib/mail-import/checkpoints";
 import { MailImportDialog } from "./mail-import-dialog";
+import { MailExportDialog } from "./mail-export-dialog";
 import { formatClock } from "./transfer-progress";
 
 /**
- * Draws the mail import dialog, and while it is hidden with a job running,
+ * Draws the mail import and export dialogs, and while it is hidden with a job running,
  * a chip in the corner that shows the progress and brings it back. Mounted
  * with the app, so a job outlives the menu or settings page that started it.
  */
@@ -28,17 +29,20 @@ export function MailTransferHost() {
   return (
     <>
       {request?.kind === "import" && <MailImportDialog request={request} />}
+      {request?.kind === "export" && <MailExportDialog request={request} />}
       {!visible && isJobActive(job) && <TransferChip />}
     </>
   );
 }
 
 function TransferChip() {
-  const t = useTranslations("mail_import");
+  const tImport = useTranslations("mail_import");
+  const tExport = useTranslations("mail_export");
   const locale = useLocale();
   const job = useMailTransferStore((s) => s.job);
   const show = useMailTransferStore((s) => s.show);
   if (!job) return null;
+  const t = job.kind === "export" ? tExport : tImport;
   const p = job.progress;
   const paused = p.phase === "paused" && p.pausedUntil;
   const label = paused

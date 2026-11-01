@@ -6105,6 +6105,26 @@ export class JMAPClient implements IJMAPClient {
    * runs as a document (toInertBlob); image/svg+xml and text/html come back
    * as application/octet-stream.
    */
+  /**
+   * One blob for the mail export, outside the client-wide rate limit: a 429
+   * throws RateLimitError for the export to wait on instead of pausing every
+   * other request (authenticatedFetch would). A 401 goes through fetchBlob,
+   * which renews the session or token.
+   */
+  async fetchBlobForTransfer(blobId: string, accountId: string | undefined, signal?: AbortSignal): Promise<Uint8Array> {
+    const url = this.getBlobDownloadUrl(blobId, 'message.eml', 'message/rfc822', accountId);
+    const response = await this.timedFetch(url, { signal }, { Authorization: this.authHeader }, JMAPClient.TRANSFER_TIMEOUT_MS);
+    if (response.status === 401) {
+      return new Uint8Array(await (await this.fetchBlob(blobId, 'message.eml', 'message/rfc822', accountId)).arrayBuffer());
+    }
+    if (response.status === 429) throw new RateLimitError(JMAPClient.parseRetryAfter(response));
+    if (!response.ok) {
+      const body = await response.text().catch(() => '');
+      throw new Error(`Failed to fetch blob: ${response.status} - ${body}`);
+    }
+    return new Uint8Array(await response.arrayBuffer());
+  }
+
   async fetchBlobAsObjectUrl(blobId: string, name?: string, type?: string, accountId?: string): Promise<string> {
     const blob = await this.fetchBlob(blobId, name, type, accountId);
     return URL.createObjectURL(toInertBlob(blob));
@@ -6130,7 +6150,7 @@ export class JMAPClient implements IJMAPClient {
    * It checks the access to each blob by itself, though, whichever account the
    * request names, so the rest are asked for in the user's own account.
    */
-  async getBlobsAsBase64(blobIds: string[], accountId?: string): Promise<BlobBatch | null> {
+  async getBlobsAsBase64(blobIds: string[], accountId?: string, options?: { sized?: boolean }): Promise<BlobBatch | null> {
     if (!this.hasCapability(BLOB_CAPABILITY)) return null;
     let account = accountId || this.accountId;
     const ids = [...new Set(blobIds)];
@@ -6151,7 +6171,8 @@ export class JMAPClient implements IJMAPClient {
     };
 
     let chunks: string[][] = ids.length > 0 ? [ids] : [];
-    if (ids.length * BLOB_LARGE_BYTES > BLOB_BATCH_BYTES) {
+    // `sized`: the caller already kept the batch within BLOB_BATCH_BYTES (the mail export knows each message's size).
+    if (!options?.sized && ids.length * BLOB_LARGE_BYTES > BLOB_BATCH_BYTES) {
       const sizes = new Map<string, number | undefined>();
       try {
         for (const chunk of batched(ids, this.getMaxObjectsInGet())) {

@@ -549,7 +549,13 @@ export interface IJMAPClient {
    * Many blobs at once through Blob/get (RFC 9404), for exports; null when
    * the session doesn't advertise the blob capability.
    */
-  getBlobsAsBase64?(blobIds: string[], accountId?: string): Promise<BlobBatch | null>;
+  getBlobsAsBase64?(blobIds: string[], accountId?: string, options?: { sized?: boolean }): Promise<BlobBatch | null>;
+  /**
+   * One blob for a mail export, outside the client-wide rate limit: a 429
+   * throws RateLimitError for the export to wait on, instead of pausing
+   * every other request.
+   */
+  fetchBlobForTransfer?(blobId: string, accountId: string | undefined, signal?: AbortSignal): Promise<Uint8Array>;
   downloadBlob(blobId: string, name?: string, type?: string, accountId?: string): Promise<void>;
 
   // ── Identities ────────────────────────────────────────────────

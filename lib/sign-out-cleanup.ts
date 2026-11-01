@@ -1,5 +1,6 @@
 import { fileStorage } from '@/lib/plugin-storage';
 import { clearAllCheckpoints } from '@/lib/mail-import/checkpoints';
+import { sweepPrivateExports } from '@/lib/mail-export/sinks';
 
 /**
  * What a full sign-out removes from this browser beyond the stores that
@@ -71,6 +72,8 @@ export function purgeSignedOutData(): void {
   void fileStorage.clearFiles().catch(() => {});
   // Where mail imports stopped: file names and folders of the accounts.
   void clearAllCheckpoints().catch(() => {});
+  // Mail exports written to the browser's private files and not deleted yet.
+  void sweepPrivateExports().catch(() => {});
   for (const cleanup of signedOutCleanups) {
     try {
       cleanup();
