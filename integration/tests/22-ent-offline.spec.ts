@@ -126,7 +126,8 @@ async function blockMailServer(context: BrowserContext): Promise<void> {
 /** Waits until the app counts the mail server as gone (a request failed and the probe too). */
 async function waitUntilOffline(page: Page): Promise<void> {
   await page.keyboard.press('Shift+G');
-  await expect(page.getByTestId('offline-banner')).toContainText("You're offline", { timeout: 60_000 });
+  // The browser is online: the banner says the server is gone, not the network.
+  await expect(page.getByTestId('offline-banner')).toContainText("The mail server can't be reached", { timeout: 60_000 });
 }
 
 async function compose(page: Page, to: string, subject: string, text: string): Promise<void> {
@@ -270,6 +271,36 @@ test('a mail written offline waits in the outbox, the required label still stops
   await setPolicy(browser, {});
 });
 
+test('the warning about recipients outside the organisation asks before a mail goes to the outbox', async ({ browser }) => {
+  const subject = `Outbox external ${RUN}`;
+  await setPolicy(browser, { organisation: { externalMail: { senderLabel: false, recipientWarning: true, domains: [], trustContacts: false } } });
+  const page = await userPage(browser, ENT.alice);
+  await enableOffline(page);
+  await toMail(page);
+  await page.context().setOffline(true);
+  await compose(page, ENT.bob, subject, `To the partner too ${RUN}`);
+  const input = page.locator('[data-testid="composer-to"] input').first();
+  await input.click();
+  await input.fill('someone@partner.invalid');
+  await input.press('Enter');
+  await send(page);
+  const confirm = page.locator('[data-external-recipient-confirm]');
+  await expect(confirm).toBeVisible({ timeout: 15_000 });
+  await expect(confirm.locator('[data-external-recipients]')).toHaveText(/someone@partner\.invalid/);
+  // Back: nothing waits.
+  await confirm.locator('[data-external-recipient-back]').click();
+  await expect(page.locator('[data-testid="email-composer"]')).toBeVisible();
+  await expect(page.getByTestId('offline-banner-outbox')).toHaveCount(0);
+  // Send anyway: it waits in the outbox, then goes out.
+  await send(page);
+  await confirm.locator('[data-external-recipient-send]').click();
+  await expect(page.getByTestId('offline-banner-outbox')).toHaveText('1 message in the outbox', { timeout: 30_000 });
+  await page.context().setOffline(false);
+  await waitForMessage(ENT.bob, (m) => m.subject === subject);
+  await page.context().close();
+  await setPolicy(browser, {});
+});
+
 test('read, flag and delete to Trash made offline reach the server once back online', async ({ browser }) => {
   const read = `Offline mark read ${RUN}`;
   const flag = `Offline flag ${RUN}`;
@@ -331,6 +362,8 @@ test('signing out asks first when unsent mail would be lost, then wipes the devi
   });
   await page.getByRole('alertdialog').getByRole('button', { name: 'Sign out' }).click();
   await expect(page.locator('#username')).toBeVisible({ timeout: 60_000 });
+  // The user agreed to lose it: the sign-in page doesn't bring it up again.
+  await expect(page.getByTestId('session-outbox-lost')).toHaveCount(0);
   await expect.poll(() => offlineDatabaseExists(page), { timeout: 20_000 }).toBe(false);
   await expect.poll(() => shellCaches(page), { timeout: 20_000 }).toEqual([]);
   expect(await page.evaluate(() => localStorage.getItem('bulwark-offline-accounts'))).toBeNull();
