@@ -8,7 +8,8 @@ import { useAuthStore } from '@/stores/auth-store';
 import { useSettingsStore } from '@/stores/settings-store';
 import { useVacationStore } from '@/stores/vacation-store';
 import { useRestriction } from '@/hooks/use-restriction';
-import { blockCalendar, ownFilterScriptStops, vacationBlockChanged } from '@/lib/vacation-calendar';
+import { blockCalendar, ownFilterScriptStops, resolveBlockSetting, vacationBlockChanged } from '@/lib/vacation-calendar';
+import { usePolicyStore } from '@/stores/policy-store';
 
 /**
  * "Block my calendar" under the out-of-office dates (lib/vacation-calendar.ts):
@@ -22,7 +23,9 @@ export function VacationCalendarBlock({ hasDates, accountId }: { hasDates: boole
   const setting = useSettingsStore((s) => s.vacationBlockCalendar);
   const updateSetting = useSettingsStore((s) => s.updateSetting);
   const restriction = useRestriction('vacationBlockCalendar');
-  const checked = restriction.locked && typeof restriction.value === 'boolean' ? restriction.value : setting !== false;
+  const policyDefault = usePolicyStore((s) => s.policy.defaults?.vacationBlockCalendar);
+  // The same resolution as the sync (lib/vacation-calendar.ts).
+  const { value: checked, locked, hidden } = resolveBlockSetting(restriction, policyDefault, setting);
   const [access, setAccess] = useState<{ key: string; ok: boolean } | null>(null);
   const id = useId();
   const key = accountId ?? '';
@@ -40,7 +43,7 @@ export function VacationCalendarBlock({ hasDates, accountId }: { hasDates: boole
     return () => { cancelled = true; };
   }, [client, supported, hasDates, accountId, key]);
 
-  if (!client || !supported || !hasDates) return null;
+  if (!client || !supported || !hasDates || hidden) return null;
   if (access?.key === key && !access.ok) {
     return (
       <p className="pb-2 text-xs text-muted-foreground" data-testid="vacation-block-no-access">
@@ -56,7 +59,7 @@ export function VacationCalendarBlock({ hasDates, accountId }: { hasDates: boole
   };
 
   return (
-    <SettingItem label={t('label')} description={t('description')} locked={restriction.locked}>
+    <SettingItem label={t('label')} description={t('description')} locked={locked}>
       <input
         id={id}
         type="checkbox"

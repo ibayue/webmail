@@ -26,7 +26,7 @@ const client = {
 
 function lock(value: boolean | null) {
   const policy = usePolicyStore.getState().policy;
-  usePolicyStore.setState({ policy: { ...policy, restrictions: value === null ? {} : { vacationBlockCalendar: { locked: true, value } } } });
+  usePolicyStore.setState({ policy: { ...policy, defaults: {}, restrictions: value === null ? {} : { vacationBlockCalendar: { locked: true, value } } } });
 }
 
 describe('VacationCalendarBlock', () => {
@@ -59,6 +59,18 @@ describe('VacationCalendarBlock', () => {
     expect(box.checked).toBe(false);
     expect(screen.getByText('org_locked')).toBeInTheDocument();
     expect(box.closest('[inert]')).not.toBeNull();
+  });
+
+  it('shows what the sync does for a lock without a value, and nothing when hidden', async () => {
+    const policy = usePolicyStore.getState().policy;
+    usePolicyStore.setState({ policy: { ...policy, defaults: { vacationBlockCalendar: false }, restrictions: { vacationBlockCalendar: { locked: true } } } });
+    const view = render(<VacationCalendarBlock hasDates />);
+    expect(((await screen.findByTestId('vacation-block-calendar')) as HTMLInputElement).checked).toBe(false);
+    view.unmount();
+    usePolicyStore.setState({ policy: { ...policy, defaults: {}, restrictions: { vacationBlockCalendar: { hidden: true } } } });
+    const hidden = render(<VacationCalendarBlock hasDates />);
+    await waitFor(() => expect(client.getAllCalendars).toHaveBeenCalled());
+    expect(hidden.container.querySelector('[data-testid="vacation-block-calendar"]')).toBeNull();
   });
 
   it('says a managed account\'s calendar can\'t be blocked without write access', async () => {
