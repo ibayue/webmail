@@ -168,6 +168,13 @@ async function prune(kind: ExtensionKind, id: string): Promise<void> {
   for (const stale of all.slice(KEEP)) {
     await removeFolder(kind, stale.dir);
   }
+  // Folders without a readable entry.json (a copy that was cut short) are
+  // never listed or restored; sweep them so they don't pile up.
+  const root = historyRoot(id);
+  const listed = new Set(all.map((e) => e.dir));
+  for (const name of await versionFolders(kind, root).catch(() => [] as string[])) {
+    if (!listed.has(`${root}/${name}`)) await removeFolder(kind, `${root}/${name}`);
+  }
 }
 
 /**

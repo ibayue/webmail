@@ -46,6 +46,8 @@ export interface ApprovalEntry {
   requestedAt: string;     // ISO 8601
   decidedBy?: string;      // admin username (set on approve/deny)
   decidedAt?: string;
+  /** Size of the package kept for review (plugin-approvals/<id>-<hash>.zip), when one is. */
+  packageBytes?: number;
 }
 
 interface ApprovalsFile {
@@ -62,9 +64,45 @@ function bundleId(pluginId: string, bundleHash: string): string {
   return `plugin-approvals/${pluginId}-${bundleHash}.zip`;
 }
 
+/**
+ * The packages kept for review hold at most this much together. Beyond it
+ * the packages of the longest-decided requests go first; pending ones are
+ * always kept (the admin still has to read them). Packages stored before
+ * their size was recorded aren't counted.
+ */
+let maxPackageBytes = 100 * 1024 * 1024;
+
+/** A smaller cap (tests). */
+export function setApprovalPackageCapForTests(bytes: number | null): void {
+  maxPackageBytes = bytes ?? 100 * 1024 * 1024;
+}
+
 export async function saveApprovalBundle(pluginId: string, bundleHash: string, zip: Uint8Array): Promise<void> {
   assertWritable('plugin-approvals.saveBundle');
   await pluginApprovalDocs().put(bundleId(pluginId, bundleHash), Buffer.from(zip));
+  let dropped: Array<{ pluginId: string; bundleHash: string }> = [];
+  await changeStored((file) => {
+    dropped = [];
+    let changed = false;
+    const entry = findEntry(file, pluginId, bundleHash);
+    if (entry && entry.packageBytes !== zip.byteLength) {
+      entry.packageBytes = zip.byteLength;
+      changed = true;
+    }
+    let total = file.entries.reduce((sum, e) => sum + (e.packageBytes ?? 0), 0);
+    const oldestDecidedFirst = file.entries
+      .filter((e) => e.status !== 'pending' && e.packageBytes)
+      .sort((a, b) => (a.decidedAt ?? a.requestedAt).localeCompare(b.decidedAt ?? b.requestedAt));
+    for (const old of oldestDecidedFirst) {
+      if (total <= maxPackageBytes) break;
+      total -= old.packageBytes!;
+      delete old.packageBytes;
+      dropped.push({ pluginId: old.pluginId, bundleHash: old.bundleHash });
+      changed = true;
+    }
+    return changed;
+  });
+  for (const old of dropped) await deleteApprovalBundle(old.pluginId, old.bundleHash);
 }
 
 export async function readApprovalBundle(pluginId: string, bundleHash: string): Promise<Uint8Array | null> {
