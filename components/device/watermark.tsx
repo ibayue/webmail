@@ -6,6 +6,7 @@ import { watermarkAddress, watermarkText, type DeviceSubject } from '@/lib/devic
 import { WATERMARK_COLUMNS, WATERMARK_CSS, WATERMARK_ROWS } from '@/lib/watermark';
 import { useAuthStore } from '@/stores/auth-store';
 import { useLocaleStore } from '@/stores/locale-store';
+import { useEmailStore } from '@/stores/email-store';
 
 type HookSubject = Exclude<DeviceSubject, { client: object }>;
 
@@ -20,11 +21,12 @@ export function useWatermarkText(subject?: HookSubject, options: { strictest?: b
   const strictest = useStrictestDevices();
   const locale = useLocaleStore((s) => s.locale) || undefined;
   const username = useAuthStore((s) => s.username);
+  const viewing = useEmailStore((s) => s.viewingAccountId);
   const on = options.strictest ? strictest.watermark : own.watermark;
   return useMemo(
     () => (on ? watermarkText(watermarkAddress(subject) || username || '', new Date(), locale) : null),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [on, locale, username, typeof subject === 'string' ? subject : subject?.sourceClientAccountId],
+    [on, locale, username, viewing, typeof subject === 'string' ? subject : subject?.sourceClientAccountId],
   );
 }
 

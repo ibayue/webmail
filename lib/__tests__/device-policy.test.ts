@@ -15,6 +15,8 @@ import { DEFAULT_POLICY, type SettingsPolicy } from '@/lib/admin/types';
 import { resetAccountSubjects, useAccountSubjects } from '@/lib/org/account-subjects';
 import { useAuthStore } from '@/stores/auth-store';
 import { usePolicyStore } from '@/stores/policy-store';
+import { useEmailStore } from '@/stores/email-store';
+import { canCopyBetween } from '@/lib/device-policy';
 
 // The device policies (Organisation > Devices) follow the account a message
 // belongs to; what isn't about one account follows the strictest signed-in
@@ -113,6 +115,31 @@ describe('the backstop', () => {
     expect(open).not.toHaveBeenCalled();
     expect(openPreviewInNewWindow('https://example.org/x.pdf', { sourceClientAccountId: 'acc-c' })).toBe(true);
     open.mockRestore();
+  });
+});
+
+describe('another account opened from the sidebar', () => {
+  afterEach(() => useEmailStore.setState({ viewingAccountId: null }));
+
+  it('a message without a stamp follows the account the sidebar shows', () => {
+    // ent-carol active, ent-alice's Inbox opened from the multi-account sidebar.
+    usePolicyStore.getState().setPolicySubject(CAROL);
+    useAuthStore.setState({ activeAccountId: 'acc-c', client: clientC as never });
+    useAccountSubjects.setState({ subjects: { 'acc-a': ALICE }, settled: { 'acc-a': true } });
+    useEmailStore.setState({ viewingAccountId: 'acc-a' });
+    expect(canDownload({ sourceClientAccountId: undefined })).toBe(false);
+    expect(canPrint({})).toBe(false);
+    expect(watermarkAddress({})).toBe(ALICE.email);
+    useEmailStore.setState({ viewingAccountId: null });
+    expect(canDownload({})).toBe(true);
+  });
+});
+
+describe('Copy to another account', () => {
+  it('never copies out of an account into a less strict one', () => {
+    expect(canCopyBetween('acc-a', 'acc-c')).toBe(false);
+    expect(canCopyBetween('acc-c', 'acc-a')).toBe(true);
+    expect(canCopyBetween('acc-a', 'acc-a')).toBe(true);
   });
 });
 

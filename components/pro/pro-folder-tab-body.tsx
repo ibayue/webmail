@@ -209,7 +209,7 @@ export function ProFolderTabBody({ tabId, data }: ProFolderTabBodyProps) {
           <RefreshCw className={cn("h-3.5 w-3.5", isLoading && "animate-spin [animation-direction:reverse]")} />
         </button>
       </div>
-      <RetentionNotice role={mailboxRole} />
+      <RetentionNotice role={mailboxRole} accountId={clientLogin ?? null} />
 
       <div className="flex-1 overflow-y-auto" onScroll={handleScroll}>
         {isLoading && emails.length === 0 ? (

@@ -6,6 +6,8 @@ import { usePolicyStore } from '@/stores/policy-store';
 import { useRecoveryStore } from '@/stores/recovery-store';
 import { DEFAULT_ORGANISATION_POLICY } from '@/lib/admin/organisation-policy';
 import type { Mailbox } from '@/lib/jmap/types';
+import { useEmailStore } from '@/stores/email-store';
+import { resetAccountSubjects, useAccountSubjects } from '@/lib/org/account-subjects';
 
 // The retention line of Trash and Junk (Organisation > Notices): the
 // admin's days, one line in each folder, sharing Trash's line with the
@@ -77,5 +79,29 @@ describe('retention line', () => {
     expect(line.querySelector('[data-testid="retention-notice"]')?.textContent).toBe('line:{"count":30}');
     expect(line.textContent).toContain('trash_link');
     expect(screen.getAllByTestId('retention-notice')).toHaveLength(1);
+  });
+
+  it('follows the scopes of another account opened from the sidebar, and of a Pro folder tab\u2019s account', async () => {
+    setup({ trashDays: 30, junkDays: 30 });
+    const policy = {
+      ...usePolicyStore.getState().policy,
+      scopes: [{ id: 'other', label: 'Other', match: { domains: ['other.example'] }, policy: { organisation: { retention: { trashDays: 7, junkDays: 3 } } } }],
+    };
+    usePolicyStore.setState({ rawPolicy: policy });
+    const otherClient = { getUsername: () => 'b@other.example' };
+    useAuthStore.setState({ getClientForAccount: ((id: string) => (id === 'acc-b' ? otherClient : undefined)) as never });
+    useAccountSubjects.setState({ subjects: { 'acc-b': { email: 'b@other.example', groups: [] } }, settled: { 'acc-b': true } });
+    useEmailStore.setState({ viewingAccountId: 'acc-b' });
+    try {
+      render(<FolderRetentionLine mailbox={JUNK} />);
+      expect(screen.getByTestId('retention-notice').textContent).toBe('line:{"count":3}');
+      cleanup();
+      useEmailStore.setState({ viewingAccountId: null });
+      render(<RetentionNotice role="trash" accountId="acc-b" />);
+      expect(screen.getByTestId('retention-notice').textContent).toBe('line:{"count":7}');
+    } finally {
+      useEmailStore.setState({ viewingAccountId: null });
+      resetAccountSubjects();
+    }
   });
 });

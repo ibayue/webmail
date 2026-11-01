@@ -5,13 +5,15 @@ import { devicesForAccount, getStrictestDevices, type DevicePolicy, type DeviceS
 import { useAccountSubjects } from '@/lib/org/account-subjects';
 import { useAccountStore } from '@/stores/account-store';
 import { useAuthStore } from '@/stores/auth-store';
+import { useEmailStore } from '@/stores/email-store';
 import { usePolicyStore } from '@/stores/policy-store';
 
 type HookSubject = Exclude<DeviceSubject, { client: object }>;
 
-function subjectKey(subject: HookSubject): string {
+/** The account id a hook subject stands for: a message without a stamp belongs to the account the sidebar shows. */
+function subjectKey(subject: HookSubject, viewing: string | null): string {
   if (!subject) return '';
-  return typeof subject === 'string' ? subject : subject.sourceClientAccountId ?? '';
+  return typeof subject === 'string' ? subject : subject.sourceClientAccountId ?? viewing ?? '';
 }
 
 /**
@@ -20,7 +22,8 @@ function subjectKey(subject: HookSubject): string {
  * groups and the active account as they load or change.
  */
 export function useDevicePolicy(subject?: HookSubject): DevicePolicy {
-  const key = subjectKey(subject);
+  const viewing = useEmailStore((s) => s.viewingAccountId);
+  const key = subjectKey(subject, viewing);
   const policy = usePolicyStore((s) => s.policy);
   const rawPolicy = usePolicyStore((s) => s.rawPolicy);
   const policySubject = usePolicyStore((s) => s.subject);

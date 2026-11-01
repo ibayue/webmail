@@ -30,6 +30,7 @@ import { DEFAULT_ORGANISATION_POLICY, type OrganisationPolicy } from '@/lib/admi
 import { setDownloadGuard } from '@/lib/download-guard';
 import { subjectForAccount } from '@/lib/org/account-subjects';
 import { useAuthStore } from '@/stores/auth-store';
+import { useEmailStore } from '@/stores/email-store';
 import { usePolicyStore } from '@/stores/policy-store';
 
 export type DevicePolicy = OrganisationPolicy['devices'];
@@ -49,6 +50,17 @@ function devicesOf(policy: { organisation?: OrganisationPolicy } | null | undefi
  */
 export type DeviceSubject = string | null | undefined | { sourceClientAccountId?: string | null } | { client: object };
 
+/**
+ * The signed-in account a message belongs to, for every device decision:
+ * its stamp in the unified views and Pro tabs, else the account whose
+ * folders the sidebar shows (another account's Inbox opened from the
+ * multi-account sidebar), else the active account (null). The same rule as
+ * resolveEmailBlobContext uses to fetch the message.
+ */
+export function deviceSubjectOf(email: { sourceClientAccountId?: string | null } | null | undefined): string | null {
+  return email?.sourceClientAccountId ?? useEmailStore.getState().viewingAccountId ?? null;
+}
+
 function accountIdOf(subject: DeviceSubject): string | null {
   if (!subject) return null;
   if (typeof subject === 'string') return subject;
@@ -62,7 +74,7 @@ function accountIdOf(subject: DeviceSubject): string | null {
     }
     return null;
   }
-  return subject.sourceClientAccountId ?? null;
+  return deviceSubjectOf(subject);
 }
 
 /** The device policy of one signed-in account (the active one for null). */
@@ -95,6 +107,20 @@ export function getStrictestDevices(): DevicePolicy {
     for (const key of KEYS) if (devices[key]) out[key] = true;
   }
   return out;
+}
+
+/** The switches that keep mail in: a copy may only go where they are at least as strict. */
+const KEEP_IN: (keyof DevicePolicy)[] = ['noDownloads', 'noExport', 'noPrint', 'watermark'];
+
+/**
+ * Whether mail of account `from` may be copied into account `to` ("Copy to"
+ * another signed-in account): not into an account where downloads, export
+ * or printing are allowed or the watermark is off while `from` has them.
+ */
+export function canCopyBetween(from: DeviceSubject, to: DeviceSubject): boolean {
+  const source = devicesForAccount(from);
+  const target = devicesForAccount(to);
+  return KEEP_IN.every((key) => !source[key] || target[key]);
 }
 
 /** Attachments and files may be downloaded or opened in a new tab. */
