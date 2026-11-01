@@ -20,9 +20,10 @@ const signaturePlugin = vi.hoisted(() => ({ on: false }));
 // Send plugins: a footer added by onTransformOutgoingEmail, and a crypto
 // plugin taking the send over (onComposeSend).
 // What a send check plugin (onBeforeEmailSend) was handed.
-const sendChecks = vi.hoisted(() => ({ seen: [] as unknown[] }));
+const sendChecks = vi.hoisted(() => ({ seen: [] as unknown[], size: 1, answers: [] as string[] }));
 const sendPlugins = vi.hoisted(() => ({
   footer: false,
+  addBcc: '' as string,
   takeOver: null as null | ((request: { htmlBody: string; textBody: string }) => void),
 }));
 vi.mock('@/components/email/rich-text-editor', () => ({
@@ -201,9 +202,9 @@ vi.mock('@/lib/plugin-hooks', () => ({
     onDraftChange: { emit: () => {} },
     onBeforeDraftAutoSave: { transform: async (draft: unknown) => draft },
     onBeforeEmailSend: {
-      size: 1,
+      get size() { return sendChecks.size; },
       intercept: async () => true,
-      interceptOutcome: async (email: unknown) => { sendChecks.seen.push(email); return 'allowed'; },
+      interceptOutcome: async (email: unknown) => { sendChecks.seen.push(email); return sendChecks.answers.shift() ?? 'allowed'; },
     },
     onComposeSend: {
       takeOver: async (request: { htmlBody: string; textBody: string }) => {
@@ -213,9 +214,12 @@ vi.mock('@/lib/plugin-hooks', () => ({
       },
     },
     onTransformOutgoingEmail: {
-      transform: async (email: { htmlBody: string; textBody: string }) => (sendPlugins.footer
-        ? { ...email, htmlBody: `${email.htmlBody}<p>Plugin footer</p>`, textBody: `${email.textBody}\n\nPlugin footer` }
-        : email),
+      transform: async (email: { htmlBody: string; textBody: string; bcc: string[] }) => {
+        const withBcc = sendPlugins.addBcc ? { ...email, bcc: [...email.bcc, sendPlugins.addBcc] } : email;
+        return sendPlugins.footer
+          ? { ...withBcc, htmlBody: `${withBcc.htmlBody}<p>Plugin footer</p>`, textBody: `${withBcc.textBody}\n\nPlugin footer` }
+          : withBcc;
+      },
     },
   },
   contactHooks: {
@@ -332,8 +336,69 @@ describe('composer: a required send check that is down', () => {
     const onSend = vi.fn();
     render(<EmailComposer initialData={DRAFT} onSend={onSend} />);
     fireEvent.click(screen.getAllByTestId('composer-send')[0]);
-    await waitFor(() => expect(toasts.error).toContain('not_running'));
+    // Turned off after errors: waiting doesn't help, reloading may.
+    await waitFor(() => expect(toasts.error).toContain('stopped_working'));
     expect(onSend).not.toHaveBeenCalled();
     expect(sendChecks.seen).toEqual([]);
+  });
+
+  it('gives a check that was still starting at the click the whole message once it runs', async () => {
+    let status = 'enabled';
+    const listeners = new Set<() => void>();
+    const guard = () => ({
+      id: 'send-checks', name: 'Send checks', version: '1.0.0', permissions: ['email:send'],
+      status, enabled: true, forceEnabled: true, managed: true,
+    }) as unknown as InstalledPlugin;
+    setSendGuardSource({ snapshot: () => ({ plugins: [guard()], forced: () => true }), subscribe: (l) => { listeners.add(l); return () => listeners.delete(l); } });
+    setPolicy([]);
+    // Nothing listens at the click; the check registers when it has started.
+    sendChecks.size = 0;
+    sendChecks.seen = [];
+    const onSend = vi.fn();
+    render(<EmailComposer initialData={DRAFT} onSend={onSend} />);
+    fireEvent.click(screen.getAllByTestId('composer-send')[0]);
+    await new Promise((r) => setTimeout(r, 50));
+    expect(onSend).not.toHaveBeenCalled();
+    sendChecks.size = 1;
+    status = 'running';
+    listeners.forEach((l) => l());
+    await waitFor(() => expect(onSend).toHaveBeenCalledTimes(1));
+    expect((sendChecks.seen[0] as OutgoingEmail).externalRecipients).toEqual(['carol@partner.test', 'mallory@evil.test']);
+  });
+});
+
+// A plugin's onTransformOutgoingEmail ran after the check: an automatic Bcc
+// to an outside address went out after an "outside only" rule had passed.
+describe('composer: recipients a plugin adds after the check', () => {
+  beforeEach(() => {
+    sendChecks.size = 1;
+    sendChecks.seen = [];
+    sendChecks.answers = [];
+    setPolicy([]);
+  });
+  afterEach(() => {
+    sendPlugins.addBcc = '';
+    vi.clearAllMocks();
+  });
+
+  it('are checked again, and a no then stops the send', async () => {
+    sendPlugins.addBcc = 'archive@outside.test';
+    sendChecks.answers = ['allowed', 'vetoed'];
+    const onSend = vi.fn();
+    render(<EmailComposer initialData={{ ...DRAFT, to: 'bob@example.com', bcc: '' }} onSend={onSend} />);
+    fireEvent.click(screen.getAllByTestId('composer-send')[0]);
+    await waitFor(() => expect(sendChecks.seen).toHaveLength(2));
+    expect((sendChecks.seen[0] as OutgoingEmail).externalRecipients).toEqual([]);
+    expect((sendChecks.seen[1] as OutgoingEmail).externalRecipients).toEqual(['archive@outside.test']);
+    await new Promise((r) => setTimeout(r, 50));
+    expect(onSend).not.toHaveBeenCalled();
+  });
+
+  it('are not asked about twice when nobody changed the recipients', async () => {
+    const onSend = vi.fn();
+    render(<EmailComposer initialData={{ ...DRAFT, to: 'bob@example.com', bcc: '' }} onSend={onSend} />);
+    fireEvent.click(screen.getAllByTestId('composer-send')[0]);
+    await waitFor(() => expect(onSend).toHaveBeenCalledTimes(1));
+    expect(sendChecks.seen).toHaveLength(1);
   });
 });

@@ -6002,7 +6002,8 @@
     }
   },
   "send_guards": {
-    "not_running": "Non envoyé. Une vérification exigée par votre organisation ne fonctionne pas. Réessayez dans un instant."
+    "not_running": "Non envoyé. Une vérification exigée par votre organisation ne fonctionne pas. Réessayez dans un instant.",
+    "stopped_working": "Non envoyé. Une vérification exigée par votre organisation ne fonctionne plus. Rechargez la page. Si cela ne suffit pas, prévenez votre administrateur."
   },
   "plugin_list": {
     "filters": "Filtres",

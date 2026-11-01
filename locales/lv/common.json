@@ -6002,7 +6002,8 @@
     }
   },
   "send_guards": {
-    "not_running": "Nav nosūtīts. Jūsu organizācijas pieprasītā pārbaude pašlaik nedarbojas. Mēģiniet vēlreiz pēc brīža."
+    "not_running": "Nav nosūtīts. Jūsu organizācijas pieprasītā pārbaude pašlaik nedarbojas. Mēģiniet vēlreiz pēc brīža.",
+    "stopped_working": "Nav nosūtīts. Jūsu organizācijas pieprasītā pārbaude vairs nedarbojas. Pārlādējiet lapu. Ja tas nepalīdz, sazinieties ar administratoru."
   },
   "plugin_list": {
     "filters": "Filtri",

@@ -50,6 +50,12 @@ export interface InstallResult {
 interface PluginStoreState {
   plugins: InstalledPlugin[];
   initialized: boolean;
+  /**
+   * The admin's plugin list arrived in full this session (every bundle
+   * fetched). Until then a plugin the admin forces on may be missing here
+   * only because it hasn't reached this browser (plugin-send-guards.ts).
+   */
+  serverPluginsSynced: boolean;
 
   // Management
   installPlugin: (file: File) => Promise<InstallResult>;
@@ -132,6 +138,7 @@ export const usePluginStore = create<PluginStoreState>()(
     (set, get) => ({
       plugins: [],
       initialized: false,
+      serverPluginsSynced: false,
 
       installPlugin: async (file: File) => {
         const policy = usePolicyStore.getState();
@@ -580,7 +587,10 @@ async function syncServerPlugins(
   try {
     const res = await fetchServerPluginList();
     if (res.status === 401) return 'signed-out';
-    if (!res.ok) return;
+    if (!res.ok) {
+      set({ serverPluginsSynced: false });
+      return;
+    }
 
     const data = res.data as { plugins: ServerPluginInfo[] };
     if (!data?.plugins || !Array.isArray(data.plugins)) return;
@@ -694,9 +704,12 @@ async function syncServerPlugins(
 
     // Persist current server plugin IDs for future cleanup
     setServerManagedPluginIds(serverPluginIds);
+    // A bundle that couldn't be fetched leaves its plugin out: not in full.
+    set({ serverPluginsSynced: outcomes.every((outcome) => outcome !== null) });
   } catch {
     // Sync failure is non-fatal - client continues with local plugins
     console.warn('[plugin-store] Server plugin sync failed, using local plugins only');
+    set({ serverPluginsSynced: false });
   }
 }
 
@@ -845,10 +858,21 @@ onFullSignOut(() => {
 // (lib/plugin-send-guards.ts). No plugins run in Lite.
 if (!IS_LITE) {
   setSendGuardSource({
-    snapshot: () => ({
-      plugins: usePluginStore.getState().plugins,
-      forced: (plugin) => !!plugin.forceEnabled || usePolicyStore.getState().isPluginForceEnabled(plugin.id),
-    }),
-    subscribe: (listener) => usePluginStore.subscribe(listener),
+    snapshot: () => {
+      const state = usePluginStore.getState();
+      const policy = usePolicyStore.getState();
+      return {
+        plugins: state.plugins,
+        forced: (plugin) => !!plugin.forceEnabled || policy.isPluginForceEnabled(plugin.id),
+        pluginsOff: !policy.isFeatureEnabled('pluginsEnabled'),
+        complete: state.initialized && state.serverPluginsSynced,
+        forcedIds: policy.policy.forceEnabledPlugins ?? [],
+      };
+    },
+    subscribe: (listener) => {
+      const offPlugins = usePluginStore.subscribe(listener);
+      const offPolicy = usePolicyStore.subscribe(listener);
+      return () => { offPlugins(); offPolicy(); };
+    },
   });
 }

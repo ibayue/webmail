@@ -6002,7 +6002,8 @@
     }
   },
   "send_guards": {
-    "not_running": "Nicht gesendet. Eine Prüfung, die Ihre Organisation vorschreibt, läuft gerade nicht. Versuchen Sie es gleich noch einmal."
+    "not_running": "Nicht gesendet. Eine Prüfung, die Ihre Organisation vorschreibt, läuft gerade nicht. Versuchen Sie es gleich noch einmal.",
+    "stopped_working": "Nicht gesendet. Eine Prüfung, die Ihre Organisation vorschreibt, funktioniert nicht mehr. Laden Sie die Seite neu. Wenn das nicht hilft, wenden Sie sich an Ihre Administration."
   },
   "plugin_list": {
     "filters": "Filter",

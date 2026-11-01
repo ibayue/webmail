@@ -49,6 +49,7 @@ export interface SendCheckAttachmentSource {
   load?: (bytes: number) => Promise<ArrayBuffer>;
 }
 
+/** The first `bytes` bytes, or null when they couldn't be read (or there is nothing to read them from). */
 async function headOf(source: SendCheckAttachmentSource, bytes: number): Promise<Uint8Array | null> {
   try {
     if (source.file) return new Uint8Array(await source.file.slice(0, bytes).arrayBuffer());
@@ -83,17 +84,21 @@ export async function inspectAttachments(sources: readonly SendCheckAttachmentSo
       if (sniffed) entry.sniffedType = sniffed;
       // A "text" file whose bytes say it is a program is not read as text.
       if (text && (!sniffed || sniffed.startsWith('text/'))) entry.textExcerpt = decodeExcerpt(head);
+    } else {
+      // Said out loud, so a check doesn't take it for a clean file.
+      entry.unreadable = true;
     }
     out.push(entry);
   }
   return out;
 }
 
-/** sniffedType of a file about to be attached (onBeforeAttachmentUpload). */
-export async function sniffFile(file: Blob): Promise<string | undefined> {
+/** sniffedType of a file about to be attached (onBeforeAttachmentUpload), or unreadable. */
+export async function sniffFile(file: Blob): Promise<{ sniffedType?: string; unreadable?: true }> {
   try {
-    return sniffType(new Uint8Array(await file.slice(0, SNIFF_BYTES).arrayBuffer()));
+    const sniffedType = sniffType(new Uint8Array(await file.slice(0, SNIFF_BYTES).arrayBuffer()));
+    return sniffedType ? { sniffedType } : {};
   } catch {
-    return undefined;
+    return { unreadable: true };
   }
 }

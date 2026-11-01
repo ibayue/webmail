@@ -6002,7 +6002,8 @@
     }
   },
   "send_guards": {
-    "not_running": "Nu a fost trimis. O verificare cerută de organizația ta nu rulează. Încearcă din nou peste o clipă."
+    "not_running": "Nu a fost trimis. O verificare cerută de organizația ta nu rulează. Încearcă din nou peste o clipă.",
+    "stopped_working": "Nu a fost trimis. O verificare cerută de organizația ta nu mai funcționează. Reîncarcă pagina. Dacă nu ajută, anunță administratorul."
   },
   "plugin_list": {
     "filters": "Filtre",

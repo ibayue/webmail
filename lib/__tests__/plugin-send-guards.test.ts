@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   awaitSendGuards,
   downSendGuards,
+  getSendGuardSource,
   guardsSending,
   rememberDeclaredHooks,
   setSendGuardSource,
@@ -27,9 +28,12 @@ const email: OutgoingEmail = { to: ['x@example.org'], cc: [], bcc: [], subject: 
 
 beforeEach(() => {
   localStorage.clear();
+  // Plugins are on (the default policy has them off).
+  const state = usePolicyStore.getState();
+  usePolicyStore.setState({ policy: { ...state.policy, features: { ...state.policy.features, pluginsEnabled: true } } });
 });
 afterEach(() => {
-  usePluginStore.setState({ plugins: [] });
+  usePluginStore.setState({ plugins: [], initialized: false, serverPluginsSynced: false });
   emailHooks.onBeforeEmailSend.clear();
   vi.useRealTimers();
 });
@@ -95,15 +99,13 @@ describe('awaitSendGuards', () => {
   });
 
   it('sees nothing without a source (no plugin store, as in Lite)', async () => {
+    const storeSource = getSendGuardSource();
     setSendGuardSource(null);
     try {
       usePluginStore.setState({ plugins: [guard({ status: 'error', error: 'auto-disabled' })] });
       expect(await awaitSendGuards(10)).toEqual([]);
     } finally {
-      setSendGuardSource({
-        snapshot: () => ({ plugins: usePluginStore.getState().plugins, forced: (p) => !!p.forceEnabled }),
-        subscribe: (l) => usePluginStore.subscribe(l),
-      });
+      setSendGuardSource(storeSource);
     }
   });
 });
@@ -113,10 +115,72 @@ describe('runPluginSendCheck', () => {
     const handler = vi.fn(() => undefined);
     emailHooks.onBeforeEmailSend.register('other', handler);
     usePluginStore.setState({ plugins: [guard({ status: 'error', error: 'auto-disabled', enabled: false })] });
-    expect(await runPluginSendCheck(email)).toBe('guard-down');
+    expect(await runPluginSendCheck(() => email)).toBe('guard-failed');
     expect(handler).not.toHaveBeenCalled();
     usePluginStore.setState({ plugins: [guard()] });
-    expect(await runPluginSendCheck(email)).toBe('allowed');
+    expect(await runPluginSendCheck(() => email)).toBe('allowed');
     expect(handler).toHaveBeenCalledTimes(1);
+  });
+});
+
+// A plugin the admin forces on that hasn't reached this browser (a new
+// device, a failed plugin sync) used to count for nothing: mail went out
+// unchecked until it arrived.
+describe('a forced plugin this browser has not got yet', () => {
+  const forceInPolicy = (ids: string[]) => {
+    const state = usePolicyStore.getState();
+    usePolicyStore.setState({ policy: { ...state.policy, forceEnabledPlugins: ids } });
+  };
+  afterEach(() => forceInPolicy([]));
+
+  it('counts as starting until the admin list arrived in full, then not', () => {
+    forceInPolicy(['send-checks']);
+    usePluginStore.setState({ plugins: [], initialized: true, serverPluginsSynced: false });
+    expect(downSendGuards()).toEqual([{ id: 'send-checks', name: 'send-checks', state: 'loading' }]);
+    usePluginStore.setState({ initialized: false, serverPluginsSynced: true });
+    expect(downSendGuards().map((g) => g.id)).toEqual(['send-checks']);
+    // The server left it out on purpose (refused in the no-third-party mode, removed).
+    usePluginStore.setState({ initialized: true, serverPluginsSynced: true });
+    expect(downSendGuards()).toEqual([]);
+  });
+
+  it('counts nothing while the admin turned plugins off', () => {
+    forceInPolicy(['send-checks']);
+    const state = usePolicyStore.getState();
+    usePolicyStore.setState({ policy: { ...state.policy, features: { ...state.policy.features, pluginsEnabled: false } } });
+    try {
+      usePluginStore.setState({ plugins: [guard({ status: 'error', error: 'auto-disabled' })], initialized: false });
+      expect(downSendGuards()).toEqual([]);
+    } finally {
+      usePolicyStore.setState({ policy: { ...state.policy } });
+    }
+  });
+});
+
+// A send right after sign-in, while the check was still starting, gave it a
+// message built for nobody: no external recipients, no file types.
+describe('runPluginSendCheck builds the message after the wait', () => {
+  it('asks a check that finished starting with the message built then', async () => {
+    usePluginStore.setState({ plugins: [guard({ status: 'enabled' })] });
+    const seen: unknown[] = [];
+    let built = 0;
+    const pending = runPluginSendCheck(() => { built++; return { ...email, externalRecipients: ['x@outside.test'] }; });
+    expect(built).toBe(0);
+    emailHooks.onBeforeEmailSend.register('send-checks', (m: OutgoingEmail) => { seen.push(m); return false; });
+    usePluginStore.setState({ plugins: [guard({ status: 'running' })] });
+    expect(await pending).toBe('vetoed');
+    expect(built).toBe(1);
+    expect(seen).toEqual([expect.objectContaining({ externalRecipients: ['x@outside.test'] })]);
+  });
+
+  it('says whether a guard is starting or has stopped working', async () => {
+    vi.useFakeTimers();
+    usePluginStore.setState({ plugins: [guard({ status: 'enabled' })] });
+    const waiting = runPluginSendCheck(() => email);
+    await vi.advanceTimersByTimeAsync(8000);
+    expect(await waiting).toBe('guard-loading');
+    vi.useRealTimers();
+    usePluginStore.setState({ plugins: [guard({ status: 'error', error: 'Bundle integrity mismatch' })] });
+    expect(await runPluginSendCheck(() => email)).toBe('guard-failed');
   });
 });

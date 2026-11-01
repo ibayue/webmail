@@ -6002,7 +6002,8 @@
     }
   },
   "send_guards": {
-    "not_running": "Ei saadetud. Teie organisatsiooni nõutud kontroll praegu ei tööta. Proovige hetke pärast uuesti."
+    "not_running": "Ei saadetud. Teie organisatsiooni nõutud kontroll praegu ei tööta. Proovige hetke pärast uuesti.",
+    "stopped_working": "Ei saadetud. Teie organisatsiooni nõutud kontroll ei tööta enam. Laadige leht uuesti. Kui see ei aita, teatage administraatorile."
   },
   "plugin_list": {
     "filters": "Filtrid",

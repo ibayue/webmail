@@ -6002,7 +6002,8 @@
     }
   },
   "send_guards": {
-    "not_running": "Neodesláno. Kontrola, kterou vaše organizace vyžaduje, právě neběží. Zkuste to za chvíli znovu."
+    "not_running": "Neodesláno. Kontrola, kterou vaše organizace vyžaduje, právě neběží. Zkuste to za chvíli znovu.",
+    "stopped_working": "Neodesláno. Kontrola, kterou vaše organizace vyžaduje, přestala fungovat. Načtěte stránku znovu. Pokud to nepomůže, obraťte se na správce."
   },
   "plugin_list": {
     "filters": "Filtry",

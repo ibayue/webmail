@@ -1106,6 +1106,11 @@ export interface OutgoingAttachment {
    * calendar and contact files) as text.
    */
   textExcerpt?: string;
+  /**
+   * onBeforeEmailSend, 1.20 and later: Bulwark couldn't read the file, so
+   * there is no sniffedType or textExcerpt. Treat it as not checked.
+   */
+  unreadable?: boolean;
 }
 
 export interface OutgoingEmail {
@@ -1236,6 +1241,8 @@ export interface AttachmentInfo {
    * the type its first bytes say it is (see OutgoingAttachment.sniffedType).
    */
   sniffedType?: string;
+  /** onBeforeAttachmentUpload, 1.20 and later: the file's bytes couldn't be read. */
+  unreadable?: boolean;
 }
 
 /**

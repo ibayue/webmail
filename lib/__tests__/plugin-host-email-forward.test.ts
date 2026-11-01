@@ -189,7 +189,7 @@ describe('api.email.forward', () => {
 
   it("gives send checks the note, the recipients outside and what the attachments really are", async () => {
     const seen: OutgoingEmail[] = [];
-    client.fetchBlobArrayBuffer = vi.fn(async (blobId: string) => new TextEncoder().encode(blobId === 'pdf-1' ? 'MZ' : '<Invoice/>').buffer);
+    client.fetchBlobArrayBuffer = vi.fn(async (blobId: string) => (blobId === 'pdf-1' ? new Uint8Array([0x4d, 0x5a, 0x90, 0, 3]) : new TextEncoder().encode('<Invoice/>')).buffer);
     const off = emailHooks.onBeforeEmailSend.register('send-checks', (outgoing: OutgoingEmail) => { seen.push(outgoing); return false; });
     try {
       const pending = call(FORWARDER, 'email.forward', 'E1', { to: ['books@outside.test', 'ann2@example.com'], text: 'Please book this.' });
@@ -207,6 +207,20 @@ describe('api.email.forward', () => {
       ]);
     } finally {
       off.dispose();
+    }
+  });
+
+  it('is held while a send check the admin requires is down, also with no plugin listening', async () => {
+    const { setSendGuardSource } = await import('../plugin-send-guards');
+    const down = { id: 'send-checks', name: 'Send checks', version: '1', permissions: ['email:send'], status: 'error', error: 'auto-disabled', enabled: false, forceEnabled: true } as unknown as InstalledPlugin;
+    setSendGuardSource({ snapshot: () => ({ plugins: [down], forced: () => true }), subscribe: () => () => {} });
+    try {
+      const pending = call(FORWARDER, 'email.forward', 'E1', { to: ['books@example.com'] });
+      await answerDialog(true);
+      expect(await pending).toEqual({ sent: false, reason: 'stopped' });
+      expect(sendEmail).not.toHaveBeenCalled();
+    } finally {
+      setSendGuardSource(null);
     }
   });
 

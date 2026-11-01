@@ -22,11 +22,10 @@ import { useEmailStore } from '@/stores/email-store';
 import { useSettingsStore } from '@/stores/settings-store';
 import { useLocaleStore } from '@/stores/locale-store';
 import { detectBrowserLocale } from '@/i18n/detect-locale';
-import { emailHooks } from '../plugin-hooks';
 import { announceSent } from '../plugin-after-send';
 import { buildForwardSubject } from '../subject-prefix';
 import { finalizeOutgoing, runPreSendChecks } from '../outgoing/send-pipeline';
-import { runPluginSendCheck } from '../outgoing/plugin-send-check';
+import { runPluginSendCheck, sendGuardMessageKey } from '../outgoing/plugin-send-check';
 import { externalRecipientsFor, inspectAttachments } from '../outgoing/send-check-payload';
 import { automaticLabel, classifyOutgoing } from '../outgoing/classification';
 import { whenPolicySettled } from '@/stores/policy-store';
@@ -188,8 +187,10 @@ export async function doEmailForward(
   // No plugin step in between, as for a quick reply: both stages at once.
   const body = finalizeOutgoing(finalizeOutgoing({ text: forwardBody(email, note, messages, locale) }, context), context, 'last').text;
 
-  if (emailHooks.onBeforeEmailSend.size > 0) {
-    const outgoing: OutgoingEmail = {
+  // Always: a required send check that isn't running holds the forward too,
+  // also when no plugin listens right now.
+  {
+    const outcome = await runPluginSendCheck(async (): Promise<OutgoingEmail> => ({
       to, cc: [], bcc: [], subject,
       htmlBody: '',
       textBody: body,
@@ -208,9 +209,9 @@ export async function doEmailForward(
       // The plugin's note is the only text written for this forward.
       authoredText: note,
       externalRecipients: await externalRecipientsFor(context),
-    };
-    const outcome = await runPluginSendCheck(outgoing);
-    if (outcome === 'guard-down') toast.error(text(messages, 'send_guards.not_running'));
+    }));
+    const guardKey = sendGuardMessageKey(outcome);
+    if (guardKey) toast.error(text(messages, `send_guards.${guardKey}`));
     if (outcome !== 'allowed') return { sent: false, reason: 'stopped' };
   }
 

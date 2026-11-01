@@ -6002,7 +6002,8 @@
     }
   },
   "send_guards": {
-    "not_running": "Niet verzonden. Een controle die je organisatie verplicht stelt, draait niet. Probeer het zo meteen opnieuw."
+    "not_running": "Niet verzonden. Een controle die je organisatie verplicht stelt, draait niet. Probeer het zo meteen opnieuw.",
+    "stopped_working": "Niet verzonden. Een controle die je organisatie verplicht stelt, werkt niet meer. Laad de pagina opnieuw. Helpt dat niet, meld het dan bij je beheerder."
   },
   "plugin_list": {
     "filters": "Filters",

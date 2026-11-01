@@ -23,8 +23,22 @@
 import type { InstalledPlugin } from './plugin-types';
 
 export interface SendGuardSource {
-  /** The installed plugins and whether the admin forces each on. */
-  snapshot(): { plugins: readonly InstalledPlugin[]; forced: (plugin: InstalledPlugin) => boolean };
+  snapshot(): {
+    /** The installed plugins. */
+    plugins: readonly InstalledPlugin[];
+    /** Whether the admin forces a plugin on. */
+    forced: (plugin: InstalledPlugin) => boolean;
+    /** The admin turned plugins off: none runs, none guards. */
+    pluginsOff?: boolean;
+    /**
+     * The plugins started and the admin's list arrived in full. Until then a
+     * plugin the admin forces on can be missing from `plugins` only because
+     * it hasn't reached this browser yet (a new device, a failed sync).
+     */
+    complete?: boolean;
+    /** The plugin ids the policy forces on. */
+    forcedIds?: readonly string[];
+  };
   subscribe(listener: () => void): () => void;
 }
 
@@ -53,6 +67,10 @@ let source: SendGuardSource | null = null;
 
 export function setSendGuardSource(next: SendGuardSource | null): void {
   source = next;
+}
+
+export function getSendGuardSource(): SendGuardSource | null {
+  return source;
 }
 
 // ─── Hooks seen at the last start ─────────────────────────────
@@ -113,12 +131,20 @@ export function guardState(plugin: InstalledPlugin): SendGuardState | null {
 /** The force-enabled send guards that aren't running now. */
 export function downSendGuards(): DownSendGuard[] {
   if (!source) return [];
-  const { plugins, forced } = source.snapshot();
+  const { plugins, forced, pluginsOff, complete = true, forcedIds = [] } = source.snapshot();
+  if (pluginsOff) return [];
   const out: DownSendGuard[] = [];
   for (const plugin of plugins) {
     if (!forced(plugin) || !guardsSending(plugin)) continue;
     const state = guardState(plugin);
     if (state) out.push({ id: plugin.id, name: plugin.name, state });
+  }
+  // A forced plugin this browser doesn't have yet may be a send check:
+  // it counts as starting until the admin's list has arrived in full.
+  if (!complete) {
+    for (const id of forcedIds) {
+      if (!plugins.some((plugin) => plugin.id === id)) out.push({ id, name: id, state: 'loading' });
+    }
   }
   return out;
 }

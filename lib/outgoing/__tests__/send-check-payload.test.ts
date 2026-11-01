@@ -26,6 +26,18 @@ describe('sniffType', () => {
     expect(sniffType(bytes('#!/bin/sh\nrm -rf /\n'))).toBe('text/x-shellscript');
   });
 
+  it('takes a text file that starts with "MZ" for text, not a program', () => {
+    expect(sniffType(bytes('MZ Steuerberatung, Rechnung 2026\n'))).toBe('text/plain');
+  });
+
+  it('tells Java and Android apps from other ZIP files', () => {
+    expect(sniffType(bytes('PK', [3, 4, 20, 0], '....META-INF/MANIFEST.MF'))).toBe('application/java-archive');
+    expect(sniffType(bytes('PK', [3, 4, 20, 0], '....AndroidManifest.xml'))).toBe('application/vnd.android.package-archive');
+    expect(sniffType(bytes('PK', [3, 4, 20, 0], '....[Content_Types].xml'))).toBe('application/zip');
+    // An OpenDocument file has a META-INF/manifest.xml, not MANIFEST.MF.
+    expect(sniffType(bytes('PK', [3, 4, 20, 0], 'mimetypeapplication/vnd.oasis.opendocument.textMETA-INF/manifest.xml'))).toBe('application/zip');
+  });
+
   it('tells HTML and plain text from binary data', () => {
     expect(sniffType(bytes('\uFEFF  <!DOCTYPE html><html>'))).toBe('text/html');
     expect(sniffType(bytes('IBAN;Name\nDE89370400440532013000;Alice\n'))).toBe('text/plain');
@@ -59,7 +71,7 @@ describe('inspectAttachments', () => {
     const load = (content: string) => async (n: number) => { asked.push(n); return new TextEncoder().encode(content).buffer as ArrayBuffer; };
     const out = await inspectAttachments([
       { name: 'notes.txt', type: 'text/plain', size: 10, blobId: 'b1', load: load('hello') },
-      { name: 'invoice.pdf', type: 'application/pdf', size: 9_000_000, blobId: 'b2', load: load('MZ\u0090') },
+      { name: 'invoice.pdf', type: 'application/pdf', size: 9_000_000, blobId: 'b2', load: load('MZ\u0090\u0000\u0003') },
     ]);
     expect(asked).toEqual([TEXT_EXCERPT_BYTES, SNIFF_BYTES]);
     expect(out[0]).toMatchObject({ sniffedType: 'text/plain', textExcerpt: 'hello' });
@@ -69,20 +81,26 @@ describe('inspectAttachments', () => {
 
   it("doesn't read a program named .txt as text, nor inline images", async () => {
     const out = await inspectAttachments([
-      { name: 'readme.txt', type: 'text/plain', size: 3, file: new Blob([bytes('MZ', [0x90])]) },
+      { name: 'readme.txt', type: 'text/plain', size: 3, file: new Blob([bytes('MZ', [0x90, 0, 3])]) },
       { name: 'pasted.png', type: 'image/png', size: 8, blobId: 'b3', inline: true, file: new Blob([bytes([0x89], 'PNG', [0x0d, 0x0a, 0x1a, 0x0a])]) },
     ]);
     expect(out[0]).toEqual({ name: 'readme.txt', type: 'text/plain', size: 3, sniffedType: 'application/x-msdownload' });
     expect(out[1]).toEqual({ name: 'pasted.png', type: 'image/png', size: 8, blobId: 'b3', inline: true, sniffedType: 'image/png' });
   });
 
-  it('passes a file it cannot read on without the two fields', async () => {
-    const [out] = await inspectAttachments([{ name: 'a.txt', type: '', size: 1, blobId: 'b', load: async () => { throw new Error('offline'); } }]);
-    expect(out).toEqual({ name: 'a.txt', type: 'application/octet-stream', size: 1, blobId: 'b' });
+  it('marks a file it cannot read, so a check does not take it for a clean one', async () => {
+    const [out, none] = await inspectAttachments([
+      { name: 'a.txt', type: '', size: 1, blobId: 'b', load: async () => { throw new Error('offline'); } },
+      { name: 'b.bin', type: '', size: 1, blobId: 'c' },
+    ]);
+    expect(out).toEqual({ name: 'a.txt', type: 'application/octet-stream', size: 1, blobId: 'b', unreadable: true });
+    expect(none.unreadable).toBe(true);
   });
 
-  it('sniffs a file before upload', async () => {
-    expect(await sniffFile(new Blob([bytes('MZ', [0x90])]))).toBe('application/x-msdownload');
+  it('sniffs a file before upload, and says when it cannot', async () => {
+    expect(await sniffFile(new Blob([bytes('MZ', [0x90, 0, 3])]))).toEqual({ sniffedType: 'application/x-msdownload' });
+    const broken = { slice: () => ({ arrayBuffer: async () => { throw new Error('gone'); } }) } as unknown as Blob;
+    expect(await sniffFile(broken)).toEqual({ unreadable: true });
   });
 });
 

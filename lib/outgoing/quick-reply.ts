@@ -5,7 +5,6 @@ import { findUnfilledPlaceholders, type PlaceholderWords } from '@/lib/placehold
 import { finalizeOutgoing, runPreSendChecks, type OutgoingBodies } from './send-pipeline';
 import { runPluginSendCheck, type PluginSendCheckOutcome } from './plugin-send-check';
 import { externalRecipientsFor } from './send-check-payload';
-import { emailHooks } from '@/lib/plugin-hooks';
 // Registers the organisation signature check and the disclaimer.
 import '@/lib/org/outgoing';
 
@@ -100,7 +99,7 @@ export async function prepareQuickReply(input: {
   if (questions?.confirmSend && !(await questions.ask({ kind: 'send' }))) return null;
   const bodies = finalizeOutgoing({ html, text }, context);
   // A quick reply used to skip plugins' send checks: a way around them.
-  const outcome = await runPluginSendCheck({
+  const outcome = await runPluginSendCheck(async () => ({
     to: input.to,
     cc: [],
     bcc: [],
@@ -115,8 +114,8 @@ export async function prepareQuickReply(input: {
     mode: 'reply',
     // The quote isn't part of a quick reply: the typed text is all the user wrote.
     authoredText: body,
-    externalRecipients: emailHooks.onBeforeEmailSend.size > 0 ? await externalRecipientsFor(context) : [],
-  });
+    externalRecipients: await externalRecipientsFor(context),
+  }));
   if (outcome !== 'allowed') {
     input.onSendCheckStopped?.(outcome);
     return null;

@@ -17,7 +17,6 @@ const startsWith = (bytes: Uint8Array, sig: readonly number[], offset = 0): bool
 const ascii = (text: string): number[] => Array.from(text, (c) => c.charCodeAt(0));
 
 const SIGNATURES: readonly { sig: readonly number[]; offset?: number; type: string }[] = [
-  { sig: ascii('MZ'), type: 'application/x-msdownload' },
   { sig: [0x7f, 0x45, 0x4c, 0x46], type: 'application/x-executable' },
   { sig: [0xcf, 0xfa, 0xed, 0xfe], type: 'application/x-mach-binary' },
   { sig: [0xce, 0xfa, 0xed, 0xfe], type: 'application/x-mach-binary' },
@@ -42,10 +41,29 @@ const SIGNATURES: readonly { sig: readonly number[]; offset?: number; type: stri
   { sig: ascii('#!'), type: 'text/x-shellscript' },
 ];
 
+/** Whether `needle` occurs in the bytes. */
+function contains(bytes: Uint8Array, needle: string): boolean {
+  const sig = ascii(needle);
+  outer: for (let i = 0; i + sig.length <= bytes.length; i++) {
+    for (let j = 0; j < sig.length; j++) if (bytes[i + j] !== sig[j]) continue outer;
+    return true;
+  }
+  return false;
+}
+
 /** The MIME type the bytes start with, or undefined when none is known. */
 export function sniffType(bytes: Uint8Array): string | undefined {
+  // "MZ" starts every Windows and DOS program, whose header holds zero
+  // bytes; a text file that happens to start with "MZ" has none.
+  if (startsWith(bytes, ascii('MZ')) && bytes.subarray(0, SNIFF_BYTES).includes(0)) return 'application/x-msdownload';
   for (const { sig, offset, type } of SIGNATURES) {
-    if (startsWith(bytes, sig, offset)) return type;
+    if (!startsWith(bytes, sig, offset)) continue;
+    // Java and Android apps are ZIP files; their entry names give them away.
+    if (type === 'application/zip') {
+      if (contains(bytes, 'AndroidManifest.xml')) return 'application/vnd.android.package-archive';
+      if (contains(bytes, 'META-INF/MANIFEST.MF')) return 'application/java-archive';
+    }
+    return type;
   }
   if (startsWith(bytes, ascii('RIFF')) && startsWith(bytes, ascii('WEBP'), 8)) return 'image/webp';
   return sniffText(bytes);

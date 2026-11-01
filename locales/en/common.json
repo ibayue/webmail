@@ -6002,7 +6002,8 @@
     }
   },
   "send_guards": {
-    "not_running": "Not sent. A check your organisation requires isn't running. Try again in a moment."
+    "not_running": "Not sent. A check your organisation requires isn't running. Try again in a moment.",
+    "stopped_working": "Not sent. A check your organisation requires has stopped working. Reload the page. If that doesn't help, tell your administrator."
   },
   "plugin_list": {
     "filters": "Filters",

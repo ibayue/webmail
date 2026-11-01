@@ -113,7 +113,7 @@ import { wantsSignatureSeparator } from "@/lib/signature-delimiter";
 import { finalizeOutgoing, runPreSendChecks, type OutgoingContext } from "@/lib/outgoing/send-pipeline";
 import { classifyOutgoing, isLabelRequiredError, labelMissing, labelsPolicyFor, resolveLabel, type OriginalMessage } from "@/lib/outgoing/classification";
 import { beginLabelTakeover, endLabelTakeover } from "@/lib/outgoing/classification-raw";
-import { runPluginSendCheck } from "@/lib/outgoing/plugin-send-check";
+import { recipientsChanged, runPluginSendCheck, sendGuardMessageKey } from "@/lib/outgoing/plugin-send-check";
 import { externalRecipientsFor, inspectAttachments, sniffFile } from "@/lib/outgoing/send-check-payload";
 import { whenPolicySettled } from "@/stores/policy-store";
 import { ClassificationLabelPicker, type ClassificationPickerHandle } from "./classification-label-picker";
@@ -2223,12 +2223,12 @@ export function EmailComposer({
     // Let plugins veto each upload before it's queued.
     const allowedFiles: File[] = [];
     for (const file of files) {
-      const sniffedType = emailHooks.onBeforeAttachmentUpload.size > 0 ? await sniffFile(file) : undefined;
+      const sniffed = emailHooks.onBeforeAttachmentUpload.size > 0 ? await sniffFile(file) : {};
       const ok = await emailHooks.onBeforeAttachmentUpload.intercept({
         name: file.name,
         type: file.type || 'application/octet-stream',
         size: file.size,
-        ...(sniffedType ? { sniffedType } : {}),
+        ...sniffed,
       });
       if (ok) allowedFiles.push(file);
     }
@@ -3616,24 +3616,28 @@ export function EmailComposer({
       // guards, send checks). Returning false from any handler aborts before
       // either the S/MIME or standard JMAP path runs. What a send check needs
       // beyond the bodies (lib/outgoing/send-check-payload.ts) is worked out
-      // only while a plugin listens.
-      const checking = emailHooks.onBeforeEmailSend.size > 0;
+      // after waiting for required checks that are still starting, and only
+      // while a plugin listens.
       const sendClient = composerClientRef.current ?? client;
       const readBlob = (blobId: string, name: string, type: string, bytes: number) => (sendClient
         ? sendClient.fetchBlobArrayBuffer(blobId, name, type, undefined, bytes)
         : Promise.reject(new Error('No client')));
+      // What is checked is what goes: a file added while the check waits or
+      // asks isn't sent with this message.
       const sentAttachments = attachmentsRef.current.filter(att => att.blobId && !att.uploading && !att.error);
-      const sendablePreview: OutgoingEmail = {
+      const recipientsAtCheck = {
         to: toAddresses.map(r => formatRecipient(r.name, r.email)),
         cc: ccAddresses.map(r => formatRecipient(r.name, r.email)),
         bcc: bccAddresses.map(r => formatRecipient(r.name, r.email)),
+      };
+      const buildCheck = async (recipients: { to: string[]; cc: string[]; bcc: string[] }): Promise<OutgoingEmail> => ({
+        ...recipients,
         subject,
         htmlBody: finalHtmlBody || '',
         textBody: finalBody,
         identityId: currentIdentity?.id || '',
         fromEmail,
-        attachments: checking
-          ? await inspectAttachments([
+        attachments: await inspectAttachments([
             ...sentAttachments.map(a => ({
               name: a.name, type: a.type, size: a.size, blobId: a.blobId, file: a.file,
               load: (bytes: number) => readBlob(a.blobId!, a.name, a.type, bytes),
@@ -3642,8 +3646,7 @@ export function EmailComposer({
               name: a.name, type: a.type, size: a.size, blobId: a.blobId, inline: true,
               load: (bytes: number) => readBlob(a.blobId, a.name, a.type, bytes),
             })),
-          ])
-          : sentAttachments.map(a => ({ name: a.name, type: a.type || 'application/octet-stream', size: a.size, blobId: a.blobId })),
+          ]),
         inReplyTo: threadingHeaders?.inReplyTo?.[0],
         surface: 'composer',
         mode,
@@ -3651,9 +3654,9 @@ export function EmailComposer({
           plainTextMode ? plainTextBodyWithoutSignature(body, signatureIdentity) : stripEmbeddedSignatureHtml(body),
           { plainTextMode, forwardedSeparator: tQuote('forwarded_separator') },
         ),
-        externalRecipients: checking ? await externalRecipientsFor(outgoingContext) : [],
-      };
-      const sendCheck = await runPluginSendCheck(sendablePreview);
+        externalRecipients: await externalRecipientsFor({ ...outgoingContext, ...recipients }),
+      });
+      const sendCheck = await runPluginSendCheck(() => buildCheck(recipientsAtCheck));
       if (sendCheck !== 'allowed') {
         // A plugin vetoed the send (it is expected to show its own UI).
         // Leave a trace so a silent no-op send is diagnosable (#592).
@@ -3661,7 +3664,8 @@ export function EmailComposer({
         // A guard that crashed or never answered showed nothing; say why
         // the message is still here.
         if (sendCheck === 'failed') toast.error(t('send_guard_failed'));
-        if (sendCheck === 'guard-down') toast.error(tSendGuards('not_running'));
+        const guardKey = sendGuardMessageKey(sendCheck);
+        if (guardKey) toast.error(tSendGuards(guardKey));
         return;
       }
 
@@ -3697,8 +3701,7 @@ export function EmailComposer({
         references: threadingHeaders?.references,
         delayedUntil: effectiveDelayedUntil,
         attachments: [
-          ...attachmentsRef.current
-            .filter(att => att.blobId && !att.uploading && !att.error)
+          ...sentAttachments
             .map(a => ({ name: a.name, type: a.type || 'application/octet-stream', size: a.size, blobId: a.blobId, cid: a.cid })),
           ...inlineAttachments.map(a => ({ name: a.name, type: a.type, size: a.size, blobId: a.blobId, cid: a.cid })),
         ],
@@ -3730,8 +3733,7 @@ export function EmailComposer({
       } else {
         // Standard JMAP send path
         // Collect uploaded attachment blobIds for the send request
-        const uploadedAttachments: Array<{ blobId: string; name: string; type: string; size: number; disposition?: 'attachment' | 'inline'; cid?: string }> = attachmentsRef.current
-          .filter(att => att.blobId && !att.uploading && !att.error)
+        const uploadedAttachments: Array<{ blobId: string; name: string; type: string; size: number; disposition?: 'attachment' | 'inline'; cid?: string }> = sentAttachments
           .map(att => ({
             blobId: att.blobId!,
             name: att.name,
@@ -3759,6 +3761,20 @@ export function EmailComposer({
           inReplyTo: threadingHeaders?.inReplyTo?.[0],
         };
         const outgoing = await emailHooks.onTransformOutgoingEmail.transform(transformInput);
+        // A plugin that adds or changes recipients after the send checks
+        // (an automatic Bcc) could take the message outside after an
+        // "only outside the organisation" rule passed: check it again for
+        // the recipients it really goes to.
+        if (recipientsChanged(recipientsAtCheck, outgoing)) {
+          const recheck = await runPluginSendCheck(() => buildCheck({ to: outgoing.to ?? [], cc: outgoing.cc ?? [], bcc: outgoing.bcc ?? [] }));
+          if (recheck !== 'allowed') {
+            debug.log('email', `Send stopped on the second check after a plugin changed the recipients (${recheck})`);
+            if (recheck === 'failed') toast.error(t('send_guard_failed'));
+            const recheckKey = sendGuardMessageKey(recheck);
+            if (recheckKey) toast.error(tSendGuards(recheckKey));
+            return;
+          }
+        }
         // Below whatever the plugins added (a footer), the `last` finalisers.
         const sealedOutgoing = lastStage(outgoing.htmlBody, outgoing.textBody);
         // The label after the plugins had their say, so none can drop it.

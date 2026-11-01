@@ -4118,7 +4118,8 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       // A plugin that said no told the user; one that crashed didn't.
       onSendCheckStopped: (outcome) => {
         if (outcome === 'failed') toast.error(t('email_composer.send_guard_failed'));
-        if (outcome === 'guard-down') toast.error(t('send_guards.not_running'));
+        if (outcome === 'guard-loading') toast.error(t('send_guards.not_running'));
+        if (outcome === 'guard-failed') toast.error(t('send_guards.stopped_working'));
       },
       questions: {
         // The fill-in words of the UI language and of English, as the composer.
