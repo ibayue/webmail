@@ -4,7 +4,7 @@
  * OTEL_EXPORTER_OTLP_ENDPOINT), unless OTEL_SDK_DISABLED=true or
  * OTEL_TRACES_EXPORTER=none. Without it the SDK is never loaded.
  *
- * https://bulwarkmail.org/docs/admin/monitoring#tracing
+ * https://bulwarkmail.org/docs/deployment/monitoring#tracing
  */
 export function tracingEndpoint(env: Record<string, string | undefined> = process.env): string | null {
   if ((env.OTEL_SDK_DISABLED ?? '').trim().toLowerCase() === 'true') return null;

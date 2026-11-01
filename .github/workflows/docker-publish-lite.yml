@@ -184,7 +184,7 @@ jobs:
 
       # The same build again, a cache hit, for the stage that holds only the
       # source maps; the image never has them. One export for both platforms.
-      # https://bulwarkmail.org/docs/admin/monitoring
+      # https://bulwarkmail.org/docs/deployment/monitoring
       - name: Export source maps
         uses: docker/build-push-action@v7
         with:

@@ -9,7 +9,7 @@ import { routeGroup } from '@/lib/route-groups';
  * scrapes each one. Labels come from fixed lists only (route groups, sign-in
  * outcomes, upstream targets), never from user names or hosts users type.
  *
- * https://bulwarkmail.org/docs/admin/monitoring#metrics
+ * https://bulwarkmail.org/docs/deployment/monitoring#metrics
  */
 
 export const SIGNIN_OUTCOMES = ['success', 'failure', 'refresh_failure', 'rate_limited'] as const;

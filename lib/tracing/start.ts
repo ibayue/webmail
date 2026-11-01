@@ -24,7 +24,7 @@ import { scrubAttributes, scrubSpanName, type Attributes } from './scrub';
  * for the calls it makes (lib/metrics/upstream.ts) go through the same
  * provider; a processor scrubs every span before export (./scrub.ts).
  *
- * https://bulwarkmail.org/docs/admin/monitoring#tracing
+ * https://bulwarkmail.org/docs/deployment/monitoring#tracing
  */
 
 /** Scrubs a span's name and attributes, then hands it on. */

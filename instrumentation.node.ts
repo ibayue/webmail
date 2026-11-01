@@ -18,7 +18,7 @@ const current: string = pkg.version ?? "0.0.0";
 logger.info(`Bulwark Webmail v${current}`, { version: current });
 
 // Prometheus metrics, only with METRICS_TOKEN(_FILE): count every request
-// from the first one on. https://bulwarkmail.org/docs/admin/monitoring#metrics
+// from the first one on. https://bulwarkmail.org/docs/deployment/monitoring#metrics
 if (process.env.METRICS_TOKEN?.trim() || process.env.METRICS_TOKEN_FILE?.trim()) {
   void import("./lib/metrics/http").then(({ installHttpMetrics }) => {
     if (installHttpMetrics()) logger.info("Metrics endpoint on at /api/metrics");
@@ -69,7 +69,7 @@ migrateLegacyAdminLayout()
     logger.info("Admin dashboard initialized");
     // Errors routes catch and log, and errors Next reports (instrumentation.ts),
     // go to the error tracker when one is configured. Off otherwise.
-    // https://bulwarkmail.org/docs/admin/monitoring
+    // https://bulwarkmail.org/docs/deployment/monitoring
     const { installServerErrorReporting } = await import("./lib/error-reporting/server");
     await installServerErrorReporting();
     // With a shared store, boot already made or loaded the secret.

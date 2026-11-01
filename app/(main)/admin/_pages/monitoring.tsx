@@ -37,7 +37,7 @@ interface MonitoringState {
 
 const PAGE = adminPageDef('monitoring');
 const KEYS = ['errorReportingDsn', 'errorReportingSampleRate', 'errorReportingEnvironment'] as const;
-const DOCS = 'https://bulwarkmail.org/docs/admin/monitoring';
+const DOCS = 'https://bulwarkmail.org/docs/deployment/monitoring';
 
 export function MonitoringPage() {
   const [config, setConfig] = useState<Record<string, ConfigEntry>>({});

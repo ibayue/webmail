@@ -11,7 +11,7 @@ export const dynamic = 'force-dynamic';
  * 404 as if it didn't exist. With one, the scraper sends
  * `Authorization: Bearer <token>`; anything else gets 401.
  *
- * https://bulwarkmail.org/docs/admin/monitoring#metrics
+ * https://bulwarkmail.org/docs/deployment/monitoring#metrics
  */
 
 function sameToken(given: string, expected: string): boolean {

@@ -365,7 +365,7 @@ export const CONFIG_ENV_MAP: Record<string, { envVar: string; fileEnvVar?: strin
   logLevel: { envVar: 'LOG_LEVEL', type: 'enum', defaultValue: 'info', enumValues: ['error', 'warn', 'info', 'debug'] },
   // Error reporting to a Sentry-protocol tracker (Bugsink, GlitchTip,
   // Sentry), off while empty. The DSN is public by design: browsers get it.
-  // https://bulwarkmail.org/docs/admin/monitoring
+  // https://bulwarkmail.org/docs/deployment/monitoring
   errorReportingDsn: { envVar: 'ERROR_REPORTING_DSN', fileEnvVar: 'ERROR_REPORTING_DSN_FILE', fileKey: 'errorReportingDsnFile', type: 'string', defaultValue: '' },
   errorReportingSampleRate: { envVar: 'ERROR_REPORTING_SAMPLE_RATE', type: 'string', defaultValue: '1' },
   errorReportingEnvironment: { envVar: 'ERROR_REPORTING_ENVIRONMENT', type: 'string', defaultValue: 'production' },

@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
  * the config is loaded, the shared store (if any) answers, the data dirs are
  * writable and Stalwart's session resource answers within 2 s. The body
  * names the checks only. Results are reused for 5 s.
- * https://bulwarkmail.org/docs/admin/monitoring#health
+ * https://bulwarkmail.org/docs/deployment/monitoring#health
  */
 const HEADERS = { 'Cache-Control': 'no-store' };
 

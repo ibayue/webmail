@@ -6,7 +6,7 @@ export async function register() {
     // OpenTelemetry, only with an OTLP endpoint in the standard OTEL_*
     // variables; otherwise the SDK is never loaded. First, so Next's own
     // spans from the first request on go to it.
-    // https://bulwarkmail.org/docs/admin/monitoring#tracing
+    // https://bulwarkmail.org/docs/deployment/monitoring#tracing
     if (tracingConfigured()) {
       const { startTracing } = await import("./lib/tracing/start");
       startTracing();
@@ -19,7 +19,7 @@ export async function register() {
  * Errors Next caught while rendering a page or running a route handler,
  * server action or the proxy. Counted, and sent to the error tracker when
  * one is configured (lib/error-reporting/server.ts); nothing happens while
- * error reporting is off. https://bulwarkmail.org/docs/admin/monitoring
+ * error reporting is off. https://bulwarkmail.org/docs/deployment/monitoring
  */
 export const onRequestError: Instrumentation.onRequestError = async (error, _request, context) => {
   if (process.env.NEXT_RUNTIME !== "nodejs") return;

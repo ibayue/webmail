@@ -67,7 +67,7 @@ jobs:
       # The same build again, a cache hit on this builder, for the stage that
       # holds only the source maps (Dockerfile, "sourcemaps"); the image never
       # has them. Both platforms build identical chunks, so amd64 uploads.
-      # https://bulwarkmail.org/docs/admin/monitoring
+      # https://bulwarkmail.org/docs/deployment/monitoring
       - name: Export source maps
         if: matrix.platform == 'linux/amd64'
         uses: docker/build-push-action@v7
@@ -216,7 +216,7 @@ jobs:
       # The same build again, a cache hit on this builder, for the stage that
       # holds only the source maps (Dockerfile, "sourcemaps"); the image never
       # has them. Both platforms build identical chunks, so amd64 uploads.
-      # https://bulwarkmail.org/docs/admin/monitoring
+      # https://bulwarkmail.org/docs/deployment/monitoring
       - name: Export source maps
         if: matrix.platform == 'linux/amd64'
         uses: docker/build-push-action@v7

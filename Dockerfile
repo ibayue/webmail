@@ -40,7 +40,7 @@ RUN rm -rf "app/api/dev-jmap" && \
 # webpack has no debug IDs of its own, so sentry-cli adds them to the
 # chunks; then every map moves to /sourcemaps (exported with
 # `--target sourcemaps`) and the check fails the build if one would ship.
-# https://bulwarkmail.org/docs/admin/monitoring
+# https://bulwarkmail.org/docs/deployment/monitoring
 ARG SENTRY_CLI_VERSION=3.8.2
 RUN if [ "$BULWARK_SOURCE_MAPS" = "1" ]; then \
       npx --yes "@sentry/cli@${SENTRY_CLI_VERSION}" sourcemaps inject .next/static; \

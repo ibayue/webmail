@@ -18,7 +18,7 @@ import { parseStack } from './stack';
  * this server's /api/errors. Nothing is sent before the config arrived, and
  * nothing at all when both are off.
  *
- * https://bulwarkmail.org/docs/admin/monitoring
+ * https://bulwarkmail.org/docs/deployment/monitoring
  */
 
 export interface ClientSettings {

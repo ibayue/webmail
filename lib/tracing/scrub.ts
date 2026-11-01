@@ -12,7 +12,7 @@ import { scrubText } from '@/lib/error-reporting/scrub';
  * - query, fragment, user agent and client address attributes are dropped
  * - any other text with an address or a credential is scrubbed
  *
- * https://bulwarkmail.org/docs/admin/monitoring#tracing
+ * https://bulwarkmail.org/docs/deployment/monitoring#tracing
  */
 
 type AttributeValue = string | number | boolean | Array<string | number | boolean | null | undefined> | undefined;

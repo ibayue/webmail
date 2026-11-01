@@ -80,7 +80,7 @@ jobs:
           LITE_LOCALES: ${{ inputs.locales }}
           LITE_DEMO_MODE: ${{ inputs.demo }}
           # Browser source maps for Bugsink; build:lite moves them out of out/
-          # before anything is packed. https://bulwarkmail.org/docs/admin/monitoring
+          # before anything is packed. https://bulwarkmail.org/docs/deployment/monitoring
           BULWARK_SOURCE_MAPS: "1"
           SOURCEMAPS_OUT: sourcemaps
         run: npm run build:lite

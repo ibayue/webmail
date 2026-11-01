@@ -42,7 +42,7 @@ jobs:
 
       # With browser and server source maps; Turbopack gives every chunk a
       # debug ID. The maps go to Bugsink and never into the tarball.
-      # https://bulwarkmail.org/docs/admin/monitoring
+      # https://bulwarkmail.org/docs/deployment/monitoring
       - name: Build standalone
         env:
           BULWARK_SOURCE_MAPS: "1"

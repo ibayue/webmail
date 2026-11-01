@@ -9,7 +9,7 @@
 #   BUGSINK_PROJECTS    default "bulwark-instances bulwark-telemetry"
 #   SENTRY_CLI_VERSION  default 3.8.2
 #
-# https://bulwarkmail.org/docs/admin/monitoring
+# https://bulwarkmail.org/docs/deployment/monitoring
 set -euo pipefail
 
 dir="${1:?usage: upload-sourcemaps.sh <dir>}"

@@ -8,7 +8,7 @@ import { parseDsn } from './envelope';
  *   "errorReporting": { "dsn": "https://<key>@host/<project>", "sampleRate": 1, "environment": "production" }
  *
  * The DSN's host must also be in the CSP's connect-src of the Lite host.
- * https://bulwarkmail.org/docs/lite/configuration
+ * https://bulwarkmail.org/docs/deployment/static#error-reporting
  */
 export function liteErrorReporting(policy: unknown): ClientSettings | null {
   const raw = policy && typeof policy === 'object' ? (policy as Record<string, unknown>).errorReporting : undefined;

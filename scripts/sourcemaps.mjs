@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Source maps: built in CI (BULWARK_SOURCE_MAPS=1), uploaded to the error
-// tracker, never shipped. https://bulwarkmail.org/docs/admin/monitoring
+// tracker, never shipped. https://bulwarkmail.org/docs/deployment/monitoring
 //
 //   node scripts/sourcemaps.mjs collect --out <dir> <root>...
 //     Moves every .map under each root into <dir>/<n>/... with a copy of the
