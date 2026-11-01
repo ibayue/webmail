@@ -179,7 +179,7 @@ export function MailImportDialog({ request }: { request: ImportRequest }) {
             onChange={(e) => { void addFiles(e.target.files); e.target.value = ""; }}
           />
           <Button ref={chooseButton} variant="outline" onClick={() => fileInput.current?.click()}>
-            <Upload aria-hidden="true" />
+            <Upload className="me-2" aria-hidden="true" />
             {t("choose_files")}
           </Button>
           {picked.length > 0 && (
