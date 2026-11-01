@@ -5649,6 +5649,59 @@
     "ready": "Đã có phiên bản mới của {appName}.",
     "reload": "Tải lại"
   },
+  "offline": {
+    "settings": {
+      "title": "Ngoại tuyến",
+      "description": "Đọc và viết thư trên thiết bị này khi không có kết nối.",
+      "keep_label": "Giữ thư trên thiết bị này",
+      "keep_description": "Giữ 30 ngày gần nhất của Hộp thư đến và các thư mục bạn mở, tối đa 250 MB, được mã hóa trong trình duyệt này. Khi ngoại tuyến bạn có thể đọc, gắn cờ và di chuyển thư, còn thư bạn viết sẽ chờ trong Hộp thư đi. Khi đăng xuất, tất cả sẽ bị xóa.",
+      "warning": "Bất kỳ ai dùng được hồ sơ trình duyệt này đều đọc được các thư này. Chỉ bật trên thiết bị của riêng bạn và dùng mã hóa ổ đĩa.",
+      "forbidden": "Tổ chức của bạn không cho phép giữ thư trên thiết bị.",
+      "unsupported": "Trình duyệt này không thể giữ thư để dùng ngoại tuyến.",
+      "syncing": "Đang lưu thư của bạn vào thiết bị này…",
+      "usage": "{size} trên thiết bị này",
+      "usage_updated": "{size} trên thiết bị này, cập nhật {time}",
+      "off_confirm_title": "Tắt chế độ ngoại tuyến?",
+      "off_confirm_message": "{count, plural, other {Có # thư trong Hộp thư đi chưa được gửi.}} Tắt sẽ xóa chúng cùng với thư được giữ trên thiết bị này.",
+      "off_confirm": "Tắt"
+    },
+    "outbox": {
+      "title": "Hộp thư đi",
+      "description": "Thư bạn viết khi ngoại tuyến. Chúng sẽ được gửi khi thiết bị này trực tuyến trở lại.",
+      "empty": "Không có gì đang chờ gửi.",
+      "no_subject": "(không có tiêu đề)",
+      "to": "Đến: {recipients}",
+      "status_waiting": "Đang chờ kết nối",
+      "status_sending": "Đang gửi",
+      "status_failed": "Không gửi được: {error}",
+      "status_uncertain": "Kết nối bị ngắt khi đang gửi. Hãy kiểm tra Thư đã gửi trước khi gửi lại.",
+      "retry": "Gửi lại",
+      "delete": "Xóa",
+      "delete_confirm_title": "Xóa thư này?",
+      "delete_confirm_message": "Thư chưa được gửi và không thể khôi phục.",
+      "changes": "{count, plural, other {# thay đổi}} về trạng thái đọc, cờ hoặc thư mục sẽ được gửi khi bạn trực tuyến trở lại."
+    },
+    "banner": {
+      "offline": "Bạn đang ngoại tuyến. Bạn đang xem thư được giữ trên thiết bị này. Những gì bạn thay đổi hoặc viết sẽ được gửi khi bạn trực tuyến trở lại.",
+      "outbox": "{count, plural, other {# thư}} trong Hộp thư đi"
+    },
+    "toast": {
+      "queued": "Đã lưu vào Hộp thư đi. Thư sẽ được gửi khi bạn trực tuyến trở lại.",
+      "sent": "Đã gửi từ Hộp thư đi: {subject}",
+      "send_failed": "Không gửi được một thư trong Hộp thư đi: {subject}",
+      "refused_delete": "Xóa vĩnh viễn cần có kết nối. Hãy thử lại khi bạn trực tuyến.",
+      "refused_other": "Việc này cần có kết nối. Hãy thử lại khi bạn trực tuyến.",
+      "forbidden": "Tổ chức của bạn đã tắt chế độ ngoại tuyến. Thư được giữ trên thiết bị này đã bị xóa.",
+      "back_online": "Bạn đã trực tuyến trở lại. Hãy tải lại để đăng nhập và gửi những gì đang chờ.",
+      "reload": "Tải lại"
+    },
+    "signout": {
+      "title": "Đăng xuất khi còn thư chưa gửi?",
+      "message": "{count, plural, other {Có # thư chưa được gửi.}} Đăng xuất sẽ xóa chúng.",
+      "confirm": "Đăng xuất",
+      "lost": "Các thư này chưa được gửi và đã bị xóa khi bạn bị đăng xuất: {subjects}"
+    }
+  },
   "deep_link": {
     "message_not_found": "Thư này không còn nữa.",
     "thread_not_found": "Cuộc trò chuyện này không còn tồn tại nữa.",

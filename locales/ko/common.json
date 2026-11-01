@@ -5637,6 +5637,59 @@
     "ready": "{appName}의 새 버전이 준비되었습니다.",
     "reload": "새로고침"
   },
+  "offline": {
+    "settings": {
+      "title": "오프라인",
+      "description": "연결 없이도 이 기기에서 메일을 읽고 쓸 수 있습니다.",
+      "keep_label": "이 기기에 메일 보관",
+      "keep_description": "받은편지함과 연 폴더의 최근 30일 메일을 최대 250MB까지 이 브라우저에 암호화해 보관합니다. 오프라인에서도 메일을 읽고, 플래그를 지정하고, 이동할 수 있으며, 작성한 메일은 보낼편지함에서 대기합니다. 로그아웃하면 모두 삭제됩니다.",
+      "warning": "이 브라우저 프로필을 사용할 수 있는 사람은 누구나 이 메일을 읽을 수 있습니다. 본인 기기에서만 켜고 디스크 암호화를 사용하세요.",
+      "forbidden": "조직에서 기기에 메일을 보관하는 것을 허용하지 않습니다.",
+      "unsupported": "이 브라우저는 오프라인용으로 메일을 보관할 수 없습니다.",
+      "syncing": "이 기기에 메일을 저장하는 중…",
+      "usage": "이 기기에서 {size}",
+      "usage_updated": "이 기기에서 {size}, {time} 업데이트됨",
+      "off_confirm_title": "오프라인 모드를 끄시겠습니까?",
+      "off_confirm_message": "{count, plural, other {보낼편지함에 보내지 않은 메시지가 #개 있습니다.}} 끄면 이 메시지와 이 기기에 보관한 메일이 삭제됩니다.",
+      "off_confirm": "끄기"
+    },
+    "outbox": {
+      "title": "보낼편지함",
+      "description": "오프라인에서 작성한 메시지입니다. 이 기기가 다시 온라인이 되면 전송됩니다.",
+      "empty": "전송을 기다리는 메시지가 없습니다.",
+      "no_subject": "(제목 없음)",
+      "to": "받는 사람: {recipients}",
+      "status_waiting": "연결 대기 중",
+      "status_sending": "전송 중",
+      "status_failed": "보낼 수 없음: {error}",
+      "status_uncertain": "전송 중에 연결이 끊어졌습니다. 다시 보내기 전에 보낸편지함을 확인하세요.",
+      "retry": "다시 보내기",
+      "delete": "삭제",
+      "delete_confirm_title": "이 메시지를 삭제하시겠습니까?",
+      "delete_confirm_message": "전송되지 않았으며 되돌릴 수 없습니다.",
+      "changes": "읽음, 플래그, 폴더 {count, plural, other {변경 #건}}은 다시 온라인이 되면 전송됩니다."
+    },
+    "banner": {
+      "offline": "오프라인 상태입니다. 이 기기에 보관한 메일이 표시됩니다. 변경하거나 작성한 내용은 다시 온라인이 되면 전송됩니다.",
+      "outbox": "보낼편지함에 {count, plural, other {#개}}"
+    },
+    "toast": {
+      "queued": "보낼편지함에 저장했습니다. 다시 온라인이 되면 전송됩니다.",
+      "sent": "보낼편지함에서 보냄: {subject}",
+      "send_failed": "보낼편지함의 메시지를 보낼 수 없습니다: {subject}",
+      "refused_delete": "영구 삭제하려면 연결이 필요합니다. 온라인이 되면 다시 시도하세요.",
+      "refused_other": "이 작업에는 연결이 필요합니다. 온라인이 되면 다시 시도하세요.",
+      "forbidden": "조직에서 오프라인 모드를 껐습니다. 이 기기에 보관한 메일이 삭제되었습니다.",
+      "back_online": "다시 온라인입니다. 새로고침해서 로그인하고 대기 중인 항목을 보내세요.",
+      "reload": "새로고침"
+    },
+    "signout": {
+      "title": "보내지 않은 메시지가 있는데 로그아웃하시겠습니까?",
+      "message": "{count, plural, other {메시지 #개가 전송되지 않았습니다.}} 로그아웃하면 삭제됩니다.",
+      "confirm": "로그아웃",
+      "lost": "다음 메시지는 전송되지 않았으며 로그아웃 시 삭제되었습니다: {subjects}"
+    }
+  },
   "deep_link": {
     "message_not_found": "이 메시지를 더 이상 사용할 수 없습니다.",
     "thread_not_found": "이 대화를 더 이상 사용할 수 없습니다.",

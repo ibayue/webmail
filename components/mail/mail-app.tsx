@@ -2280,7 +2280,8 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
 
       // Delayed sends get the undo toast instead; a filing error or a refused
       // recipient already warned.
-      if (!result.filingError && !result.rejectedRecipients?.length) toast.success(t('notifications.email_sent'));
+      // A message kept in the offline outbox said so itself (#523).
+      if (!result.filingError && !result.rejectedRecipients?.length && !result.queued) toast.success(t('notifications.email_sent'));
 
       // Refresh the current mailbox to update the UI
       if (!isScheduledView) {
@@ -4179,7 +4180,8 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       threading?.references,
       delayedUntil,
       undefined,
-      labelled.labelHeaders ? { labelHeaders: labelled.labelHeaders } : undefined,
+      // Every step ran, so offline mode may keep the reply in its outbox (#523).
+      { ...(labelled.labelHeaders ? { labelHeaders: labelled.labelHeaders } : {}), outbox: true },
     );
     // As after the composer's send: the server refused some recipients, held
     // reply or not, and nothing else would say they never get it.
@@ -4241,7 +4243,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       return true;
     }
 
-    if (!refused) toast.success(t('notifications.email_sent'));
+    if (!refused && !result.queued) toast.success(t('notifications.email_sent'));
 
     // The reply is out: a failed refresh from here on must not reach the
     // quick-reply box, which would report the send as failed and invite a

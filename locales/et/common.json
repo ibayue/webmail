@@ -5637,6 +5637,59 @@
     "ready": "{appName} uus versioon on valmis.",
     "reload": "Laadi uuesti"
   },
+  "offline": {
+    "settings": {
+      "title": "Võrguta",
+      "description": "Loe ja kirjuta selles seadmes kirju ilma ühenduseta.",
+      "keep_label": "Hoia kirju selles seadmes",
+      "keep_description": "Hoiab sinu postkasti ja avatud kaustade viimase 30 päeva kirjad, kuni 250 MB, krüptitult selles brauseris. Võrguta saad kirju lugeda, märgistada ja teisaldada ning see, mida kirjutad, ootab väljuvate kirjade kastis. Välja logides eemaldatakse kõik.",
+      "warning": "Igaüks, kes saab seda brauseriprofiili kasutada, saab neid kirju lugeda. Lülita see sisse ainult oma seadmes ja kasuta kettakrüptimist.",
+      "forbidden": "Sinu organisatsioon ei luba kirju seadmetes hoida.",
+      "unsupported": "See brauser ei saa kirju võrguta kasutamiseks hoida.",
+      "syncing": "Kirjade salvestamine sellesse seadmesse…",
+      "usage": "{size} selles seadmes",
+      "usage_updated": "{size} selles seadmes, uuendatud {time}",
+      "off_confirm_title": "Kas lülitada võrguta režiim välja?",
+      "off_confirm_message": "{count, plural, one {# kiri väljuvate kirjade kastis on saatmata.} other {# kirja väljuvate kirjade kastis on saatmata.}} Väljalülitamine kustutab need koos selles seadmes hoitud kirjadega.",
+      "off_confirm": "Lülita välja"
+    },
+    "outbox": {
+      "title": "Väljuvad",
+      "description": "Võrguta kirjutatud kirjad. Need saadetakse, kui seade on jälle võrgus.",
+      "empty": "Midagi ei oota saatmist.",
+      "no_subject": "(teemata)",
+      "to": "Saaja: {recipients}",
+      "status_waiting": "Ootab ühendust",
+      "status_sending": "Saatmisel",
+      "status_failed": "Ei saanud saata: {error}",
+      "status_uncertain": "Ühendus katkes saatmise ajal. Vaata enne uuesti saatmist kausta Saadetud.",
+      "retry": "Saada uuesti",
+      "delete": "Kustuta",
+      "delete_confirm_title": "Kas kustutada see kiri?",
+      "delete_confirm_message": "Seda pole saadetud ja seda ei saa taastada.",
+      "changes": "{count, plural, one {# muudatus} other {# muudatust}} loetuse, märgiste või kaustade kohta saadetakse, kui oled jälle võrgus."
+    },
+    "banner": {
+      "offline": "Oled võrguta. Näed selles seadmes hoitud kirju. Mida muudad või kirjutad, saadetakse, kui oled jälle võrgus.",
+      "outbox": "{count, plural, one {# kiri} other {# kirja}} väljuvate kirjade kastis"
+    },
+    "toast": {
+      "queued": "Salvestatud väljuvate kirjade kasti. See saadetakse, kui oled jälle võrgus.",
+      "sent": "Saadetud väljuvate kirjade kastist: {subject}",
+      "send_failed": "Väljuvate kirjade kasti kirja ei saanud saata: {subject}",
+      "refused_delete": "Lõplik kustutamine vajab ühendust. Proovi uuesti, kui oled võrgus.",
+      "refused_other": "Selleks on vaja ühendust. Proovi uuesti, kui oled võrgus.",
+      "forbidden": "Sinu organisatsioon lülitas võrguta režiimi välja. Selles seadmes hoitud kirjad eemaldati.",
+      "back_online": "Oled jälle võrgus. Laadi uuesti, et sisse logida ja ootav saata.",
+      "reload": "Laadi uuesti"
+    },
+    "signout": {
+      "title": "Kas logida välja saatmata kirjadega?",
+      "message": "{count, plural, one {# kiri on saatmata.} other {# kirja on saatmata.}} Välja logimine kustutab need.",
+      "confirm": "Logi välja",
+      "lost": "Need kirjad jäid saatmata ja kustutati väljalogimisel: {subjects}"
+    }
+  },
   "deep_link": {
     "message_not_found": "See sõnum ei ole enam saadaval.",
     "thread_not_found": "See vestlus ei ole enam saadaval.",

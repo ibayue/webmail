@@ -19,7 +19,7 @@ import { replaceWindowLocation, getPathPrefix, getLocaleFromPath, apiFetch } fro
 import { isEmbedded, notifyParent } from '@/lib/iframe-bridge';
 import { snapshotAccount, restoreAccount, clearAllStores, evictAccount, evictAll, forgetAccountRows } from '@/lib/account-state-manager';
 import { clearAllPluginStorage, clearPluginStorageForAccount } from '@/lib/plugin-sandbox/storage-scope';
-import { broadcastSignOut, onSignedOutElsewhere, purgeSignedOutData, runBeforeSignOut } from '@/lib/sign-out-cleanup';
+import { broadcastSignOut, onSignedOutElsewhere, passSignOutGates, purgeSignedOutData, runBeforeSignOut } from '@/lib/sign-out-cleanup';
 import { forgetPrincipals } from '@/lib/delegation/known-principals';
 import { useSearchHistoryStore } from './search-history-store';
 import { useCalendarNotificationStore } from './calendar-notification-store';
@@ -1309,6 +1309,25 @@ function forgetCalendarSubscriptions(client: IJMAPClient): void {
   }
 }
 
+/**
+ * A client for an account that couldn't be restored because the server
+ * can't be reached, from the session kept with its offline data (#523);
+ * null without offline mode for that account. Loaded on demand: offline
+ * mode imports this store.
+ */
+async function startOfflineClient(accountId: string, serverUrl: string, username: string): Promise<JMAPClient | null> {
+  if (IS_LITE) return null;
+  try {
+    const offline = await import('@/lib/offline/offline-mode');
+    const session = await offline.offlineSessionFor(accountId);
+    if (!session) return null;
+    offline.markStartedOffline();
+    return JMAPClient.fromOfflineSession(serverUrl, username, session);
+  } catch {
+    return null;
+  }
+}
+
 function performFullLogout(set: (state: Partial<AuthState>) => void): void {
   useSettingsStore.getState().disableSync();
   // With settings sync on, the local settings and templates are a copy of the
@@ -2262,6 +2281,10 @@ export const useAuthStore = create<AuthState>()(
         const userInitiated = options?.endProviderSession !== false;
         const endProviderSession = userInitiated && !wasDemoMode && shouldEndProviderSession(account);
 
+        // Signing out on purpose may be stopped by the user (unsent mail in
+        // the offline outbox would be lost); an automatic one may not.
+        if (userInitiated && !(await passSignOutGates(accountId ?? 'all'))) return;
+
         await beforeLogoutHooks(accountId ?? 'all');
 
         // From here on nothing may renew this slot's session; the cleanup
@@ -2425,6 +2448,7 @@ export const useAuthStore = create<AuthState>()(
       },
 
       logoutAll: async (options) => {
+        if (options?.endProviderSession !== false && !(await passSignOutGates('all'))) return;
         await beforeLogoutHooks('all');
 
         const accountStore = useAccountStore.getState();
@@ -2848,6 +2872,15 @@ export const useAuthStore = create<AuthState>()(
               // treatment as the rate-limit case above; only a definitive
               // rejection below evicts.
               if (isTransientAuthError(err)) {
+                // Offline mode (#523): with this account's mail kept on the
+                // device, start from it. The client answers from the device
+                // only; a reload once the server is back signs in as usual.
+                const offlineClient = await startOfflineClient(account.id, account.serverUrl, account.username);
+                if (offlineClient) {
+                  clients.set(account.id, offlineClient);
+                  accountStore.updateAccount(account.id, { isConnected: true, hasError: false });
+                  return;
+                }
                 accountStore.updateAccount(account.id, {
                   isConnected: false,
                   hasError: true,

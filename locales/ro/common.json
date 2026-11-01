@@ -5637,6 +5637,59 @@
     "ready": "O versiune nouă de {appName} este gata.",
     "reload": "Reîncarcă"
   },
+  "offline": {
+    "settings": {
+      "title": "Offline",
+      "description": "Citiți și scrieți e-mailuri pe acest dispozitiv fără conexiune.",
+      "keep_label": "Păstrează e-mailurile pe acest dispozitiv",
+      "keep_description": "Păstrează ultimele 30 de zile din Inbox și din dosarele pe care le deschideți, până la 250 MB, criptate în acest browser. Offline puteți citi, marca și muta e-mailuri, iar ce scrieți așteaptă în Outbox. La deconectare se șterge totul.",
+      "warning": "Oricine poate folosi acest profil de browser poate citi aceste e-mailuri. Activați opțiunea doar pe propriul dispozitiv și folosiți criptarea discului.",
+      "forbidden": "Organizația dvs. nu permite păstrarea e-mailurilor pe dispozitive.",
+      "unsupported": "Acest browser nu poate păstra e-mailuri pentru folosire offline.",
+      "syncing": "Se salvează e-mailurile pe acest dispozitiv…",
+      "usage": "{size} pe acest dispozitiv",
+      "usage_updated": "{size} pe acest dispozitiv, actualizat {time}",
+      "off_confirm_title": "Dezactivați modul offline?",
+      "off_confirm_message": "{count, plural, one {# mesaj din Outbox nu a fost trimis.} few {# mesaje din Outbox nu au fost trimise.} other {# de mesaje din Outbox nu au fost trimise.}} Dezactivarea le șterge, împreună cu e-mailurile păstrate pe acest dispozitiv.",
+      "off_confirm": "Dezactivează"
+    },
+    "outbox": {
+      "title": "Outbox",
+      "description": "Mesajele scrise offline. Sunt trimise când dispozitivul este din nou online.",
+      "empty": "Nimic nu așteaptă să fie trimis.",
+      "no_subject": "(fără subiect)",
+      "to": "Către: {recipients}",
+      "status_waiting": "Așteaptă o conexiune",
+      "status_sending": "Se trimite",
+      "status_failed": "Nu a putut fi trimis: {error}",
+      "status_uncertain": "Conexiunea s-a întrerupt în timpul trimiterii. Verificați Trimise înainte să îl trimiteți din nou.",
+      "retry": "Trimite din nou",
+      "delete": "Șterge",
+      "delete_confirm_title": "Ștergeți acest mesaj?",
+      "delete_confirm_message": "Nu a fost trimis și nu poate fi recuperat.",
+      "changes": "{count, plural, one {# modificare} few {# modificări} other {# de modificări}} la citit, marcaje sau dosare vor fi trimise când sunteți din nou online."
+    },
+    "banner": {
+      "offline": "Sunteți offline. Vedeți e-mailurile păstrate pe acest dispozitiv. Ce modificați sau scrieți este trimis când sunteți din nou online.",
+      "outbox": "{count, plural, one {# mesaj} few {# mesaje} other {# de mesaje}} în Outbox"
+    },
+    "toast": {
+      "queued": "Salvat în Outbox. Va fi trimis când sunteți din nou online.",
+      "sent": "Trimis din Outbox: {subject}",
+      "send_failed": "Un mesaj din Outbox nu a putut fi trimis: {subject}",
+      "refused_delete": "Ștergerea definitivă necesită o conexiune. Încercați din nou când sunteți online.",
+      "refused_other": "Pentru asta este nevoie de conexiune. Încercați din nou când sunteți online.",
+      "forbidden": "Organizația dvs. a dezactivat modul offline. E-mailurile păstrate pe acest dispozitiv au fost eliminate.",
+      "back_online": "Sunteți din nou online. Reîncărcați pentru a vă conecta și a trimite ce așteaptă.",
+      "reload": "Reîncarcă"
+    },
+    "signout": {
+      "title": "Vă deconectați cu mesaje netrimise?",
+      "message": "{count, plural, one {# mesaj nu a fost trimis.} few {# mesaje nu au fost trimise.} other {# de mesaje nu au fost trimise.}} Deconectarea le șterge.",
+      "confirm": "Deconectare",
+      "lost": "Aceste mesaje nu au fost trimise și au fost șterse la deconectare: {subjects}"
+    }
+  },
   "deep_link": {
     "message_not_found": "Acest mesaj nu mai este disponibil.",
     "thread_not_found": "Această conversație nu mai este disponibilă.",

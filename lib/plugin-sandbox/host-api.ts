@@ -4,6 +4,8 @@
 
 import type { AppInfoView, InstalledPlugin, Permission } from '../plugin-types';
 import { labelRawSend } from '@/lib/outgoing/classification-raw';
+import { composeTakeoverOpen } from '@/lib/outgoing/compose-takeover';
+import { getOutboxHooks } from '@/lib/offline/outbox-hooks';
 import { fetchConfig } from '@/hooks/use-config';
 import { IS_LITE } from '../lite';
 import { downloadAllowed, saveBlobAs } from '../download-guard';
@@ -840,6 +842,8 @@ async function doJmapSendRaw(
     identityId,
     opts?.delayedUntil,
     opts?.envelopeRecipients,
+    // Completing the composer's send: offline mode may keep it (#523).
+    { outbox: composeTakeoverOpen() },
   );
 }
 
@@ -869,6 +873,12 @@ async function doJmapSubmitRaw(
   copy.set(view);
   const labelled = labelRawSend(copy, identityId, opts?.labelToken);
   const blob = new Blob([labelled.buffer as ArrayBuffer], { type: 'message/rfc822' });
+
+  // Completing the composer's send while offline: kept in the outbox (#523).
+  const outbox = composeTakeoverOpen() ? getOutboxHooks() : null;
+  if (outbox?.shouldQueue(client)) {
+    return outbox.queueRaw(client, blob, { identityId, delayedUntil: opts?.delayedUntil, envelopeRecipients: opts?.envelopeRecipients, submitOnly: true });
+  }
 
   return client.submitRawEmail(
     blob,

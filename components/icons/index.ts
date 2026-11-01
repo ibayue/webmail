@@ -78,6 +78,7 @@ export {
   IconClock as Clock,
   IconClockHour3 as Clock3,
   IconCloud as Cloud,
+  IconCloudOff as CloudOff,
   IconCode as Code,
   IconColumns3 as Columns3,
   IconCopy as Copy,

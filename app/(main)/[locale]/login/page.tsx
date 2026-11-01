@@ -183,6 +183,7 @@ function LoginPageContent() {
   const router = useRouter();
   const t = useTranslations("login");
   const tSessionLimits = useTranslations("session_limits");
+  const tOffline = useTranslations("offline");
   const tTheme = useTranslations("settings.appearance.theme");
   const params = useParams();
   const searchParams = useSearchParams();
@@ -1418,6 +1419,11 @@ function LoginPageContent() {
                     {(sessionEnd?.draftsUnsaved || expiredDraftsUnsaved) && (
                       <span className="block mt-1" data-testid="session-drafts-not-saved">{tSessionLimits("drafts_not_saved")}</span>
                     )}
+                    {sessionEnd?.outboxLost?.length ? (
+                      <span className="block mt-1 [overflow-wrap:anywhere]" data-testid="session-outbox-lost">
+                        {tOffline("signout.lost", { subjects: sessionEnd.outboxLost.map((s) => s || tOffline("outbox.no_subject")).join(", ") })}
+                      </span>
+                    ) : null}
                   </p>
                   <button
                     type="button"

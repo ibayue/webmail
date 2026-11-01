@@ -5637,6 +5637,59 @@
     "ready": "Je pripravená nová verzia aplikácie {appName}.",
     "reload": "Načítať znova"
   },
+  "offline": {
+    "settings": {
+      "title": "Offline",
+      "description": "Čítajte a píšte poštu na tomto zariadení bez pripojenia.",
+      "keep_label": "Uchovávať poštu na tomto zariadení",
+      "keep_description": "Uchováva posledných 30 dní doručenej pošty a priečinkov, ktoré otvoríte, až 250 MB, zašifrované v tomto prehliadači. Offline môžete poštu čítať, označovať a presúvať a to, čo napíšete, čaká na odoslanie. Odhlásenie všetko odstráni.",
+      "warning": "Ktokoľvek, kto môže používať tento profil prehliadača, si môže túto poštu prečítať. Zapnite to len na svojom zariadení a používajte šifrovanie disku.",
+      "forbidden": "Vaša organizácia nepovoľuje uchovávať poštu na zariadeniach.",
+      "unsupported": "Tento prehliadač nemôže uchovávať poštu na prácu offline.",
+      "syncing": "Ukladanie pošty do tohto zariadenia…",
+      "usage": "{size} na tomto zariadení",
+      "usage_updated": "{size} na tomto zariadení, aktualizované {time}",
+      "off_confirm_title": "Vypnúť režim offline?",
+      "off_confirm_message": "{count, plural, one {# správa na odoslanie nebola odoslaná.} few {# správy na odoslanie neboli odoslané.} many {# správy na odoslanie nebolo odoslaných.} other {# správ na odoslanie nebolo odoslaných.}} Vypnutím sa vymažú spolu s poštou uchovanou na tomto zariadení.",
+      "off_confirm": "Vypnúť"
+    },
+    "outbox": {
+      "title": "Na odoslanie",
+      "description": "Správy napísané offline. Odošlú sa, keď bude zariadenie znova online.",
+      "empty": "Nič nečaká na odoslanie.",
+      "no_subject": "(bez predmetu)",
+      "to": "Komu: {recipients}",
+      "status_waiting": "Čaká na pripojenie",
+      "status_sending": "Odosiela sa",
+      "status_failed": "Nedá sa odoslať: {error}",
+      "status_uncertain": "Pripojenie sa pri odosielaní prerušilo. Kým ju odošlete znova, pozrite sa do Odoslaných.",
+      "retry": "Odoslať znova",
+      "delete": "Vymazať",
+      "delete_confirm_title": "Vymazať túto správu?",
+      "delete_confirm_message": "Nebola odoslaná a nedá sa obnoviť.",
+      "changes": "{count, plural, one {# zmena} few {# zmeny} many {# zmeny} other {# zmien}} prečítania, príznakov alebo priečinkov sa odošle, keď budete znova online."
+    },
+    "banner": {
+      "offline": "Ste offline. Vidíte poštu uchovanú na tomto zariadení. Čo zmeníte alebo napíšete, sa odošle, keď budete znova online.",
+      "outbox": "{count, plural, one {# správa} few {# správy} many {# správy} other {# správ}} na odoslanie"
+    },
+    "toast": {
+      "queued": "Uložené na odoslanie. Odošle sa, keď budete znova online.",
+      "sent": "Odoslané z fronty na odoslanie: {subject}",
+      "send_failed": "Správu na odoslanie sa nepodarilo odoslať: {subject}",
+      "refused_delete": "Trvalé vymazanie vyžaduje pripojenie. Skúste to znova, keď budete online.",
+      "refused_other": "Na to je potrebné pripojenie. Skúste to znova, keď budete online.",
+      "forbidden": "Vaša organizácia vypla režim offline. Pošta uchovaná na tomto zariadení bola odstránená.",
+      "back_online": "Ste znova online. Načítajte stránku znova, aby ste sa prihlásili a odoslali, čo čaká.",
+      "reload": "Načítať znova"
+    },
+    "signout": {
+      "title": "Odhlásiť sa s neodoslanými správami?",
+      "message": "{count, plural, one {# správa nebola odoslaná.} few {# správy neboli odoslané.} many {# správy nebolo odoslaných.} other {# správ nebolo odoslaných.}} Odhlásením sa vymažú.",
+      "confirm": "Odhlásiť sa",
+      "lost": "Tieto správy neboli odoslané a pri odhlásení boli vymazané: {subjects}"
+    }
+  },
   "deep_link": {
     "message_not_found": "Táto správa už nie je dostupná.",
     "thread_not_found": "Táto konverzácia už nie je dostupná.",

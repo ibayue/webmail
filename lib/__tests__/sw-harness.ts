@@ -29,7 +29,7 @@ export class FakeCaches {
   }
 }
 
-export function loadWorker(opts: { buildId: string; caches: FakeCaches; clients: Array<{ id: string }> }) {
+export function loadWorker(opts: { buildId: string; caches: FakeCaches; clients: Array<{ id: string }>; fetch?: (input: unknown) => Promise<Response> }) {
   const listeners = new Map<string, (event: unknown) => void>();
   let skipped = 0;
   const self = {
@@ -39,12 +39,18 @@ export function loadWorker(opts: { buildId: string; caches: FakeCaches; clients:
     clients: { claim: async () => {}, matchAll: async () => opts.clients },
     registration: { showNotification: async () => {}, getNotifications: async () => [] },
   };
-  const context = vm.createContext({ self, caches: opts.caches, fetch: async () => { throw new TypeError('offline'); }, URL, URLSearchParams, Request, Response, Headers, Date, console, AbortController, setTimeout, clearTimeout });
+  const context = vm.createContext({ self, caches: opts.caches, fetch: opts.fetch ?? (async () => { throw new TypeError('offline'); }), URL, URLSearchParams, Request, Response, Headers, Date, console, AbortController, setTimeout, clearTimeout });
   vm.runInContext(SW_SOURCE, context);
   async function dispatch(type: string, event: Record<string, unknown> = {}) {
     const waits: Promise<unknown>[] = [];
     listeners.get(type)?.({ ...event, waitUntil: (p: Promise<unknown>) => waits.push(p) });
     await Promise.all(waits);
   }
-  return { dispatch, listeners, skipped: () => skipped };
+  /** A fetch event: what the worker answered, or null when it left the request to the network. */
+  async function request(req: { url: string; method?: string; mode?: string }): Promise<Response | null> {
+    let answer: Promise<Response> | null = null;
+    listeners.get('fetch')?.({ request: { method: 'GET', mode: 'cors', ...req }, respondWith: (p: Promise<Response>) => { answer = p; } });
+    return answer ? await answer : null;
+  }
+  return { dispatch, listeners, request, skipped: () => skipped };
 }

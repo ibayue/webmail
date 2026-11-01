@@ -5637,6 +5637,59 @@
     "ready": "Une nouvelle version de {appName} est prête.",
     "reload": "Recharger"
   },
+  "offline": {
+    "settings": {
+      "title": "Hors ligne",
+      "description": "Lire et écrire des e-mails sur cet appareil sans connexion.",
+      "keep_label": "Garder les e-mails sur cet appareil",
+      "keep_description": "Garde les 30 derniers jours de votre boîte de réception et des dossiers que vous ouvrez, jusqu'à 250 Mo, chiffrés dans ce navigateur. Hors ligne, vous pouvez lire, signaler et déplacer des e-mails, et ce que vous écrivez attend dans la boîte d'envoi. La déconnexion supprime tout.",
+      "warning": "Toute personne qui peut utiliser ce profil de navigateur peut lire ces e-mails. Activez cette option uniquement sur votre propre appareil et chiffrez son disque.",
+      "forbidden": "Votre organisation ne permet pas de garder les e-mails sur les appareils.",
+      "unsupported": "Ce navigateur ne peut pas garder d'e-mails pour une utilisation hors ligne.",
+      "syncing": "Enregistrement de vos e-mails sur cet appareil…",
+      "usage": "{size} sur cet appareil",
+      "usage_updated": "{size} sur cet appareil, mis à jour {time}",
+      "off_confirm_title": "Désactiver le mode hors ligne ?",
+      "off_confirm_message": "{count, plural, one {# message de la boîte d'envoi n'a pas été envoyé.} other {# messages de la boîte d'envoi n'ont pas été envoyés.}} La désactivation les supprime, ainsi que les e-mails gardés sur cet appareil.",
+      "off_confirm": "Désactiver"
+    },
+    "outbox": {
+      "title": "Boîte d'envoi",
+      "description": "Les messages écrits hors ligne. Ils sont envoyés dès que cet appareil est de nouveau en ligne.",
+      "empty": "Rien n'attend d'être envoyé.",
+      "no_subject": "(sans objet)",
+      "to": "À : {recipients}",
+      "status_waiting": "En attente d'une connexion",
+      "status_sending": "En cours d'envoi",
+      "status_failed": "Envoi impossible : {error}",
+      "status_uncertain": "La connexion a été coupée pendant l'envoi. Vérifiez les Envoyés avant de l'envoyer à nouveau.",
+      "retry": "Renvoyer",
+      "delete": "Supprimer",
+      "delete_confirm_title": "Supprimer ce message ?",
+      "delete_confirm_message": "Il n'a pas été envoyé et ne pourra pas être récupéré.",
+      "changes": "{count, plural, one {# modification} other {# modifications}} (lu, indicateurs ou dossiers) seront envoyées dès que vous serez en ligne."
+    },
+    "banner": {
+      "offline": "Vous êtes hors ligne. Vous voyez les e-mails gardés sur cet appareil. Ce que vous modifiez ou écrivez est envoyé dès que vous êtes de nouveau en ligne.",
+      "outbox": "{count, plural, one {# message} other {# messages}} dans la boîte d'envoi"
+    },
+    "toast": {
+      "queued": "Enregistré dans la boîte d'envoi. Il sera envoyé dès que vous serez en ligne.",
+      "sent": "Envoyé depuis la boîte d'envoi : {subject}",
+      "send_failed": "Un message de la boîte d'envoi n'a pas pu être envoyé : {subject}",
+      "refused_delete": "La suppression définitive demande une connexion. Réessayez quand vous serez en ligne.",
+      "refused_other": "Cette action demande une connexion. Réessayez quand vous serez en ligne.",
+      "forbidden": "Votre organisation a désactivé le mode hors ligne. Les e-mails gardés sur cet appareil ont été supprimés.",
+      "back_online": "Vous êtes de nouveau en ligne. Rechargez pour vous connecter et envoyer ce qui attend.",
+      "reload": "Recharger"
+    },
+    "signout": {
+      "title": "Se déconnecter avec des messages non envoyés ?",
+      "message": "{count, plural, one {# message n'a pas été envoyé.} other {# messages n'ont pas été envoyés.}} La déconnexion les supprime.",
+      "confirm": "Se déconnecter",
+      "lost": "Ces messages n'ont pas été envoyés et ont été supprimés lors de votre déconnexion : {subjects}"
+    }
+  },
   "deep_link": {
     "message_not_found": "Ce message n'est plus disponible.",
     "thread_not_found": "Cette conversation n'est plus disponible.",

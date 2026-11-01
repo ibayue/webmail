@@ -5637,6 +5637,59 @@
     "ready": "Ir gatava jauna {appName} versija.",
     "reload": "Pārlādēt"
   },
+  "offline": {
+    "settings": {
+      "title": "Bezsaistē",
+      "description": "Lasiet un rakstiet e-pastu šajā ierīcē bez savienojuma.",
+      "keep_label": "Glabāt e-pastu šajā ierīcē",
+      "keep_description": "Glabā iesūtnes un jūsu atvērto mapju pēdējās 30 dienas, līdz 250 MB, šifrētas šajā pārlūkā. Bezsaistē varat lasīt, atzīmēt un pārvietot vēstules, un tas, ko rakstāt, gaida izsūtnē. Izrakstoties viss tiek noņemts.",
+      "warning": "Ikviens, kas var izmantot šo pārlūka profilu, var lasīt šīs vēstules. Ieslēdziet to tikai savā ierīcē un izmantojiet diska šifrēšanu.",
+      "forbidden": "Jūsu organizācija neļauj glabāt e-pastu ierīcēs.",
+      "unsupported": "Šis pārlūks nevar glabāt e-pastu lietošanai bezsaistē.",
+      "syncing": "Jūsu e-pasts tiek saglabāts šajā ierīcē…",
+      "usage": "{size} šajā ierīcē",
+      "usage_updated": "{size} šajā ierīcē, atjaunināts {time}",
+      "off_confirm_title": "Izslēgt bezsaistes režīmu?",
+      "off_confirm_message": "{count, plural, zero {# vēstules izsūtnē nav nosūtītas.} one {# vēstule izsūtnē nav nosūtīta.} other {# vēstules izsūtnē nav nosūtītas.}} Izslēdzot tās tiek izdzēstas kopā ar šajā ierīcē glabāto e-pastu.",
+      "off_confirm": "Izslēgt"
+    },
+    "outbox": {
+      "title": "Izsūtne",
+      "description": "Vēstules, ko rakstījāt bezsaistē. Tās tiek nosūtītas, kad ierīce atkal ir tiešsaistē.",
+      "empty": "Nekas negaida nosūtīšanu.",
+      "no_subject": "(bez temata)",
+      "to": "Kam: {recipients}",
+      "status_waiting": "Gaida savienojumu",
+      "status_sending": "Tiek sūtīta",
+      "status_failed": "Neizdevās nosūtīt: {error}",
+      "status_uncertain": "Savienojums pārtrūka sūtīšanas laikā. Pirms sūtāt vēlreiz, pārbaudiet mapi Nosūtītās.",
+      "retry": "Sūtīt vēlreiz",
+      "delete": "Dzēst",
+      "delete_confirm_title": "Dzēst šo vēstuli?",
+      "delete_confirm_message": "Tā nav nosūtīta, un to nevar atgūt.",
+      "changes": "{count, plural, zero {# izmaiņas} one {# izmaiņa} other {# izmaiņas}} lasīšanas statusā, atzīmēs vai mapēs tiks nosūtītas, kad atkal būsiet tiešsaistē."
+    },
+    "banner": {
+      "offline": "Jūs esat bezsaistē. Redzat šajā ierīcē glabāto e-pastu. Ko maināt vai rakstāt, tiek nosūtīts, kad atkal būsiet tiešsaistē.",
+      "outbox": "{count, plural, zero {# vēstules} one {# vēstule} other {# vēstules}} izsūtnē"
+    },
+    "toast": {
+      "queued": "Saglabāta izsūtnē. Tā tiks nosūtīta, kad atkal būsiet tiešsaistē.",
+      "sent": "Nosūtīta no izsūtnes: {subject}",
+      "send_failed": "Neizdevās nosūtīt vēstuli no izsūtnes: {subject}",
+      "refused_delete": "Neatgriezeniskai dzēšanai vajag savienojumu. Mēģiniet vēlreiz, kad būsiet tiešsaistē.",
+      "refused_other": "Tam vajag savienojumu. Mēģiniet vēlreiz, kad būsiet tiešsaistē.",
+      "forbidden": "Jūsu organizācija izslēdza bezsaistes režīmu. Šajā ierīcē glabātais e-pasts tika noņemts.",
+      "back_online": "Jūs atkal esat tiešsaistē. Pārlādējiet, lai pierakstītos un nosūtītu gaidošo.",
+      "reload": "Pārlādēt"
+    },
+    "signout": {
+      "title": "Izrakstīties ar nenosūtītām vēstulēm?",
+      "message": "{count, plural, zero {# vēstules nav nosūtītas.} one {# vēstule nav nosūtīta.} other {# vēstules nav nosūtītas.}} Izrakstoties tās tiek izdzēstas.",
+      "confirm": "Izrakstīties",
+      "lost": "Šīs vēstules netika nosūtītas un tika izdzēstas, kad jūs izrakstījāt: {subjects}"
+    }
+  },
   "deep_link": {
     "message_not_found": "Šī ziņa vairs nav pieejama.",
     "thread_not_found": "Šī sarakste vairs nav pieejama.",

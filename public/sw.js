@@ -41,13 +41,196 @@ const SHELL_CACHE = SHELL_CACHE_PREFIX + BUILD_ID;
 const SW_STATE_CACHE = "bulwark-sw-state-v1";
 const CLIENT_BUILDS_KEY = "/__bulwark/client-builds";
 
-self.addEventListener("install", () => {
-  self.skipWaiting();
+const OFFLINE_SHELL_KEY = "/__bulwark/offline-shell";
+
+self.addEventListener("install", (event) => {
+  // With offline mode on, a tab may load a chunk of its build at any time,
+  // from this worker's caches. A new build's worker waits until those tabs
+  // are gone or one asks it to take over (its "Reload"); without offline
+  // mode nothing is cached and it takes over at once, as it always did.
+  event.waitUntil(readOfflineShell().then((on) => {
+    if (!on) return self.skipWaiting();
+    return self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((open) => {
+      if (open.length === 0) return self.skipWaiting();
+      return undefined;
+    });
+  }));
 });
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(Promise.all([self.clients.claim(), deleteStaleShellCaches()]));
 });
+
+// ---- Offline mode (#523): the app shell ----
+//
+// Only while a tab turned offline mode on (Settings > Offline). Then:
+// - pages of the app: network first; the answer is kept in this build's
+//   cache, and used when the network fails;
+// - /_next/static/: content-hashed files, from any build's cache first
+//   (an open tab of an older build still finds its chunks), else the
+//   network, kept in this build's cache;
+// - /api/config: network first, the last answer when offline.
+// Everything else, and everything while offline mode is off, goes to the
+// network untouched.
+
+// null until read from the state cache; true or false after.
+let offlineShellOn = null;
+
+async function readOfflineShell() {
+  if (offlineShellOn !== null) return offlineShellOn;
+  try {
+    const cache = await caches.open(SW_STATE_CACHE);
+    const response = await cache.match(OFFLINE_SHELL_KEY);
+    const data = response ? await response.json() : null;
+    offlineShellOn = !!(data && data.on === true);
+  } catch (_) {
+    offlineShellOn = false;
+  }
+  return offlineShellOn;
+}
+
+async function writeOfflineShell(on) {
+  offlineShellOn = on;
+  try {
+    const cache = await caches.open(SW_STATE_CACHE);
+    await cache.put(OFFLINE_SHELL_KEY, new Response(JSON.stringify({ on }), { headers: { "Content-Type": "application/json" } }));
+  } catch (_) {
+    // No Cache API: nothing is cached either.
+  }
+}
+
+// Read at start, so the fetch handler mostly knows synchronously.
+if (typeof caches !== "undefined" && caches && typeof caches.open === "function") {
+  readOfflineShell();
+}
+
+const APP_SECTIONS = new Set(["", "mail", "settings", "calendar", "contacts", "files", "pro", "apps"]);
+
+/** The page path inside the app ("/mail/inbox"), or null for anything that isn't a page of the app. */
+function appPagePath(url) {
+  if (url.origin !== self.location.origin) return null;
+  let path = url.pathname;
+  if (BASE_PATH) {
+    if (path !== BASE_PATH && !path.startsWith(BASE_PATH + "/")) return null;
+    path = path.slice(BASE_PATH.length) || "/";
+  }
+  const parts = path.split("/").filter(Boolean);
+  // An optional locale segment (/de/mail, /zh-TW/settings).
+  if (parts.length > 0 && /^[a-z]{2}(-[A-Za-z]{2,4})?$/.test(parts[0]) && !APP_SECTIONS.has(parts[0])) parts.shift();
+  return APP_SECTIONS.has(parts[0] || "") ? "/" + parts.join("/") : null;
+}
+
+function staticPath(url) {
+  if (url.origin !== self.location.origin) return false;
+  return url.pathname.startsWith(BASE_PATH + "/_next/static/");
+}
+
+/** Where a page of the app is kept: its address without the query. */
+function documentKey(url) {
+  return url.origin + url.pathname.replace(/\/+$/, "");
+}
+
+/** A page the cache has for this address: the page itself, its section, the app's start page. */
+async function cachedDocument(url) {
+  const path = appPagePath(url) || "/";
+  const section = "/" + (path.split("/").filter(Boolean)[0] || "");
+  const candidates = [documentKey(url), self.location.origin + BASE_PATH + (section === "/" ? "" : section), self.location.origin + BASE_PATH];
+  const own = await caches.open(SHELL_CACHE);
+  for (const key of candidates) {
+    const hit = await own.match(key);
+    if (hit) return hit;
+  }
+  for (const key of candidates) {
+    const hit = await caches.match(key);
+    if (hit) return hit;
+  }
+  return null;
+}
+
+async function respondWithDocument(request) {
+  const url = new URL(request.url);
+  try {
+    const response = await fetch(request);
+    const type = response.headers.get("content-type") || "";
+    if (response.ok && response.type === "basic" && !response.redirected && type.includes("text/html")) {
+      const copy = response.clone();
+      caches.open(SHELL_CACHE).then((cache) => cache.put(documentKey(url), copy)).catch(() => {});
+    }
+    return response;
+  } catch (error) {
+    const hit = await cachedDocument(url);
+    if (hit) return hit;
+    throw error;
+  }
+}
+
+async function respondWithStatic(request) {
+  const hit = await caches.match(request.url);
+  if (hit) return hit;
+  const response = await fetch(request);
+  if (response.ok && response.type === "basic") {
+    const copy = response.clone();
+    caches.open(SHELL_CACHE).then((cache) => cache.put(request.url, copy)).catch(() => {});
+  }
+  return response;
+}
+
+async function respondWithConfig(request) {
+  const key = self.location.origin + BASE_PATH + "/api/config";
+  try {
+    const response = await fetch(request);
+    if (response.ok) {
+      const copy = response.clone();
+      caches.open(SHELL_CACHE).then((cache) => cache.put(key, copy)).catch(() => {});
+    }
+    return response;
+  } catch (error) {
+    const hit = await caches.match(key);
+    if (hit) return hit;
+    throw error;
+  }
+}
+
+function offlineRoute(request) {
+  if (request.method !== "GET") return null;
+  const url = new URL(request.url);
+  if (request.mode === "navigate" && appPagePath(url) !== null) return respondWithDocument;
+  if (staticPath(url)) return respondWithStatic;
+  if (url.origin === self.location.origin && url.pathname === BASE_PATH + "/api/config") return respondWithConfig;
+  return null;
+}
+
+/** Keeps the files a tab names (this build's shell) in this build's cache. */
+async function precacheShell(urls) {
+  if (!Array.isArray(urls) || urls.length === 0) return;
+  const cache = await caches.open(SHELL_CACHE);
+  const wanted = urls.filter((u) => typeof u === "string");
+  for (let i = 0; i < wanted.length; i += 8) {
+    await Promise.all(wanted.slice(i, i + 8).map(async (u) => {
+      try {
+        const url = new URL(u, self.location.origin);
+        if (url.origin !== self.location.origin) return;
+        const key = appPagePath(url) !== null && !staticPath(url) ? documentKey(url) : url.href;
+        if (await cache.match(key)) return;
+        const response = await fetch(url.href, { credentials: "same-origin" });
+        if (response.ok && response.type === "basic" && !response.redirected) await cache.put(key, response);
+      } catch (_) {
+        // Fetched again when the page asks next time.
+      }
+    }));
+  }
+}
+
+async function setOfflineShell(on, urls) {
+  await writeOfflineShell(on);
+  if (on) {
+    await precacheShell(urls);
+    return;
+  }
+  // Off: nothing of the shell stays.
+  const keys = await caches.keys();
+  await Promise.all(keys.filter((key) => key.startsWith(SHELL_CACHE_PREFIX)).map((key) => caches.delete(key)));
+}
 
 async function readClientBuilds() {
   try {
@@ -104,7 +287,18 @@ async function deleteStaleShellCaches() {
   }
 }
 
-self.addEventListener("fetch", () => {});
+self.addEventListener("fetch", (event) => {
+  // Offline mode off (known): the network, untouched, as without a worker.
+  if (offlineShellOn === false) return;
+  const route = offlineRoute(event.request);
+  if (!route) return;
+  if (offlineShellOn === true) {
+    event.respondWith(route(event.request));
+    return;
+  }
+  // Not read yet (the worker just started): decide once it is.
+  event.respondWith(readOfflineShell().then((on) => (on ? route(event.request) : fetch(event.request))));
+});
 
 self.addEventListener("push", (event) => {
   event.waitUntil(handlePush(event));
@@ -123,6 +317,10 @@ self.addEventListener("message", (event) => {
   const data = event.data || {};
   if (data.type === "client-build") {
     event.waitUntil(recordClientBuild(event.source && event.source.id, data.buildId).then(deleteStaleShellCaches));
+    return;
+  }
+  if (data.type === "offline-shell") {
+    event.waitUntil(setOfflineShell(data.on === true, data.urls));
     return;
   }
   if (data.type === "skip-waiting") {

@@ -4,14 +4,31 @@
  */
 
 export type SessionEndReason =
-  | { kind: 'idle'; minutes: number; draftsUnsaved?: boolean }
-  | { kind: 'max'; hours: number; draftsUnsaved?: boolean };
+  | { kind: 'idle'; minutes: number; draftsUnsaved?: boolean; outboxLost?: string[] }
+  | { kind: 'max'; hours: number; draftsUnsaved?: boolean; outboxLost?: string[] };
 
 const KEY = 'session_end_reason';
 
 export function rememberSessionEnd(reason: SessionEndReason): void {
   try {
     window.sessionStorage.setItem(KEY, JSON.stringify(reason));
+  } catch {
+    /* storage unavailable */
+  }
+}
+
+/**
+ * Messages written offline that the automatic sign-out deleted unsent
+ * (offline mode, #523): their subjects, for the login page to name. Added
+ * to the reason the session timer left; a sign-out by the user (who was
+ * asked first) leaves none.
+ */
+export function noteOutboxLost(subjects: string[]): void {
+  try {
+    const raw = window.sessionStorage.getItem(KEY);
+    if (!raw || subjects.length === 0) return;
+    const reason = JSON.parse(raw) as Record<string, unknown>;
+    window.sessionStorage.setItem(KEY, JSON.stringify({ ...reason, outboxLost: subjects.slice(0, 20) }));
   } catch {
     /* storage unavailable */
   }
@@ -33,7 +50,11 @@ export function consumeSessionEnd(): SessionEndReason | null {
     window.sessionStorage.removeItem(KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as Record<string, unknown>;
-    const drafts = parsed.draftsUnsaved === true ? { draftsUnsaved: true } : {};
+    const lost = Array.isArray(parsed.outboxLost) ? parsed.outboxLost.filter((s): s is string => typeof s === 'string') : [];
+    const drafts = {
+      ...(parsed.draftsUnsaved === true ? { draftsUnsaved: true } : {}),
+      ...(lost.length ? { outboxLost: lost } : {}),
+    };
     if (parsed.kind === 'idle' && typeof parsed.minutes === 'number') return { kind: 'idle', minutes: parsed.minutes, ...drafts };
     if (parsed.kind === 'max' && typeof parsed.hours === 'number') return { kind: 'max', hours: parsed.hours, ...drafts };
     return null;

@@ -5637,6 +5637,59 @@
     "ready": "A new version of {appName} is ready.",
     "reload": "Reload"
   },
+  "offline": {
+    "settings": {
+      "title": "Offline",
+      "description": "Read and write mail on this device without a connection.",
+      "keep_label": "Keep mail on this device",
+      "keep_description": "Keeps the last 30 days of your Inbox and of the folders you open, up to 250 MB, encrypted in this browser. Offline you can read, flag and move mail, and what you write waits in the outbox. Signing out removes all of it.",
+      "warning": "Anyone who can use this browser profile can read this mail. Turn this on only on your own device and use disk encryption.",
+      "forbidden": "Your organisation doesn't allow keeping mail on devices.",
+      "unsupported": "This browser can't keep mail for offline use.",
+      "syncing": "Saving your mail on this device…",
+      "usage": "{size} on this device",
+      "usage_updated": "{size} on this device, updated {time}",
+      "off_confirm_title": "Turn off offline mode?",
+      "off_confirm_message": "{count, plural, one {# message in the outbox hasn't been sent.} other {# messages in the outbox haven't been sent.}} Turning this off deletes them and the mail kept on this device.",
+      "off_confirm": "Turn off"
+    },
+    "outbox": {
+      "title": "Outbox",
+      "description": "Messages you wrote offline. They're sent when this device is online again.",
+      "empty": "Nothing is waiting to be sent.",
+      "no_subject": "(no subject)",
+      "to": "To: {recipients}",
+      "status_waiting": "Waiting for a connection",
+      "status_sending": "Being sent",
+      "status_failed": "Couldn't be sent: {error}",
+      "status_uncertain": "The connection broke while sending. Check Sent before you send it again.",
+      "retry": "Send again",
+      "delete": "Delete",
+      "delete_confirm_title": "Delete this message?",
+      "delete_confirm_message": "It hasn't been sent, and it can't be brought back.",
+      "changes": "{count, plural, one {# change} other {# changes}} to read state, flags or folders will be sent when you're online again."
+    },
+    "banner": {
+      "offline": "You're offline. You see the mail kept on this device. What you change or write is sent when you're online again.",
+      "outbox": "{count, plural, one {# message} other {# messages}} in the outbox"
+    },
+    "toast": {
+      "queued": "Saved in the outbox. It's sent when you're online again.",
+      "sent": "Sent from the outbox: {subject}",
+      "send_failed": "A message in the outbox couldn't be sent: {subject}",
+      "refused_delete": "Deleting for good needs a connection. Try again when you're online.",
+      "refused_other": "This needs a connection. Try again when you're online.",
+      "forbidden": "Your organisation turned off offline mode. The mail kept on this device was removed.",
+      "back_online": "You're online again. Reload to sign in and send what's waiting.",
+      "reload": "Reload"
+    },
+    "signout": {
+      "title": "Sign out with unsent mail?",
+      "message": "{count, plural, one {# message hasn't been sent.} other {# messages haven't been sent.}} Signing out deletes them.",
+      "confirm": "Sign out",
+      "lost": "These messages weren't sent and were deleted when you were signed out: {subjects}"
+    }
+  },
   "deep_link": {
     "message_not_found": "This message is no longer available.",
     "thread_not_found": "This conversation is no longer available.",

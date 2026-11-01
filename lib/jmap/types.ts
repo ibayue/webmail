@@ -113,6 +113,11 @@ export interface Email {
 
 export interface SendEmailResult {
   scheduled: boolean;
+  /**
+   * Kept in the offline outbox (#523), not sent yet: it goes out once the
+   * server can be reached again. Nothing else is set then.
+   */
+  queued?: boolean;
   emailId?: string;
   emailSubmissionId?: string;
   sendAt?: string;

@@ -5637,6 +5637,59 @@
     "ready": "Nowa wersja {appName} jest gotowa.",
     "reload": "Odśwież"
   },
+  "offline": {
+    "settings": {
+      "title": "Offline",
+      "description": "Czytaj i pisz pocztę na tym urządzeniu bez połączenia.",
+      "keep_label": "Przechowuj pocztę na tym urządzeniu",
+      "keep_description": "Przechowuje ostatnie 30 dni skrzynki odbiorczej i otwieranych folderów, do 250 MB, zaszyfrowane w tej przeglądarce. Offline możesz czytać, oznaczać i przenosić wiadomości, a to, co napiszesz, czeka w skrzynce nadawczej. Wylogowanie usuwa wszystko.",
+      "warning": "Każdy, kto może używać tego profilu przeglądarki, może przeczytać tę pocztę. Włącz to tylko na własnym urządzeniu i używaj szyfrowania dysku.",
+      "forbidden": "Twoja organizacja nie pozwala przechowywać poczty na urządzeniach.",
+      "unsupported": "Ta przeglądarka nie może przechowywać poczty do pracy offline.",
+      "syncing": "Zapisywanie poczty na tym urządzeniu…",
+      "usage": "{size} na tym urządzeniu",
+      "usage_updated": "{size} na tym urządzeniu, zaktualizowano {time}",
+      "off_confirm_title": "Wyłączyć tryb offline?",
+      "off_confirm_message": "{count, plural, one {# wiadomość w skrzynce nadawczej nie została wysłana.} few {# wiadomości w skrzynce nadawczej nie zostały wysłane.} many {# wiadomości w skrzynce nadawczej nie zostało wysłanych.} other {# wiadomości w skrzynce nadawczej nie zostało wysłanych.}} Wyłączenie usuwa je razem z pocztą przechowywaną na tym urządzeniu.",
+      "off_confirm": "Wyłącz"
+    },
+    "outbox": {
+      "title": "Skrzynka nadawcza",
+      "description": "Wiadomości napisane offline. Zostaną wysłane, gdy urządzenie znów będzie online.",
+      "empty": "Nic nie czeka na wysłanie.",
+      "no_subject": "(bez tematu)",
+      "to": "Do: {recipients}",
+      "status_waiting": "Czeka na połączenie",
+      "status_sending": "Wysyłanie",
+      "status_failed": "Nie udało się wysłać: {error}",
+      "status_uncertain": "Połączenie zerwało się podczas wysyłania. Zajrzyj do Wysłanych, zanim wyślesz ją ponownie.",
+      "retry": "Wyślij ponownie",
+      "delete": "Usuń",
+      "delete_confirm_title": "Usunąć tę wiadomość?",
+      "delete_confirm_message": "Nie została wysłana i nie da się jej przywrócić.",
+      "changes": "{count, plural, one {# zmiana} few {# zmiany} many {# zmian} other {# zmiany}} przeczytania, flag lub folderów zostanie wysłana, gdy znów będziesz online."
+    },
+    "banner": {
+      "offline": "Jesteś offline. Widzisz pocztę przechowywaną na tym urządzeniu. To, co zmienisz lub napiszesz, zostanie wysłane, gdy znów będziesz online.",
+      "outbox": "{count, plural, one {# wiadomość} few {# wiadomości} many {# wiadomości} other {# wiadomości}} w skrzynce nadawczej"
+    },
+    "toast": {
+      "queued": "Zapisano w skrzynce nadawczej. Zostanie wysłana, gdy znów będziesz online.",
+      "sent": "Wysłano ze skrzynki nadawczej: {subject}",
+      "send_failed": "Nie udało się wysłać wiadomości ze skrzynki nadawczej: {subject}",
+      "refused_delete": "Trwałe usuwanie wymaga połączenia. Spróbuj ponownie, gdy będziesz online.",
+      "refused_other": "To wymaga połączenia. Spróbuj ponownie, gdy będziesz online.",
+      "forbidden": "Twoja organizacja wyłączyła tryb offline. Poczta przechowywana na tym urządzeniu została usunięta.",
+      "back_online": "Znów jesteś online. Odśwież, aby się zalogować i wysłać to, co czeka.",
+      "reload": "Odśwież"
+    },
+    "signout": {
+      "title": "Wylogować się z niewysłanymi wiadomościami?",
+      "message": "{count, plural, one {# wiadomość nie została wysłana.} few {# wiadomości nie zostały wysłane.} many {# wiadomości nie zostało wysłanych.} other {# wiadomości nie zostało wysłanych.}} Wylogowanie je usuwa.",
+      "confirm": "Wyloguj się",
+      "lost": "Te wiadomości nie zostały wysłane i zostały usunięte przy wylogowaniu: {subjects}"
+    }
+  },
   "deep_link": {
     "message_not_found": "Ta wiadomość nie jest już dostępna.",
     "thread_not_found": "Ta rozmowa nie jest już dostępna.",

@@ -113,6 +113,7 @@ import { wantsSignatureSeparator } from "@/lib/signature-delimiter";
 import { finalizeOutgoing, runPreSendChecks, type OutgoingContext } from "@/lib/outgoing/send-pipeline";
 import { classifyOutgoing, isLabelRequiredError, labelMissing, labelsPolicyFor, resolveLabel, type OriginalMessage } from "@/lib/outgoing/classification";
 import { beginLabelTakeover, endLabelTakeover } from "@/lib/outgoing/classification-raw";
+import { beginComposeTakeover, endComposeTakeover } from "@/lib/outgoing/compose-takeover";
 import { recipientsChanged, runPluginSendCheck, sendGuardMessageKey } from "@/lib/outgoing/plugin-send-check";
 import { externalRecipientsFor, inspectAttachments, sniffFile } from "@/lib/outgoing/send-check-payload";
 import { whenPolicySettled } from "@/stores/policy-store";
@@ -3707,10 +3708,12 @@ export function EmailComposer({
         ],
       };
       let pluginOutcome: Awaited<ReturnType<typeof emailHooks.onComposeSend.takeOver>>;
+      beginComposeTakeover();
       try {
         pluginOutcome = await emailHooks.onComposeSend.takeOver(composeSendRequest);
       } finally {
         endLabelTakeover(labelToken);
+        endComposeTakeover();
       }
       if (pluginOutcome === 'aborted') {
         // The plugin shows its own error, or the user cancelled its prompt.
