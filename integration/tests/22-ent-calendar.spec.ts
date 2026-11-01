@@ -1,6 +1,7 @@
 import { test, expect, type Browser, type Page } from '@playwright/test';
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
+import { networkInterfaces } from 'node:os';
 import {
   ENT, ENT_SERVER, adminContext, getPolicy, jmapAs, putPolicy, rawMessage, requireEntEnv, shot, userPage, withPolicy,
 } from './helpers/ent';
@@ -492,6 +493,8 @@ test('the out-of-office checkbox fits a phone', async ({ browser }) => {
 });
 
 // ── 9. Company calendars ─────────────────────────────────────────────
+// The feed is served from this PC's intranet address, the case of a feed on
+// the company intranet.
 
 function icsServer(title: string): Promise<{ server: Server; url: string; hits: () => number }> {
   let hits = 0;
@@ -507,9 +510,14 @@ function icsServer(title: string): Promise<{ server: Server; url: string; hits: 
     res.writeHead(200, { 'content-type': 'text/calendar' });
     res.end(body);
   });
-  return new Promise((resolve) => server.listen(0, '127.0.0.1', () => {
+  // An intranet address of this PC: the server reaches admin feeds on the
+  // intranet, never on loopback.
+  const lan = Object.values(networkInterfaces()).flat()
+    .find((i) => i && i.family === 'IPv4' && !i.internal && /^(10.|192.168.|172.(1[6-9]|2d|3[01]).)/.test(i.address))?.address;
+  if (!lan) throw new Error('no intranet IPv4 address on this PC for the feed server');
+  return new Promise((resolve) => server.listen(0, lan, () => {
     const { port } = server.address() as AddressInfo;
-    resolve({ server, url: `http://127.0.0.1:${port}/team.ics`, hits: () => hits });
+    resolve({ server, url: `http://${lan}:${port}/team.ics`, hits: () => hits });
   }));
 }
 

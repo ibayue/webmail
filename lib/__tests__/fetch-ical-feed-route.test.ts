@@ -54,7 +54,7 @@ const POLICY = {
   restrictions: {}, features: {}, defaults: {}, themePolicy: {},
   organisation: { calendars: { feeds: [{ id: 'hol', name: 'Holidays', url: 'https://cal.example.org/h.ics?token=t', color: '#2563eb', refreshMinutes: 60 }] } },
   scopes: [
-    { id: 'team', label: 'Team', match: { groups: ['ent-team@example.org'] }, policy: { organisation: { calendars: { feeds: [{ id: 'team', name: 'Team', url: 'http://cal.intranet.example/team.ics', refreshMinutes: 120 }] } } } },
+    { id: 'team', label: 'Team', match: { groups: ['ent-team@example.org'] }, policy: { organisation: { calendars: { feeds: [{ id: 'team', name: 'Team', url: 'http://calendar.corp.internal/team.ics', refreshMinutes: 120 }] } } } },
     { id: 'bob', label: 'Bob', match: { groups: ['ent-bob@example.org'] }, policy: { organisation: { calendars: { feeds: [{ id: 'bobs', name: 'Bob', url: 'https://cal.example.org/b.ics' }] } } } },
   ],
 };
@@ -90,9 +90,11 @@ describe('POST /api/fetch-ical { feedId }', () => {
     expect((await post({ feedId: 'hol' })).status).toBe(200);
     expect(guardedFetch.mock.calls[0][0]).toBe('https://cal.example.org/h.ics?token=t');
     expect((await post({ feedId: 'team' })).status).toBe(200);
-    // The admin's own intranet host may be private, and only it.
-    expect(guardedFetch.mock.calls[1][0]).toBe('http://cal.intranet.example/team.ics');
-    expect(guardedFetch.mock.calls[1][2]).toEqual({ allowPrivateHost: 'cal.intranet.example' });
+    // The admin's own intranet host may be private, and only it; a public
+    // host gets no exception.
+    expect(guardedFetch.mock.calls[0]).toHaveLength(2);
+    expect(guardedFetch.mock.calls[1][0]).toBe('http://calendar.corp.internal/team.ics');
+    expect(guardedFetch.mock.calls[1][2]).toEqual({ allowPrivateHost: 'calendar.corp.internal' });
   });
 
   it('refuses a feed of a scope the user is not in, without fetching anything', async () => {
@@ -120,6 +122,20 @@ describe('POST /api/fetch-ical { feedId }', () => {
     expect(Buffer.from(res.body as ArrayBuffer).toString()).toContain('BEGIN:VCALENDAR');
     expect(guardedFetch).toHaveBeenCalledTimes(2);
     expect(guardedFetch.mock.calls[1][1].headers).toMatchObject({ 'If-None-Match': '"v1"', 'If-Modified-Since': 'Mon, 02 Nov 2026 07:00:00 GMT' });
+  });
+
+  it('keeps the intranet exception off a redirect to another port', async () => {
+    guardedFetch
+      .mockImplementationOnce(async () => new Response(null, { status: 302, headers: { location: 'http://calendar.corp.internal:8443/x' } }))
+      .mockImplementationOnce(async () => ics());
+    expect((await post({ feedId: 'team' })).status).toBe(200);
+    expect(guardedFetch.mock.calls[0][2]).toEqual({ allowPrivateHost: 'calendar.corp.internal' });
+    expect(guardedFetch.mock.calls[1]).toHaveLength(2);
+  });
+
+  it('refuses an answer that is not a calendar', async () => {
+    guardedFetch.mockImplementation(async () => new Response('{"secret":1}', { status: 200, headers: { 'content-type': 'application/json' } }));
+    expect((await post({ feedId: 'team' })).status).toBe(502);
   });
 
   it('needs a signed-in user', async () => {

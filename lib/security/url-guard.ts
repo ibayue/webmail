@@ -10,7 +10,7 @@ import {
   type RequestInit as UndiciRequestInit,
   type Response as UndiciResponse,
 } from 'undici';
-import { isPrivateAddress } from './ip-ranges';
+import { isPrivateAddress, parseV6Groups } from './ip-ranges';
 
 const BLOCKED_HOSTNAMES = new Set(['localhost']);
 const BLOCKED_HOSTNAME_SUFFIXES = ['.localhost', '.local', '.internal', '.arpa', '.localdomain'];
@@ -30,6 +30,41 @@ function isBlockedHostname(hostname: string): boolean {
 }
 
 /**
+ * An intranet address: RFC 1918, CGNAT or an IPv6 unique local address,
+ * as such or IPv4-mapped. Never loopback, link-local (cloud metadata lives
+ * there), unspecified, multicast or the AWS metadata ULA.
+ */
+export function isIntranetAddress(ip: string): boolean {
+  const host = normalizeHostname(ip);
+  const v4 = (a: string) => /^10\./.test(a) || /^172\.(1[6-9]|2\d|3[0-1])\./.test(a) || /^192\.168\./.test(a)
+    || /^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./.test(a);
+  const family = isIP(host);
+  if (family === 4) return v4(host);
+  if (family !== 6) return false;
+  const g = parseV6Groups(host);
+  if (!g) return false;
+  if (g.slice(0, 5).every((x) => x === 0) && g[5] === 0xffff) {
+    return v4(`${g[6] >> 8}.${g[6] & 0xff}.${g[7] >> 8}.${g[7] & 0xff}`);
+  }
+  const awsMetadata = g[0] === 0xfd00 && g[1] === 0x0ec2 && g.slice(2, 7).every((x) => x === 0) && g[7] === 0x254;
+  return (g[0] & 0xfe00) === 0xfc00 && !awsMetadata;
+}
+
+/**
+ * Whether an admin-entered host names the intranet: an intranet address
+ * literal, a name under a private suffix (.local, .internal, .localdomain)
+ * or a single-label name. Public names and localhost never are, so a public
+ * host whose DNS later points inside can't be used to reach it.
+ */
+export function isIntranetHostName(hostname: string): boolean {
+  const host = normalizeHostname(hostname);
+  if (!host || host === 'localhost' || host.endsWith('.localhost')) return false;
+  if (isIP(host)) return isIntranetAddress(host);
+  if (['.local', '.internal', '.localdomain'].some((suffix) => host.endsWith(suffix))) return true;
+  return !host.includes('.');
+}
+
+/**
  * Synchronous part of the guard: protocol, embedded credentials, blocked
  * hostnames / suffixes, and literal IP addresses. Returns the parsed URL when
  * those checks pass, `null` otherwise. Does NOT touch DNS.
@@ -46,7 +81,7 @@ function parseAllowedUrl(urlString: string, privateHost?: string): URL | null {
   if (url.username || url.password) return null;
 
   const hostname = normalizeHostname(url.hostname);
-  if (privateHost && hostname === privateHost) return url;
+  if (privateHost && hostname === privateHost && isIntranetHostName(hostname)) return url;
   if (isBlockedHostname(hostname)) return null;
   if (isBlockedIpAddress(hostname)) return null;
 
@@ -215,10 +250,12 @@ export function envProxyFor(url: URL): URL | null {
 }
 
 /**
- * guardedLookup, except that `privateHost` may resolve to a private address:
- * an intranet host the admin entered themselves (company calendars). Every
- * other name, redirect targets included, is still checked, and the address
- * is still the one the socket connects to.
+ * guardedLookup, except that `privateHost` may resolve to an intranet
+ * address (isIntranetAddress): a host on the intranet the admin entered
+ * themselves (company calendars). Loopback, link-local and metadata
+ * addresses stay refused for it too; every other name, redirect targets
+ * included, is checked as always; and the address is still the one the
+ * socket connects to.
  */
 function lookupAllowing(privateHost: string): typeof guardedLookup {
   return (hostname, options, callback) => {
@@ -234,6 +271,11 @@ function lookupAllowing(privateHost: string): typeof guardedLookup {
           const err: NodeJS.ErrnoException = new Error(`getaddrinfo ENOTFOUND ${hostname}`);
           err.code = 'ENOTFOUND';
           cb(err);
+          return;
+        }
+        const refused = records.find((record) => isBlockedIpAddress(record.address) && !isIntranetAddress(record.address));
+        if (refused) {
+          cb(new BlockedAddressError(hostname, refused.address));
           return;
         }
         if (opts.all) cb(null, records);
@@ -341,14 +383,17 @@ export async function fetchPublicUrl(
   init: Omit<UndiciRequestInit, 'dispatcher' | 'redirect'> = {},
   options: {
     /**
-     * One hostname that may be a private (intranet) host: only for an
-     * address the admin entered (company calendars). It must equal the
-     * URL's hostname to make any difference.
+     * One hostname on the intranet (isIntranetHostName) that may resolve to
+     * an intranet address: only for an address the admin entered (company
+     * calendars). It must equal the URL's hostname to make any difference;
+     * a public name here changes nothing.
      */
     allowPrivateHost?: string;
   } = {},
 ): Promise<PublicFetchResponse> {
-  const privateHost = options.allowPrivateHost ? normalizeHostname(options.allowPrivateHost) : undefined;
+  const privateHost = options.allowPrivateHost && isIntranetHostName(options.allowPrivateHost)
+    ? normalizeHostname(options.allowPrivateHost)
+    : undefined;
   const parsed = parseAllowedUrl(url, privateHost);
   if (!parsed) {
     throw new DisallowedUrlError(url);

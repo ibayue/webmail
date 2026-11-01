@@ -4,7 +4,7 @@ import { getStalwartCredentials, type StalwartCredentials } from '@/lib/stalwart
 import { DisallowedUrlError, fetchPublicUrl, type PublicFetchResponse } from '@/lib/security/url-guard';
 import { readBodyCapped } from '@/lib/security/capped-body';
 import { configManager } from '@/lib/admin/config-manager';
-import { feedForSubject, feedHostname } from '@/lib/admin/company-feeds';
+import { feedForSubject, intranetFeedHost } from '@/lib/admin/company-feeds';
 import { companyFeedCache } from '@/lib/admin/company-feed-cache';
 import { serverPolicySubject } from '@/lib/admin/server-policy-subject';
 
@@ -66,7 +66,7 @@ type FetchOutcome =
  */
 async function fetchIcal(
   url: string,
-  options: { allowPrivateHost?: string; etag?: string | null; lastModified?: string | null } = {},
+  options: { allowPrivateHost?: string; etag?: string | null; lastModified?: string | null; requireCalendar?: boolean } = {},
 ): Promise<FetchOutcome> {
   const fail = (error: string, status: number): FetchOutcome => ({ kind: 'error', response: NextResponse.json({ error }, { status }) });
   const extracted = extractBasicAuth(url);
@@ -97,7 +97,9 @@ async function fetchIcal(
 
       try {
         const init = { signal: controller.signal, headers };
-        response = options.allowPrivateHost
+        // The intranet exception holds for the admin's own address only, not
+        // for a redirect to another port or host.
+        response = options.allowPrivateHost && new URL(currentUrl).origin === originalOrigin
           ? await fetchPublicUrl(currentUrl, init, { allowPrivateHost: options.allowPrivateHost })
           : await fetchPublicUrl(currentUrl, init);
       } catch (error) {
@@ -138,6 +140,9 @@ async function fetchIcal(
     if (!buffer) {
       return { kind: 'error', response: tooLarge(maxResponseSize) };
     }
+    if (options.requireCalendar && !looksLikeCalendar(buffer)) {
+      return fail('The address did not answer with a calendar', 502);
+    }
     return { kind: 'ok', buffer, etag: response.headers.get('etag'), lastModified: response.headers.get('last-modified') };
   } catch (error: unknown) {
     if (error instanceof Error && error.name === 'AbortError') {
@@ -147,6 +152,13 @@ async function fetchIcal(
   } finally {
     clearTimeout(timeout);
   }
+}
+
+/** Starts with BEGIN:VCALENDAR (after a byte order mark and blank space). */
+function looksLikeCalendar(buffer: ArrayBuffer): boolean {
+  // TextDecoder drops a byte order mark; trimStart the rest.
+  const head = new TextDecoder().decode(buffer.slice(0, 512)).trimStart();
+  return /^BEGIN:VCALENDAR/i.test(head);
 }
 
 function icalResponse(buffer: ArrayBuffer): NextResponse {
@@ -180,7 +192,8 @@ async function fetchCompanyFeed(creds: StalwartCredentials, feedId: string): Pro
     return icalResponse(cached.body);
   }
   const outcome = await fetchIcal(feed.url, {
-    allowPrivateHost: feedHostname(feed) ?? undefined,
+    allowPrivateHost: intranetFeedHost(feed) ?? undefined,
+    requireCalendar: true,
     etag: cached?.etag,
     lastModified: cached?.lastModified,
   });

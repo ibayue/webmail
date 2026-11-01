@@ -11,6 +11,7 @@
 import type { SettingsPolicy } from './types';
 import type { CompanyFeed } from './organisation-policy';
 import { resolvePolicy, type PolicySubject } from './policy-scopes';
+import { isIntranetHostName } from '@/lib/security/url-guard';
 
 function withoutUrls(organisation: unknown): unknown {
   if (!organisation || typeof organisation !== 'object') return organisation;
@@ -55,10 +56,16 @@ export function allFeeds(policy: Pick<SettingsPolicy, 'organisation' | 'scopes'>
   return lists.flatMap((feeds) => (Array.isArray(feeds) ? feeds.filter((f): f is CompanyFeed => !!f && typeof f === 'object' && typeof (f as CompanyFeed).url === 'string') : []));
 }
 
-/** The hostnames of the admin's feeds: the only private hosts a feed fetch may reach. */
-export function feedHostname(feed: Pick<CompanyFeed, 'url'>): string | null {
+/**
+ * The feed's host when it names the intranet (an intranet address, a
+ * .local/.internal/.localdomain name or a single-label name): the only kind
+ * of host a feed fetch may reach on a private address. Null for public
+ * names, so a public host whose DNS is later pointed inside reaches nothing.
+ */
+export function intranetFeedHost(feed: Pick<CompanyFeed, 'url'>): string | null {
   try {
-    return new URL(feed.url).hostname.toLowerCase();
+    const host = new URL(feed.url).hostname.toLowerCase();
+    return isIntranetHostName(host) ? host : null;
   } catch {
     return null;
   }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { allFeeds, feedForSubject, stripFeedUrls } from '../company-feeds';
+import { allFeeds, feedForSubject, intranetFeedHost, stripFeedUrls } from '../company-feeds';
 import { listReachableHosts } from '../reachable-hosts';
 import { sanitizeOrganisationPolicy } from '../organisation-policy';
 import type { SettingsPolicy } from '../types';
@@ -30,6 +30,16 @@ describe('company feeds on the server', () => {
     expect(feedForSubject(policy, { email: 'a@example.org', groups: [] }, 'hol')?.name).toBe('Holidays');
     expect(feedForSubject(policy, { email: 'a@example.org', groups: [] }, 'two')).toBeNull();
     expect(feedForSubject(policy, { email: 'b@two.example', groups: [] }, 'two')?.name).toBe('Two');
+  });
+
+  it('lifts the private-address block only for a host that names the intranet', () => {
+    expect(intranetFeedHost({ url: 'http://calendar.corp.internal/team.ics' })).toBe('calendar.corp.internal');
+    expect(intranetFeedHost({ url: 'http://intranet/team.ics' })).toBe('intranet');
+    expect(intranetFeedHost({ url: 'http://10.1.2.3/team.ics' })).toBe('10.1.2.3');
+    expect(intranetFeedHost({ url: 'https://cal.example.org/h.ics' })).toBeNull();
+    expect(intranetFeedHost({ url: 'http://127.0.0.1:8080/h.ics' })).toBeNull();
+    expect(intranetFeedHost({ url: 'http://169.254.169.254/latest' })).toBeNull();
+    expect(intranetFeedHost({ url: 'http://localhost/h.ics' })).toBeNull();
   });
 
   it('lists every scope\'s feed host as reachable', () => {

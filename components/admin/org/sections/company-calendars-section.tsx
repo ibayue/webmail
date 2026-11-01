@@ -162,8 +162,10 @@ export function CompanyCalendarsSection({ draft }: { draft: OrgPolicyDraft }) {
         <div className="space-y-1 rounded-md border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground" data-testid="org-feed-notes">
           <p>
             Bulwark&apos;s server fetches the feeds, at most once per refresh interval for everyone, and keeps the addresses to
-            itself: users never see them. A feed may be on your intranet (a private address): only the hosts entered here are
-            let through. They stay reachable with &quot;No third-party traffic&quot; on and are listed on Organisation &gt; Security.
+            itself: users never see them. A feed may be on your intranet when its address names it: an intranet IP address
+            (10.x, 172.16-31.x, 192.168.x), a .local or .internal name, or a name without dots. Loopback and link-local
+            addresses are never reached. Feeds stay reachable with &quot;No third-party traffic&quot; on and are listed on
+            Organisation &gt; Security.
           </p>
           <p>
             Each refresh that changed the feed uploads it once to Stalwart for every user who has Calendar open, which counts
