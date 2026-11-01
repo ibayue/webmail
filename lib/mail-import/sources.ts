@@ -1,6 +1,7 @@
 import { dateFromHeaderBlock } from "@/lib/eml-import";
 import { MboxSplitter, envelopeDate, readHeaderBlock, type MboxMessage } from "./mbox";
 import { mboxState, withoutStateHeaders } from "./mbox-status";
+import { EXPORT_ENVELOPE_SENDER } from "@/lib/mail-export/mbox-writer";
 import { listZipEntries, readZipEntry, streamZipEntry } from "./zip-reader";
 
 /**
@@ -160,6 +161,19 @@ function plausible(date: string | undefined, now = Date.now()): string | undefin
   return t >= Date.UTC(1980, 0, 1) && t - now <= 24 * 60 * 60 * 1000 ? date : undefined;
 }
 
+/**
+ * When an mbox message arrived. The envelope line is trusted only where it
+ * is the arrival time for sure: Bulwark's own export (receivedAt) and lines
+ * with a time zone (Google Takeout). Elsewhere it may be when the message
+ * was copied into the folder (Thunderbird's `From - <date>`, local time),
+ * so the Date header comes first and the envelope line is the fallback.
+ */
+export function arrivalTime(fromLine: string, headers: string): string | undefined {
+  const envelope = plausible(envelopeDate(fromLine));
+  const trusted = fromLine.startsWith(`From ${EXPORT_ENVELOPE_SENDER} `) || /\s[+-]\d{4}\s+\d{4}\s*$/.test(fromLine);
+  return trusted ? envelope ?? dateFromHeaderBlock(headers) : dateFromHeaderBlock(headers) ?? envelope;
+}
+
 function mboxItem(message: MboxMessage, index: number, folder: string[]): ImportItem {
   const label = message.tooLarge ? message.fromLine : "";
   if (message.tooLarge) return { kind: "skipped", index, reason: "too_large", label };
@@ -175,9 +189,7 @@ function mboxItem(message: MboxMessage, index: number, folder: string[]): Import
     data: new Blob(parts as BlobPart[], { type: MIME }),
     size: parts.reduce((n, p) => n + p.length, 0),
     keywords: state.keywords,
-    // The envelope line holds when the message arrived (Bulwark's export writes
-    // receivedAt there); the Date header, when it was written, comes second.
-    receivedAt: plausible(envelopeDate(message.fromLine)) ?? dateFromHeaderBlock(headers),
+    receivedAt: arrivalTime(message.fromLine, headers),
     label: subject,
   };
 }

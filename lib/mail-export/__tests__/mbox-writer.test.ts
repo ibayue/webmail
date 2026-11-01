@@ -22,13 +22,13 @@ describe('mboxEntry (mboxrd)', () => {
   const raw = 'Subject: hi\r\nX-Mozilla-Status: 0001\r\nStatus: RO\r\nX-Keywords:\r\n old\r\nFrom: a@example.org\r\n\r\nFrom the top\r\n>From quoted\r\nend\r\n';
 
   it('writes an envelope line in asctime UTC', () => {
-    expect(envelopeLine('2020-05-05T10:11:12Z', '\n')).toBe('From MAILER-DAEMON Tue May  5 10:11:12 2020\n');
+    expect(envelopeLine('2020-05-05T10:11:12Z', '\n')).toBe('From bulwark-export Tue May  5 10:11:12 2020\n');
   });
 
   it('quotes From lines, replaces old state headers and keeps CRLF', () => {
     const out = dec.decode(join(mboxEntry(enc.encode(raw), { $flagged: true, work: true }, '2020-05-05T10:11:12Z')));
     expect(out).toBe(
-      'From MAILER-DAEMON Tue May  5 10:11:12 2020\r\nStatus: O\r\nX-Status: F\r\nX-Keywords: work\r\n'
+      'From bulwark-export Tue May  5 10:11:12 2020\r\nStatus: O\r\nX-Status: F\r\nX-Keywords: work\r\n'
       + 'Subject: hi\r\nFrom: a@example.org\r\n\r\n>From the top\r\n>>From quoted\r\nend\r\n\r\n',
     );
   });
@@ -45,6 +45,6 @@ describe('mboxEntry (mboxrd)', () => {
     expect(back[0].text.endsWith('Subject: one\n\n>>From x\nFrom y\n\nFrom MAILER-DAEMON Tue May  5 10:11:12 2020\n')).toBe(true);
     expect(back[1].state.keywords).toEqual({ $draft: true, $forwarded: true });
     expect(back[1].text.endsWith('Subject: two\r\n\r\nno newline at end\r\n')).toBe(true);
-    expect(back[1].fromLine).toBe('From MAILER-DAEMON Sat Jan  2 03:04:05 2021');
+    expect(back[1].fromLine).toBe('From bulwark-export Sat Jan  2 03:04:05 2021');
   });
 });

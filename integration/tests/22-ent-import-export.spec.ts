@@ -51,6 +51,14 @@ const MBOX = [
   '',
   'no state header',
   '',
+  // Thunderbird writes when it copied the message into the folder; the Date header is when it was sent.
+  'From - Sat Nov  1 09:00:00 2025',
+  'X-Mozilla-Status: 0001',
+  `Subject: ${STAMP} mbox copied`,
+  'Date: Mon, 2 Jan 2017 08:30:00 +0100',
+  '',
+  'copied years later',
+  '',
 ].join('\n');
 
 const auth = () => 'Basic ' + Buffer.from(`${USER}:${ENT_PASSWORD}`).toString('base64');
@@ -160,18 +168,18 @@ test('an mbox lands in the folder with its dates, read and flagged state, and th
   await shot(page, 'c-import-dialog');
   await page.getByTestId('mail-import-start').click();
   await expect(dialog.getByRole('heading', { name: 'Import finished' })).toBeVisible({ timeout: 60_000 });
-  await expect(dialog.getByText('Messages imported: 3')).toBeVisible();
+  await expect(dialog.getByText('Messages imported: 4')).toBeVisible();
   await expect(dialog.getByText('Deleted in Thunderbird: 1')).toBeVisible();
   await shot(page, 'c-import-summary');
 
   const stored = await messagesIn(folderId);
-  expect(stored.map((m) => m.subject)).toEqual([`${STAMP} mbox read`, `${STAMP} mbox flagged`, `${STAMP} mbox plain`]);
-  // The envelope line is the arrival time.
-  expect(stored.map((m) => m.receivedAt)).toEqual(['2020-05-05T10:11:12Z', '2020-05-06T11:00:00Z', '2020-05-08T13:30:00Z']);
-  expect(stored.map((m) => !!m.keywords.$seen)).toEqual([true, false, true]);
-  expect(stored.map((m) => !!m.keywords.$flagged)).toEqual([false, true, false]);
+  expect(stored.map((m) => m.subject)).toEqual([`${STAMP} mbox copied`, `${STAMP} mbox read`, `${STAMP} mbox flagged`, `${STAMP} mbox plain`]);
+  // The Date header first; the envelope line only where there is none.
+  expect(stored.map((m) => m.receivedAt)).toEqual(['2017-01-02T07:30:00Z', '2020-05-05T10:11:00Z', '2020-05-06T10:59:00Z', '2020-05-08T13:30:00Z']);
+  expect(stored.map((m) => !!m.keywords.$seen)).toEqual([true, true, false, true]);
+  expect(stored.map((m) => !!m.keywords.$flagged)).toEqual([false, false, true, false]);
   // The stored message starts with its own headers (no leftover "From " envelope line) and is unquoted.
-  const res = await fetch(`${JMAP_URL}/jmap/download/${(await jmapAs(USER)).accountId}/${stored[0].blobId}/m.eml?accept=message/rfc822`, { headers: { Authorization: auth() } });
+  const res = await fetch(`${JMAP_URL}/jmap/download/${(await jmapAs(USER)).accountId}/${stored[1].blobId}/m.eml?accept=message/rfc822`, { headers: { Authorization: auth() } });
   const raw = await res.text();
   expect(raw.startsWith('From: Alice')).toBe(true);
   expect(raw).toContain('\nFrom the start of a line');
@@ -225,7 +233,7 @@ test('a folder exported as mbox from the UI imports back to the same messages, d
   const download = await exportFolder(page, sourceName, 'mbox');
   expect(download.suggestedFilename()).toBe(`${sourceName}.mbox`);
   const mbox = await readDownload(download);
-  expect(mbox.toString('latin1')).toMatch(/^From MAILER-DAEMON Fri Mar  1 08:00:00 2019\r?\n/);
+  expect(mbox.toString('latin1')).toMatch(/^From bulwark-export Fri Mar  1 08:00:00 2019\r?\n/);
   expect(mbox.toString('latin1')).toContain('>From the seed');
   await shot(page, 'c-export-done');
   await page.getByRole('button', { name: 'Close' }).last().click();

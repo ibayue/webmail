@@ -21,13 +21,20 @@ const NOT_IN_X_KEYWORDS = new Set(["$seen", "$flagged", "$answered", "$draft", "
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-/** `From MAILER-DAEMON Tue May  5 10:11:12 2020` for a JMAP UTCDate (UTC asctime). */
+/**
+ * The sender Bulwark writes on its envelope lines. The import trusts the
+ * date of a line with this sender (it is receivedAt), unlike the date on
+ * other programs' lines, which may be when the message was copied.
+ */
+export const EXPORT_ENVELOPE_SENDER = "bulwark-export";
+
+/** `From bulwark-export Tue May  5 10:11:12 2020` for a JMAP UTCDate (UTC asctime). */
 export function envelopeLine(receivedAt: string | undefined, eol: string): string {
   const parsed = receivedAt ? new Date(receivedAt) : new Date(0);
   const d = Number.isNaN(parsed.getTime()) ? new Date(0) : parsed;
   const pad = (n: number) => String(n).padStart(2, "0");
   const day = String(d.getUTCDate()).padStart(2, " ");
-  return `From MAILER-DAEMON ${DAYS[d.getUTCDay()]} ${MONTHS[d.getUTCMonth()]} ${day} ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}:${pad(d.getUTCSeconds())} ${d.getUTCFullYear()}${eol}`;
+  return `From ${EXPORT_ENVELOPE_SENDER} ${DAYS[d.getUTCDay()]} ${MONTHS[d.getUTCMonth()]} ${day} ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}:${pad(d.getUTCSeconds())} ${d.getUTCFullYear()}${eol}`;
 }
 
 export function stateHeaders(keywords: Record<string, boolean> | undefined, eol: string): string {

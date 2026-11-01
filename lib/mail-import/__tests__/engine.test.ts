@@ -120,9 +120,9 @@ describe('runImport', () => {
     expect(fake.imported[0].text.startsWith('Subject: m0\n')).toBe(true);
   });
 
-  it('takes the arrival time from the envelope line and leaves the state headers out of the stored message', async () => {
+  it('takes the arrival time from Bulwark\'s own envelope line and leaves the state headers out of the stored message', async () => {
     const fake = fakeClient();
-    const raw = 'From a@example.org Sat Jan  2 03:04:05 2021\nStatus: RO\nX-Mozilla-Status: 0001\nSubject: s\nDate: Tue, 5 May 2020 10:00:00 +0000\n\nbody\n';
+    const raw = 'From bulwark-export Sat Jan  2 03:04:05 2021\nStatus: RO\nX-Mozilla-Status: 0001\nSubject: s\nDate: Tue, 5 May 2020 10:00:00 +0000\n\nbody\n';
     await runImport(options(fake.client, [file(raw)]));
     expect(fake.imported[0].receivedAt).toBe('2021-01-02T03:04:05Z');
     expect(fake.imported[0].text).toBe('Subject: s\nDate: Tue, 5 May 2020 10:00:00 +0000\n\nbody\n');
@@ -135,6 +135,18 @@ describe('runImport', () => {
     const plain = new File(['Subject: p\r\n\r\nbody\r\n'], 'p.eml');
     await runImport(options(fake.client, [unread, plain]));
     expect(fake.imported.map((e) => e.keywords)).toEqual([{ $flagged: true }, { $seen: true }]);
+  });
+
+  it('dates a Thunderbird message by its Date header, not by when it was copied into the folder', async () => {
+    const fake = fakeClient();
+    await runImport(options(fake.client, [file('From - Sat Nov  1 09:00:00 2025\nSubject: s\nDate: Mon, 2 Jan 2017 08:30:00 +0100\n\nb\n')]));
+    expect(fake.imported[0].receivedAt).toBe('2017-01-02T07:30:00Z');
+  });
+
+  it('trusts an envelope line with a time zone (Google Takeout)', async () => {
+    const fake = fakeClient();
+    await runImport(options(fake.client, [file('From 1234@xxx Sat Apr 18 08:29:01 +0200 2020\nSubject: s\nDate: Fri, 17 Apr 2020 22:00:00 +0000\n\nb\n')]));
+    expect(fake.imported[0].receivedAt).toBe('2020-04-18T06:29:01Z');
   });
 
   it('falls back to the Date header when the envelope line has no usable date', async () => {
