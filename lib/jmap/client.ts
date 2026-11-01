@@ -44,7 +44,8 @@ import { parseAuthenticationResults } from "@/lib/email-headers";
 import { IS_LITE_STALWART } from "@/lib/lite";
 import { toStorageQuota, type JMAPQuota, type StorageQuota } from "@/lib/quota";
 import { messagePriorityHeaders, type MessagePriority } from "@/lib/message-priority";
-import { customHeaderProperties } from "@/lib/outgoing/custom-headers";
+import { customHeaderProperties, withLabelHeaders } from "@/lib/outgoing/custom-headers";
+import { draftLabelProperty } from "@/lib/classification/labels";
 import { attachmentParts, HTML_PART_ID, relatedBodyStructure, TEXT_PART_ID, type OutgoingBodyPart } from "./outgoing-body";
 import { addBodyMediaToAttachments } from "./body-media-attachments";
 
@@ -1426,6 +1427,17 @@ export interface SubmissionSendOptions {
   headers?: Record<string, string>;
   /** The account the replaced draft (`draftId`) lives in; default the primary. */
   draftAccountId?: string;
+  /**
+   * Leave no copy in Sent: the copy made for the send is destroyed once it
+   * has gone (a phishing report, which the user doesn't keep).
+   */
+  noSentCopy?: boolean;
+  /**
+   * Classification label headers (lib/outgoing/classification.ts) as
+   * Email/set create properties. Written after `headers`; a plugin header
+   * of the same name is dropped, so a plugin can't change the label.
+   */
+  labelHeaders?: Record<string, string>;
 }
 
 /** The MAIL FROM / RCPT TO parameters the options translate to. */
@@ -3931,7 +3943,8 @@ export class JMAPClient implements IJMAPClient {
     return totalMarked;
   }
 
-  async markAsSpam(emailId: string, accountId?: string, markAsRead?: boolean): Promise<void> {
+  /** `keywords`: more keywords to set in the same patch ($phishing for a phishing report). */
+  async markAsSpam(emailId: string, accountId?: string, markAsRead?: boolean, keywords?: string[]): Promise<void> {
     const targetAccountId = accountId || this.accountId;
 
     const mailboxes = await this.getMailboxes(accountId);
@@ -3958,6 +3971,7 @@ export class JMAPClient implements IJMAPClient {
       "keywords/$notjunk": null,
     };
     if (markAsRead) patch["keywords/$seen"] = true;
+    for (const keyword of keywords ?? []) patch[`keywords/${keyword}`] = true;
 
     const response = await this.request([
       ["Email/set", {
@@ -3968,21 +3982,22 @@ export class JMAPClient implements IJMAPClient {
     this.assertEmailSetSucceeded(response, "mark as spam");
   }
 
-  async undoSpam(emailId: string, originalMailboxId: string, accountId?: string): Promise<void> {
+  /** `clearKeywords`: more keywords to remove in the same patch ($phishing when a report is undone). */
+  async undoSpam(emailId: string, originalMailboxId: string, accountId?: string, clearKeywords?: string[]): Promise<void> {
     const targetAccountId = accountId || this.accountId;
 
+    const patch: Record<string, unknown> = {
+      mailboxIds: { [originalMailboxId]: true },
+      // Moving alone leaves $junk set, so the message shows up in the
+      // Inbox while still flagged as junk for every other client. (#850)
+      "keywords/$junk": null,
+      "keywords/$notjunk": true,
+    };
+    for (const keyword of clearKeywords ?? []) patch[`keywords/${keyword}`] = null;
     const response = await this.request([
       ["Email/set", {
         accountId: targetAccountId,
-        update: {
-          [emailId]: {
-            mailboxIds: { [originalMailboxId]: true },
-            // Moving alone leaves $junk set, so the message shows up in the
-            // Inbox while still flagged as junk for every other client. (#850)
-            "keywords/$junk": null,
-            "keywords/$notjunk": true,
-          },
-        },
+        update: { [emailId]: patch },
       }, "0"],
     ]);
     this.assertEmailSetSucceeded(response, "mark as not spam");
@@ -4689,7 +4704,9 @@ export class JMAPClient implements IJMAPClient {
     htmlBody?: string,
     inReplyTo?: string[],
     references?: string[],
-    options?: { priority?: MessagePriority; accountId?: string; previousDraftAccountId?: string },
+    // `classification`: the composer's label choice (an id, null for none),
+    // kept in X-Bulwark-Label so a re-opened draft restores it.
+    options?: { priority?: MessagePriority; accountId?: string; previousDraftAccountId?: string; classification?: string | null },
   ): Promise<string> {
     // A draft for a group identity belongs in the group's Drafts, like its
     // Sent copy (#1090).
@@ -4748,6 +4765,7 @@ export class JMAPClient implements IJMAPClient {
       ...(draftReferences?.length ? { references: draftReferences } : {}),
       // A re-opened draft reads its priority back from these (#970).
       ...messagePriorityHeaders(options?.priority),
+      ...draftLabelProperty(options?.classification),
     };
 
     // Images the HTML shows by cid: go into a multipart/related beside it
@@ -4951,7 +4969,7 @@ export class JMAPClient implements IJMAPClient {
     }
 
     Object.assign(emailCreate, messagePriorityHeaders(options?.priority));
-    Object.assign(emailCreate, customHeaderProperties(options?.headers));
+    Object.assign(emailCreate, withLabelHeaders(customHeaderProperties(options?.headers), options?.labelHeaders));
 
     // Images the HTML shows by cid: go into a multipart/related beside it,
     // or recipients don't see them (#1451).
@@ -4992,6 +5010,10 @@ export class JMAPClient implements IJMAPClient {
         "keywords/$draft": null,
       },
     };
+    // Without a Sent copy the copy goes once the submission is made.
+    const onSuccess = options?.noSentCopy
+      ? { onSuccessDestroyEmail: ["#1"] }
+      : { onSuccessUpdateEmail };
 
     // An explicit envelope is only sent when MAIL FROM should differ from the
     // identity's address (a From override, e.g. replying from a catch-all
@@ -5034,7 +5056,7 @@ export class JMAPClient implements IJMAPClient {
     methodCalls.push(["EmailSubmission/set", {
       accountId: submissionAccountId,
       create: buildSubmissionCreate(`#${emailId}`, firstMailFrom),
-      onSuccessUpdateEmail,
+      ...onSuccess,
     }, "1"]);
     // Which recipients the server took. A refused one is lost without a
     // bounce while the create succeeds and files the message in Sent.
@@ -5073,7 +5095,7 @@ export class JMAPClient implements IJMAPClient {
       const retry = await this.request([["EmailSubmission/set", {
         accountId: submissionAccountId,
         create: buildSubmissionCreate(draftCopyId, mailFrom),
-        onSuccessUpdateEmail,
+        ...onSuccess,
       }, "1"], deliveryStatusCall(submissionAccountId, "1")]);
       response = {
         ...retry,

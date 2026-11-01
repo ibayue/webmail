@@ -3,11 +3,12 @@
 import { useTranslations } from "next-intl";
 import { Paperclip, Download } from "@/components/icons";
 import { emailIframeCsp, sanitizeEmailBodyForIframe } from "@/lib/email-sanitization";
+import { turnOffLinks } from "@/lib/phishing-links";
 import { getEffectiveTimeZone } from "@/lib/timezone";
 import { stripBidiControls } from "@/lib/bidi";
 import { isFilePreviewable } from "@/lib/file-preview";
 import { useSettingsStore } from "@/stores/settings-store";
-import { useNoThirdPartyTraffic } from "@/hooks/use-third-party-mode";
+import { useRemoteContentHeldBackAnywhere } from "@/hooks/use-third-party-mode";
 
 // A parsed message/rfc822 (.eml), as produced by postal-mime. Only the fields
 // this preview renders are typed.
@@ -48,20 +49,27 @@ function escapeHtml(s: string): string {
 // can show - often another message: a certified-mail (PEC) envelope wraps the
 // original, and a forwarded PEC wraps that envelope - opens through
 // onOpenAttachment, with download beside it.
-export function EmlPreview({ message, onOpenAttachment }: {
+export function EmlPreview({ message, onOpenAttachment, linksOff }: {
   message: ParsedEml;
   onOpenAttachment?: (attachment: EmlAttachment) => void;
+  /** Attached to a message reported as phishing: links are off. */
+  linksOff?: boolean;
 }) {
   const t = useTranslations("email_viewer");
-  // Always blocked with no third-party traffic (#903).
-  const remoteBlockedByOrg = useNoThirdPartyTraffic();
+  const tPhishing = useTranslations("phishing_report");
+  // Always blocked with no third-party traffic (#903), while an
+  // organisation locks "block" in any signed-in account (the attachment's
+  // account isn't known here), and until the policy is known.
+  const remoteBlockedByOrg = useRemoteContentHeldBackAnywhere();
   const blockRemote = useSettingsStore((state) => state.externalContentPolicy) !== "allow" || remoteBlockedByOrg;
   const tFiles = useTranslations("files");
 
   // dir="auto" on a wrapper we control lets the first strong character pick
   // the direction, matching the main viewer.
   const body = message.html
-    ? `<div dir="auto">${sanitizeEmailBodyForIframe(message.html, blockRemote).html}</div>`
+    ? `<div dir="auto">${linksOff
+      ? turnOffLinks(sanitizeEmailBodyForIframe(message.html, blockRemote).html, { title: tPhishing("link_off"), note: tPhishing("link_off_note") })
+      : sanitizeEmailBodyForIframe(message.html, blockRemote).html}</div>`
     : message.text
       ? `<pre dir="auto" style="white-space:pre-wrap;word-break:break-word;font-family:ui-monospace,monospace;margin:0;padding:8px">${escapeHtml(message.text)}</pre>`
       : "";

@@ -883,6 +883,35 @@
     "send_anyway": "Přesto odeslat",
     "back": "Zpět"
   },
+  "phishing_report": {
+    "action": "Nahlásit phishing…",
+    "confirm_title": "Nahlásit phishing?",
+    "confirm_message": "{count, plural, one {Zpráva bude odeslána na {address} a přesunuta do složky Spam.} few {# zprávy budou odeslány na {address}, každá jako samostatné hlášení, a přesunuty do složky Spam.} many {# zprávy bude odesláno na {address}, každá jako samostatné hlášení, a přesunuto do složky Spam.} other {# zpráv bude odesláno na {address}, každá jako samostatné hlášení, a přesunuto do složky Spam.}}",
+    "confirm": "Nahlásit",
+    "cancel": "Zrušit",
+    "sending": "Nahlašování…",
+    "done": "{count, plural, one {Nahlášeno na {address} a přesunuto do složky Spam.} few {# zprávy nahlášeny na {address} a přesunuty do složky Spam.} many {# zprávy nahlášeno na {address} a přesunuto do složky Spam.} other {# zpráv nahlášeno na {address} a přesunuto do složky Spam.}}",
+    "not_moved": "{count, plural, one {Nahlášeno na {address}, ale zprávu se nepodařilo přesunout do složky Spam.} few {Nahlášeno na {address}, ale # zprávy se nepodařilo přesunout do složky Spam.} many {Nahlášeno na {address}, ale # zprávy se nepodařilo přesunout do složky Spam.} other {Nahlášeno na {address}, ale # zpráv se nepodařilo přesunout do složky Spam.}}",
+    "failed": "{count, plural, one {Zprávu se nepodařilo nahlásit.} few {# zprávy se nepodařilo nahlásit.} many {# zprávy se nepodařilo nahlásit.} other {# zpráv se nepodařilo nahlásit.}}",
+    "undo": "Zpět",
+    "undone": "{count, plural, one {Vráceno zpět. Hlášení už bylo odesláno.} few {Vráceno zpět. Hlášení už byla odeslána.} many {Vráceno zpět. Hlášení už byla odeslána.} other {Vráceno zpět. Hlášení už byla odeslána.}}",
+    "undo_failed": "Nepodařilo se vrátit zpět.",
+    "banner": "Tuto zprávu jste nahlásili jako phishing. Odkazy v ní jsou vypnuté.",
+    "link_off": "odkaz vypnut",
+    "link_off_note": "(odkaz vypnut)",
+    "no_subject": "(bez předmětu)"
+  },
+  "classification": {
+    "picker_label": "Klasifikace",
+    "chip_label": "Klasifikace: {name}",
+    "none": "Bez klasifikace",
+    "pick_required": "Vyberte klasifikaci",
+    "required_hint": "Vaše organizace vyžaduje klasifikaci.",
+    "required_toast": "Před odesláním vyberte klasifikaci.",
+    "quick_reply_needs_label": "Tato odpověď potřebuje klasifikaci. Vyberte ji zde a pak odešlete.",
+    "forward_needs_label": "Klasifikace je povinná. Přepošlete zprávu z editoru zpráv.",
+    "received_hint": "Nastavil ji poštovní program odesílatele. Klasifikaci může nastavit kdokoli, takže nic nedokazuje."
+  },
   "email_composer": {
     "select_from_directory": "Vybrat z adresáře",
     "minimize": "Minimalizovat",

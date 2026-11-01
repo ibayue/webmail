@@ -3291,6 +3291,7 @@ useAuthStore.subscribe((state, prev) => {
     usePolicyStore.getState().setPolicySubject(null);
     return;
   }
+  usePolicyStore.getState().setSubjectPending(true);
   void policySubjectForClient(state.client).then(async (subject) => {
     if (request !== policySubjectRequest) return;
     // The server sends only the scopes of the domains signed in when the

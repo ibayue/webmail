@@ -11,6 +11,7 @@ import { ProInterfaceRedirect } from "@/components/pro/pro-interface-redirect";
 import { ImpersonationReconciler } from "@/components/impersonation/impersonation-reconciler";
 import { PluginDialogHost } from "@/components/plugins/plugin-dialog-host";
 import { ExternalRecipientConfirmHost } from "@/components/email/external-recipient-confirm";
+import { PhishingReportHost } from "@/components/email/phishing-report-host";
 import { PluginPageNavigator } from "@/components/plugins/plugin-page-navigator";
 import { PaneCycleHost } from "@/components/layout/pane-cycle";
 import { FocusRescueHost } from "@/components/layout/focus-rescue";
@@ -81,6 +82,7 @@ export default async function LocaleLayout({
                   {children}
                   <PluginDialogHost />
                   <ExternalRecipientConfirmHost />
+                  <PhishingReportHost />
                   <CommandPaletteHost />
                   <AccessibilityQuickPanelHost />
                   <PaneCycleHost />

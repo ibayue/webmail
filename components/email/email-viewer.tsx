@@ -32,6 +32,9 @@ import { ContextMenu } from "@/components/ui/context-menu";
 import { useContextMenu, type UseContextMenuReturn } from "@/hooks/use-context-menu";
 import { EmailContextMenu } from "./email-context-menu";
 import { useMessageActionList, type MessageActionEntry, type MessageActionKey, type MessageActionOptions, type MessageSubmenuKey } from "./message-actions";
+import { PhishingMarkBanner } from "./phishing-mark-banner";
+import { turnOffLinks } from "@/lib/phishing-links";
+import { usePhishingMarked } from "@/hooks/use-phishing-report";
 import { useCopyToAccount, useEmailExport, usePrintRequestStore } from "@/hooks/use-message-file-actions";
 import { useBottomControls } from "@/hooks/use-bottom-controls";
 import { useComposingSurface } from "@/hooks/use-composing-surface";
@@ -132,6 +135,7 @@ import { useEmailStore, resolveEmailBlobContext, emailWriteSource, type EmailBlo
 import { useThemeStore } from "@/stores/theme-store";
 import { EmailIdentityBadge } from "./email-identity-badge";
 import { ExternalSenderChip } from "./external-sender-chip";
+import { ReceivedLabelChip } from "./received-label-chip";
 import { UnsubscribeBanner } from "./unsubscribe-banner";
 import { CalendarInvitationBanner } from "./calendar-invitation-banner";
 import { ReadReceiptBanner } from "./read-receipt-banner";
@@ -858,6 +862,7 @@ export function MvExpandedConversationCard({
             )}
             <BrandVerifiedBadge domain={brandIndicatorDomain(email)} />
             <ExternalSenderChip from={email.from} accountId={email.sourceClientAccountId} className="self-center" />
+            <ReceivedLabelChip email={email} className="self-center" />
             <span className="ms-auto ps-2 text-xs text-muted-foreground whitespace-nowrap">
               {compact ? formatDate(emailDisplayDate(email)) : mvSenderDate(emailDisplayDate(email), timeFormat)}
             </span>
@@ -1313,9 +1318,11 @@ export function EmailViewer({
   const externalContentPolicy = useSettingsStore((state) => state.externalContentPolicy);
   // No third-party traffic (#903), or the organisation locked "block": remote
   // content never loads, whatever trust says, and nothing offers to load it.
-  const remoteBlockedByOrg = useRemoteContentBlockedByOrg();
+  // The policy of the message's own account: in the unified inbox or a Pro
+  // tab that may be another signed-in account than the active one.
+  const remoteBlockedByOrg = useRemoteContentBlockedByOrg(email?.sourceClientAccountId);
   // Also true while the policy is still loading: trust can't unblock yet.
-  const remoteHeldBack = useRemoteContentHeldBack();
+  const remoteHeldBack = useRemoteContentHeldBack(email?.sourceClientAccountId);
   const tThirdParty = useTranslations('third_party');
   const messageSpacing = useSettingsStore((state) => state.messageSpacing);
   const plainTextFont = useSettingsStore((state) => state.plainTextFont);
@@ -2647,10 +2654,15 @@ export function EmailViewer({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [email, externalContentPolicy, allowExternalContent, remoteHeldBack]);
 
+  // Reported as phishing ($phishing): a banner, its links turned off and
+  // no cards (a phishing mail's "booking" is the lure).
+  const phishingMarked = usePhishingMarked(email);
+  const tPhishing = useTranslations('phishing_report');
+
   // Booking, parcel and order cards of the message itself (never of an
   // unwrapped attached .eml); empty unless the sender is verified and the
   // admin gate is on.
-  const structuredCards = useStructuredMail(email, blobSource);
+  const structuredCards = useStructuredMail(phishingMarked ? null : email, blobSource);
 
   // Sanitize and prepare email HTML content
   const emailContent = useMemo(() => {
@@ -2807,14 +2819,14 @@ export function EmailViewer({
     return text?.trim() ? text : htmlToReadableText(decodedEmailContent.html);
   }, [decodedEmailContent, emailContent, email]);
   const effectiveEmailContent = useMemo(() => {
-    if (!plainView || !decodedEmailContent.isHtml) return decodedEmailContent;
-    return {
+    const shown = !plainView || !decodedEmailContent.isHtml ? decodedEmailContent : {
       html: collapsePlainTextQuotes(plainTextToSafeHtml(readableText()), { show: t('show_quoted_text'), hide: t('hide_quoted_text') }),
       isHtml: false,
       hasStyleTag: false,
       externalBlocked: false,
     };
-  }, [plainView, decodedEmailContent, readableText, t]);
+    return phishingMarked ? { ...shown, html: turnOffLinks(shown.html, { title: tPhishing('link_off'), note: tPhishing('link_off_note') }) } : shown;
+  }, [plainView, decodedEmailContent, readableText, t, phishingMarked, tPhishing]);
   // Reader view: the message full screen in the app's own look.
   const [readerViewOpen, setReaderViewOpen] = useState(false);
   // Reading mask: dims the body except a band that follows pointer and caret.
@@ -2822,8 +2834,9 @@ export function EmailViewer({
   const bodyWrapRef = useRef<HTMLDivElement>(null);
   const readerViewHtml = useMemo(() => {
     if (!readerViewOpen) return '';
-    return decodedEmailContent.isHtml ? plainTextToSafeHtml(readableText()) : decodedEmailContent.html;
-  }, [readerViewOpen, decodedEmailContent, readableText]);
+    const html = decodedEmailContent.isHtml ? plainTextToSafeHtml(readableText()) : decodedEmailContent.html;
+    return phishingMarked ? turnOffLinks(html, { title: tPhishing('link_off'), note: tPhishing('link_off_note') }) : html;
+  }, [readerViewOpen, decodedEmailContent, readableText, phishingMarked, tPhishing]);
 
   const resolveAttachmentName = useCallback(
     (attachment: EffectiveAttachment) => {
@@ -3742,7 +3755,8 @@ export function EmailViewer({
     return extractListHeaders(email.headers);
   }, [email?.headers]);
 
-  const shouldShowUnsubBanner =
+  // Not for a reported message: its unsubscribe link is the phisher's.
+  const shouldShowUnsubBanner = !phishingMarked &&
     listHeaders?.listUnsubscribe?.preferred &&
     !dismissedUnsubBanners.has(email?.messageId || '');
 
@@ -4914,6 +4928,7 @@ export function EmailViewer({
                     )}
                     <BrandVerifiedBadge domain={brandIndicatorDomain(email)} />
                     <ExternalSenderChip from={email.from} accountId={email.sourceClientAccountId} />
+                    <ReceivedLabelChip email={email} />
                     <EmailIdentityBadge email={email} identities={identities} />
                     {shouldShowUnsubBanner && listHeaders?.listUnsubscribe && (
                       <UnsubscribeBanner
@@ -5095,6 +5110,7 @@ export function EmailViewer({
                 )}
                 <BrandVerifiedBadge domain={brandIndicatorDomain(email)} />
                 <ExternalSenderChip from={email.from} accountId={email.sourceClientAccountId} />
+                <ReceivedLabelChip email={email} />
                 <EmailIdentityBadge email={email} identities={identities} />
                 {shouldShowUnsubBanner && listHeaders?.listUnsubscribe && (
                   <UnsubscribeBanner
@@ -5315,6 +5331,7 @@ export function EmailViewer({
                         />
                         <BrandVerifiedBadge domain={brandIndicatorDomain(email)} />
                         <ExternalSenderChip from={email.from} accountId={email.sourceClientAccountId} />
+                        <ReceivedLabelChip email={email} />
                         {senderVerification && (
                           <span
                             className={cn(
@@ -5603,6 +5620,8 @@ export function EmailViewer({
             </div>
           </div>
         )}
+
+        {phishingMarked && <PhishingMarkBanner />}
 
         {/* Draft Banner: a scheduled message has its own. */}
         {isDraft && !isScheduled && (
@@ -6138,6 +6157,7 @@ export function EmailViewer({
         onClose={() => setInAppPreview(null)}
         onDownload={downloadInAppPreview}
         getFileContent={getInAppPreviewContent}
+        linksOff={phishingMarked}
       />
     )}
     </>

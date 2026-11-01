@@ -14,10 +14,11 @@ import { FilePreviewPluginSection } from "@/components/files/file-preview-plugin
 import { canOpenUrlInNewWindow } from "@/lib/standalone-display";
 import { stripBidiControls } from "@/lib/bidi";
 import { emailIframeCsp, sanitizeEmailBodyForIframe } from "@/lib/email-sanitization";
+import { turnOffLinks, type LinksOffText } from "@/lib/phishing-links";
 import { useSettingsStore } from "@/stores/settings-store";
 import { useCloseOnBack } from "@/hooks/use-close-on-back";
 import type { FileResourceView } from "@/lib/plugin-types";
-import { useNoThirdPartyTraffic } from "@/hooks/use-third-party-mode";
+import { useRemoteContentHeldBackAnywhere } from "@/hooks/use-third-party-mode";
 
 /**
  * An HTML attachment as a document for a fully locked frame (sandbox="",
@@ -29,8 +30,10 @@ import { useNoThirdPartyTraffic } from "@/hooks/use-third-party-mode";
  * (the mechanism of GHSA-xvjh-v9c6-qcvc), while nothing sanitised it or
  * stopped its remote images and meta refreshes.
  */
-export function htmlAttachmentDocument(html: string, blockRemote: boolean): string {
-  const body = sanitizeEmailBodyForIframe(html, blockRemote).html;
+export function htmlAttachmentDocument(html: string, blockRemote: boolean, linksOff?: LinksOffText): string {
+  const clean = sanitizeEmailBodyForIframe(html, blockRemote).html;
+  // An attachment of a message reported as phishing: its links are off too.
+  const body = linksOff ? turnOffLinks(clean, linksOff) : clean;
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="${emailIframeCsp(blockRemote)}"><meta name="referrer" content="no-referrer"></head><body>${body}</body></html>`;
 }
 
@@ -51,6 +54,8 @@ interface FilePreviewModalProps {
   file?: FileResourceView | null;
   /** The previous and next file of the folder, for ←/→. */
   neighbours?: PreviewNeighbours;
+  /** The file is an attachment of a message reported as phishing: links in it are off. */
+  linksOff?: boolean;
 }
 
 function SimpleMarkdown({ content }: { content: string }) {
@@ -144,8 +149,13 @@ function processInline(text: string): React.ReactNode {
   return parts.length === 1 ? parts[0] : <>{parts}</>;
 }
 
-export function FilePreviewModal({ name, onClose, onDownload, getFileContent, file, neighbours }: FilePreviewModalProps) {
+export function FilePreviewModal({ name, onClose, onDownload, getFileContent, file, neighbours, linksOff }: FilePreviewModalProps) {
   const t = useTranslations("files");
+  const tPhishing = useTranslations("phishing_report");
+  const linksOffText = useMemo<LinksOffText | undefined>(
+    () => (linksOff ? { title: tPhishing("link_off"), note: tPhishing("link_off_note") } : undefined),
+    [linksOff, tPhishing],
+  );
   const [content, setContent] = useState<string | null>(null);
   const [objectUrl, setObjectUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -163,8 +173,10 @@ export function FilePreviewModal({ name, onClose, onDownload, getFileContent, fi
   // open-in-new-tab fallback use.
   const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
   const [htmlDoc, setHtmlDoc] = useState<string | null>(null);
-  // Always blocked with no third-party traffic (#903).
-  const remoteBlockedByOrg = useNoThirdPartyTraffic();
+  // Always blocked with no third-party traffic (#903), while an
+  // organisation locks "block" in any signed-in account (the attachment's
+  // account isn't known here), and until the policy is known.
+  const remoteBlockedByOrg = useRemoteContentHeldBackAnywhere();
   const blockRemote = useSettingsStore((state) => state.externalContentPolicy) !== "allow" || remoteBlockedByOrg;
   // An attachment of the previewed .eml, shown in a preview of its own in
   // place of this one. It holds a Back entry of its own, so Escape and Back
@@ -225,7 +237,7 @@ export function FilePreviewModal({ name, onClose, onDownload, getFileContent, fi
           // Sanitised text in a srcdoc frame, like the .eml preview; never a
           // blob: URL of the sender's bytes (see htmlAttachmentDocument).
           const text = await blob.text();
-          if (!cancelled) setHtmlDoc(htmlAttachmentDocument(text, blockRemote));
+          if (!cancelled) setHtmlDoc(htmlAttachmentDocument(text, blockRemote, linksOffText));
         } else if (previewType === "eml") {
           // Parse the embedded message (postal-mime, dynamic-imported so it
           // stays off the bundle) and render it like an email via EmlPreview.
@@ -269,7 +281,7 @@ export function FilePreviewModal({ name, onClose, onDownload, getFileContent, fi
         URL.revokeObjectURL(revokeUrl);
       }
     };
-  }, [getFileContent, name, blockRemote]);
+  }, [getFileContent, name, blockRemote, linksOffText]);
 
   const openEmlAttachment = (att: EmlAttachment) => {
     if (!att.content) return;
@@ -308,6 +320,7 @@ export function FilePreviewModal({ name, onClose, onDownload, getFileContent, fi
         onClose={() => setNestedPreview(null)}
         onDownload={downloadNested}
         getFileContent={nestedContent}
+        linksOff={linksOff}
       />
     );
   }
@@ -352,7 +365,7 @@ export function FilePreviewModal({ name, onClose, onDownload, getFileContent, fi
         )}
 
         {!loading && !error && fileType === "eml" && emlContent && (
-          <EmlPreview message={emlContent} onOpenAttachment={openEmlAttachment} />
+          <EmlPreview message={emlContent} onOpenAttachment={openEmlAttachment} linksOff={linksOff} />
         )}
 
         {!loading && !error && fileType === "image" && objectUrl && (

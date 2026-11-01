@@ -16,6 +16,7 @@ import { BookingCalendarActions } from "./structured-mail/booking-calendar-actio
 import { useStructuredMail } from "./structured-mail/use-structured-mail";
 import { attachmentIcon } from "./attachment-chips";
 import { ExternalSenderChip } from "./external-sender-chip";
+import { ReceivedLabelChip } from "./received-label-chip";
 import { collectReferencedCids, isEmbeddedInBody, isReportPart, normalizeCid, rewriteCidReferences } from "@/lib/attachment-visibility";
 import { collapsePlainTextQuotes, setupQuoteCollapse } from "@/lib/quote-collapse";
 import { measureEmailFrameHeight } from "@/lib/email-frame-height";
@@ -66,8 +67,11 @@ import { useDeviceDetection } from "@/hooks/use-media-query";
 import { usePluginRenderedBody } from "@/hooks/use-plugin-rendered-body";
 import { emailToReadView } from "@/lib/plugin-projection";
 import { AttachmentPluginMenu, ReaderAboveQuoteSlot } from "./reader-plugin-surfaces";
-import { useRemoteContentBlockedByOrg, useRemoteContentHeldBack } from "@/hooks/use-third-party-mode";
+import { useRemoteContentBlockedByOrg, useRemoteContentChecks } from "@/hooks/use-third-party-mode";
 import { ConversationHeaderActions, type ConversationActions } from "./conversation-header-actions";
+import { PhishingMarkBanner } from "./phishing-mark-banner";
+import { turnOffLinks } from "@/lib/phishing-links";
+import { usePhishingMarked } from "@/hooks/use-phishing-report";
 
 export type ConversationAttachmentHandler = (
   blobId: string, name: string, type: string | undefined, source: EmailBlobContext,
@@ -107,11 +111,10 @@ export function useConversationExternalContent() {
   const addToTrustedSendersBook = useContactStore((state) => state.addToTrustedSendersBook);
   const { client } = useAuthStore(useShallow((state) => ({ client: state.client })));
   const [allowedIds, setAllowedIds] = useState<Set<string>>(new Set());
-  // No third-party traffic (#903), or the organisation locked "block":
-  // nothing remote loads and nothing offers to.
-  const remoteBlockedByOrg = useRemoteContentBlockedByOrg();
-  // Also true until the policy has loaded: trust can't unblock before it.
-  const remoteHeldBack = useRemoteContentHeldBack();
+  // No third-party traffic (#903), or the organisation locked "block" for
+  // the message's own account: nothing remote loads and nothing offers to.
+  // Also held back until that account's policy is known.
+  const remoteContent = useRemoteContentChecks();
 
   const allow = useCallback((emailId: string) => {
     setAllowedIds(prev => new Set(prev).add(emailId));
@@ -122,13 +125,13 @@ export function useConversationExternalContent() {
     const senderIsTrusted = senderEmail
       ? isSenderTrusted(senderEmail) || (trustedSendersAddressBook && isTrustedAddressBookSender(senderEmail))
       : false;
-    if (remoteHeldBack) return false;
+    if (remoteContent.heldBack(email.sourceClientAccountId)) return false;
     return externalContentPolicy === 'allow' || !!senderIsTrusted || allowedIds.has(email.id);
   };
 
   const trustSender = (email: Email) => {
     const senderEmail = email.from?.[0]?.email?.toLowerCase();
-    if (!senderEmail || remoteBlockedByOrg) return undefined;
+    if (!senderEmail || remoteContent.blockedByOrg(email.sourceClientAccountId)) return undefined;
     return () => {
       if (trustedSendersAddressBook && client) {
         addToTrustedSendersBook(client, senderEmail).catch(console.error);
@@ -395,6 +398,7 @@ function EmailCard({
               {sender?.name || (sender?.email && formatAddress(sender.email)) || t('email_viewer.unknown_sender')}
             </span>
             <ExternalSenderChip from={email.from} accountId={email.sourceClientAccountId} interactive={false} />
+            <ReceivedLabelChip email={email} />
             {email.isScheduled && (
               <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium bg-primary/10 text-primary shrink-0">
                 <CalendarClock className="w-3.5 h-3.5" />
@@ -545,7 +549,7 @@ export function ConversationEmailBody({
   bodyStyle,
   className,
 }: ConversationEmailBodyProps) {
-  const remoteBlockedByOrg = useRemoteContentBlockedByOrg();
+  const remoteBlockedByOrg = useRemoteContentBlockedByOrg(email.sourceClientAccountId);
   const t = useTranslations();
   const resolvedTheme = useThemeStore((state) => state.resolvedTheme);
   const mailAttachmentAction = useSettingsStore((state) => state.mailAttachmentAction);
@@ -572,8 +576,11 @@ export function ConversationEmailBody({
   const fallbackSource = useEmailStore(useShallow(() => resolveEmailBlobContext(email, client)));
   const source = blobSource ?? fallbackSource;
   const { client: blobClient, accountId } = source;
+  // Reported as phishing: a banner, links off, no cards (as in the reader).
+  const phishingMarked = usePhishingMarked(email);
+  const tPhishing = useTranslations('phishing_report');
   // Booking, parcel and order cards; only an expanded message mounts this body.
-  const structuredCards = useStructuredMail(email, source);
+  const structuredCards = useStructuredMail(phishingMarked ? null : email, source);
   // Local CID URLs belong to a particular client/owner/message/part list.
   // Hide the previous set during render, before the new fetch's effect runs.
   const cidRequest = useMemo(() => ({ blobClient, accountId, emailId: email.id, attachments: email.attachments }),
@@ -740,7 +747,7 @@ export function ConversationEmailBody({
   // "Show mail as plain text" (Settings > Accessibility): the message's own
   // text/plain part, or a readable conversion of the HTML.
   const mailViewMode = useSettingsStore((state) => state.mailViewMode);
-  const emailContent = useMemo(() => {
+  const shownContent = useMemo(() => {
     if (mailViewMode !== 'plain' || !formattedContent.isHtml) return formattedContent;
     const textPart = !pluginBody.html ? email.textBody?.[0] : undefined;
     let text = textPart?.partId && textPart.partId !== email.htmlBody?.[0]?.partId && (textPart.type || 'text/plain').toLowerCase() === 'text/plain'
@@ -755,6 +762,10 @@ export function ConversationEmailBody({
       isHtml: false,
     };
   }, [mailViewMode, formattedContent, pluginBody.html, email, t]);
+  const emailContent = useMemo(
+    () => (phishingMarked ? { ...shownContent, html: turnOffLinks(shownContent.html, { title: tPhishing('link_off'), note: tPhishing('link_off_note') }) } : shownContent),
+    [shownContent, phishingMarked, tPhishing],
+  );
 
   // Parts the body embeds via cid: stay out of the attachment row while the
   // user hides inline images - the desktop viewer's rule, shared through
@@ -897,6 +908,7 @@ export function ConversationEmailBody({
 
   return (
     <div className={className}>
+      {phishingMarked && <PhishingMarkBanner className="px-4" />}
       {/* External content warning */}
       {hasBlockedContent && !allowExternal && emailContent.isHtml && (
         <div className="px-4 py-2 bg-muted/50 flex items-center justify-between text-sm" data-testid="external-content-notice">

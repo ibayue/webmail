@@ -444,7 +444,7 @@ interface EmailStore {
   /** `ownerAccountId`: the JMAP account a link names for the message (#1351). */
   fetchEmailContent: (client: IJMAPClient, emailId: string, ownerAccountId?: string) => Promise<Email | null>;
   fetchQuota: (client: IJMAPClient) => Promise<void>;
-  sendEmail: (client: IJMAPClient, to: string[], subject: string, body: string, cc?: string[], bcc?: string[], identityId?: string, fromEmail?: string, draftId?: string, fromName?: string, htmlBody?: string, attachments?: Array<{ blobId: string; name: string; type: string; size: number; disposition?: 'attachment' | 'inline'; cid?: string }>, inReplyTo?: string[], references?: string[], delayedUntil?: string, envelopeMailFrom?: string, options?: { requestReadReceipt?: boolean; requestDsn?: boolean; requireTls?: boolean; priority?: MessagePriority; headers?: Record<string, string>; localAccountId?: string; draftAccountId?: string }) => Promise<SendEmailResult>;
+  sendEmail: (client: IJMAPClient, to: string[], subject: string, body: string, cc?: string[], bcc?: string[], identityId?: string, fromEmail?: string, draftId?: string, fromName?: string, htmlBody?: string, attachments?: Array<{ blobId: string; name: string; type: string; size: number; disposition?: 'attachment' | 'inline'; cid?: string }>, inReplyTo?: string[], references?: string[], delayedUntil?: string, envelopeMailFrom?: string, options?: { requestReadReceipt?: boolean; requestDsn?: boolean; requireTls?: boolean; priority?: MessagePriority; headers?: Record<string, string>; labelHeaders?: Record<string, string>; localAccountId?: string; draftAccountId?: string }) => Promise<SendEmailResult>;
   sendRawEmail: (client: IJMAPClient, rawMimeBlob: Blob, identityId: string, delayedUntil?: string, envelopeRecipients?: string[]) => Promise<SendEmailResult>;
   /** `emailKey` (emailKeyFor of the row) picks the right row when the id repeats across accounts. */
   deleteEmail: (client: IJMAPClient, emailId: string, forceDelete?: boolean, emailKey?: string) => Promise<boolean>;
@@ -580,10 +580,15 @@ interface EmailStore {
   // owning JMAP account (passed to JMAP), `sourceClientAccountId` is the login the
   // email is reachable through (used to pick the right client). (#281)
   spamUndoCache: Map<string, { emailId: string; originalMailboxId: string; accountId?: string; sourceClientAccountId?: string }>;
-  /** `emailKey` (emailKeyFor of the row) picks the right row when the id repeats across accounts. */
-  markAsSpam: (client: IJMAPClient, emailId: string, emailKey?: string) => Promise<boolean>;
-  /** `emailKey` (emailKeyFor of the row) picks the right row when the id repeats across accounts. */
-  undoSpam: (client: IJMAPClient, emailId: string, emailKey?: string) => Promise<boolean>;
+  /**
+   * `emailKey` (emailKeyFor of the row) picks the right row when the id
+   * repeats across accounts. `options.keywords`: more keywords set with the
+   * move, `options.markRead` marks it read too ($phishing and $seen for a
+   * phishing report, lib/phishing-report.ts).
+   */
+  markAsSpam: (client: IJMAPClient, emailId: string, emailKey?: string, options?: { keywords?: string[]; markRead?: boolean }) => Promise<boolean>;
+  /** `emailKey` as for markAsSpam; `options.clearKeywords` are removed with the move back. */
+  undoSpam: (client: IJMAPClient, emailId: string, emailKey?: string, options?: { clearKeywords?: string[] }) => Promise<boolean>;
   batchMarkAsSpam: (client: IJMAPClient, emailIds: string[]) => Promise<boolean>;
   batchUndoSpam: (client: IJMAPClient, emailIds: string[]) => Promise<boolean>;
 
@@ -6367,7 +6372,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
   },
 
   // Spam operations
-  markAsSpam: async (client, emailId, emailKey): Promise<boolean> => {
+  markAsSpam: async (client, emailId, emailKey, options): Promise<boolean> => {
     const isTarget = singleEmailMatcher(emailId, emailKey);
     // The viewer may show an email the list no longer holds (e.g. the unread
     // quick-filter dropped it once it was read), so fall back to the selected
@@ -6410,8 +6415,10 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
 
     try {
       const isUnread = !email.keywords?.$seen;
-      const alsoMarkRead = useSettingsStore.getState().deleteAction === 'trash-and-read' && isUnread;
-      await actionClient.markAsSpam(emailId, accountId, alsoMarkRead);
+      const alsoMarkRead = isUnread && (options?.markRead === true || useSettingsStore.getState().deleteAction === 'trash-and-read');
+      // Extra keywords only when asked for: the plain call stays as it was.
+      if (options?.keywords?.length) await actionClient.markAsSpam(emailId, accountId, alsoMarkRead, options.keywords);
+      else await actionClient.markAsSpam(emailId, accountId, alsoMarkRead);
 
       // Same junk resolution the client used for the move itself.
       const junkMailbox = mailboxes.find(m =>
@@ -6459,7 +6466,7 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
     return true;
   },
 
-  undoSpam: async (client, emailId, emailKey): Promise<boolean> => {
+  undoSpam: async (client, emailId, emailKey, options): Promise<boolean> => {
     const isTarget = singleEmailMatcher(emailId, emailKey);
     if (emailHooks.onBeforeEmailSpamToggle.size > 0
       && !(await emailHooks.onBeforeEmailSpamToggle.intercept({ emailIds: [emailId], spam: false }))) {
@@ -6515,7 +6522,8 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
     }
 
     try {
-      await undoClient.undoSpam(emailId, targetMailboxId, accountId);
+      if (options?.clearKeywords?.length) await undoClient.undoSpam(emailId, targetMailboxId, accountId, options.clearKeywords);
+      else await undoClient.undoSpam(emailId, targetMailboxId, accountId);
 
       // Drop the restored mail from the current junk view and advance the open
       // message to the next one, mirroring markAsSpam. Without this the viewer

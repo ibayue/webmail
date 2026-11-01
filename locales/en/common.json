@@ -883,6 +883,35 @@
     "send_anyway": "Send anyway",
     "back": "Back"
   },
+  "phishing_report": {
+    "action": "Report phishing…",
+    "confirm_title": "Report phishing?",
+    "confirm_message": "{count, plural, one {The message goes to {address} and moves to Junk.} other {Each of the # messages goes to {address} as its own report and moves to Junk.}}",
+    "confirm": "Report",
+    "cancel": "Cancel",
+    "sending": "Reporting…",
+    "done": "{count, plural, one {Reported to {address} and moved to Junk.} other {# messages reported to {address} and moved to Junk.}}",
+    "not_moved": "{count, plural, one {Reported to {address}, but the message couldn't be moved to Junk.} other {Reported to {address}, but # messages couldn't be moved to Junk.}}",
+    "failed": "{count, plural, one {The message couldn't be reported.} other {# messages couldn't be reported.}}",
+    "undo": "Undo",
+    "undone": "{count, plural, one {Moved back. The report was already sent.} other {Moved back. The reports were already sent.}}",
+    "undo_failed": "Couldn't move it back.",
+    "banner": "You reported this message as phishing. Its links are turned off.",
+    "link_off": "link turned off",
+    "link_off_note": "(link turned off)",
+    "no_subject": "(no subject)"
+  },
+  "classification": {
+    "picker_label": "Classification",
+    "chip_label": "Classification: {name}",
+    "none": "No label",
+    "pick_required": "Pick a label",
+    "required_hint": "Your organisation requires a label.",
+    "required_toast": "Pick a classification label before sending.",
+    "quick_reply_needs_label": "This reply needs a classification label. Pick one here, then send.",
+    "forward_needs_label": "A classification label is required. Forward the message from the composer.",
+    "received_hint": "Set by the sender's mail program. Anyone can set a label, so it proves nothing."
+  },
   "email_composer": {
     "select_from_directory": "Select from directory",
     "minimize": "Minimize",

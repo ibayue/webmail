@@ -883,6 +883,35 @@
     "send_anyway": "Küldés így is",
     "back": "Vissza"
   },
+  "phishing_report": {
+    "action": "Adathalászat jelentése…",
+    "confirm_title": "Jelented adathalászatként?",
+    "confirm_message": "{count, plural, one {Az üzenet a(z) {address} címre megy, és a Spam mappába kerül.} other {Mind a(z) # üzenet külön jelentésként megy a(z) {address} címre, és a Spam mappába kerül.}}",
+    "confirm": "Jelentés",
+    "cancel": "Mégse",
+    "sending": "Jelentés folyamatban…",
+    "done": "{count, plural, one {Jelentve a(z) {address} címre, és áthelyezve a Spam mappába.} other {# üzenet jelentve a(z) {address} címre, és áthelyezve a Spam mappába.}}",
+    "not_moved": "{count, plural, one {Jelentve a(z) {address} címre, de az üzenetet nem sikerült áthelyezni a Spam mappába.} other {Jelentve a(z) {address} címre, de # üzenetet nem sikerült áthelyezni a Spam mappába.}}",
+    "failed": "{count, plural, one {Az üzenetet nem sikerült jelenteni.} other {# üzenetet nem sikerült jelenteni.}}",
+    "undo": "Visszavonás",
+    "undone": "{count, plural, one {Visszahelyezve. A jelentés már elment.} other {Visszahelyezve. A jelentések már elmentek.}}",
+    "undo_failed": "Nem sikerült visszahelyezni.",
+    "banner": "Ezt az üzenetet adathalászatként jelentetted. A benne lévő linkek ki vannak kapcsolva.",
+    "link_off": "link kikapcsolva",
+    "link_off_note": "(link kikapcsolva)",
+    "no_subject": "(nincs tárgy)"
+  },
+  "classification": {
+    "picker_label": "Besorolás",
+    "chip_label": "Besorolás: {name}",
+    "none": "Nincs besorolás",
+    "pick_required": "Válassz besorolást",
+    "required_hint": "A szervezeted besorolást ír elő.",
+    "required_toast": "Küldés előtt válassz besorolást.",
+    "quick_reply_needs_label": "Ehhez a válaszhoz besorolás kell. Itt válassz egyet, aztán küldd el.",
+    "forward_needs_label": "A besorolás kötelező. Az üzenetet a szerkesztőből továbbítsd.",
+    "received_hint": "A feladó levelezőprogramja állította be. Bárki megadhat besorolást, így semmit sem bizonyít."
+  },
   "email_composer": {
     "select_from_directory": "Kiválasztás a címtárból",
     "minimize": "Kis méret",

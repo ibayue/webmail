@@ -31,7 +31,7 @@ import { MobileHeader } from "@/components/layout/mobile-header";
 import { ThreadGroup, Email, Mailbox, isUnifiedMailboxId, UNIFIED_MAILBOX_IDS, UNIFIED_ROLE_BY_ID, CROSS_VIEW_BY_ID, CROSS_VIEW_IDS, isCrossViewId } from "@/lib/jmap/types";
 import { useAccountStore, waitForConnectedAccount } from "@/stores/account-store";
 import { useShallow } from "zustand/react/shallow";
-import { usePolicyStore } from "@/stores/policy-store";
+import { usePolicyStore, whenPolicySettled } from "@/stores/policy-store";
 import { isArchiveActionEnabled, useArchiveActionEnabled } from "@/lib/archive-gate";
 import type { UnifiedAccountClient } from "@/lib/unified-mailbox";
 import { connectedAccountsGrew } from "@/lib/unified-mailbox";
@@ -121,6 +121,9 @@ import { WopiEditor } from "@/components/files/wopi-editor";
 import { useWopiStatus, canWopiOpen } from "@/hooks/use-wopi-status";
 import { isFilePreviewable } from "@/lib/file-preview";
 import { prepareQuickReply, type QuickReplyQuestion } from "@/lib/outgoing/quick-reply";
+import { composerSendOptions } from "@/lib/outgoing/composer-send-options";
+import { isPhishingMarked } from "@/lib/phishing-links";
+import { automaticLabel, classifyOutgoing, labelSourceHeaders, reopenedLabelChoice } from "@/lib/outgoing/classification";
 import enMessages from "@/locales/en/common.json";
 import { computeReplyThreadingHeaders } from "@/lib/email-threading";
 import { EML_IMPORT_ACCEPT, expandImportableEmails } from "@/lib/eml-import";
@@ -300,7 +303,8 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
   const [conversationEmails, setConversationEmails] = useState<Email[]>([]);
   const [isLoadingConversation, setIsLoadingConversation] = useState(false);
   const [rateLimitSecondsLeft, setRateLimitSecondsLeft] = useState<number | null>(null);
-  const [previewAttachment, setPreviewAttachment] = useState<{ blobId: string; name: string; type?: string; accountId?: string; client: NonNullable<typeof client> } | null>(null);
+  // linksOff: the attachment of a message reported as phishing.
+  const [previewAttachment, setPreviewAttachment] = useState<{ blobId: string; name: string; type?: string; accountId?: string; client: NonNullable<typeof client>; linksOff?: boolean } | null>(null);
   // Office attachments open read-only in the configured WOPI editor (#1047).
   const [officeAttachment, setOfficeAttachment] = useState<{ blobId: string; name: string; type?: string; size?: number; accountId: string; slot: number | null } | null>(null);
   const wopiStatus = useWopiStatus(true);
@@ -1333,6 +1337,8 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       messageId: selectedEmail.messageId,
       inReplyTo: selectedEmail.inReplyTo,
       references: selectedEmail.references,
+      // Its label, for the reply's or forward's classification label.
+      headers: labelSourceHeaders(selectedEmail.headers),
       quoteHeaderHtml: composerQuoteHeader?.html,
       quoteHeaderText: composerQuoteHeader?.text,
       quoteWrapInBlockquote: composerQuoteHeader?.wrapInBlockquote,
@@ -2158,6 +2164,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     requireTls?: boolean;
     priority?: MessagePriority;
     headers?: Record<string, string>;
+    labelHeaders?: Record<string, string>;
     composerId?: string;
   }) => {
     // Nothing is sent: the composer keeps what only goes once the mail is out.
@@ -2182,7 +2189,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       const effectiveMode = pendingDraft?.mode ?? composerMode;
       const originalEmailId = composerSourceEmail?.id;
 
-      const result = await sendEmail(sendClient, data.to, data.subject, data.body, data.cc, data.bcc, data.identityId, data.fromEmail, data.draftId, data.fromName, data.htmlBody, data.attachments, data.inReplyTo, data.references, data.delayedUntil, data.envelopeMailFrom, { requestReadReceipt: data.requestReadReceipt, requestDsn: data.requestDsn, requireTls: data.requireTls, priority: data.priority, headers: data.headers, localAccountId: data.localAccountId, draftAccountId: data.draftAccountId });
+      const result = await sendEmail(sendClient, data.to, data.subject, data.body, data.cc, data.bcc, data.identityId, data.fromEmail, data.draftId, data.fromName, data.htmlBody, data.attachments, data.inReplyTo, data.references, data.delayedUntil, data.envelopeMailFrom, composerSendOptions(data));
       submitted = true;
       announceSent(result, data);
       setShowComposer(false);
@@ -2495,6 +2502,9 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       inReplyTo: draft.inReplyTo ?? undefined,
       references: draft.references ?? undefined,
       priority: messagePriorityFromHeaders(draft.headers),
+      // A sent message brought back (Undo, Cancel and edit) has no draft
+      // marker: its SIO-Label says which label it went out with.
+      classification: reopenedLabelChoice(draft.headers, localAccountId),
       // Existing server-side attachments must ride along, or the composer
       // starts empty and the next save/send silently rebuilds the draft
       // without them (#849).
@@ -2846,6 +2856,8 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       replyTo: {
         subject: email.subject,
         attachments: [payload.attachment],
+        headers: labelSourceHeaders(email.headers),
+        originalFrom: email.from,
       },
     });
     setComposerMode('forward');
@@ -3959,7 +3971,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     try {
       const { mailAttachmentAction } = useSettingsStore.getState();
       if (mailAttachmentAction === 'preview' && isFilePreviewable(name, attachment.type)) {
-        setPreviewAttachment({ blobId: attachment.blobId, name, type: attachment.type, accountId, client: blobClient });
+        setPreviewAttachment({ blobId: attachment.blobId, name, type: attachment.type, accountId, client: blobClient, linksOff: isPhishingMarked(email) });
         return;
       }
       if (mailAttachmentAction === 'preview' && openOfficeAttachment(
@@ -4019,7 +4031,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       const { mailAttachmentAction } = useSettingsStore.getState();
 
       if (!forceDownload && mailAttachmentAction === 'preview' && isFilePreviewable(name, type)) {
-        setPreviewAttachment({ blobId, name, type, accountId, client: blobClient });
+        setPreviewAttachment({ blobId, name, type, accountId, client: blobClient, linksOff: isPhishingMarked(selectedEmail) });
         return;
       }
       if (!forceDownload && mailAttachmentAction === 'preview' && openOfficeAttachment(
@@ -4084,6 +4096,21 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     const signatureIdentity = (sendingIdentity?.htmlSignature || sendingIdentity?.textSignature)
       ? sendingIdentity
       : primaryIdentity;
+    // The classification label (enterprise pack): the original's, else the
+    // default. A required label with neither: the full composer, with the
+    // typed text, to pick one. Nothing is asked or sent before that.
+    await whenPolicySettled();
+    const quickLabel = automaticLabel({ email: headerFromEmail }, {
+      headers: selectedEmail.headers,
+      from: selectedEmail.from,
+      accountId: selectedEmail.sourceClientAccountId,
+    });
+    if (quickLabel.missing) {
+      toast.info(t('classification.quick_reply_needs_label'));
+      await handleReply(body);
+      return true;
+    }
+
     // The same warnings, checks and finalisers as the composer's send
     // (lib/outgoing/send-pipeline.ts): a quick reply is no way around them.
     const settings = useSettingsStore.getState();
@@ -4155,11 +4182,16 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       references: selectedEmail.references,
     });
 
+    // The label goes on last, as in the composer.
+    const labelled = classifyOutgoing(quickLabel.policy, quickLabel.label, {
+      subject: buildReplySubject(selectedEmail.subject || t('email_viewer.no_subject'), t('email_composer.prefix.reply')),
+    });
+
     // Send reply with just the body text
     const result = await sendEmail(
       client,
       recipients,
-      buildReplySubject(selectedEmail.subject || t('email_viewer.no_subject'), t('email_composer.prefix.reply')),
+      labelled.subject,
       finalBody,
       undefined,
       undefined,
@@ -4173,6 +4205,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       threading?.references,
       delayedUntil,
       undefined,
+      labelled.labelHeaders ? { labelHeaders: labelled.labelHeaders } : undefined,
     );
     // As after the composer's send: the server refused some recipients, held
     // reply or not, and nothing else would say they never get it.
@@ -4822,6 +4855,8 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
           messageId: composerSourceEmail.messageId,
           inReplyTo: composerSourceEmail.inReplyTo,
           references: composerSourceEmail.references,
+          // Its label, for the reply's or forward's classification label.
+          headers: labelSourceHeaders(composerSourceEmail.headers),
           quoteHeaderHtml: composerQuoteHeader?.html,
           quoteHeaderText: composerQuoteHeader?.text,
           quoteWrapInBlockquote: composerQuoteHeader?.wrapInBlockquote,
@@ -5765,6 +5800,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
             onClose={() => setPreviewAttachment(null)}
             onDownload={handlePreviewAttachmentDownload}
             getFileContent={getPreviewAttachmentContent}
+            linksOff={previewAttachment.linksOff}
           />
         )}
 

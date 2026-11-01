@@ -14,7 +14,8 @@ import { ViewSourceDialog } from "./view-source-dialog";
 import { useCopyToAccount, useEmailExport, requestPrint } from "@/hooks/use-message-file-actions";
 import { BatchTagButton } from "./batch-tag-button";
 import { cn, cleanPreview } from "@/lib/utils";
-import { Trash2, Mail, MailX, MailOpen, Loader2, SearchX, AlertTriangle, CalendarClock, ShieldCheck, ShieldAlert, Archive, MoreVertical, X, FolderX } from "@/components/icons";
+import { Trash2, Mail, MailX, MailOpen, Loader2, SearchX, AlertTriangle, CalendarClock, ShieldCheck, ShieldAlert, Archive, MoreVertical, X, FolderX, Fish } from "@/components/icons";
+import { usePhishingReport } from "@/hooks/use-phishing-report";
 import { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { IconButton } from "@/components/ui/icon-button";
@@ -552,6 +553,9 @@ export function EmailList({
     () => (hasSelection ? resolveSelectedEmails({ emails, threadEmailsCache, selectedEmailKeys }) : []),
     [hasSelection, emails, threadEmailsCache, selectedEmailKeys],
   );
+  // Report phishing for the selection, one report per message (enterprise pack).
+  const selectionPhishing = usePhishingReport(selectedEmailsForRemoval, effectiveMailboxRole);
+  const tPhishing = useTranslations('phishing_report');
   const selectionCanLeaveFolder = selectedEmailsForRemoval.length > 0
     && selectedEmailsForRemoval.every((email) => canRemoveFromFolder(email, folderToLeave));
   const handleBatchRemoveFromFolder = async () => {
@@ -1056,6 +1060,16 @@ export function EmailList({
                 data-testid={effectiveMailboxRole === 'junk' ? 'batch-not-spam' : 'batch-spam'}
               >
                 {effectiveMailboxRole === 'junk' ? <ShieldCheck /> : <ShieldAlert />}
+              </IconButton>
+            )}
+            {selectionPhishing.available && !batchNarrow && (
+              <IconButton
+                label={tPhishing('action')}
+                onClick={selectionPhishing.report}
+                disabled={isProcessing}
+                data-testid="batch-report-phishing"
+              >
+                <Fish />
               </IconButton>
             )}
             {!batchNarrow && (
