@@ -46,10 +46,19 @@ export function phishingReportSetup(policy: SettingsPolicy | null | undefined): 
 /** Folders whose messages are the user's own: nothing to report there. */
 const OWN_MAIL_ROLES = new Set(['sent', 'drafts', 'scheduled']);
 
-/** Whether `email`, shown in a folder of `mailboxRole`, can be reported. */
-export function isReportable(email: Pick<Email, 'blobId' | 'keywords' | 'isScheduled'>, mailboxRole?: string | null): boolean {
+/**
+ * Whether `email`, shown in a folder of `mailboxRole`, can be reported.
+ * `folderRoles`: the roles of the folders the message itself is in (search
+ * results and All mail show the user's own sent mail too).
+ */
+export function isReportable(
+  email: Pick<Email, 'blobId' | 'keywords' | 'isScheduled'>,
+  mailboxRole?: string | null,
+  folderRoles: readonly string[] = [],
+): boolean {
   if (!email.blobId || email.isScheduled) return false;
   if (mailboxRole && OWN_MAIL_ROLES.has(mailboxRole)) return false;
+  if (folderRoles.some((role) => OWN_MAIL_ROLES.has(role))) return false;
   if (email.keywords?.$draft) return false;
   // Reported already: it is in Junk with its links off.
   return email.keywords?.[PHISHING_KEYWORD] !== true;

@@ -14,6 +14,7 @@
 
 import type { Email } from '@/lib/jmap/types';
 import { base64Body, displayName, encodeHeaderWord, headerAtom, randomToken, rfc5322Date } from '@/lib/mdn';
+import { deliveryAddresses } from '@/lib/reply-identity';
 import { reportSubject, type ArfInput } from './phishing-report';
 
 export interface ArfParts {
@@ -34,16 +35,20 @@ function senderDomain(email: Pick<Email, 'from'>): string | null {
   return address.includes('@') && /^[A-Za-z0-9.-]+$/.test(domain) ? domain.toLowerCase() : null;
 }
 
+/** How the original goes in: message/rfc822 may not be base64-encoded (RFC 2046 §5.2.1). */
+export type RawEncoding = '7bit' | '8bit' | 'binary';
+
 /**
- * The report around the original. `eightBit`: the original has bytes
- * outside 7-bit ASCII (message/rfc822 may not be base64-encoded, RFC 2046
- * §5.2.1, so its part says 8bit then).
+ * The report around the original. `encoding`: what the original's bytes
+ * are (rawEncoding). `recipient`: the address the original was delivered
+ * to, for Original-Rcpt-To; left out when unknown.
  */
 export function buildArfParts(input: {
   email: Pick<Email, 'subject' | 'receivedAt' | 'from' | 'messageId'>;
   reporter: { name?: string; email: string };
   to: string;
-  eightBit: boolean;
+  encoding: RawEncoding;
+  recipient?: string;
   now?: Date;
 }): ArfParts {
   const { email, reporter } = input;
@@ -63,7 +68,7 @@ export function buildArfParts(input: {
     `User-Agent: Bulwark/${appVersion()}`,
     'Version: 1',
     ...(arrival && !Number.isNaN(arrival.getTime()) ? [`Arrival-Date: ${rfc5322Date(arrival)}`] : []),
-    `Original-Rcpt-To: ${fromEmail}`,
+    ...(input.recipient ? [`Original-Rcpt-To: ${headerAtom(input.recipient)}`] : []),
     ...(reportedDomain ? [`Reported-Domain: ${reportedDomain}`] : []),
   ].join('\r\n');
 
@@ -92,7 +97,7 @@ export function buildArfParts(input: {
     `--${boundary}`,
     'Content-Type: message/rfc822',
     'Content-Disposition: attachment; filename="reported-message.eml"',
-    `Content-Transfer-Encoding: ${input.eightBit ? '8bit' : '7bit'}`,
+    `Content-Transfer-Encoding: ${input.encoding}`,
     '',
     '',
   ].join('\r\n');
@@ -100,18 +105,51 @@ export function buildArfParts(input: {
   return { head, tail };
 }
 
-function hasEightBit(bytes: Uint8Array): boolean {
-  for (let i = 0; i < bytes.length; i++) if (bytes[i] > 0x7f) return true;
-  return false;
+/**
+ * 7bit or 8bit lines of at most 998 octets ending in CRLF (RFC 2045 §2.7,
+ * §2.8); anything else (a NUL, a bare CR or LF, a longer line) is binary.
+ */
+export function rawEncoding(bytes: Uint8Array): RawEncoding {
+  let eightBit = false;
+  let line = 0;
+  for (let i = 0; i < bytes.length; i++) {
+    const b = bytes[i];
+    if (b === 0x00) return 'binary';
+    if (b === 0x0d) {
+      if (bytes[i + 1] !== 0x0a) return 'binary';
+      i++;
+      line = 0;
+      continue;
+    }
+    if (b === 0x0a) return 'binary';
+    if (b > 0x7f) eightBit = true;
+    if (++line > 998) return 'binary';
+  }
+  return eightBit ? '8bit' : '7bit';
 }
 
 /** The whole report as a Blob, the original downloaded from its own account. */
 export async function buildArfReportBlob(input: ArfInput): Promise<Blob> {
   const { client, email, sourceAccountId } = input;
   if (!email.blobId) throw new Error('The message has no content to report');
+  // The report is uploaded: one bigger than the server takes fails anyway,
+  // so it isn't downloaded either.
+  const maxUpload = client.getMaxSizeUpload?.() ?? 0;
+  if (maxUpload > 0 && email.size + 8192 > maxUpload) {
+    throw new Error('The message is too big for an ARF report on this server');
+  }
   const original = new Uint8Array(await client.fetchBlobArrayBuffer(email.blobId, 'message.eml', 'message/rfc822', sourceAccountId));
-  const parts = buildArfParts({ email, reporter: input.reporter, to: input.to, eightBit: hasEightBit(original) });
+  const parts = buildArfParts({
+    email,
+    reporter: input.reporter,
+    to: input.to,
+    encoding: rawEncoding(original),
+    recipient: deliveryAddresses(email.headers)[0]
+      ?? email.to?.find((addr) => addr.email?.toLowerCase() === input.reporter.email.toLowerCase())?.email,
+  });
   // The original goes in byte for byte; the closing boundary needs a line break before it.
   const endsWithBreak = original.length >= 2 && original[original.length - 2] === 0x0d && original[original.length - 1] === 0x0a;
-  return new Blob([parts.head, original, endsWithBreak ? parts.tail.slice(2) : parts.tail], { type: 'message/rfc822' });
+  const report = new Blob([parts.head, original, endsWithBreak ? parts.tail.slice(2) : parts.tail], { type: 'message/rfc822' });
+  if (maxUpload > 0 && report.size > maxUpload) throw new Error('The message is too big for an ARF report on this server');
+  return report;
 }

@@ -16,6 +16,8 @@ import { debug } from '@/lib/debug';
 import { useAuthStore } from '@/stores/auth-store';
 import { resolveEmailActionContext, useEmailStore } from '@/stores/email-store';
 import { usePolicyStore } from '@/stores/policy-store';
+import { usePhishingReportStore } from '@/stores/phishing-report-store';
+import { emailHooks } from '@/lib/plugin-hooks';
 import {
   PHISHING_KEYWORD,
   phishingReportSetup,
@@ -39,8 +41,8 @@ interface MovedReport {
 }
 
 export interface PhishingReportOutcome {
-  /** The address the reports went to (the first message's, when they differ). */
-  address: string;
+  /** Every address the reports went to (accounts with different policies differ). */
+  addresses: string[];
   /** Reports that went out. */
   reported: Email[];
   /** Messages whose report didn't go out. */
@@ -70,7 +72,7 @@ function firstMailboxId(email: Email): string | null {
 export async function reportEmailsAsPhishing(emails: Email[]): Promise<PhishingReportOutcome> {
   const active = useAuthStore.getState().client;
   if (!active) throw new Error('Not signed in');
-  const outcome: PhishingReportOutcome = { address: '', reported: [], failed: [], notMoved: [], moved: [] };
+  const outcome: PhishingReportOutcome = { addresses: [], reported: [], failed: [], notMoved: [], moved: [] };
   let buildArf: ((input: ArfInput) => Promise<Blob>) | undefined;
 
   for (const email of emails) {
@@ -79,7 +81,7 @@ export async function reportEmailsAsPhishing(emails: Email[]): Promise<PhishingR
       outcome.failed.push(email);
       continue;
     }
-    if (!outcome.address) outcome.address = setup.address;
+    if (!outcome.addresses.includes(setup.address)) outcome.addresses.push(setup.address);
     const { client, accountId } = resolveEmailActionContext(email, active);
     try {
       if (setup.format === 'arf' && !buildArf) buildArf = await loadArfBuilder();
@@ -90,6 +92,8 @@ export async function reportEmailsAsPhishing(emails: Email[]): Promise<PhishingR
       continue;
     }
     outcome.reported.push(email);
+    // Every open view of it shows the banner and turns its links off now.
+    usePhishingReportStore.getState().markReported([emailKeyFor(email)], true);
 
     // Like "Mark as spam" (plugins' onBeforeEmailSpamToggle still runs),
     // with $phishing, and read: it shouldn't count as new mail in Junk.
@@ -103,9 +107,16 @@ export async function reportEmailsAsPhishing(emails: Email[]): Promise<PhishingR
         else outcome.notMoved.push(email);
       } else {
         // A message the list doesn't hold (a Pro tab, a conversation's older
-        // message): straight to its account.
+        // message): straight to its account, with the plugins' spam hooks
+        // as "Mark as spam" runs them.
+        const toggle = { emailIds: [email.id], spam: true };
+        if (emailHooks.onBeforeEmailSpamToggle.size > 0 && !(await emailHooks.onBeforeEmailSpamToggle.intercept(toggle))) {
+          outcome.notMoved.push(email);
+          continue;
+        }
         const mailboxId = firstMailboxId(email);
         await client.markAsSpam(email.id, accountId, true, [PHISHING_KEYWORD]);
+        void emailHooks.onEmailSpamToggle.emit(toggle);
         if (mailboxId) outcome.moved.push({ email, via: { client, accountId, mailboxId } });
       }
     } catch (error) {
@@ -123,11 +134,19 @@ export async function undoPhishingReports(outcome: PhishingReportOutcome): Promi
   let back = 0;
   for (const { email, via } of outcome.moved) {
     try {
+      let done = false;
       if (via === 'store') {
-        if (await useEmailStore.getState().undoSpam(active, email.id, emailKeyFor(email), { clearKeywords: [PHISHING_KEYWORD] })) back++;
+        done = await useEmailStore.getState().undoSpam(active, email.id, emailKeyFor(email), { clearKeywords: [PHISHING_KEYWORD] });
       } else {
+        const toggle = { emailIds: [email.id], spam: false };
+        if (emailHooks.onBeforeEmailSpamToggle.size > 0 && !(await emailHooks.onBeforeEmailSpamToggle.intercept(toggle))) continue;
         await via.client.undoSpam(email.id, via.mailboxId, via.accountId, [PHISHING_KEYWORD]);
+        void emailHooks.onEmailSpamToggle.emit(toggle);
+        done = true;
+      }
+      if (done) {
         back++;
+        usePhishingReportStore.getState().markReported([emailKeyFor(email)], false);
       }
     } catch (error) {
       debug.error('Moving a reported message back failed:', error);

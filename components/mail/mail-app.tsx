@@ -122,6 +122,7 @@ import { useWopiStatus, canWopiOpen } from "@/hooks/use-wopi-status";
 import { isFilePreviewable } from "@/lib/file-preview";
 import { prepareQuickReply, type QuickReplyQuestion } from "@/lib/outgoing/quick-reply";
 import { composerSendOptions } from "@/lib/outgoing/composer-send-options";
+import { isPhishingMarked } from "@/lib/phishing-links";
 import { automaticLabel, classifyOutgoing, labelSourceHeaders, reopenedLabelChoice } from "@/lib/outgoing/classification";
 import enMessages from "@/locales/en/common.json";
 import { computeReplyThreadingHeaders } from "@/lib/email-threading";
@@ -302,7 +303,8 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
   const [conversationEmails, setConversationEmails] = useState<Email[]>([]);
   const [isLoadingConversation, setIsLoadingConversation] = useState(false);
   const [rateLimitSecondsLeft, setRateLimitSecondsLeft] = useState<number | null>(null);
-  const [previewAttachment, setPreviewAttachment] = useState<{ blobId: string; name: string; type?: string; accountId?: string; client: NonNullable<typeof client> } | null>(null);
+  // linksOff: the attachment of a message reported as phishing.
+  const [previewAttachment, setPreviewAttachment] = useState<{ blobId: string; name: string; type?: string; accountId?: string; client: NonNullable<typeof client>; linksOff?: boolean } | null>(null);
   // Office attachments open read-only in the configured WOPI editor (#1047).
   const [officeAttachment, setOfficeAttachment] = useState<{ blobId: string; name: string; type?: string; size?: number; accountId: string; slot: number | null } | null>(null);
   const wopiStatus = useWopiStatus(true);
@@ -3969,7 +3971,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     try {
       const { mailAttachmentAction } = useSettingsStore.getState();
       if (mailAttachmentAction === 'preview' && isFilePreviewable(name, attachment.type)) {
-        setPreviewAttachment({ blobId: attachment.blobId, name, type: attachment.type, accountId, client: blobClient });
+        setPreviewAttachment({ blobId: attachment.blobId, name, type: attachment.type, accountId, client: blobClient, linksOff: isPhishingMarked(email) });
         return;
       }
       if (mailAttachmentAction === 'preview' && openOfficeAttachment(
@@ -4029,7 +4031,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
       const { mailAttachmentAction } = useSettingsStore.getState();
 
       if (!forceDownload && mailAttachmentAction === 'preview' && isFilePreviewable(name, type)) {
-        setPreviewAttachment({ blobId, name, type, accountId, client: blobClient });
+        setPreviewAttachment({ blobId, name, type, accountId, client: blobClient, linksOff: isPhishingMarked(selectedEmail) });
         return;
       }
       if (!forceDownload && mailAttachmentAction === 'preview' && openOfficeAttachment(
@@ -5798,6 +5800,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
             onClose={() => setPreviewAttachment(null)}
             onDownload={handlePreviewAttachmentDownload}
             getFileContent={getPreviewAttachmentContent}
+            linksOff={previewAttachment.linksOff}
           />
         )}
 

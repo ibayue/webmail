@@ -26,14 +26,15 @@ export function PhishingReportHost() {
   };
 
   const showOutcome = (outcome: PhishingReportOutcome) => {
-    const { address, reported, failed, notMoved, moved } = outcome;
+    const { reported, failed, notMoved, moved } = outcome;
+    const address = outcome.addresses.join(', ');
     if (reported.length > 0) {
       const undo = moved.length > 0
         ? {
             label: t('undo'),
             onClick: () => {
               void undoPhishingReports(outcome).then((back) => {
-                if (back > 0) toast.info(t('undone', { count: reported.length }));
+                if (back > 0) toast.info(t('undone', { count: back }));
                 else toast.error(t('undo_failed'));
               });
             },
@@ -112,7 +113,7 @@ export function PhishingReportHost() {
             <div className="min-w-0 flex-1">
               <h2 id={`${id}-title`} className="text-lg font-semibold text-foreground">{t('confirm_title')}</h2>
               <p id={`${id}-message`} className="mt-1 text-sm text-muted-foreground [overflow-wrap:anywhere]">
-                {t('confirm_message', { address: pending.address, count })}
+                {t('confirm_message', { address: pending.addresses.join(', '), count })}
               </p>
             </div>
           </div>

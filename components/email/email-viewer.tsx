@@ -33,7 +33,8 @@ import { useContextMenu, type UseContextMenuReturn } from "@/hooks/use-context-m
 import { EmailContextMenu } from "./email-context-menu";
 import { useMessageActionList, type MessageActionEntry, type MessageActionKey, type MessageActionOptions, type MessageSubmenuKey } from "./message-actions";
 import { PhishingMarkBanner } from "./phishing-mark-banner";
-import { isPhishingMarked, turnOffLinks } from "@/lib/phishing-links";
+import { turnOffLinks } from "@/lib/phishing-links";
+import { usePhishingMarked } from "@/hooks/use-phishing-report";
 import { useCopyToAccount, useEmailExport, usePrintRequestStore } from "@/hooks/use-message-file-actions";
 import { useBottomControls } from "@/hooks/use-bottom-controls";
 import { useComposingSurface } from "@/hooks/use-composing-surface";
@@ -2655,7 +2656,7 @@ export function EmailViewer({
 
   // Reported as phishing ($phishing): a banner, its links turned off and
   // no cards (a phishing mail's "booking" is the lure).
-  const phishingMarked = isPhishingMarked(email);
+  const phishingMarked = usePhishingMarked(email);
   const tPhishing = useTranslations('phishing_report');
 
   // Booking, parcel and order cards of the message itself (never of an
@@ -3754,7 +3755,8 @@ export function EmailViewer({
     return extractListHeaders(email.headers);
   }, [email?.headers]);
 
-  const shouldShowUnsubBanner =
+  // Not for a reported message: its unsubscribe link is the phisher's.
+  const shouldShowUnsubBanner = !phishingMarked &&
     listHeaders?.listUnsubscribe?.preferred &&
     !dismissedUnsubBanners.has(email?.messageId || '');
 
@@ -6155,6 +6157,7 @@ export function EmailViewer({
         onClose={() => setInAppPreview(null)}
         onDownload={downloadInAppPreview}
         getFileContent={getInAppPreviewContent}
+        linksOff={phishingMarked}
       />
     )}
     </>

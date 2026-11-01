@@ -70,7 +70,8 @@ import { AttachmentPluginMenu, ReaderAboveQuoteSlot } from "./reader-plugin-surf
 import { useRemoteContentBlockedByOrg, useRemoteContentChecks } from "@/hooks/use-third-party-mode";
 import { ConversationHeaderActions, type ConversationActions } from "./conversation-header-actions";
 import { PhishingMarkBanner } from "./phishing-mark-banner";
-import { isPhishingMarked, turnOffLinks } from "@/lib/phishing-links";
+import { turnOffLinks } from "@/lib/phishing-links";
+import { usePhishingMarked } from "@/hooks/use-phishing-report";
 
 export type ConversationAttachmentHandler = (
   blobId: string, name: string, type: string | undefined, source: EmailBlobContext,
@@ -576,7 +577,7 @@ export function ConversationEmailBody({
   const source = blobSource ?? fallbackSource;
   const { client: blobClient, accountId } = source;
   // Reported as phishing: a banner, links off, no cards (as in the reader).
-  const phishingMarked = isPhishingMarked(email);
+  const phishingMarked = usePhishingMarked(email);
   const tPhishing = useTranslations('phishing_report');
   // Booking, parcel and order cards; only an expanded message mounts this body.
   const structuredCards = useStructuredMail(phishingMarked ? null : email, source);

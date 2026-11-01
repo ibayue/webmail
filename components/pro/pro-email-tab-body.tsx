@@ -68,6 +68,25 @@ interface ProEmailViewProps {
   className?: string;
 }
 
+/**
+ * A message the tab read through another login, or from a shared or group
+ * account, carries where it came from (sourceClientAccountId,
+ * sourceAccountId), as rows of the unified inbox do: then actions that
+ * route by the message (Report phishing, the remote-content lock of that
+ * account) reach its own account. A message of the active login's own
+ * account stays as it is.
+ */
+export function stampProSource(email: Email, source: EmailBlobContext, loginId: string | undefined): Email {
+  if (email.sourceClientAccountId && email.sourceAccountId) return email;
+  const activeLogin = useAuthStore.getState().activeAccountId ?? undefined;
+  const login = loginId ?? source.clientAccountId ?? activeLogin;
+  const ownAccount = source.client?.getAccountId?.();
+  const account = source.accountId ?? ownAccount;
+  const foreign = (!!login && login !== activeLogin) || (!!account && !!ownAccount && account !== ownAccount);
+  if (!foreign || !login || !account) return email;
+  return { ...email, sourceClientAccountId: login, sourceAccountId: account };
+}
+
 function buildReplyContext(email: Email): ProReplyContext {
   return {
     from: email.from,
@@ -202,7 +221,7 @@ export function ProEmailView({ emailId, client: clientOverride, clientAccountId,
       .then((loaded) => {
         if (cancelled) return;
         pending.applied = true;
-        setEmail(loaded);
+        setEmail(loaded ? stampProSource(loaded, pending.blobSource, clientOverride ? clientAccountId : undefined) : loaded);
         setBlobSource(pending.blobSource);
         if (loaded) onLoadedRef.current?.(loaded);
       })
@@ -215,7 +234,7 @@ export function ProEmailView({ emailId, client: clientOverride, clientAccountId,
     return () => {
       cancelled = true;
     };
-  }, [client, clientOverride, emailId, accountId, fetchEmailContent]);
+  }, [client, clientOverride, clientAccountId, emailId, accountId, fetchEmailContent]);
 
   const currentMailboxRole = useMemo(() => {
     if (!email) return undefined;

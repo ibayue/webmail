@@ -34,6 +34,7 @@ const hoisted = vi.hoisted(() => {
   };
   const store = {
     emails: [] as Email[],
+    mailboxes: [{ id: 'inbox', role: 'inbox' }, { id: 'sent-box', role: 'sent' }],
     selectedEmail: null as Email | null,
     markAsSpam: vi.fn(async (..._args: unknown[]) => true),
     undoSpam: vi.fn(async (..._args: unknown[]) => true),
@@ -49,7 +50,10 @@ vi.mock('@/stores/auth-store', () => {
   return { useAuthStore: hook };
 });
 vi.mock('@/stores/email-store', () => ({
-  useEmailStore: { getState: () => hoisted.store },
+  useEmailStore: Object.assign(
+    (sel?: (s: typeof hoisted.store) => unknown) => (sel ? sel(hoisted.store) : hoisted.store),
+    { getState: () => hoisted.store },
+  ),
   resolveEmailActionContext: () => ({ client: hoisted.client, mailboxes: [], accountId: undefined }),
 }));
 
@@ -67,6 +71,7 @@ beforeEach(() => {
   setAddress('soc@example.org');
 });
 afterEach(() => {
+  usePhishingReportStore.setState({ reported: {} });
   cleanup();
   usePolicyStore.setState({ policy: DEFAULT_POLICY });
   useToastStore.setState({ toasts: [] });
@@ -140,6 +145,49 @@ describe('Report phishing', () => {
     const raw = await ((hoisted.client.submitRawEmail.mock.calls[0] as unknown[])[0] as Blob).text();
     expect(raw).toContain('report-type=feedback-report');
     await waitFor(() => expect(hoisted.store.markAsSpam).toHaveBeenCalledTimes(1));
+  });
+
+  it('says how many came back when only some could be moved back', async () => {
+    render(<PhishingReportHost />);
+    act(() => requestPhishingReport([e1, e2], 'inbox'));
+    await act(async () => { fireEvent.click(screen.getByTestId('phishing-report-confirm')); });
+    hoisted.store.undoSpam.mockResolvedValueOnce(true).mockResolvedValueOnce(false);
+    await act(async () => { useToastStore.getState().toasts.at(-1)!.action!.onClick(); });
+    // The "undone" toast counts what came back, not what was reported.
+    expect(useToastStore.getState().toasts.at(-1)!.title).toBe('undone');
+    expect(hoisted.store.undoSpam).toHaveBeenCalledTimes(2);
+    expect(usePhishingReportStore.getState().reported).toEqual({ e2: true });
+  });
+
+  it('marks the reported messages for every open view, and unmarks them on Undo', async () => {
+    render(<PhishingReportHost />);
+    act(() => requestPhishingReport([e1], 'inbox'));
+    await act(async () => { fireEvent.click(screen.getByTestId('phishing-report-confirm')); });
+    expect(usePhishingReportStore.getState().reported).toEqual({ e1: true });
+    await act(async () => { useToastStore.getState().toasts.at(-1)!.action!.onClick(); });
+    expect(usePhishingReportStore.getState().reported).toEqual({});
+  });
+
+  it('runs the plugins\u2019 spam hook for a message the list doesn\u2019t hold, and stops the move when it says no', async () => {
+    hoisted.store.emails = [];
+    const { emailHooks } = await import('@/lib/plugin-hooks');
+    const off = emailHooks.onBeforeEmailSpamToggle.register('test-plugin', async () => false);
+    try {
+      render(<PhishingReportHost />);
+      act(() => requestPhishingReport([e1], 'inbox'));
+      await act(async () => { fireEvent.click(screen.getByTestId('phishing-report-confirm')); });
+      expect(hoisted.client.sendEmail).toHaveBeenCalledTimes(1);
+      expect(hoisted.client.markAsSpam).not.toHaveBeenCalled();
+      expect(useToastStore.getState().toasts.at(-1)).toMatchObject({ type: 'warning', title: 'not_moved' });
+    } finally {
+      off.dispose();
+    }
+  });
+
+  it('skips the user\u2019s own sent mail found by search', () => {
+    render(<PhishingReportHost />);
+    act(() => requestPhishingReport([{ ...e1, mailboxIds: { 'sent-box': true } } as Email], null));
+    expect(screen.queryByTestId('phishing-report-dialog')).toBeNull();
   });
 
   it('skips messages of your own folders', () => {
