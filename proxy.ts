@@ -420,6 +420,10 @@ export async function proxy(request: NextRequest) {
     isSandboxPath ? `form-action 'none'` : `form-action ${["'self'", ...wopiOrigins].join(" ")}`,
     `frame-ancestors ${frameAncestors}`,
     `media-src ${mediaSrc}`,
+    // A plugin frame may run work it has to stop at a deadline (send checks'
+    // admin patterns) in a worker made from a blob; it gets the frame's own
+    // connect-src, so it reaches nothing the frame can't.
+    ...(isSandboxPath ? [`worker-src 'self' blob:`] : []),
   ].join("; ");
 
   // Skip intl middleware for routes outside the localized app tree.
