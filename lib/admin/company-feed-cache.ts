@@ -12,13 +12,28 @@ export interface CachedFeed {
   fetchedAt: number;
 }
 
+/** What a fetch of a feed gave: its body, or the error to answer with. */
+export type FeedResult = { body: ArrayBuffer } | { status: number; error: string };
+
 const MAX_ENTRIES = 200;
+/** How long a failed feed answers with its error before it is asked again. */
+export const FAILURE_TTL_MS = 60_000;
 const KEY = Symbol.for('bulwark.companyFeedCache');
 
-function store(): Map<string, CachedFeed> {
-  const g = globalThis as typeof globalThis & { [KEY]?: Map<string, CachedFeed> };
-  g[KEY] ??= new Map();
+interface CacheState {
+  feeds: Map<string, CachedFeed>;
+  failures: Map<string, { at: number; result: { status: number; error: string } }>;
+  inFlight: Map<string, Promise<FeedResult>>;
+}
+
+function cacheState(): CacheState {
+  const g = globalThis as typeof globalThis & { [KEY]?: CacheState };
+  g[KEY] ??= { feeds: new Map(), failures: new Map(), inFlight: new Map() };
   return g[KEY];
+}
+
+function store(): Map<string, CachedFeed> {
+  return cacheState().feeds;
 }
 
 export const companyFeedCache = {
@@ -32,7 +47,34 @@ export const companyFeedCache = {
     // The oldest entry goes first.
     while (map.size > MAX_ENTRIES) map.delete(map.keys().next().value as string);
   },
+  /** The error a feed failed with less than a minute ago, if it did. */
+  failure(url: string): { status: number; error: string } | null {
+    const failures = cacheState().failures;
+    const entry = failures.get(url);
+    if (!entry) return null;
+    if (Date.now() - entry.at >= FAILURE_TTL_MS) {
+      failures.delete(url);
+      return null;
+    }
+    return entry.result;
+  },
+  fail(url: string, result: { status: number; error: string }): void {
+    cacheState().failures.set(url, { at: Date.now(), result });
+  },
+  /** Run `fetch` for a feed once at a time: callers meanwhile share its result. */
+  once(url: string, fetch: () => Promise<FeedResult>): Promise<FeedResult> {
+    const inFlight = cacheState().inFlight;
+    let running = inFlight.get(url);
+    if (!running) {
+      running = fetch().finally(() => inFlight.delete(url));
+      inFlight.set(url, running);
+    }
+    return running;
+  },
   clear(): void {
-    store().clear();
+    const state = cacheState();
+    state.feeds.clear();
+    state.failures.clear();
+    state.inFlight.clear();
   },
 };

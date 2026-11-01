@@ -5,7 +5,8 @@ import { DisallowedUrlError, fetchPublicUrl, type PublicFetchResponse } from '@/
 import { readBodyCapped } from '@/lib/security/capped-body';
 import { configManager } from '@/lib/admin/config-manager';
 import { feedForSubject, intranetFeedHost } from '@/lib/admin/company-feeds';
-import { companyFeedCache } from '@/lib/admin/company-feed-cache';
+import { companyFeedCache, type FeedResult } from '@/lib/admin/company-feed-cache';
+import type { CompanyFeed } from '@/lib/admin/organisation-policy';
 import { serverPolicySubject } from '@/lib/admin/server-policy-subject';
 
 const DEFAULT_MAX_BYTES = 25 * 1024 * 1024; // 25MB
@@ -191,6 +192,17 @@ async function fetchCompanyFeed(creds: StalwartCredentials, feedId: string): Pro
   if (cached && Date.now() - cached.fetchedAt < feed.refreshMinutes * 60_000) {
     return icalResponse(cached.body);
   }
+  // A feed that just failed isn't asked again for a minute; requests that
+  // arrive while it is being fetched wait for that one fetch.
+  const failed = companyFeedCache.failure(feed.url);
+  const result = failed ?? await companyFeedCache.once(feed.url, () => refreshFeed(feed));
+  if ('body' in result) return icalResponse(result.body);
+  return NextResponse.json({ error: result.error }, { status: result.status });
+}
+
+/** Fetch a company feed into the cache: its body, or why there is none. */
+async function refreshFeed(feed: CompanyFeed): Promise<FeedResult> {
+  const cached = companyFeedCache.get(feed.url);
   const outcome = await fetchIcal(feed.url, {
     allowPrivateHost: intranetFeedHost(feed) ?? undefined,
     requireCalendar: true,
@@ -199,15 +211,18 @@ async function fetchCompanyFeed(creds: StalwartCredentials, feedId: string): Pro
   });
   if (outcome.kind === 'ok') {
     companyFeedCache.set(feed.url, { body: outcome.buffer, etag: outcome.etag, lastModified: outcome.lastModified, fetchedAt: Date.now() });
-    return icalResponse(outcome.buffer);
+    return { body: outcome.buffer };
   }
   if (cached) {
+    // A feed that can't be fetched keeps answering with what it last had.
     if (outcome.kind === 'not-modified') companyFeedCache.set(feed.url, { ...cached, fetchedAt: Date.now() });
-    return icalResponse(cached.body);
+    return { body: cached.body };
   }
-  return outcome.kind === 'error'
-    ? outcome.response
-    : NextResponse.json({ error: 'Failed to fetch calendar' }, { status: 502 });
+  const failure = outcome.kind === 'error'
+    ? { status: outcome.response.status, error: String(((await outcome.response.json().catch(() => ({}))) as { error?: unknown }).error ?? 'Failed to fetch calendar') }
+    : { status: 502, error: 'Failed to fetch calendar' };
+  companyFeedCache.fail(feed.url, failure);
+  return failure;
 }
 
 /**

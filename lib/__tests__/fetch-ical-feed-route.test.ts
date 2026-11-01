@@ -138,6 +138,29 @@ describe('POST /api/fetch-ical { feedId }', () => {
     expect((await post({ feedId: 'team' })).status).toBe(502);
   });
 
+  it('fetches a feed once for requests that arrive together', async () => {
+    let release: () => void = () => {};
+    guardedFetch.mockImplementation(() => new Promise((resolve) => { release = () => resolve(ics()); }));
+    const both = Promise.all([post({ feedId: 'hol' }), post({ feedId: 'hol' })]);
+    await vi.waitFor(() => expect(guardedFetch).toHaveBeenCalledTimes(1));
+    release();
+    expect((await both).map((r) => r.status)).toEqual([200, 200]);
+    expect(guardedFetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('answers a feed that just failed with its error for a minute without asking again', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-11-02T08:00:00Z'));
+    guardedFetch.mockImplementation(async () => new Response('down', { status: 500 }));
+    expect((await post({ feedId: 'hol' })).status).toBe(502);
+    expect((await post({ feedId: 'hol' })).status).toBe(502);
+    expect(guardedFetch).toHaveBeenCalledTimes(1);
+    vi.setSystemTime(new Date('2026-11-02T08:01:01Z'));
+    guardedFetch.mockImplementation(async () => ics());
+    expect((await post({ feedId: 'hol' })).status).toBe(200);
+    expect(guardedFetch).toHaveBeenCalledTimes(2);
+  });
+
   it('needs a signed-in user', async () => {
     creds.value = null;
     expect((await post({ feedId: 'hol' })).status).toBe(401);
