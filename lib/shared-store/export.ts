@@ -12,6 +12,7 @@ import { ARCHIVE_COLLECTION } from '@/lib/account-archive-storage';
 import { TELEMETRY_COLLECTION } from '@/lib/telemetry/state';
 import { VERSION_CHECK_COLLECTION } from '@/lib/version-check/state';
 import { getStore } from './index';
+import { exportSteps as extExportSteps } from './import/ext';
 import { localCollection, localLog } from './local';
 import type { CollectionOptions } from './types';
 
@@ -81,6 +82,9 @@ export const EXPORT_STEPS: ExportStep[] = [
   secretStep,
   exportCollection(ADMIN_CONFIG_COLLECTION, adminConfigOptions),
   exportCollection(ADMIN_STATE_COLLECTION, adminStateOptions),
+  // After admin-state: directory-keyrings.json is in that collection too and
+  // is written again owner-only here.
+  ...extExportSteps,
   auditStep,
   exportCollection(SESSION_LIMITS_COLLECTION, sessionLimitsLayout),
   exportCollection(WOPI_COLLECTION, wopiRevocationsLayout),

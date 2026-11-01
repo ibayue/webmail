@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { createHash, randomBytes } from 'node:crypto';
+import { createHash, generateKeyPairSync, randomBytes } from 'node:crypto';
 import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -76,6 +76,13 @@ describe('moving an install onto the shared store and back', () => {
     writeFileSync(path.join(a.PLUGIN_SECRETS_DIR, vaultFile), randomBytes(120).toString('base64'));
     writeFileSync(path.join(a.TELEMETRY_DATA_DIR, 'state.json'), JSON.stringify({ consent: 'on' }, null, 2));
     writeFileSync(path.join(a.VERSION_CHECK_DATA_DIR, 'state.json'), JSON.stringify({ lastCheckedAt: '2026-11-01' }, null, 2));
+    mkdirSync(path.join(a.ADMIN_CONFIG_DIR, 'plugins'));
+    writeFileSync(path.join(a.ADMIN_CONFIG_DIR, 'plugins', 'registry.json'), JSON.stringify({ plugins: [{ id: 'demo' }] }, null, 2));
+    writeFileSync(path.join(a.ADMIN_CONFIG_DIR, 'plugins', 'demo.js'), 'module.exports = {}');
+    mkdirSync(path.join(a.ADMIN_CONFIG_DIR, 'branding'));
+    writeFileSync(path.join(a.ADMIN_CONFIG_DIR, 'branding', 'faviconUrl.png'), randomBytes(64));
+    const signingKey = generateKeyPairSync('ed25519').privateKey.export({ type: 'pkcs8', format: 'pem' }) as string;
+    writeFileSync(path.join(a.ADMIN_CONFIG_DIR, 'plugin-signing.key'), signingKey);
     const before = snapshot(a.base);
 
     const first = await importLocalData();
@@ -87,6 +94,9 @@ describe('moving an install onto the shared store and back', () => {
       'plugin-secrets': 1,
       telemetry: 1,
       'version-check': 1,
+      plugins: 2,
+      branding: 1,
+      'plugin-signing-key': 1,
     });
     const second = await importLocalData();
     expect(Object.values(second.imported).every((n) => n === 0), JSON.stringify(second.imported)).toBe(true);
@@ -98,6 +108,7 @@ describe('moving an install onto the shared store and back', () => {
     const b = install('b');
     const written = await exportSharedData();
     expect(written['settings']).toBe(1);
+    expect(written).toMatchObject({ plugins: 2, branding: 1, 'plugin-signing-key': 1 });
     const after = snapshot(b.base);
     for (const [file, digest] of Object.entries(before)) {
       expect(after[file], `${file} exported`).toBe(digest);
