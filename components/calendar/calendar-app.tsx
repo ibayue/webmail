@@ -1719,6 +1719,12 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
     return expandRecurringEvents(company.events.filter((e) => !Object.keys(e.calendarIds).some((id) => hidden.has(id))), dateRange.start, dateRange.end);
   }, [company.events, company.hiddenIds, dateRange]);
 
+  // The phone toolbar's calendar list: the user's own and the company calendars.
+  const toolbarCalendars = useMemo(
+    () => (company.calendars.length > 0 ? [...displayCalendars, ...company.calendars] : displayCalendars),
+    [displayCalendars, company.calendars],
+  );
+
   const allCalendars = useMemo(() => {
     const withBirthdays = showBirthdayCalendar
       ? [...displayCalendars, createBirthdayCalendar(birthdayCalendarName, birthdayCalendarColor)]
@@ -2061,9 +2067,9 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
       onPrint={() => { void requestPrint({ kind: "calendar-view" }); }}
       isMobile={isMobile}
       onNavigateBack={isMobile && mobileReturnToMonth && normalizedViewMode === "day" ? navigateBackToMonth : undefined}
-      calendars={displayCalendars}
-      selectedCalendarIds={selectedCalendarIds}
-      onToggleVisibility={toggleCalendarVisibility}
+      calendars={toolbarCalendars}
+      selectedCalendarIds={shownCalendarIds}
+      onToggleVisibility={toggleShownCalendar}
       enableCalendarTasks={enableCalendarTasks}
       onMenuClick={isNarrow ? () => setNarrowSidebarOpen(true) : isMobile ? undefined : toggleSidebarCollapsed}
       sidebarOpen={isNarrow ? narrowSidebarOpen : !sidebarCollapsed}
