@@ -1839,6 +1839,12 @@
         "label": "Keresés törlése mappaváltáskor",
         "description": "Egy mappára kattintva (Beérkezett, Elküldött…) törlődik az aktív keresés, és a mappa jelenik meg. Kikapcsolva a keresés megmarad, és újra lefut a választott mappában."
       },
+      "search_default_scope": {
+        "label": "Keresés itt",
+        "description": "Hol keres egy új keresés. A keresési szűrőkben továbbra is választhatsz másik mappát.",
+        "all": "Minden mappa, kivéve a Spam és a Kuka",
+        "folder": "A megnyitott mappa"
+      },
       "request_read_receipt": {
         "label": "Olvasási visszaigazolás kérése alapértelmezés szerint",
         "description": "Az olvasási visszaigazolás kérésének előre bekapcsolása új üzenet írásakor."

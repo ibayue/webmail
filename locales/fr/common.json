@@ -1836,6 +1836,12 @@
         "label": "Effacer la recherche lors du changement de dossier",
         "description": "Cliquer sur un dossier (Boîte de réception, Envoyés…) efface la recherche active et affiche ce dossier. Désactivé, la recherche reste appliquée et est relancée dans le dossier choisi."
       },
+      "search_default_scope": {
+        "label": "Rechercher dans",
+        "description": "Où une nouvelle recherche cherche. Vous pouvez toujours choisir un autre dossier dans les filtres de recherche.",
+        "all": "Tous les dossiers sauf Spam et Corbeille",
+        "folder": "Le dossier ouvert"
+      },
       "request_read_receipt": {
         "label": "Demander un accusé de lecture par défaut",
         "description": "Activer au préalable la demande d''accusé de lecture lors de la rédaction d''un nouveau message."

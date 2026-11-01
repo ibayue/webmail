@@ -1836,6 +1836,12 @@
         "label": "Borrar la búsqueda al cambiar de carpeta",
         "description": "Al hacer clic en una carpeta (Bandeja de entrada, Enviados…) se borra la búsqueda activa y se muestra esa carpeta. Si está desactivado, la búsqueda se mantiene y se vuelve a ejecutar en la carpeta a la que cambies."
       },
+      "search_default_scope": {
+        "label": "Buscar en",
+        "description": "Dónde busca una búsqueda nueva. Puedes elegir otra carpeta en los filtros de búsqueda.",
+        "all": "Todas las carpetas excepto Spam y Papelera",
+        "folder": "La carpeta abierta"
+      },
       "request_read_receipt": {
         "label": "Solicitar confirmaciones de lectura de forma predeterminada",
         "description": "Activar previamente la solicitud de confirmación de lectura al redactar un mensaje nuevo."

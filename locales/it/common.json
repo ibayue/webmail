@@ -1836,6 +1836,12 @@
         "label": "Cancella la ricerca quando cambi cartella",
         "description": "Facendo clic su una cartella (Posta in arrivo, Inviati…) la ricerca attiva viene cancellata e si apre quella cartella. Se disattivato, la ricerca resta attiva e viene rieseguita nella cartella scelta."
       },
+      "search_default_scope": {
+        "label": "Cerca in",
+        "description": "Dove cerca una nuova ricerca. Puoi comunque scegliere un'altra cartella nei filtri di ricerca.",
+        "all": "Tutte le cartelle tranne Spam e Cestino",
+        "folder": "La cartella aperta"
+      },
       "request_read_receipt": {
         "label": "Richiedi conferme di lettura per impostazione predefinita",
         "description": "Attiva in anticipo la richiesta di conferma di lettura durante la composizione di un nuovo messaggio."

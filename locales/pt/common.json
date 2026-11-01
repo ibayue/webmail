@@ -1836,6 +1836,12 @@
         "label": "Limpar a pesquisa ao mudar de pasta",
         "description": "Clicar numa pasta (Caixa de entrada, Enviados…) limpa a pesquisa ativa e mostra essa pasta. Se desativado, a pesquisa mantém-se e volta a ser executada na pasta para a qual mudar."
       },
+      "search_default_scope": {
+        "label": "Pesquisar em",
+        "description": "Onde uma nova pesquisa procura. Pode escolher outra pasta nos filtros de pesquisa.",
+        "all": "Todas as pastas exceto Spam e Lixeira",
+        "folder": "A pasta aberta"
+      },
       "request_read_receipt": {
         "label": "Solicitar confirmações de leitura por padrão",
         "description": "Ativar previamente a solicitação de confirmação de leitura ao redigir uma nova mensagem."

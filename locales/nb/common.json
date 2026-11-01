@@ -1839,6 +1839,12 @@
         "label": "Tøm søket ved bytte av mappe",
         "description": "Å klikke på en mappe (Innboks, Sendt …) tømmer det aktive søket og viser mappen. Når det er av, beholdes søket og kjøres på nytt i mappen du bytter til."
       },
+      "search_default_scope": {
+        "label": "Søk i",
+        "description": "Hvor et nytt søk leter. Du kan fortsatt velge en annen mappe i søkefiltrene.",
+        "all": "Alle mapper unntatt søppelpost og papirkurv",
+        "folder": "Den åpne mappen"
+      },
       "request_read_receipt": {
         "label": "Be om lesebekreftelser som standard",
         "description": "Be automatisk om lesebekreftelse når du skriver en ny melding."

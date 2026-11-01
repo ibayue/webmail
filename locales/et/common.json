@@ -1839,6 +1839,12 @@
         "label": "Tühjenda otsing kausta vahetamisel",
         "description": "Kaustale (Saabunud, Saadetud, …) klõpsamine tühjendab aktiivse otsingu ja avab selle kausta. Kui see on välja lülitatud, jääb otsing kehtima ja käivitub uuesti kaustas, millele lülitud."
       },
+      "search_default_scope": {
+        "label": "Otsi kaustast",
+        "description": "Kust uus otsing otsib. Otsingufiltrites saad endiselt valida muu kausta.",
+        "all": "Kõik kaustad peale rämpsposti ja prügikasti",
+        "folder": "Avatud kaust"
+      },
       "request_read_receipt": {
         "label": "Küsi vaikimisi lugemiskinnitust",
         "description": "Luba uue kirja koostamisel vaikimisi lugemiskinnituse küsimine."

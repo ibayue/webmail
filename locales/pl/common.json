@@ -1836,6 +1836,12 @@
         "label": "Czyść wyszukiwanie przy zmianie folderu",
         "description": "Kliknięcie folderu (Odebrane, Wysłane…) czyści aktywne wyszukiwanie i otwiera ten folder. Gdy wyłączone, wyszukiwanie pozostaje i jest ponawiane w wybranym folderze."
       },
+      "search_default_scope": {
+        "label": "Szukaj w",
+        "description": "Gdzie szuka nowe wyszukiwanie. Inny folder nadal można wybrać w filtrach wyszukiwania.",
+        "all": "Wszystkie foldery oprócz Spamu i Kosza",
+        "folder": "Otwarty folder"
+      },
       "request_read_receipt": {
         "label": "Domyślnie żądaj potwierdzeń przeczytania",
         "description": "Włącz wcześniej żądanie potwierdzenia przeczytania podczas tworzenia nowej wiadomości."

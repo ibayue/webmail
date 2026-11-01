@@ -1836,6 +1836,12 @@
         "label": "Suche beim Ordnerwechsel löschen",
         "description": "Ein Klick auf einen Ordner (Posteingang, Gesendet …) löscht die aktive Suche und zeigt den Ordner. Ist die Option aus, bleibt die Suche bestehen und wird im neuen Ordner erneut ausgeführt."
       },
+      "search_default_scope": {
+        "label": "Suchen in",
+        "description": "Wo eine neue Suche sucht. In den Suchfiltern lässt sich weiterhin ein anderer Ordner wählen.",
+        "all": "Alle Ordner außer Spam und Papierkorb",
+        "folder": "Geöffneter Ordner"
+      },
       "request_read_receipt": {
         "label": "Lesebestätigung standardmäßig anfordern",
         "description": "Beim Verfassen einer neuen Nachricht die Anforderung einer Lesebestätigung vorab aktivieren."

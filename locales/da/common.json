@@ -1839,6 +1839,12 @@
         "label": "Ryd søgningen ved skift af mappe",
         "description": "Klik på en mappe (Indbakke, Sendt …) rydder den aktive søgning og viser mappen. Når det er slået fra, bevares søgningen og køres igen i den valgte mappe."
       },
+      "search_default_scope": {
+        "label": "Søg i",
+        "description": "Hvor en ny søgning leder. Du kan stadig vælge en anden mappe i søgefiltrene.",
+        "all": "Alle mapper undtagen spam og papirkurv",
+        "folder": "Den åbne mappe"
+      },
       "request_read_receipt": {
         "label": "Anmod om læsekvittering som standard",
         "description": "Aktivér anmodningen om læsekvittering på forhånd, når du skriver en ny besked."

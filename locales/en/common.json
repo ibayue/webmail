@@ -1839,6 +1839,12 @@
         "label": "Clear search when switching folders",
         "description": "Clicking a folder (Inbox, Sent, …) clears the active search and browses that folder. When off, the search stays applied and re-runs in the folder you switch to."
       },
+      "search_default_scope": {
+        "label": "Search in",
+        "description": "Where a new search looks. You can still pick another folder in the search filters.",
+        "all": "All folders except Spam and Trash",
+        "folder": "The open folder"
+      },
       "request_read_receipt": {
         "label": "Request read receipts by default",
         "description": "Pre-enable the read-receipt request when composing a new message."

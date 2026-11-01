@@ -1836,6 +1836,12 @@
         "label": "Notīrīt meklēšanu, mainot mapi",
         "description": "Noklikšķinot uz mapes (Iesūtne, Nosūtītie…), aktīvā meklēšana tiek notīrīta un tiek atvērta šī mape. Kad izslēgts, meklēšana paliek un tiek atkārtota izvēlētajā mapē."
       },
+      "search_default_scope": {
+        "label": "Meklēt",
+        "description": "Kur meklē jauna meklēšana. Meklēšanas filtros joprojām var izvēlēties citu mapi.",
+        "all": "Visas mapes, izņemot mēstules un atkritnes",
+        "folder": "Atvērtā mape"
+      },
       "request_read_receipt": {
         "label": "Pēc noklusējuma pieprasīt lasīšanas apstiprinājumus",
         "description": "Sastādot jaunu ziņojumu, iepriekš ieslēgt lasīšanas apstiprinājuma pieprasījumu."

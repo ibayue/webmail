@@ -1836,6 +1836,12 @@
         "label": "Vymazat hledání při přepnutí složky",
         "description": "Kliknutí na složku (Doručená pošta, Odeslaná…) vymaže aktivní hledání a zobrazí složku. Když je vypnuto, hledání zůstává a spustí se znovu ve zvolené složce."
       },
+      "search_default_scope": {
+        "label": "Hledat v",
+        "description": "Kde hledá nové hledání. Jinou složku můžete stále vybrat ve filtrech hledání.",
+        "all": "Všechny složky kromě spamu a koše",
+        "folder": "Otevřená složka"
+      },
       "request_read_receipt": {
         "label": "Standardně vyžadovat potvrzení o přečtení",
         "description": "Při psaní nové zprávy předem zapnout žádost o potvrzení o přečtení."

@@ -206,6 +206,7 @@ export const tabSearchEntries: Record<Tab, SettingsSearchEntry[]> = {
     { label: 'settings.email_behavior.permanently_delete_junk.label', advanced: true },
     { label: 'settings.message_list.sections.loading', advanced: true },
     { label: 'settings.email_behavior.emails_per_page.label', advanced: true },
+    { label: 'settings.email_behavior.search_default_scope.label', advanced: true },
     { label: 'settings.email_behavior.clear_search_on_folder_change.label', advanced: true },
     { label: 'settings.email_behavior.swipe_right_action.label', when: 'touch' },
     { label: 'settings.email_behavior.swipe_left_action.label', when: 'touch' },

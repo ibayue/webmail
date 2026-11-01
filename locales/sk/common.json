@@ -1839,6 +1839,12 @@
         "label": "Vymazať hľadanie pri prepnutí priečinka",
         "description": "Kliknutie na priečinok (Doručená pošta, Odoslaná…) vymaže aktívne hľadanie a zobrazí priečinok. Keď je vypnuté, hľadanie zostáva a spustí sa znova vo zvolenom priečinku."
       },
+      "search_default_scope": {
+        "label": "Hľadať v",
+        "description": "Kde hľadá nové hľadanie. Iný priečinok môžete stále vybrať vo filtroch hľadania.",
+        "all": "Všetky priečinky okrem spamu a koša",
+        "folder": "Otvorený priečinok"
+      },
       "title": "Správanie e-mailov",
       "description": "Nakonfigurujte spôsob spracovania e-mailov",
       "request_read_receipt": {

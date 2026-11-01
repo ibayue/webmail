@@ -1851,6 +1851,12 @@
         "label": "Xóa tìm kiếm khi chuyển thư mục",
         "description": "Khi nhấn vào thư mục (Hộp thư đến, Đã gửi, …), nội dung tìm kiếm hiện tại sẽ bị xóa và thư mục đó được mở. Nếu tắt, nội dung tìm kiếm vẫn được giữ và áp dụng lại trong thư mục bạn chuyển đến."
       },
+      "search_default_scope": {
+        "label": "Tìm kiếm trong",
+        "description": "Nơi một lượt tìm kiếm mới sẽ tìm. Bạn vẫn có thể chọn thư mục khác trong bộ lọc tìm kiếm.",
+        "all": "Tất cả các thư mục ngoại trừ Thư rác và Thùng rác",
+        "folder": "Thư mục đang mở"
+      },
       "request_read_receipt": {
         "label": "Mặc định yêu cầu xác nhận đã đọc",
         "description": "Bật sẵn yêu cầu xác nhận đã đọc khi soạn thư mới."

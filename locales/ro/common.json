@@ -1839,6 +1839,12 @@
         "label": "Șterge căutarea la schimbarea folderului",
         "description": "Un clic pe un folder (Inbox, Trimise…) șterge căutarea activă și afișează acel folder. Dezactivat, căutarea rămâne și se reia în folderul ales."
       },
+      "search_default_scope": {
+        "label": "Caută în",
+        "description": "Unde caută o căutare nouă. Poți alege în continuare alt folder în filtrele de căutare.",
+        "all": "Toate folderele, cu excepția Spam și Coș de gunoi",
+        "folder": "Folderul deschis"
+      },
       "request_read_receipt": {
         "label": "Solicitați confirmări de citire în mod implicit",
         "description": "Activați în prealabil solicitarea de confirmare de citire atunci când redactați un mesaj nou."

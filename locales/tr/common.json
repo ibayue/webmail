@@ -1836,6 +1836,12 @@
         "label": "Klasör değiştirirken aramayı temizle",
         "description": "Bir klasöre tıklamak (Gelen Kutusu, Gönderilenler…) etkin aramayı temizler ve o klasörü gösterir. Kapalıyken arama korunur ve geçtiğiniz klasörde yeniden çalıştırılır."
       },
+      "search_default_scope": {
+        "label": "Şurada ara",
+        "description": "Yeni bir aramanın nerede arayacağı. Arama filtrelerinden yine başka bir klasör seçebilirsiniz.",
+        "all": "Spam ve Çöp Kutusu dışındaki tüm klasörler",
+        "folder": "Açık klasör"
+      },
       "request_read_receipt": {
         "label": "Varsayılan olarak okundu bilgisi iste",
         "description": "Yeni bir ileti yazarken okundu bilgisi isteğini önceden etkinleştir."
