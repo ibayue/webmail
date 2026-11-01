@@ -5633,6 +5633,10 @@
     "dont_remind": "今後表示しない",
     "dismiss_aria": "インストールプロンプトを閉じる"
   },
+  "app_update": {
+    "ready": "{appName} の新しいバージョンを利用できます。",
+    "reload": "再読み込み"
+  },
   "deep_link": {
     "message_not_found": "このメッセージは利用できなくなりました。",
     "thread_not_found": "この会話は利用できなくなりました。",

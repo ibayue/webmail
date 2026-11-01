@@ -5633,6 +5633,10 @@
     "dont_remind": "Non ricordarmelo più",
     "dismiss_aria": "Chiudi avviso di installazione"
   },
+  "app_update": {
+    "ready": "È pronta una nuova versione di {appName}.",
+    "reload": "Ricarica"
+  },
   "deep_link": {
     "message_not_found": "Questo messaggio non è più disponibile.",
     "thread_not_found": "Questa conversazione non è più disponibile.",

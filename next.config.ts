@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 import createNextIntlPlugin from "next-intl/plugin";
 import { execSync } from "child_process";
+import { createHash } from "crypto";
 import { readFileSync } from "fs";
 import { join } from "path";
 
@@ -27,6 +28,20 @@ try {
   // VERSION file not found
 }
 
+// One id per build (#523): the service worker names its caches after it, and
+// open tabs compare it with /api/version to learn that a new build was
+// deployed. A hash of the commit and the build time, so it doesn't tell
+// anyone which commit runs. The config is read again by every process the
+// build starts; the first one sets the variable and the others inherit it,
+// so all of them use the same id.
+if (!process.env.BULWARK_BUILD_ID) {
+  process.env.BULWARK_BUILD_ID = createHash("sha256")
+    .update(`${gitCommitHash}:${appVersion}:${Date.now()}:${Math.random()}`)
+    .digest("base64url")
+    .slice(0, 16);
+}
+const buildId = process.env.BULWARK_BUILD_ID;
+
 // Subpath deployment, e.g. NEXT_PUBLIC_BASE_PATH=/webmail. Read at build time
 // because Next.js bakes basePath into emitted asset URLs and route metadata.
 // Trailing slash is stripped; an empty/missing value disables the feature.
@@ -52,6 +67,7 @@ const nextConfig: NextConfig = {
   // No `X-Powered-By: Next.js`; headers() below sends
   // `X-Powered-By: bulwarkmail.org` instead, without a version.
   poweredByHeader: false,
+  generateBuildId: async () => buildId,
   // Keep proxy rewrites on the origin the server listens on. Next renames a
   // 127.x or [::1] host to "localhost" in each proxy rewrite, but its router
   // compares the rewrite with the listen address. On HOSTNAME=127.0.0.1 every
@@ -144,6 +160,7 @@ const nextConfig: NextConfig = {
   },
   env: {
     NEXT_PUBLIC_GIT_COMMIT: gitCommitHash,
+    NEXT_PUBLIC_BUILD_ID: buildId,
     // A dev server may announce another version, e.g. to try a plugin that needs the next release.
     NEXT_PUBLIC_APP_VERSION: process.env.NEXT_PUBLIC_APP_VERSION || appVersion,
     NEXT_PUBLIC_BASE_PATH: basePath,

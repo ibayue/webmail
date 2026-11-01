@@ -5633,6 +5633,10 @@
     "dont_remind": "Nu-mi mai reaminti",
     "dismiss_aria": "Ignorați solicitarea de instalare"
   },
+  "app_update": {
+    "ready": "O versiune nouă de {appName} este gata.",
+    "reload": "Reîncarcă"
+  },
   "deep_link": {
     "message_not_found": "Acest mesaj nu mai este disponibil.",
     "thread_not_found": "Această conversație nu mai este disponibilă.",

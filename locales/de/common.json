@@ -5633,6 +5633,10 @@
     "dont_remind": "Nicht mehr erinnern",
     "dismiss_aria": "Installationshinweis schließen"
   },
+  "app_update": {
+    "ready": "Eine neue Version von {appName} ist bereit.",
+    "reload": "Neu laden"
+  },
   "deep_link": {
     "message_not_found": "Diese Nachricht ist nicht mehr verfügbar.",
     "thread_not_found": "Diese Unterhaltung ist nicht mehr verfügbar.",

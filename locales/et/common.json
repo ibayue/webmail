@@ -5633,6 +5633,10 @@
     "dont_remind": "Ära tuleta enam meelde",
     "dismiss_aria": "Sulge paigaldusteade"
   },
+  "app_update": {
+    "ready": "{appName} uus versioon on valmis.",
+    "reload": "Laadi uuesti"
+  },
   "deep_link": {
     "message_not_found": "See sõnum ei ole enam saadaval.",
     "thread_not_found": "See vestlus ei ole enam saadaval.",

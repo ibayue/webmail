@@ -5633,6 +5633,10 @@
     "dont_remind": "Vairs man neatgādināt",
     "dismiss_aria": "Aizvērt instalēšanas paziņojumu"
   },
+  "app_update": {
+    "ready": "Ir gatava jauna {appName} versija.",
+    "reload": "Pārlādēt"
+  },
   "deep_link": {
     "message_not_found": "Šī ziņa vairs nav pieejama.",
     "thread_not_found": "Šī sarakste vairs nav pieejama.",

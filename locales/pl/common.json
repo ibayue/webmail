@@ -5633,6 +5633,10 @@
     "dont_remind": "Nie przypominaj mi więcej",
     "dismiss_aria": "Zamknij monit instalacji"
   },
+  "app_update": {
+    "ready": "Nowa wersja {appName} jest gotowa.",
+    "reload": "Odśwież"
+  },
   "deep_link": {
     "message_not_found": "Ta wiadomość nie jest już dostępna.",
     "thread_not_found": "Ta rozmowa nie jest już dostępna.",

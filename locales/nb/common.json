@@ -5633,6 +5633,10 @@
     "dont_remind": "Ikke minn meg på det igjen",
     "dismiss_aria": "Lukk forespørselen om installering"
   },
+  "app_update": {
+    "ready": "En ny versjon av {appName} er klar.",
+    "reload": "Last inn på nytt"
+  },
   "deep_link": {
     "message_not_found": "Denne meldingen er ikke lenger tilgjengelig.",
     "thread_not_found": "Denne samtalen er ikke lenger tilgjengelig.",

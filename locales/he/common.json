@@ -5634,6 +5634,10 @@
     "dont_remind": "אל תזכיר לי שוב",
     "dismiss_aria": "בטל הודעת התקנה"
   },
+  "app_update": {
+    "ready": "גרסה חדשה של {appName} מוכנה.",
+    "reload": "טעינה מחדש"
+  },
   "deep_link": {
     "message_not_found": "הודעה זו אינה זמינה עוד.",
     "thread_not_found": "שיחה זו אינה זמינה עוד.",

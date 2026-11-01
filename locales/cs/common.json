@@ -5633,6 +5633,10 @@
     "dont_remind": "Už mi to nepřipomínat",
     "dismiss_aria": "Zavřít výzvu k instalaci"
   },
+  "app_update": {
+    "ready": "Je připravena nová verze aplikace {appName}.",
+    "reload": "Načíst znovu"
+  },
   "deep_link": {
     "message_not_found": "Tato zpráva už není dostupná.",
     "thread_not_found": "Tato konverzace už není dostupná.",

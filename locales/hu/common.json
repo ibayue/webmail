@@ -5633,6 +5633,10 @@
     "dont_remind": "Ne emlékeztess többet",
     "dismiss_aria": "Telepítési ablak elutasítása"
   },
+  "app_update": {
+    "ready": "Elkészült a(z) {appName} új verziója.",
+    "reload": "Újratöltés"
+  },
   "deep_link": {
     "message_not_found": "Ez az üzenet már nem érhető el.",
     "thread_not_found": "Ez a beszélgetés már nem érhető el.",

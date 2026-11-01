@@ -5633,6 +5633,10 @@
     "dont_remind": "Niet meer herinneren",
     "dismiss_aria": "Installatiemelding sluiten"
   },
+  "app_update": {
+    "ready": "Er is een nieuwe versie van {appName} klaar.",
+    "reload": "Opnieuw laden"
+  },
   "deep_link": {
     "message_not_found": "Dit bericht is niet meer beschikbaar.",
     "thread_not_found": "Dit gesprek is niet meer beschikbaar.",

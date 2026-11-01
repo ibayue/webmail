@@ -5633,6 +5633,10 @@
     "dont_remind": "不再提醒",
     "dismiss_aria": "关闭安装提示"
   },
+  "app_update": {
+    "ready": "{appName} 新版本已就绪。",
+    "reload": "重新加载"
+  },
   "deep_link": {
     "message_not_found": "此邮件已不可用。",
     "thread_not_found": "此会话已不可用。",

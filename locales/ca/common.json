@@ -5633,6 +5633,10 @@
     "dont_remind": "No m'ho tornis a recordar",
     "dismiss_aria": "Descarta l'avís d'instal·lació"
   },
+  "app_update": {
+    "ready": "Hi ha una versió nova de {appName} a punt.",
+    "reload": "Torna a carregar"
+  },
   "deep_link": {
     "message_not_found": "Aquest missatge ja no està disponible.",
     "thread_not_found": "Aquesta conversa ja no està disponible.",

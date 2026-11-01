@@ -5633,6 +5633,10 @@
     "dont_remind": "Bir daha hatırlatma",
     "dismiss_aria": "Yükleme istemini kapat"
   },
+  "app_update": {
+    "ready": "{appName} uygulamasının yeni sürümü hazır.",
+    "reload": "Yeniden yükle"
+  },
   "deep_link": {
     "message_not_found": "Bu ileti artık kullanılamıyor.",
     "thread_not_found": "Bu sohbet artık kullanılamıyor.",

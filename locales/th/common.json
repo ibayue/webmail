@@ -2017,6 +2017,10 @@
     "dont_remind": "ไม่ต้องแจ้งเตือนอีก",
     "dismiss_aria": "ปิดการแจ้งเตือนการติดตั้ง"
   },
+  "app_update": {
+    "ready": "{appName} เวอร์ชันใหม่พร้อมแล้ว",
+    "reload": "โหลดใหม่"
+  },
   "plugin_pages": {
     "loading": "กำลังโหลดหน้าเว็บ...",
     "not_available_title": "หน้านี้ไม่พร้อมใช้งาน",

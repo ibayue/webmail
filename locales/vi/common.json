@@ -5645,6 +5645,10 @@
     "dont_remind": "Đừng nhắc tôi nữa",
     "dismiss_aria": "Loại bỏ lời nhắc cài đặt"
   },
+  "app_update": {
+    "ready": "Đã có phiên bản mới của {appName}.",
+    "reload": "Tải lại"
+  },
   "deep_link": {
     "message_not_found": "Thư này không còn nữa.",
     "thread_not_found": "Cuộc trò chuyện này không còn tồn tại nữa.",

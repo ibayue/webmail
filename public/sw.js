@@ -3,12 +3,18 @@
 // Bulwark service worker.
 //
 // This SW does two jobs:
-//   1. Satisfy the PWA installability requirement (network-only fetch handler,
-//      no caching - so we never serve stale chunks after a deployment).
+//   1. Satisfy the PWA installability requirement (a fetch handler that
+//      leaves every request to the network).
 //   2. Receive Web Push wake-up pings from the relay and turn them into
 //      enriched system notifications. Mirrors the React Native FCM headless
 //      task: relay sends only a state-change ping, the client fetches the
 //      newest unread email itself so the relay never sees mail content.
+//
+// Builds (#523): the page registers sw.js?v=<build id>, so every deploy
+// installs a new worker that knows its build. Anything it caches goes into
+// caches named after that build (bulwark-shell-<build id>), never into one
+// cache that outlives a deploy, so a tab is never handed chunks of another
+// build. A build's cache is deleted once no open tab runs that build.
 
 // When the app is mounted at a subpath (Next.js basePath, e.g. /webmail), the
 // SW is served at /webmail/sw.js and registered with scope /webmail/. Derive
@@ -25,13 +31,78 @@ function getBasePath() {
 const BASE_PATH = getBasePath();
 const MAILTO_CLIENTS = new Map();
 
+// The build this worker came with (the ?v= the page registered it with).
+const BUILD_ID = new URL(self.location.href).searchParams.get("v") || "unversioned";
+const SHELL_CACHE_PREFIX = "bulwark-shell-";
+const SHELL_CACHE = SHELL_CACHE_PREFIX + BUILD_ID;
+// What the worker has to remember across restarts and across builds: which
+// build each open tab runs. In the Cache API like the push state, under its
+// own name.
+const SW_STATE_CACHE = "bulwark-sw-state-v1";
+const CLIENT_BUILDS_KEY = "/__bulwark/client-builds";
+
 self.addEventListener("install", () => {
   self.skipWaiting();
 });
 
 self.addEventListener("activate", (event) => {
-  event.waitUntil(self.clients.claim());
+  event.waitUntil(Promise.all([self.clients.claim(), deleteStaleShellCaches()]));
 });
+
+async function readClientBuilds() {
+  try {
+    const cache = await caches.open(SW_STATE_CACHE);
+    const response = await cache.match(CLIENT_BUILDS_KEY);
+    const data = response ? await response.json() : null;
+    return data && typeof data === "object" ? data : {};
+  } catch (_) {
+    return {};
+  }
+}
+
+async function writeClientBuilds(map) {
+  try {
+    const cache = await caches.open(SW_STATE_CACHE);
+    await cache.put(CLIENT_BUILDS_KEY, new Response(JSON.stringify(map), { headers: { "Content-Type": "application/json" } }));
+  } catch (_) {
+    // Without the Cache API nothing was cached either.
+  }
+}
+
+/** Notes which build an open tab runs, and forgets tabs that are gone. */
+async function recordClientBuild(clientId, buildId) {
+  if (!clientId || typeof buildId !== "string" || !buildId) return;
+  const open = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+  const openIds = new Set(open.map((c) => c.id));
+  const map = await readClientBuilds();
+  const next = {};
+  for (const [id, build] of Object.entries(map)) if (openIds.has(id)) next[id] = build;
+  next[clientId] = buildId;
+  await writeClientBuilds(next);
+}
+
+/**
+ * Deletes the shell caches of builds no open tab runs any more. This
+ * worker's own build is kept, and so is every build a tab still runs: such a
+ * tab may still load a chunk of its build after a deploy, and the new build
+ * no longer has it.
+ */
+async function deleteStaleShellCaches() {
+  if (typeof caches === "undefined" || typeof caches.keys !== "function") return;
+  try {
+    const open = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+    const openIds = new Set(open.map((c) => c.id));
+    const map = await readClientBuilds();
+    const inUse = new Set([BUILD_ID]);
+    for (const [id, build] of Object.entries(map)) if (openIds.has(id)) inUse.add(build);
+    const keys = await caches.keys();
+    await Promise.all(keys
+      .filter((key) => key.startsWith(SHELL_CACHE_PREFIX) && !inUse.has(key.slice(SHELL_CACHE_PREFIX.length)))
+      .map((key) => caches.delete(key)));
+  } catch (_) {
+    // Tried again at the next activation.
+  }
+}
 
 self.addEventListener("fetch", () => {});
 
@@ -50,6 +121,16 @@ self.addEventListener("pushsubscriptionchange", (event) => {
 
 self.addEventListener("message", (event) => {
   const data = event.data || {};
+  if (data.type === "client-build") {
+    event.waitUntil(recordClientBuild(event.source && event.source.id, data.buildId).then(deleteStaleShellCaches));
+    return;
+  }
+  if (data.type === "skip-waiting") {
+    // The tab's "Reload" for a new build: take over now instead of waiting
+    // for every tab of the old build to close.
+    self.skipWaiting();
+    return;
+  }
   if (data.type === "mailto-client-ready") {
     if (event.source && event.source.id) {
       MAILTO_CLIENTS.set(event.source.id, {

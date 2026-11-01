@@ -5633,6 +5633,10 @@
     "dont_remind": "دیگر یادآوری نکن",
     "dismiss_aria": "رد کردن پیشنهاد نصب"
   },
+  "app_update": {
+    "ready": "نسخهٔ تازه‌ای از {appName} آماده است.",
+    "reload": "بارگیری دوباره"
+  },
   "deep_link": {
     "message_not_found": "این پیام دیگر در دسترس نیست.",
     "thread_not_found": "این گفتگو دیگر در دسترس نیست.",

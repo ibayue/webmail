@@ -5633,6 +5633,10 @@
     "dont_remind": "عدم التذكير مرة أخرى",
     "dismiss_aria": "تجاهل مطالبة التثبيت"
   },
+  "app_update": {
+    "ready": "إصدار جديد من {appName} جاهز.",
+    "reload": "إعادة التحميل"
+  },
   "deep_link": {
     "message_not_found": "لم تعد هذه الرسالة متاحة.",
     "thread_not_found": "لم تعد هذه المحادثة متاحة.",
