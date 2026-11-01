@@ -1894,8 +1894,14 @@ async function doSieveRegenerate(): Promise<void> {
 
 // ─── admin config (same as before) ────────────────────────────
 
+/**
+ * The plugin's admin settings without its secrets, also when this browser
+ * holds an admin session: the route hands an admin every field, and a
+ * plugin read the Safe Browsing key that way. Secrets go only to the server
+ * proxy (api.proxy), never into a plugin frame.
+ */
 async function adminGetAll(pluginId: string): Promise<Record<string, unknown>> {
-  const res = await apiFetch(`/api/admin/plugins/${encodeURIComponent(pluginId)}/config`);
+  const res = await apiFetch(`/api/admin/plugins/${encodeURIComponent(pluginId)}/config?public=1`);
   if (!res.ok) return {};
   return res.json();
 }
