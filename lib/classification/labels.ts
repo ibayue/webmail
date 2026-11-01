@@ -64,7 +64,7 @@ function percentEncode(value: string): string {
 /** The marking parameter(s): quoted when ASCII, RFC 2231 (with continuations when long) otherwise. */
 function markingParameters(marking: string): string[] {
   const clean = marking.replace(/["\\\r\n]/g, '');
-  // eslint-disable-next-line no-control-regex
+   
   if (/^[\x20-\x7e]*$/.test(clean)) return [`marking="${clean}"`];
   const encoded = percentEncode(clean);
   const MAX = 60;
@@ -116,13 +116,14 @@ function labelHeaderPairs(label: ClassificationLabel, extraHeader: string): Arra
 export function labelHeaderProperties(label: ClassificationLabel, extraHeader: string): Record<string, string> {
   const out: Record<string, string> = {};
   for (const [name, value, form] of labelHeaderPairs(label, extraHeader)) {
-    out[form === 'raw' ? `header:${name}:asRaw` : `header:${name}:asText`] = value;
+    // The server writes "Name: " itself; a raw value keeps only its own folds.
+    out[form === 'raw' ? `header:${name}:asRaw` : `header:${name}:asText`] = form === 'raw' ? value.trimStart() : value;
   }
   return out;
 }
 
 function encodedWord(value: string): string {
-  // eslint-disable-next-line no-control-regex
+   
   if (/^[\x20-\x7e]*$/.test(value)) return value;
   let binary = '';
   for (const byte of new TextEncoder().encode(value)) binary += String.fromCharCode(byte);

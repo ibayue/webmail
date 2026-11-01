@@ -58,7 +58,8 @@ describe('SIO-Label', () => {
 
   it('writes Sensitivity and the extra header only when the label sets them', () => {
     expect(labelHeaderProperties(confidential, 'X-Classification')).toEqual({
-      'header:SIO-Label:asRaw': sioLabelValue(confidential),
+      // Without the leading space: the server writes "SIO-Label: " itself.
+      'header:SIO-Label:asRaw': 'marking="CONFIDENTIAL"; fgcolor=#000000; bgcolor=#d97706',
       'header:Sensitivity:asText': 'Company-Confidential',
       'header:X-Classification:asText': 'Confidential',
     });
