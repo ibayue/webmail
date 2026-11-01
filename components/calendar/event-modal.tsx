@@ -17,7 +17,7 @@ import { alertRowToOffset, describeAlert, getCalendarDefaultAlerts, newAlertRow,
 import { RecurrenceEditor, buildRecurrenceSummary, isSimpleRecurrenceRule } from "./recurrence-editor";
 import { parseDuration, getEventColor } from "./event-card";
 import { buildAllDayDuration, getEventDisplayEndDate, getEventEndDate, getEventStartDate, getPrimaryCalendarId } from "@/lib/calendar-utils";
-import { displayNow, fromWallClock, getEffectiveTimeZone, parseLocalDateTime, toZonedDisplayDate } from "@/lib/timezone";
+import { displayNow, fromDisplayDate, fromWallClock, getEffectiveTimeZone, parseLocalDateTime, toZonedDisplayDate } from "@/lib/timezone";
 import { createRecurrenceRule, sameRecurrenceRules } from "@/lib/recurrence-rule";
 import { ParticipantInput, type ParticipantInputHandle } from "./participant-input";
 import { ParticipantAvailability } from "./participant-availability";
@@ -578,6 +578,12 @@ export function EventModal({
       end: endDate ? instant(endStr) : null,
     };
   }, [startDate, startTime, endDate, endTime, allDay]);
+
+  // An existing event's own time, as saved: Suggest times doesn't count it
+  // as busy (the attendees who have it in their calendar show it so).
+  const savedWindow = useMemo(() => (event?.start && !event.showWithoutTime
+    ? { start: fromDisplayDate(getEventStartDate(event)), end: fromDisplayDate(getEventEndDate(event)) }
+    : null), [event]);
 
   // A suggested slot moves the event there; the fields are a wall clock in
   // the effective zone, so the instants are turned back into one.
@@ -1354,6 +1360,7 @@ export function EventModal({
                 start={availabilityWindow.start}
                 end={availabilityWindow.end}
                 onPick={handlePickSlot}
+                savedWindow={savedWindow}
               />
             )}
             {isEdit && statusCounts && (existingParticipants.length > 0) && (

@@ -5325,7 +5325,8 @@
     "reason_error": "確認できませんでした",
     "unknown_note": "Bulwark が予定ありの時間を確認できるのは、共有されたカレンダーだけです。これらの人については、空いているのか共有されていないのか区別できません。",
     "directory_off": "Bulwark はこのサーバーで人を検索できません。管理者は Stalwart でディレクトリ照会をオンにできます。",
-    "not_looked_up": "検索できません"
+    "not_looked_up": "このアドレスを検索できません",
+    "found": "見つかった空き時間：{count}"
   },
   "share_notifications": {
     "someone": "誰か",

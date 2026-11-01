@@ -5325,7 +5325,8 @@
     "reason_error": "无法检查",
     "unknown_note": "Bulwark 只能看到与你共享的日历中的忙碌时间。对这些人，它无法区分有空和未共享。",
     "directory_off": "Bulwark 无法在此服务器上查找用户。管理员可以在 Stalwart 中开启目录查询。",
-    "not_looked_up": "无法查找"
+    "not_looked_up": "无法查找此地址",
+    "found": "找到的空闲时间：{count}"
   },
   "share_notifications": {
     "someone": "有人",

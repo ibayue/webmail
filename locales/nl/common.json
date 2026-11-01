@@ -5325,7 +5325,8 @@
     "reason_error": "kon niet worden gecontroleerd",
     "unknown_note": "Bulwark ziet bezette tijden alleen in agenda’s die met je zijn gedeeld. Bij deze mensen kan het vrij niet onderscheiden van niet gedeeld.",
     "directory_off": "Bulwark kan op deze server geen mensen opzoeken. Je beheerder kan directoryquery’s aanzetten in Stalwart.",
-    "not_looked_up": "Kan niet opzoeken"
+    "not_looked_up": "Dit adres kon niet worden opgezocht",
+    "found": "Vrije tijden gevonden: {count}"
   },
   "share_notifications": {
     "someone": "Iemand",

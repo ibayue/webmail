@@ -105,6 +105,14 @@ describe('suggestTimes', () => {
     expect(calls).toEqual([['me', 'bob']]);
   });
 
+  it('does not let the edited event hide its own time', async () => {
+    // The meeting being moved sits at 9:00-10:00 Berlin in everyone's calendar.
+    const { client } = fakeClient({ periods: { bob: [busy('2026-11-02T08:00:00Z', '2026-11-02T09:00:00Z')] } });
+    const ownWindow = { start: new Date('2026-11-02T08:00:00Z'), end: new Date('2026-11-02T09:00:00Z') };
+    const outcome = await suggestTimes(client, { ...input([{ name: 'Bob', email: 'bob@example.org' }]), ownWindow });
+    expect(outcome.kind === 'ok' && outcome.result.slots[0].start.toISOString()).toBe('2026-11-02T08:00:00.000Z');
+  });
+
   it('says a lookup failed, and stops on forbidden', async () => {
     const failed = await suggestTimes(fakeClient({ errors: { bob: 'serverUnavailable' } }).client, input([{ name: 'Bob', email: 'bob@example.org' }]));
     expect(failed.kind === 'ok' && failed.result.notChecked).toEqual([{ email: 'bob@example.org', name: 'Bob', reason: 'error' }]);
@@ -185,6 +193,26 @@ describe('FindATime', () => {
     fireEvent.keyDown(screen.getByTestId('find-a-time-panel'), { key: 'Escape' });
     expect(screen.queryByTestId('find-a-time-panel')).toBeNull();
     expect(document.activeElement).toBe(button);
+  });
+
+  it('says how many times it found, and Escape on the button closes the list without reaching the editor', async () => {
+    const { client } = fakeClient({});
+    useAuthStore.setState({ client } as never);
+    const editorKeys = vi.fn();
+    render(createElement('div', { onKeyDown: (e: { key: string }) => editorKeys(e.key) }, createElement(FindATime, {
+      attendees: [{ name: 'Bob', email: 'bob@example.org' }],
+      start: new Date('2026-11-05T09:00:00Z'),
+      end: new Date('2026-11-05T09:30:00Z'),
+      onPick: vi.fn(),
+    })));
+    const button = screen.getByTestId('find-a-time-button');
+    fireEvent.click(button);
+    await screen.findByTestId('find-a-time-slots');
+    expect(screen.getByTestId('find-a-time-panel').querySelector('[role="status"]')).toHaveTextContent('found');
+    button.focus();
+    fireEvent.keyDown(button, { key: 'Escape' });
+    expect(screen.queryByTestId('find-a-time-panel')).toBeNull();
+    expect(editorKeys).not.toHaveBeenCalled();
   });
 
   it('names the people it could not check and offers to share free/busy', async () => {

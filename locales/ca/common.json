@@ -4887,7 +4887,8 @@
     "reason_error": "no s’ha pogut comprovar",
     "unknown_note": "Bulwark només veu les hores ocupades dels calendaris compartits amb vós. Per a aquestes persones no pot distingir lliure de no compartit.",
     "directory_off": "Bulwark no pot cercar persones en aquest servidor. L’administrador pot activar les consultes de directori a Stalwart.",
-    "not_looked_up": "No es pot cercar"
+    "not_looked_up": "No s’ha pogut cercar aquesta adreça",
+    "found": "Horaris lliures trobats: {count}"
   },
   "share_notifications": {
     "someone": "Algú",

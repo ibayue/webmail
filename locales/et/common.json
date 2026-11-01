@@ -4887,7 +4887,8 @@
     "reason_error": "ei saanud kontrollida",
     "unknown_note": "Bulwark näeb hõivatud aegu ainult sinuga jagatud kalendrites. Nende inimeste puhul ei saa ta eristada vaba ajast jagamata kalendrit.",
     "directory_off": "Bulwark ei saa selles serveris inimesi otsida. Administraator saab Stalwartis kataloogipäringud sisse lülitada.",
-    "not_looked_up": "Ei saa otsida"
+    "not_looked_up": "Seda aadressi ei leitud",
+    "found": "Leitud vabu aegu: {count}"
   },
   "share_notifications": {
     "someone": "Keegi",

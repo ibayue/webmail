@@ -4887,7 +4887,8 @@
     "reason_error": "kunne ikke sjekkes",
     "unknown_note": "Bulwark ser bare opptatte tider i kalendere som er delt med deg. For disse personene kan den ikke skille ledig fra ikke delt.",
     "directory_off": "Bulwark kan ikke slå opp personer på denne serveren. Administratoren kan slå på katalogspørringer i Stalwart.",
-    "not_looked_up": "Kan ikke slås opp"
+    "not_looked_up": "Adressen kunne ikke slås opp",
+    "found": "Ledige tidspunkter funnet: {count}"
   },
   "share_notifications": {
     "someone": "Noen",

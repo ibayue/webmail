@@ -5325,7 +5325,8 @@
     "reason_error": "impossibile controllare",
     "unknown_note": "Bulwark vede gli orari occupati solo nei calendari condivisi con te. Per queste persone non può distinguere libero da non condiviso.",
     "directory_off": "Bulwark non può cercare persone su questo server. L’amministratore può attivare le query della rubrica in Stalwart.",
-    "not_looked_up": "Ricerca non possibile"
+    "not_looked_up": "Impossibile cercare questo indirizzo",
+    "found": "Orari liberi trovati: {count}"
   },
   "share_notifications": {
     "someone": "Qualcuno",

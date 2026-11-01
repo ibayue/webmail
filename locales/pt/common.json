@@ -5325,7 +5325,8 @@
     "reason_error": "não foi possível verificar",
     "unknown_note": "O Bulwark só vê horas ocupadas nos calendários partilhados consigo. Para estas pessoas não consegue distinguir livre de não partilhado.",
     "directory_off": "O Bulwark não consegue procurar pessoas neste servidor. O administrador pode ativar as consultas ao diretório no Stalwart.",
-    "not_looked_up": "Não é possível procurar"
+    "not_looked_up": "Não foi possível procurar este endereço",
+    "found": "Horários livres encontrados: {count}"
   },
   "share_notifications": {
     "someone": "Alguém",

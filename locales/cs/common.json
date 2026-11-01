@@ -5325,7 +5325,8 @@
     "reason_error": "nelze ověřit",
     "unknown_note": "Bulwark vidí obsazené časy jen v kalendářích, které s vámi někdo sdílí. U těchto lidí nerozliší volno od nesdíleného kalendáře.",
     "directory_off": "Bulwark na tomto serveru nemůže vyhledávat lidi. Správce může ve Stalwartu zapnout dotazy do adresáře.",
-    "not_looked_up": "Nelze vyhledat"
+    "not_looked_up": "Adresu nelze vyhledat",
+    "found": "Nalezené volné časy: {count}"
   },
   "share_notifications": {
     "someone": "Někdo",

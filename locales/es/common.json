@@ -5325,7 +5325,8 @@
     "reason_error": "no se pudo comprobar",
     "unknown_note": "Bulwark solo ve las horas ocupadas de los calendarios compartidos contigo. Para estas personas no puede distinguir libre de no compartido.",
     "directory_off": "Bulwark no puede buscar personas en este servidor. Tu administrador puede activar las consultas de directorio en Stalwart.",
-    "not_looked_up": "No se puede buscar"
+    "not_looked_up": "No se pudo buscar esta dirección",
+    "found": "Horarios libres encontrados: {count}"
   },
   "share_notifications": {
     "someone": "Alguien",

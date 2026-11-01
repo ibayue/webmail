@@ -4887,7 +4887,8 @@
     "reason_error": "kontrol edilemedi",
     "unknown_note": "Bulwark meşgul saatleri yalnızca sizinle paylaşılan takvimlerde görür. Bu kişiler için boş olmayı paylaşılmamaktan ayıramaz.",
     "directory_off": "Bulwark bu sunucuda kişi arayamıyor. Yöneticiniz Stalwart’ta dizin sorgularını açabilir.",
-    "not_looked_up": "Aranamıyor"
+    "not_looked_up": "Bu adres aranamadı",
+    "found": "Bulunan boş saatler: {count}"
   },
   "share_notifications": {
     "someone": "Birisi",

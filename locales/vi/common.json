@@ -4899,7 +4899,8 @@
     "reason_error": "không kiểm tra được",
     "unknown_note": "Bulwark chỉ thấy giờ bận trong các lịch được chia sẻ với bạn. Với những người này, nó không phân biệt được rảnh hay chưa chia sẻ.",
     "directory_off": "Bulwark không thể tra cứu người trên máy chủ này. Quản trị viên có thể bật truy vấn thư mục trong Stalwart.",
-    "not_looked_up": "Không tra cứu được"
+    "not_looked_up": "Không tra cứu được địa chỉ này",
+    "found": "Số khung giờ trống tìm thấy: {count}"
   },
   "share_notifications": {
     "someone": "Ai đó",

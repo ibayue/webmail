@@ -5325,7 +5325,8 @@
     "reason_error": "vérification impossible",
     "unknown_note": "Bulwark ne voit les disponibilités que dans les calendriers partagés avec vous. Pour ces personnes, il ne peut pas distinguer « libre » de « non partagé ».",
     "directory_off": "Bulwark ne peut pas rechercher de personnes sur ce serveur. Votre administrateur peut activer les requêtes d’annuaire dans Stalwart.",
-    "not_looked_up": "Recherche impossible"
+    "not_looked_up": "Adresse introuvable",
+    "found": "Créneaux libres trouvés : {count}"
   },
   "share_notifications": {
     "someone": "Quelqu'un",

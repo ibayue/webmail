@@ -5325,7 +5325,8 @@
     "reason_error": "nie udało się sprawdzić",
     "unknown_note": "Bulwark widzi zajęte terminy tylko w kalendarzach udostępnionych Tobie. U tych osób nie odróżni wolnego czasu od braku udostępnienia.",
     "directory_off": "Bulwark nie może wyszukiwać osób na tym serwerze. Administrator może włączyć zapytania do katalogu w Stalwart.",
-    "not_looked_up": "Nie można wyszukać"
+    "not_looked_up": "Nie udało się wyszukać adresu",
+    "found": "Znalezione wolne terminy: {count}"
   },
   "share_notifications": {
     "someone": "Ktoś",

@@ -66,6 +66,11 @@ export async function suggestTimes(
     dayStartHour: unknown;
     dayEndHour: unknown;
     visibleOwners: Set<string>;
+    /**
+     * The event being edited, as it is saved: its own time shows up as busy
+     * for everyone who has it in their calendar, and must not hide itself.
+     */
+    ownWindow?: { start: Date; end: Date } | null;
   },
 ): Promise<SuggestionOutcome> {
   const directory = await loadAttendeeDirectory(client);
@@ -116,7 +121,11 @@ export async function suggestTimes(
     busy.push(...answer.periods);
   }
 
-  const slots = findFreeSlots({ ...input, busy });
+  const saved = input.ownWindow;
+  const others = saved
+    ? busy.filter((p) => !(Date.parse(p.utcStart) === saved.start.getTime() && Date.parse(p.utcEnd) === saved.end.getTime()))
+    : busy;
+  const slots = findFreeSlots({ ...input, busy: others });
   return { kind: "ok", result: { slots, notChecked, directoryQueriesOff } };
 }
 
@@ -133,6 +142,8 @@ interface FindATimeProps {
   end: Date | null;
   /** Moves the event to the picked slot. */
   onPick: (slot: Slot) => void;
+  /** An existing event's saved window, left out of everyone's busy time. */
+  savedWindow?: { start: Date; end: Date } | null;
 }
 
 /**
@@ -142,7 +153,7 @@ interface FindATimeProps {
  * The list opens in place under the button (the editor is a full-screen
  * sheet on phones already); Escape closes it and gives the focus back.
  */
-export function FindATime({ attendees, start, end, onPick }: FindATimeProps) {
+export function FindATime({ attendees, start, end, onPick, savedWindow }: FindATimeProps) {
   const t = useTranslations("find_time");
   const locale = useLocale();
   const client = useAuthStore((s) => s.client);
@@ -195,6 +206,7 @@ export function FindATime({ attendees, start, end, onPick }: FindATimeProps) {
           dayStartHour,
           dayEndHour,
           visibleOwners,
+          ownWindow: savedWindow ?? null,
         }).catch((): SuggestionOutcome => ({ kind: "unavailable" }))
       : { kind: "unavailable" };
     if (mine !== seq.current) return;
@@ -212,7 +224,18 @@ export function FindATime({ attendees, start, end, onPick }: FindATimeProps) {
   const unknownBusy = result?.notChecked.some((n) => n.reason === "unknown") ?? false;
 
   return (
-    <div className="mt-2">
+    <div
+      className="mt-2"
+      onKeyDown={(e) => {
+        // Escape closes the list, from the button too: the editor closes on
+        // Escape as well, and this one is the list's.
+        if (e.key === "Escape" && open) {
+          e.stopPropagation();
+          e.preventDefault();
+          close();
+        }
+      }}
+    >
       <Button
         ref={buttonRef}
         type="button"
@@ -231,14 +254,6 @@ export function FindATime({ attendees, start, end, onPick }: FindATimeProps) {
           id={panelId}
           className="mt-2 rounded-md border border-border bg-muted/30 p-3 text-xs"
           data-testid="find-a-time-panel"
-          onKeyDown={(e) => {
-            if (e.key === "Escape") {
-              // The editor closes on Escape too; this one is the list's.
-              e.stopPropagation();
-              e.preventDefault();
-              close();
-            }
-          }}
         >
           <div role="status" aria-live="polite" className="text-muted-foreground">
             {busy && (
@@ -250,6 +265,7 @@ export function FindATime({ attendees, start, end, onPick }: FindATimeProps) {
             {!busy && outcome?.kind === "rate_limited" && t("rate_limited")}
             {!busy && outcome?.kind === "unavailable" && t("unavailable")}
             {!busy && result && result.slots.length === 0 && t("none")}
+            {!busy && result && result.slots.length > 0 && !picked && <span className="sr-only">{t("found", { count: result.slots.length })}</span>}
             {!busy && picked && t("picked", { slot: picked })}
           </div>
           {!busy && result && result.slots.length > 0 && (

@@ -4887,7 +4887,8 @@
     "reason_error": "nepodarilo sa overiť",
     "unknown_note": "Bulwark vidí obsadené časy len v kalendároch, ktoré s vami niekto zdieľa. Pri týchto ľuďoch nerozlíši voľno od nezdieľaného kalendára.",
     "directory_off": "Bulwark na tomto serveri nemôže vyhľadávať ľudí. Správca môže v Stalwarte zapnúť dopyty do adresára.",
-    "not_looked_up": "Nedá sa vyhľadať"
+    "not_looked_up": "Adresu sa nepodarilo vyhľadať",
+    "found": "Nájdené voľné časy: {count}"
   },
   "share_notifications": {
     "someone": "Niekto",

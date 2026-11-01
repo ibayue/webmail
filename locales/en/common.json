@@ -4887,7 +4887,8 @@
     "reason_error": "couldn’t be checked",
     "unknown_note": "Bulwark only sees busy times in calendars shared with you. For these people it can’t tell free from not shared.",
     "directory_off": "Bulwark can’t look up people on this server. Your administrator can turn on directory queries in Stalwart.",
-    "not_looked_up": "Can’t look up"
+    "not_looked_up": "Couldn’t look up this address",
+    "found": "Free times found: {count}"
   },
   "share_notifications": {
     "someone": "Someone",

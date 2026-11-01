@@ -4887,7 +4887,8 @@
     "reason_error": "nu a putut fi verificat",
     "unknown_note": "Bulwark vede orele ocupate doar în calendarele partajate cu dvs. Pentru aceste persoane nu poate deosebi liber de nepartajat.",
     "directory_off": "Bulwark nu poate căuta persoane pe acest server. Administratorul poate activa interogările de director în Stalwart.",
-    "not_looked_up": "Nu se poate căuta"
+    "not_looked_up": "Adresa nu a putut fi căutată",
+    "found": "Ore libere găsite: {count}"
   },
   "share_notifications": {
     "someone": "Cineva",

@@ -5325,7 +5325,8 @@
     "reason_error": "konnte nicht geprüft werden",
     "unknown_note": "Bulwark sieht belegte Zeiten nur in Kalendern, die für Sie freigegeben sind. Bei diesen Personen kann es „frei“ nicht von „nicht freigegeben“ unterscheiden.",
     "directory_off": "Bulwark kann auf diesem Server keine Personen nachschlagen. Ihre Administration kann Verzeichnisabfragen in Stalwart einschalten.",
-    "not_looked_up": "Nicht auffindbar"
+    "not_looked_up": "Adresse nicht gefunden",
+    "found": "Freie Zeiten gefunden: {count}"
   },
   "share_notifications": {
     "someone": "Jemand",

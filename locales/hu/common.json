@@ -4887,7 +4887,8 @@
     "reason_error": "nem sikerült ellenőrizni",
     "unknown_note": "A Bulwark csak az Önnel megosztott naptárakban látja a foglalt időket. Ezeknél a személyeknél nem tudja megkülönböztetni a szabadot a nem megosztottól.",
     "directory_off": "A Bulwark ezen a szerveren nem tud személyeket keresni. A rendszergazda a Stalwartban bekapcsolhatja a címtár-lekérdezéseket.",
-    "not_looked_up": "Nem kereshető"
+    "not_looked_up": "A cím nem kereshető",
+    "found": "Talált szabad időpontok: {count}"
   },
   "share_notifications": {
     "someone": "Valaki",

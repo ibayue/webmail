@@ -4887,7 +4887,8 @@
     "reason_error": "無法檢查",
     "unknown_note": "Bulwark 只能看到與你共用的行事曆中的忙碌時間。對這些人，它無法區分有空和未共用。",
     "directory_off": "Bulwark 無法在此伺服器上查詢使用者。管理員可以在 Stalwart 中開啟目錄查詢。",
-    "not_looked_up": "無法查詢"
+    "not_looked_up": "無法查詢此地址",
+    "found": "找到的空閒時間：{count}"
   },
   "share_notifications": {
     "someone": "有人",

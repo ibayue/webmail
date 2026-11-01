@@ -5325,7 +5325,8 @@
     "reason_error": "neizdevās pārbaudīt",
     "unknown_note": "Bulwark redz aizņemtos laikus tikai kalendāros, kas kopīgoti ar jums. Šiem cilvēkiem tas nevar atšķirt brīvu laiku no nekopīgota kalendāra.",
     "directory_off": "Bulwark šajā serverī nevar meklēt cilvēkus. Administrators var ieslēgt direktorija vaicājumus Stalwart.",
-    "not_looked_up": "Nevar atrast"
+    "not_looked_up": "Šo adresi neizdevās atrast",
+    "found": "Atrasti brīvi laiki: {count}"
   },
   "share_notifications": {
     "someone": "Kāds",
