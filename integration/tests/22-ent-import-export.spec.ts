@@ -431,7 +431,8 @@ test('import and export dialogs fill the screen at 390 px and import from Settin
   await expect(dialog.getByRole('heading', { name: 'Import finished' })).toBeVisible({ timeout: 60_000 });
   await expect.poll(async () => (await dialog.boundingBox())?.width ?? 0).toBeGreaterThanOrEqual(389);
   await shot(page, 'c-import-phone-summary');
-  expect(await messagesIn(target)).toHaveLength(3);
+  // Four messages; the one Thunderbird marked deleted stays out.
+  expect(await messagesIn(target)).toHaveLength(4);
   await page.getByRole('button', { name: 'Close' }).last().click();
 
   await page.getByTestId('settings-mail-export').click();
