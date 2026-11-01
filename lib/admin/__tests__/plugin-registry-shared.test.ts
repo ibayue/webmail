@@ -225,6 +225,64 @@ describe('plugins in the shared store', () => {
   });
 });
 
+describe('one change of the registry at a time across replicas', () => {
+  const LEASE = 'extension-registry-plugins';
+
+  it('refuses an install with 503 while another replica holds the registry, and writes nothing', async () => {
+    const a = await otherReplica();
+    a.registry.setRegistryLeaseTimingForTests({ waitMs: 200 });
+    expect(await store.leases.acquire(LEASE, 'replica-b-install', 60_000)).toBe(true);
+
+    expect((await install(a, 'module.exports = {}')).status).toBe(503);
+    const docs = (await import('../extension-store')).pluginDocs();
+    expect(await docs.list('')).toEqual([]);
+
+    await store.leases.release(LEASE, 'replica-b-install');
+    expect((await install(a, 'module.exports = {}')).status).toBe(200);
+  });
+
+  it('keeps the lease while a slow install runs', async () => {
+    const a = await otherReplica();
+    a.registry.setRegistryLeaseTimingForTests({ ttlMs: 90, waitMs: 50 });
+    // Writing the bundle takes longer than the lease lasts.
+    const collection = store.collection.bind(store);
+    store.collection = (name, options) => {
+      const docs = collection(name, options);
+      return { ...docs, put: async (...args: Parameters<typeof docs.put>) => {
+        if (args[0] === `${PLUGIN.id}.js`) await new Promise((r) => setTimeout(r, 300));
+        return docs.put(...args);
+      } };
+    };
+    const saving = a.registry.savePlugin(PLUGIN, 'slow()');
+    await new Promise((r) => setTimeout(r, 200));
+    // Another replica tries to take over the registry meanwhile.
+    expect(await store.leases.acquire(LEASE, 'replica-b', 1_000)).toBe(false);
+    await expect(saving).resolves.toBeUndefined();
+    store.collection = collection;
+    expect((await a.registry.getPlugin(PLUGIN.id))?.bundleHash).toBe(createHash('sha256').update('slow()').digest('hex'));
+  });
+
+  it('leaves the registry alone when the lease was lost, and every replica refuses the torn bundle', async () => {
+    const a = await otherReplica();
+    await a.registry.savePlugin(PLUGIN, 'v1()');
+    // The lease runs out mid-install (a stall) and another replica takes it.
+    const holder = store.leases.holder.bind(store.leases);
+    store.leases.holder = async () => 'replica-b';
+    await expect(a.registry.savePlugin({ ...PLUGIN, version: '2.0.0' }, 'v2()')).rejects.toMatchObject({ name: 'StoreUnavailableError' });
+    store.leases.holder = holder;
+
+    const registry = JSON.parse((await (await import('../extension-store')).pluginDocs().get('registry.json'))!.data.toString());
+    expect(registry.plugins[0]).toMatchObject({ version: '1.0.0', bundleHash: createHash('sha256').update('v1()').digest('hex') });
+
+    for (let i = 0; i < 2; i++) {
+      const replica = await otherReplica();
+      const res = await getBundle(replica, PLUGIN.id);
+      expect(res.status).toBe(409);
+      expect((await res.json()).error).toContain('Install it again');
+    }
+  });
+});
+
 describe('themes in the shared store', () => {
   it('serves on another replica a theme installed through one', async () => {
     const a = await otherReplica();

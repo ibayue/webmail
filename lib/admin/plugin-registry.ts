@@ -1,7 +1,7 @@
 import type { CredentialSpec } from '@/lib/plugin-secrets/credentials';
 import { createHash, randomBytes } from 'node:crypto';
 import { logger } from '@/lib/logger';
-import { getStore, isSharedMode, replicaId } from '@/lib/shared-store';
+import { getStore, isSharedMode, replicaId, StoreUnavailableError } from '@/lib/shared-store';
 import { announceChange } from '@/lib/shared-store/changes';
 import { assertWritable, isConfigReadOnly } from './paths';
 import { isStoreUnavailable } from './admin-store';
@@ -231,19 +231,32 @@ async function removeDoc(kind: RegistryKind, id: string): Promise<void> {
   }
 }
 
-const LEASE_TTL_MS = 30_000;
-const LEASE_WAIT_MS = 15_000;
+/** How long a registry lease lasts (renewed every third of it) and how long a change waits for one. */
+const leaseTiming = { ttlMs: 30_000, waitMs: 15_000 };
+
+/** Shorter lease times (tests). */
+export function setRegistryLeaseTimingForTests(timing: Partial<typeof leaseTiming> | null): void {
+  Object.assign(leaseTiming, timing ?? { ttlMs: 30_000, waitMs: 15_000 });
+}
+
+interface RegistryLease {
+  /** Throws (StoreUnavailableError, so a 503) unless this change still holds the lease. */
+  assertHeld(): Promise<void>;
+}
+
+const NO_LEASE: RegistryLease = { async assertHeld() {} };
 
 /**
  * Changes to one registry run one after another: in this process through a
  * promise chain on globalThis (every module copy shares it), and across
  * replicas under a lease, so two installs of the same extension at once
- * can't leave one's bundle under the other's registry entry. The registry
- * itself is changed with update(), so even a change that couldn't get the
- * lease in time keeps every other entry. A store outage fails here, before
- * anything is written.
+ * can't leave one's bundle under the other's registry entry. A change that
+ * can't get the lease in time is refused (503) before anything is written;
+ * the lease is renewed while the change runs, and an install checks it
+ * still holds it right before it writes the registry entry. The registry
+ * itself is changed with update(), so other entries always stay.
  */
-function withRegistryLock<T>(kind: RegistryKind, task: () => Promise<T>): Promise<T> {
+function withRegistryLock<T>(kind: RegistryKind, task: (lease: RegistryLease) => Promise<T>): Promise<T> {
   const queues = registryGlobals().queues;
   const locked = () => withLease(kind, task);
   const run = (queues.get(kind) ?? Promise.resolve()).then(locked, locked);
@@ -251,23 +264,56 @@ function withRegistryLock<T>(kind: RegistryKind, task: () => Promise<T>): Promis
   return run;
 }
 
-async function withLease<T>(kind: RegistryKind, task: () => Promise<T>): Promise<T> {
-  if (!isSharedMode() || isConfigReadOnly()) return task();
+async function withLease<T>(kind: RegistryKind, task: (lease: RegistryLease) => Promise<T>): Promise<T> {
+  if (!isSharedMode() || isConfigReadOnly()) return task(NO_LEASE);
   const store = getStore();
   const name = `extension-registry-${kind}`;
   const holder = `${replicaId()}-${randomBytes(4).toString('hex')}`;
-  const deadline = Date.now() + LEASE_WAIT_MS;
-  let held = await store.leases.acquire(name, holder, LEASE_TTL_MS);
+  const { ttlMs, waitMs } = leaseTiming;
+  const deadline = Date.now() + waitMs;
+  let held = await store.leases.acquire(name, holder, ttlMs);
   while (!held && Date.now() < deadline) {
-    await new Promise((resolve) => setTimeout(resolve, 100 + Math.random() * 100));
-    held = await store.leases.acquire(name, holder, LEASE_TTL_MS);
+    await new Promise((resolve) => setTimeout(resolve, Math.min(100, waitMs / 4) * (1 + Math.random())));
+    held = await store.leases.acquire(name, holder, ttlMs);
   }
-  if (!held) logger.warn(`Another instance is still changing the ${kind}; going ahead without waiting longer`);
+  if (!held) {
+    throw new StoreUnavailableError(`Another instance is still changing the ${kind}; nothing was changed. Try again in a moment.`);
+  }
+  let lost = false;
+  const renew = setInterval(() => {
+    store.leases.acquire(name, holder, ttlMs).then((ok) => { if (!ok) lost = true; }, () => { /* checked before the write */ });
+  }, Math.max(10, Math.floor(ttlMs / 3)));
+  renew.unref?.();
+  const lease: RegistryLease = {
+    async assertHeld() {
+      if (lost || (await store.leases.holder(name)) !== holder) {
+        logger.error(`Lost the lock on the ${kind} in the middle of a change; the registry was left as it was`);
+        throw new StoreUnavailableError(`This instance lost the lock on the ${kind} in the middle of a change; the registry was left as it was. Try again.`);
+      }
+    },
+  };
   try {
-    return await task();
+    return await task(lease);
   } finally {
-    if (held) await store.leases.release(name, holder).catch(() => {});
+    clearInterval(renew);
+    await store.leases.release(name, holder).catch(() => {});
   }
+}
+
+/**
+ * The stored bundle isn't the one the registry entry names: an install that
+ * stopped between writing the bundle and the entry. Refused the same way on
+ * every replica, so it is visibly broken instead of working on some.
+ */
+export class BundleMismatchError extends Error {
+  constructor(id: string) {
+    super(`The stored code of plugin ${id} does not match its registry entry (an install was interrupted). Install it again.`);
+    this.name = 'BundleMismatchError';
+  }
+}
+
+export function isBundleMismatch(error: unknown): boolean {
+  return (error as Error | null)?.name === 'BundleMismatchError';
 }
 
 const sha256Hex = (data: string) => createHash('sha256').update(data).digest('hex');
@@ -338,13 +384,14 @@ export async function getPlugin(id: string): Promise<ServerPlugin | null> {
 const SAFE_ID_RE = /^[a-z0-9][a-z0-9-]*[a-z0-9]$/;
 
 export async function savePlugin(plugin: ServerPlugin, code: string): Promise<void> {
-  await withRegistryLock('plugins', () => savePluginNow(plugin, code));
+  await withRegistryLock('plugins', (lease) => savePluginNow(plugin, code, lease));
   await announceChange('plugins');
 }
 
 async function savePluginNow(
   plugin: ServerPlugin,
   code: string,
+  lease: RegistryLease,
 ): Promise<void> {
   assertWritable('install plugin');
   if (!SAFE_ID_RE.test(plugin.id)) {
@@ -380,6 +427,7 @@ async function savePluginNow(
   // installedAt across re-uploads. The full SHA-256 is required because the
   // client-side verifyBundle compares the entire digest length-checked.
   const now = new Date().toISOString();
+  await lease.assertHeld();
   await updateRegistry('plugins', emptyPluginRegistry, (registry) => {
     const idx = registry.plugins.findIndex(p => p.id === plugin.id);
     const next: ServerPlugin = {
@@ -524,7 +572,8 @@ async function signatureVerifies(code: string, signature: string): Promise<boole
 /**
  * The stored bundle of a plugin. With `bundleHash` (the registry entry's),
  * shared mode serves it from this replica's cache once it was fetched and
- * found to match.
+ * found to match, and refuses stored bytes that don't match
+ * (BundleMismatchError).
  */
 export async function getPluginBundle(id: string, bundleHash?: string): Promise<string | null> {
   if (!SAFE_ID_RE.test(id)) return null;
@@ -540,7 +589,13 @@ export async function getPluginBundle(id: string, bundleHash?: string): Promise<
     if (isStoreUnavailable(error)) throw error;
     return null;
   }
-  if (code !== null && useCache && sha256Hex(code) === bundleHash) cacheBundle(bundleHash!, code);
+  if (code !== null && useCache && FULL_HASH_RE.test(bundleHash!)) {
+    if (sha256Hex(code) !== bundleHash) {
+      logger.error('[plugin-registry] stored plugin bundle does not match its registry entry', { id });
+      throw new BundleMismatchError(id);
+    }
+    cacheBundle(bundleHash!, code);
+  }
   return code;
 }
 
@@ -558,14 +613,15 @@ export async function getTheme(id: string): Promise<ServerTheme | null> {
 }
 
 export async function saveTheme(theme: ServerTheme, css: string, skin: string | null = null): Promise<void> {
-  await withRegistryLock('themes', () => saveThemeNow(theme, css, skin));
+  await withRegistryLock('themes', (lease) => saveThemeNow(theme, css, skin, lease));
   await announceChange('themes');
 }
 
 async function saveThemeNow(
   theme: ServerTheme,
   css: string,
-  skin: string | null = null,
+  skin: string | null,
+  lease: RegistryLease,
 ): Promise<void> {
   assertWritable('install theme');
   if (!SAFE_ID_RE.test(theme.id)) {
@@ -597,6 +653,7 @@ async function saveThemeNow(
   }
   const next: ServerTheme = { ...theme, hasSkin: !!skin, contentHash };
 
+  await lease.assertHeld();
   await updateRegistry('themes', emptyThemeRegistry, (registry) => {
     const idx = registry.themes.findIndex(t => t.id === theme.id);
     if (idx >= 0) {
