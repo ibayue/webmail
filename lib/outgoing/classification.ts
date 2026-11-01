@@ -14,10 +14,8 @@
  * replies, read receipts, List-Unsubscribe mails and phishing reports.
  *
  * S/MIME and PGP plugins take over the send (onComposeSend) and build raw
- * MIME themselves: the composer hands them the prefixed subject, and the
- * host adds the label headers to the top-level header block of the raw
- * message in api.jmap.sendRaw / submitRaw while that takeover runs, keyed
- * to its token (beginLabelTakeover), outside the signed or encrypted part.
+ * MIME themselves: the composer hands them the prefixed subject, and
+ * lib/outgoing/classification-raw.ts puts the label into what they send.
  */
 
 import type { ClassificationLabel } from '@/lib/admin/organisation-policy';
@@ -27,11 +25,9 @@ import { policyForSender } from '@/lib/org/signature-state';
 import { activeExternalMailContext, contextInternalDomains, externalSenders, isOtherAccount } from '@/lib/external-mail';
 import { cachedIdentitiesForAccount } from '@/hooks/use-pro-multi-account-identities';
 import { usePolicyStore } from '@/stores/policy-store';
-import { generateUUID } from '@/lib/utils';
 import { withoutLabelHeaders } from './custom-headers';
 import {
   applyLabelPrefix,
-  labelHeaderLines,
   labelHeaderProperties,
   draftLabelChoice,
   receivedLabel,
@@ -181,105 +177,6 @@ export function automaticLabel(
   const policy = labelsPolicyFor(sender);
   const label = resolveLabel(policy, undefined, original);
   return { policy, label, missing: labelMissing(policy, label) };
-}
-
-// ─── Crypto takeovers ─────────────────────────────────────────
-
-interface Takeover {
-  identityId: string;
-  subject: string;
-  lines: string[];
-}
-
-const takeovers = new Map<string, Takeover>();
-
-/**
- * Registers the label of a takeover about to run (onComposeSend). Raw
- * sends during it from the same identity get the label's header lines.
- * Returns the token; pass it to endLabelTakeover when the takeover ended.
- */
-export function beginLabelTakeover(
-  policy: LabelsPolicy,
-  label: ClassificationLabel | null,
-  identityId: string,
-  subject: string,
-): string | null {
-  if (!label) return null;
-  const token = generateUUID();
-  takeovers.set(token, { identityId, subject, lines: labelHeaderLines(label, policy.extraHeader) });
-  return token;
-}
-
-export function endLabelTakeover(token: string | null): void {
-  if (token) takeovers.delete(token);
-}
-
-const LABEL_LINE_NAMES = ['sio-label', 'sio-label-history', 'sensitivity', 'x-bulwark-label'];
-
-/** The Subject header of a raw message's top-level block, unfolded and decoded enough to compare. */
-function rawSubject(head: string): string {
-  const m = /(?:^|\r?\n)Subject:([^\r\n]*(?:\r?\n[ \t][^\r\n]*)*)/i.exec(head);
-  return m ? m[1].replace(/\r?\n[ \t]+/g, ' ').trim() : '';
-}
-
-/**
- * The takeover a raw send belongs to: the one running for `identityId`;
- * when several are (two composers sending at once), the one whose subject
- * is the message's.
- */
-function takeoverFor(identityId: string, head: string): Takeover | null {
-  const candidates = [...takeovers.values()].filter((t) => t.identityId === identityId);
-  if (candidates.length <= 1) return candidates[0] ?? null;
-  const subject = rawSubject(head);
-  return candidates.find((t) => t.subject === subject) ?? candidates[0];
-}
-
-/**
- * `bytes` (a raw RFC 5322 message) with the label's headers added to its
- * top-level header block, when a labelled takeover is running for
- * `identityId`; the same bytes otherwise. Label headers the plugin wrote
- * itself are replaced.
- */
-export function injectTakeoverLabel(bytes: Uint8Array, identityId: string): Uint8Array {
-  if (takeovers.size === 0) return bytes;
-  // The header block is ASCII (RFC 5322 §2.2); find its end without decoding the body.
-  let end = -1;
-  let breakLength = 0;
-  for (let i = 0; i < bytes.length - 1; i++) {
-    if (bytes[i] === 0x0d && bytes[i + 1] === 0x0a && bytes[i + 2] === 0x0d && bytes[i + 3] === 0x0a) { end = i; breakLength = 4; break; }
-    if (bytes[i] === 0x0a && bytes[i + 1] === 0x0a) { end = i; breakLength = 2; break; }
-  }
-  if (end < 0) return bytes;
-  // Byte for byte, so 8-bit header bytes (a raw UTF-8 subject) come back unchanged.
-  let head = '';
-  for (let i = 0; i < end; i++) head += String.fromCharCode(bytes[i]);
-  const takeover = takeoverFor(identityId, head);
-  if (!takeover) return bytes;
-  const eol = breakLength === 4 ? '\r\n' : '\n';
-  // Drop the label headers already there (with their folded lines).
-  const kept: string[] = [];
-  let skipping = false;
-  for (const line of head.split(/\r?\n/)) {
-    if (/^[ \t]/.test(line)) {
-      if (!skipping) kept.push(line);
-      continue;
-    }
-    const name = line.slice(0, line.indexOf(':')).trim().toLowerCase();
-    skipping = LABEL_LINE_NAMES.includes(name) || takeover.lines.some((l) => l.slice(0, l.indexOf(':')).toLowerCase() === name);
-    if (!skipping) kept.push(line);
-  }
-  const added = takeover.lines.map((line) => line.replace(/\r\n/g, eol));
-  const text = [...kept, ...added].join(eol);
-  const newHead = Uint8Array.from(text, (ch) => ch.charCodeAt(0) & 0xff);
-  const out = new Uint8Array(newHead.length + (bytes.length - end));
-  out.set(newHead, 0);
-  out.set(bytes.subarray(end), newHead.length);
-  return out;
-}
-
-/** For tests. */
-export function resetLabelTakeovers(): void {
-  takeovers.clear();
 }
 
 /**

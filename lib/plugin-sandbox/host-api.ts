@@ -3,7 +3,7 @@
 // structured-cloneable data back to the iframe.
 
 import type { AppInfoView, InstalledPlugin, Permission } from '../plugin-types';
-import { injectTakeoverLabel } from '@/lib/outgoing/classification';
+import { labelRawSend } from '@/lib/outgoing/classification-raw';
 import { fetchConfig } from '@/hooks/use-config';
 import { IS_LITE } from '../lite';
 import { doAppGetSettings, doAppSearchSettings } from './host-api-app';
@@ -801,6 +801,8 @@ async function doJmapUploadBlob(content: unknown, name: unknown, type: unknown):
 interface JmapSubmitRawOptions {
   delayedUntil?: string;
   envelopeRecipients?: string[];
+  /** The `labelToken` of the onComposeSend request this send completes. */
+  labelToken?: string;
 }
 
 /**
@@ -823,9 +825,9 @@ async function doJmapSendRaw(
   // ArrayBuffer (not SharedArrayBuffer) — also detaches from the caller's view.
   const copy = new Uint8Array(view.byteLength);
   copy.set(view);
-  // During a labelled takeover (S/MIME, PGP) the label's headers go into the
-  // top-level header block, outside what the plugin signed or encrypted.
-  const labelled = injectTakeoverLabel(copy, identityId);
+  // The classification label goes into the top-level header block, outside
+  // what the plugin signed or encrypted (lib/outgoing/classification-raw.ts).
+  const labelled = labelRawSend(copy, identityId, opts?.labelToken);
   const blob = new Blob([labelled.buffer as ArrayBuffer], { type: 'message/rfc822' });
   return useEmailStore.getState().sendRawEmail(
     client,
@@ -860,7 +862,7 @@ async function doJmapSubmitRaw(
   
   const copy = new Uint8Array(view.byteLength);
   copy.set(view);
-  const labelled = injectTakeoverLabel(copy, identityId);
+  const labelled = labelRawSend(copy, identityId, opts?.labelToken);
   const blob = new Blob([labelled.buffer as ArrayBuffer], { type: 'message/rfc822' });
 
   return client.submitRawEmail(
@@ -2045,12 +2047,12 @@ export async function dispatchApiCall(
     case 'jmap.sendRaw':   return doJmapSendRaw(
       args[0] as ArrayBuffer | ArrayBufferView,
       args[1] as string,
-      args[2] as { delayedUntil?: string; envelopeRecipients?: string[] } | undefined,
+      args[2] as JmapSubmitRawOptions | undefined,
     );
     case 'jmap.submitRaw': return doJmapSubmitRaw(
       args[0] as ArrayBuffer | ArrayBufferView,
       args[1] as string,
-      args[2] as { delayedUntil?: string; envelopeRecipients?: string[] } | undefined,
+      args[2] as JmapSubmitRawOptions | undefined,
     );
     case 'jmap.importRaw': return doJmapImportRaw(
       args[0] as ArrayBuffer | ArrayBufferView,

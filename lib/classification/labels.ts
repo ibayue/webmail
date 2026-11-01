@@ -64,7 +64,7 @@ function percentEncode(value: string): string {
 /** The marking parameter(s): quoted when ASCII, RFC 2231 (with continuations when long) otherwise. */
 function markingParameters(marking: string): string[] {
   const clean = marking.replace(/["\\\r\n]/g, '');
-   
+
   if (/^[\x20-\x7e]*$/.test(clean)) return [`marking="${clean}"`];
   const encoded = percentEncode(clean);
   const MAX = 60;
@@ -122,18 +122,50 @@ export function labelHeaderProperties(label: ClassificationLabel, extraHeader: s
   return out;
 }
 
-function encodedWord(value: string): string {
-   
-  if (/^[\x20-\x7e]*$/.test(value)) return value;
-  let binary = '';
-  for (const byte of new TextEncoder().encode(value)) binary += String.fromCharCode(byte);
-  return `=?UTF-8?B?${btoa(binary)}?=`;
+/**
+ * A header value for raw MIME, folded under 78 columns: ASCII as it is,
+ * folded between words; anything else as RFC 2047 encoded words of at
+ * most 75 characters each, split between characters.
+ */
+function foldedValue(name: string, value: string): string {
+  if (/^[\x20-\x7e]*$/.test(value)) {
+    let line = name.length + 1;
+    let out = '';
+    for (const word of value.split(' ')) {
+      if (out && line + 1 + word.length > 78) {
+        out += `\r\n ${word}`;
+        line = 1 + word.length;
+      } else {
+        out += ` ${word}`;
+        line += 1 + word.length;
+      }
+    }
+    return out;
+  }
+  const encoder = new TextEncoder();
+  const words: string[] = [];
+  let chunk: number[] = [];
+  const flush = () => {
+    if (chunk.length === 0) return;
+    words.push(`=?UTF-8?B?${btoa(String.fromCharCode(...chunk))}?=`);
+    chunk = [];
+  };
+  // 45 bytes are 60 base64 characters: 72 with "=?UTF-8?B?" and "?=",
+  // which fits a folded line. The first word shares its line with the name.
+  const firstLimit = Math.max(3, Math.min(45, Math.floor((78 - name.length - 2 - 12) / 4) * 3));
+  for (const char of value) {
+    const bytes = encoder.encode(char);
+    if (chunk.length + bytes.length > (words.length === 0 ? firstLimit : 45)) flush();
+    chunk.push(...bytes);
+  }
+  flush();
+  return ` ${words.join('\r\n ')}`;
 }
 
-/** The label's headers as raw header lines (CRLF-free each), for raw MIME. */
+/** The label's headers as raw header lines (folded with CRLF and a space), for raw MIME. */
 export function labelHeaderLines(label: ClassificationLabel, extraHeader: string): string[] {
   return labelHeaderPairs(label, extraHeader).map(([name, value, form]) =>
-    form === 'raw' ? `${name}:${value}` : `${name}: ${encodedWord(value)}`);
+    form === 'raw' ? `${name}:${value}` : `${name}:${foldedValue(name, value)}`);
 }
 
 /** The draft marker property: the label id, or `none` for no label. */

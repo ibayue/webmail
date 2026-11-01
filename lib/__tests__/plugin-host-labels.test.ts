@@ -13,7 +13,7 @@ import { DEFAULT_ORGANISATION_POLICY } from '@/lib/admin/organisation-policy';
 import { LABEL_PRESETS } from '@/lib/classification/presets';
 import { head, resolveHead, resetDialogLimits } from '../plugin-sandbox/host-dialog';
 import { resetPluginRateLimits } from '../plugin-sandbox/host-api-input';
-import { beginLabelTakeover, endLabelTakeover, resetLabelTakeovers } from '../outgoing/classification';
+import { beginLabelTakeover, endLabelTakeover, resetLabelTakeovers } from '../outgoing/classification-raw';
 
 // Classification labels on the plugin paths: api.email.forward carries the
 // original's label (else the default) and refuses when a required one is
@@ -123,18 +123,28 @@ describe('labels on the plugin paths', () => {
     expect(toast.error).toHaveBeenCalled();
   });
 
-  it('puts the label into a raw send during a labelled takeover only', async () => {
+  it('puts the takeover’s label into its raw sends and takes forged ones out of every raw send', async () => {
     useLabels({});
-    const raw = new TextEncoder().encode('From: ann@example.com\r\nSubject: [Confidential] Hi\r\n\r\nENCRYPTED\r\n');
-    await call(SMIME, 'jmap.sendRaw', raw, 'id-a', {});
+    const forged = new TextEncoder().encode('From: ann@example.com\r\nSubject: [Confidential] Hi\r\nSIO-Label: marking="PUBLIC"\r\n\r\nENCRYPTED\r\n');
+    // Outside a takeover, no default label: nothing stamped, the forged header gone.
+    await call(SMIME, 'jmap.sendRaw', forged, 'id-a', {});
     expect(await (sendRawEmail.mock.calls[0][1] as Blob).text()).not.toContain('SIO-Label');
 
-    const token = beginLabelTakeover(usePolicyStore.getState().policy.organisation!.labels, LABEL_PRESETS[0].list[2], 'id-a', '[Confidential] Hi');
-    await call(SMIME, 'jmap.sendRaw', raw, 'id-a', {});
-    await call(SMIME, 'jmap.submitRaw', raw, 'id-a', {});
+    const token = beginLabelTakeover(usePolicyStore.getState().policy.organisation!.labels, LABEL_PRESETS[0].list[2], 'id-a')!;
+    await call(SMIME, 'jmap.sendRaw', forged, 'id-a', { labelToken: token });
+    await call(SMIME, 'jmap.submitRaw', forged, 'id-a', { labelToken: token });
     endLabelTakeover(token);
     const sent = await (sendRawEmail.mock.calls[1][1] as Blob).text();
     expect(sent).toMatch(/^From: ann@example.com\r\nSubject: \[Confidential\] Hi\r\nSIO-Label: marking="CONFIDENTIAL"[^\r]*\r\nSensitivity: Company-Confidential\r\n\r\nENCRYPTED\r\n$/);
     expect(await (client.submitRawEmail.mock.calls[0][0] as Blob).text()).toContain('SIO-Label: marking="CONFIDENTIAL"');
+  });
+
+  it('refuses a raw send outside the composer when a label is required', async () => {
+    useLabels({ required: true });
+    const bytes = new TextEncoder().encode('Subject: Hi\r\n\r\nX\r\n');
+    await expect(call(SMIME, 'jmap.sendRaw', bytes, 'id-a', {})).rejects.toThrow(/requires a classification label/);
+    await expect(call(SMIME, 'jmap.submitRaw', bytes, 'id-a', {})).rejects.toThrow(/requires a classification label/);
+    expect(sendRawEmail).not.toHaveBeenCalled();
+    expect(client.submitRawEmail).not.toHaveBeenCalled();
   });
 });

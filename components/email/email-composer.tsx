@@ -111,7 +111,8 @@ import type { EmailTemplate } from "@/lib/template-types";
 import { appendPlainTextSignature, getPlainTextSignature, plainTextBodyHasSignature, plainTextBodyWithoutSignature } from "@/lib/signature-utils";
 import { wantsSignatureSeparator } from "@/lib/signature-delimiter";
 import { finalizeOutgoing, runPreSendChecks, type OutgoingContext } from "@/lib/outgoing/send-pipeline";
-import { beginLabelTakeover, classifyOutgoing, endLabelTakeover, isLabelRequiredError, labelMissing, labelsPolicyFor, resolveLabel, type OriginalMessage } from "@/lib/outgoing/classification";
+import { classifyOutgoing, isLabelRequiredError, labelMissing, labelsPolicyFor, resolveLabel, type OriginalMessage } from "@/lib/outgoing/classification";
+import { beginLabelTakeover, endLabelTakeover } from "@/lib/outgoing/classification-raw";
 import { whenPolicySettled } from "@/stores/policy-store";
 import { ClassificationLabelPicker, type ClassificationPickerHandle } from "./classification-label-picker";
 import { useComposerClassification } from "./use-composer-classification";
@@ -3647,9 +3648,12 @@ export function EmailComposer({
       const labelPolicy = labelsPolicyFor({ email: currentIdentity?.email, accountId: composingAccountId });
       const sendLabel = resolveLabel(labelPolicy, classificationRef.current.choice, labelOriginal);
       // A crypto plugin builds the MIME itself: it gets the labelled
-      // subject, and its raw send gets the label's headers (keyed to the token).
+      // subject, and its raw send gets the label's headers, matched by the
+      // token it can pass back (lib/outgoing/classification-raw.ts).
       const takeoverLabelled = classifyOutgoing(labelPolicy, sendLabel, { subject });
+      const labelToken = beginLabelTakeover(labelPolicy, sendLabel, currentIdentity?.id ?? '');
       const composeSendRequest = {
+        labelToken: labelToken ?? undefined,
         to: toAddresses.map(r => formatRecipient(r.name, r.email)),
         cc: ccAddresses.map(r => formatRecipient(r.name, r.email)),
         bcc: bccAddresses.map(r => formatRecipient(r.name, r.email)),
@@ -3669,7 +3673,6 @@ export function EmailComposer({
           ...inlineAttachments.map(a => ({ name: a.name, type: a.type, size: a.size, blobId: a.blobId, cid: a.cid })),
         ],
       };
-      const labelToken = beginLabelTakeover(labelPolicy, sendLabel, currentIdentityParts.rawId ?? currentIdentity?.id ?? '', takeoverLabelled.subject);
       let pluginOutcome: Awaited<ReturnType<typeof emailHooks.onComposeSend.takeOver>>;
       try {
         pluginOutcome = await emailHooks.onComposeSend.takeOver(composeSendRequest);

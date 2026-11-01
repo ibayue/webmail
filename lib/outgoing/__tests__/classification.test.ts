@@ -7,20 +7,16 @@ import { usePolicyStore } from '@/stores/policy-store';
 import { customHeaderProperties, withLabelHeaders } from '../custom-headers';
 import {
   automaticLabel,
-  beginLabelTakeover,
   classifyOutgoing,
-  endLabelTakeover,
-  injectTakeoverLabel,
   isLabelRequiredError,
   labelSourceHeaders,
-  resetLabelTakeovers,
   reopenedLabelChoice,
   resolveLabel,
 } from '../classification';
 
 // The label stage of sending: which label goes out, the required label
 // failing closed, plugin headers that can't override it, the policy of the
-// sending account, and the headers a crypto takeover's raw send gets.
+// sending account (raw sends: classification-raw.test.ts).
 
 const generic = LABEL_PRESETS[0];
 const policy = { list: generic.list, defaultId: 'internal', required: false, extraHeader: 'X-Classification' };
@@ -37,7 +33,6 @@ beforeEach(() => {
 afterEach(() => {
   usePolicyStore.setState({ policy: DEFAULT_POLICY, rawPolicy: DEFAULT_POLICY, subject: null });
   useAuthStore.setState({ identities: [] } as never);
-  resetLabelTakeovers();
 });
 
 describe('the label of the original', () => {
@@ -123,48 +118,5 @@ describe('the policy of the sending account', () => {
     usePolicyStore.setState({ rawPolicy: { ...DEFAULT_POLICY, organisation: { ...DEFAULT_ORGANISATION_POLICY, labels: policy } } });
     expect(labelSourceHeaders({ 'SIO-Label': 'x', 'X-Classification': 'y', Received: 'z', Subject: 's' })).toEqual({ 'SIO-Label': 'x', 'X-Classification': 'y' });
     expect(labelSourceHeaders({ Received: 'z' })).toBeUndefined();
-  });
-});
-
-describe('crypto takeovers', () => {
-  const raw = (head: string) => new TextEncoder().encode(`${head}\r\n\r\nContent-Type: application/pkcs7-mime\r\n\r\nSIGNED-BYTES\r\n`);
-  const decode = (bytes: Uint8Array) => new TextDecoder().decode(bytes);
-
-  it('add the label headers to the top-level header block, outside the signed part', () => {
-    const token = beginLabelTakeover(policy, label('confidential'), 'id-1', '[Confidential] Budget');
-    const out = decode(injectTakeoverLabel(raw('From: a@example.org\r\nSubject: [Confidential] Budget'), 'id-1'));
-    const [head, ...rest] = out.split('\r\n\r\n');
-    expect(head).toContain('SIO-Label: marking="CONFIDENTIAL"');
-    expect(head).toContain('Sensitivity: Company-Confidential');
-    expect(head).toContain('X-Classification: Confidential');
-    expect(rest.join('\r\n\r\n')).toBe('Content-Type: application/pkcs7-mime\r\n\r\nSIGNED-BYTES\r\n');
-    endLabelTakeover(token);
-  });
-
-  it('replace label headers the plugin wrote, and leave 8-bit header bytes alone', () => {
-    beginLabelTakeover(policy, label('public'), 'id-1', 'Grüße');
-    const input = raw('Subject: Grüße\r\nSIO-Label: marking="FORGED";\r\n bgcolor=red\r\nX-Classification: Secret');
-    const out = decode(injectTakeoverLabel(input, 'id-1'));
-    expect(out).not.toContain('FORGED');
-    expect(out).not.toContain('bgcolor=red');
-    expect(out).not.toContain('Secret');
-    expect(out).toContain('Subject: Grüße');
-    expect(out.match(/SIO-Label:/g)).toHaveLength(1);
-  });
-
-  it('touch nothing outside a takeover, or for another identity', () => {
-    const input = raw('Subject: x');
-    expect(injectTakeoverLabel(input, 'id-1')).toBe(input);
-    const token = beginLabelTakeover(policy, label('public'), 'id-1', 'x');
-    expect(injectTakeoverLabel(input, 'id-2')).toBe(input);
-    endLabelTakeover(token);
-    expect(injectTakeoverLabel(input, 'id-1')).toBe(input);
-  });
-
-  it('pick the right takeover by subject when two run at once', () => {
-    beginLabelTakeover(policy, label('public'), 'id-1', 'First');
-    beginLabelTakeover(policy, label('confidential'), 'id-1', '[Confidential] Second');
-    const out = decode(injectTakeoverLabel(raw('Subject: [Confidential] Second'), 'id-1'));
-    expect(out).toContain('marking="CONFIDENTIAL"');
   });
 });
