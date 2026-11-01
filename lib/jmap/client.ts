@@ -1,3 +1,4 @@
+import { recordJmapCall, reportJmapFailure } from "@/lib/error-reporting/client";
 import { advertisesMailboxMetadata, bulwarkEntries, escapeMetadataPathSegment, MAX_METADATA_ENTRY_BYTES, METADATA_CAPABILITY, MetadataPatchError, MetadataRefusedError, MetadataTooLargeError, MetadataUnsupportedError, metadataValueBytes, namespaceFor } from "./bulwark-metadata";
 import { IncompleteDeleteError } from "./delete-error";
 import { downloadAllowed, saveBlobAs, type DownloadKind } from "@/lib/download-guard";
@@ -190,6 +191,29 @@ function mailboxIdsReplacement(
   const mailboxIds: Record<string, true> = { [mailboxId]: true };
   for (const id of moreMailboxIds) mailboxIds[id] = true;
   return { mailboxIds };
+}
+
+/**
+ * Statuses that are part of normal operation: an expired token (refreshed
+ * by the caller) and Stalwart's concurrency limit (retried above).
+ */
+const UNREPORTED_STATUSES = new Set([401, 429]);
+
+/**
+ * Method errors that are answers, not failures: the client resyncs, pages
+ * again or asks again with the new state.
+ */
+const UNREPORTED_METHOD_ERRORS = new Set(['cannotCalculateChanges', 'anchorNotFound', 'stateMismatch', 'tooManyChanges']);
+
+/** Report each `["error", {type}]` answer by method name and type (lib/error-reporting/client.ts). */
+function reportMethodErrors(methodCalls: JMAPMethodCall[], response: JMAPResponse): void {
+  for (const [name, result, callId] of response?.methodResponses ?? []) {
+    if (name !== 'error') continue;
+    const type = (result as { type?: unknown } | undefined)?.type;
+    if (typeof type !== 'string' || UNREPORTED_METHOD_ERRORS.has(type)) continue;
+    const method = methodCalls.find((call) => call[2] === callId)?.[0] ?? 'Unknown/method';
+    reportJmapFailure({ method, type });
+  }
 }
 
 export class RateLimitError extends Error {
@@ -2141,6 +2165,8 @@ export class JMAPClient implements IJMAPClient {
     if (!this.apiUrl) {
       throw new Error('Not connected. Call connect() first.');
     }
+    // Error reports keep the method names of the last calls, nothing else.
+    recordJmapCall(methodCalls.map(([name]) => name));
     // Offline mode (#523, lib/offline/): answered from this device when the
     // browser is offline or the network fails, and every answer from the
     // server goes to the device's cache. Without offline mode no hooks are
@@ -2205,15 +2231,20 @@ export class JMAPClient implements IJMAPClient {
           continue;
         }
         console.error('Request failed:', response.status, responseText);
+        // The status only: the answer may quote what was sent.
+        if (!UNREPORTED_STATUSES.has(response.status)) reportJmapFailure({ status: response.status });
         throw new Error(`Request failed: ${response.status} - ${responseText.substring(0, 200)}`);
       }
 
+      let parsed: JMAPResponse;
       try {
-        return JSON.parse(responseText);
+        parsed = JSON.parse(responseText);
       } catch {
         console.error('Failed to parse response:', responseText);
         throw new Error('Invalid JSON response from server');
       }
+      reportMethodErrors(methodCalls, parsed);
+      return parsed;
     }
   }
 

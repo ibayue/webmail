@@ -62,8 +62,15 @@ if (isLite && (process.env.NEXT_PUBLIC_LOCALE_PREFIX ?? "never") !== "always") {
   throw new Error("Bulwark Lite requires NEXT_PUBLIC_LOCALE_PREFIX=always (use `npm run build:lite`)");
 }
 
+// Browser source maps, for resolving the stack traces in error reports.
+// Only CI turns them on (BULWARK_SOURCE_MAPS=1): it uploads them to the
+// error tracker and removes every .map file before anything ships
+// (scripts/sourcemaps.mjs). A plain build makes none.
+const sourceMaps = process.env.BULWARK_SOURCE_MAPS === "1";
+
 const nextConfig: NextConfig = {
   output: isLite ? "export" : "standalone",
+  productionBrowserSourceMaps: sourceMaps,
   // No `X-Powered-By: Next.js`; headers() below sends
   // `X-Powered-By: bulwarkmail.org` instead, without a version.
   poweredByHeader: false,
@@ -86,9 +93,9 @@ const nextConfig: NextConfig = {
   // esbuild ships native binaries + a README the bundler can't parse; load
   // it from node_modules at runtime instead of trying to bundle it. Used by
   // PLUGIN_DEV_DIR's on-the-fly bundler. ioredis (the shared store, #1066)
-  // is loaded from node_modules too, so the proxy and the route bundles
-  // don't each carry a copy.
-  serverExternalPackages: ["esbuild", "ioredis"],
+  // and @prometheus-io/client (/api/metrics) are loaded from node_modules
+  // too, so the proxy and the route bundles don't each carry a copy.
+  serverExternalPackages: ["esbuild", "ioredis", "@prometheus-io/client"],
   // The build's type check leaves out tests, which are a third of the files
   // and push tsc past the default heap on a 4 GB machine (#1431).
   // `npm run typecheck` still checks them with tsconfig.json.
@@ -157,6 +164,7 @@ const nextConfig: NextConfig = {
   },
   turbopack: {
     root: process.env.NEXT_TURBOPACK_ROOT || import.meta.dirname,
+    ...(sourceMaps ? { debugIds: true } : {}),
   },
   env: {
     NEXT_PUBLIC_GIT_COMMIT: gitCommitHash,

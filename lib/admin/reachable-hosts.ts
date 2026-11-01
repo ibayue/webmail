@@ -3,6 +3,7 @@ import { parseJmapServers } from './jmap-servers';
 import { isBuiltInHost } from '@/lib/outgoing-hosts';
 import { DEFAULT_RELAY_BASE_URL } from '@/lib/push-relays';
 import { allFeeds } from './company-feeds';
+import { tracingEndpoint } from '@/lib/tracing/config';
 
 /**
  * What stays reachable with "no third-party traffic" on: the hosts the
@@ -105,6 +106,11 @@ export function listReachableHosts({ get, policy, env, buildRelayUrl = DEFAULT_R
   for (const app of policy.defaultSidebarApps ?? []) add('Sidebar app', app?.url, `User policy > Sidebar apps (${app?.name ?? ''})`, 'browser');
   add('Document editor (WOPI)', get('wopiClientUrl'), 'WOPI_CLIENT_URL', 'both');
   add('Translation (LibreTranslate)', env.LIBRETRANSLATE_URL, 'LIBRETRANSLATE_URL', 'server');
+  // Only when an admin set it; browsers and this server send error reports there.
+  add('Error reporting', get('errorReportingDsn'), 'ERROR_REPORTING_DSN', 'both');
+  // OpenTelemetry's OTLP endpoint, only when set in the standard OTEL_* variables.
+  const otlp = tracingEndpoint(env);
+  if (otlp) add('Tracing (OTLP)', otlp, env.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT ? 'OTEL_EXPORTER_OTLP_TRACES_ENDPOINT' : 'OTEL_EXPORTER_OTLP_ENDPOINT', 'server');
   for (const key of BRANDING_KEYS) add('Branding image', get(key), key, 'browser');
 
   // User-directed: what users type in themselves stays allowed.

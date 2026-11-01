@@ -124,6 +124,7 @@ export {
   IconH1 as Heading1,
   IconH2 as Heading2,
   IconHeart as Heart,
+  IconHeartRateMonitor as HeartRateMonitor,
   IconHelpCircle as HelpCircle,
   IconHighlight as Highlighter,
   IconHome as Home,

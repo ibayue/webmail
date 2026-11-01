@@ -4,6 +4,8 @@ import { DEFAULT_POLICY, DEFAULT_THEME_POLICY, POLICY_DOMAINS_HEADER, POLICY_SCO
 import { apiFetch } from '@/lib/browser-navigation';
 import { IS_LITE, IS_LITE_STALWART, LITE_POLICY_PATH, withLiteBuildId } from '@/lib/lite';
 import { applyLitePolicy } from '@/lib/lite-config';
+import { configureErrorReporting } from '@/lib/error-reporting/client';
+import { liteErrorReporting } from '@/lib/error-reporting/lite';
 import { resolvePolicy, type PolicySource, type PolicySubject } from '@/lib/admin/policy-scopes';
 import { DEFAULT_ORGANISATION_POLICY, type OrganisationPolicy } from '@/lib/admin/organisation-policy';
 
@@ -203,6 +205,8 @@ export const usePolicyStore = create<PolicyState>()((set, get) => ({
         const partial = res.headers?.get?.(POLICY_SCOPE_HEADER) === 'public';
         const domainsHeader = res.headers?.get?.(POLICY_DOMAINS_HEADER);
         const scopeDomains = typeof domainsHeader === 'string' ? domainsHeader.split(',').filter(Boolean) : null;
+        // Lite has no /api/config: error reporting is set in policy.json.
+        if (IS_LITE) configureErrorReporting(liteErrorReporting(data));
         // A refetch that brings nothing new (the periodic one, hooks/use-policy-refresh.ts)
         // keeps the resolved objects, so nothing that reads the policy re-runs.
         const json = JSON.stringify(data);
@@ -217,12 +221,15 @@ export const usePolicyStore = create<PolicyState>()((set, get) => ({
         if (!partial) writeCachedPolicy(data);
       } else if (IS_LITE && res.status === 404) {
         // No policy.json: the deployment set nothing, which is an answer.
+        if (IS_LITE) configureErrorReporting(null);
         set({ ...(fallback.policy ? resolved(fallback.policy, get().subject) : {}), loaded: true, source: 'server' });
         writeCachedPolicy(null);
       } else {
+        if (IS_LITE) configureErrorReporting(null);
         settleWithoutServer();
       }
     } catch {
+      if (IS_LITE && request === policyRequest) configureErrorReporting(null);
       if (request === policyRequest) settleWithoutServer();
     } finally {
       if (request === policyRequest) set({ fetching: false });

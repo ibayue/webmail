@@ -345,6 +345,9 @@ function run(key: string): void {
   if (state.running.has(key) || !job) return;
   state.pending.delete(key);
   state.running.set(key, syncVacationBlock(job.client, job.accountId, job.reply, job.trigger, new Date(), job.previous)
+    // The calendar block is a side effect of the reply: a failed sync is
+    // logged and never surfaces as a failed save.
+    .catch((error) => { debug.error('Out-of-office calendar sync failed:', error); })
     .finally(() => {
       state.running.delete(key);
       if (state.pending.has(key) && !state.timers.has(key)) run(key);
@@ -367,21 +370,32 @@ function schedule(job: Pending): void {
 /** After a saved reply: sync when the switch, the dates or the subject changed. */
 export function vacationReplySaved(client: SyncClient, accountId: string | undefined, before: ReplyState, after: ReplyState): void {
   if (relevant(before) === relevant(after)) return;
-  schedule({ client, accountId, reply: after, previous: { fromDate: before.fromDate, toDate: before.toDate }, trigger: 'save' });
+  safely(() => schedule({ client, accountId, reply: after, previous: { fromDate: before.fromDate, toDate: before.toDate }, trigger: 'save' }));
 }
 
 /** The user changed the block setting: sync with the reply as it is. */
 export function vacationBlockChanged(client: SyncClient, accountId: string | undefined, reply: ReplyState): void {
-  schedule({ client, accountId, reply, previous: { fromDate: reply.fromDate, toDate: reply.toDate }, trigger: 'save' });
+  safely(() => schedule({ client, accountId, reply, previous: { fromDate: reply.fromDate, toDate: reply.toDate }, trigger: 'save' }));
 }
 
 /** After the reply was loaded: once per page load and account. */
 export function vacationReplyLoaded(client: SyncClient, accountId: string | undefined, reply: ReplyState): void {
-  const key = accountId ?? client.getAccountId();
-  const state = scheduler();
-  if (state.loaded.has(key)) return;
-  state.loaded.add(key);
-  schedule({ client, accountId, reply, previous: null, trigger: 'load' });
+  safely(() => {
+    const key = accountId ?? client.getAccountId();
+    const state = scheduler();
+    if (state.loaded.has(key)) return;
+    state.loaded.add(key);
+    schedule({ client, accountId, reply, previous: null, trigger: 'load' });
+  });
+}
+
+/** Scheduling the calendar sync must never break saving or loading the reply. */
+function safely(fn: () => void): void {
+  try {
+    fn();
+  } catch (error) {
+    debug.error('Out-of-office calendar sync not scheduled:', error);
+  }
 }
 
 /** For tests: drop what the scheduler holds. */
