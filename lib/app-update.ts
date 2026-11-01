@@ -91,13 +91,15 @@ export function adoptWaitingWorker(registration: ServiceWorkerRegistration): voi
   const adopt = () => {
     if (ours(registration.waiting)) registration.waiting!.postMessage({ type: 'skip-waiting' });
   };
-  adopt();
-  registration.addEventListener('updatefound', () => {
-    const installing = registration.installing;
-    installing?.addEventListener('statechange', () => {
-      if (installing.state === 'installed') adopt();
+  const watch = (worker: ServiceWorker | null) => {
+    worker?.addEventListener('statechange', () => {
+      if (worker.state === 'installed') adopt();
     });
-  });
+  };
+  adopt();
+  // Still installing when the registration resolved, or installed later.
+  watch(registration.installing);
+  registration.addEventListener('updatefound', () => watch(registration.installing));
 }
 
 /** Tells the service worker which build this tab runs, so it keeps that build's files while the tab is open. */

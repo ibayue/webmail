@@ -83,4 +83,16 @@ describe('app update', () => {
     adoptWaitingWorker({ waiting: other, addEventListener: () => {} } as unknown as ServiceWorkerRegistration);
     expect(other.postMessage).not.toHaveBeenCalled();
   });
+
+  it('also when the worker of this tab’s build was still installing', () => {
+    const listeners: Array<() => void> = [];
+    const installing = { scriptURL: 'https://mail.example.com/sw.js?v=build-a', state: 'installing', postMessage: vi.fn(), addEventListener: (_: string, fn: () => void) => listeners.push(fn) };
+    const registration = { waiting: null as unknown, installing, addEventListener: () => {} };
+    adoptWaitingWorker(registration as unknown as ServiceWorkerRegistration);
+    expect(installing.postMessage).not.toHaveBeenCalled();
+    installing.state = 'installed';
+    registration.waiting = installing;
+    listeners.forEach((fn) => fn());
+    expect(installing.postMessage).toHaveBeenCalledWith({ type: 'skip-waiting' });
+  });
 });
