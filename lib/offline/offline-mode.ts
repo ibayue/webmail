@@ -529,16 +529,18 @@ export async function wipeAccount(account: string): Promise<void> {
   if (useOfflineStore.getState().enabled.includes(account)) {
     writeEnabled(useOfflineStore.getState().enabled.filter((id) => id !== account));
   }
+  await recording.get(account)?.catch(() => {});
+  // Nobody keeps mail here any more: the whole database goes (and isn't
+  // opened again, which would create it anew).
+  if (useOfflineStore.getState().enabled.length === 0) {
+    await wipeEverything();
+    return;
+  }
   try {
-    await recording.get(account);
     await wipeAccountCache(account);
     await wipeAccountQueue(account);
   } catch {
     // No database: nothing to remove.
-  }
-  if (useOfflineStore.getState().enabled.length === 0) {
-    await wipeEverything();
-    return;
   }
   await refreshQueueState();
   await refreshUsage();
