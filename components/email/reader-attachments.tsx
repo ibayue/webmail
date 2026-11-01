@@ -52,6 +52,11 @@ interface ReaderAttachmentsProps<T extends ReaderAttachmentItem> {
   onDownload: (attachment: T) => void;
   onDownloadAll: () => void;
   downloadingAll: boolean;
+  /**
+   * The account's device policy turned downloads off (Organisation >
+   * Devices): previews stay, every way to save a copy goes.
+   */
+  downloadsOff?: boolean;
   /** Set when the Files app can take attachments. */
   onSaveToFiles?: (attachment: T) => void;
   /** Plugin actions for one attachment; renders nothing when no plugin offers any. */
@@ -86,6 +91,7 @@ export function ReaderAttachments<T extends ReaderAttachmentItem>({
   onDownload,
   onDownloadAll,
   downloadingAll,
+  downloadsOff = false,
   onSaveToFiles,
   pluginMenu,
   renderItem,
@@ -93,6 +99,11 @@ export function ReaderAttachments<T extends ReaderAttachmentItem>({
 }: ReaderAttachmentsProps<T>) {
   const t = useTranslations("email_viewer");
   const tFiles = useTranslations("files");
+  const tDevice = useTranslations("device_policy");
+  // Opens nothing: no preview, and downloads are off.
+  const locked = (attachment: T) => downloadsOff && !opensPreview(attachment);
+  const openLabel = (attachment: T, name: string) =>
+    opensPreview(attachment) ? t("preview_named", { name }) : locked(attachment) ? tDevice("download_off_named", { name }) : t("download_named", { name });
   const [expanded, setExpanded] = useState(false);
 
   if (attachments.length === 0) return null;
@@ -111,7 +122,7 @@ export function ReaderAttachments<T extends ReaderAttachmentItem>({
       <div
         data-testid="attachment"
         data-attachment-name={attachment.name ?? undefined}
-        title={`${preview ? tFiles("preview") : t("download")} ${name}`}
+        title={locked(attachment) ? tDevice("downloads_off") : `${preview ? tFiles("preview") : t("download")} ${name}`}
         draggable={drag.draggable}
         onPointerEnter={drag.onPointerEnter}
         onDragStart={drag.onDragStart}
@@ -122,8 +133,9 @@ export function ReaderAttachments<T extends ReaderAttachmentItem>({
         {/* The button covers the whole tile, so a click on the preview opens the file too. */}
         <button
           type="button"
-          onClick={() => onOpen(attachment)}
-          aria-label={preview ? t("preview_named", { name }) : t("download_named", { name })}
+          onClick={() => { if (!locked(attachment)) onOpen(attachment); }}
+          aria-disabled={locked(attachment) || undefined}
+          aria-label={openLabel(attachment, name)}
           className="flex min-w-0 flex-1 flex-col justify-center gap-0.5 self-stretch text-start outline-none after:absolute after:inset-0 after:rounded-lg focus-visible:after:ring-2 focus-visible:after:ring-ring"
         >
           <span className="flex min-w-0 text-sm text-foreground" dir="auto">
@@ -142,6 +154,7 @@ export function ReaderAttachments<T extends ReaderAttachmentItem>({
             </IconButton>
           )}
           {pluginMenu?.(attachment)}
+          {!downloadsOff && (
           <IconButton
             label={t("download_named", { name })}
             title={t("download")}
@@ -151,6 +164,7 @@ export function ReaderAttachments<T extends ReaderAttachmentItem>({
           >
             <Download className="h-4 w-4" />
           </IconButton>
+          )}
         </div>
       </div>
     );
@@ -167,7 +181,7 @@ export function ReaderAttachments<T extends ReaderAttachmentItem>({
       <div
         data-testid="attachment"
         data-attachment-name={attachment.name ?? undefined}
-        title={`${preview ? tFiles("preview") : t("download")} ${name}`}
+        title={locked(attachment) ? tDevice("downloads_off") : `${preview ? tFiles("preview") : t("download")} ${name}`}
         draggable={drag.draggable}
         onPointerEnter={drag.onPointerEnter}
         onDragStart={drag.onDragStart}
@@ -188,8 +202,9 @@ export function ReaderAttachments<T extends ReaderAttachmentItem>({
         </div>
         <button
           type="button"
-          onClick={() => onOpen(attachment)}
-          aria-label={preview ? t("preview_named", { name }) : t("download_named", { name })}
+          onClick={() => { if (!locked(attachment)) onOpen(attachment); }}
+          aria-disabled={locked(attachment) || undefined}
+          aria-label={openLabel(attachment, name)}
           className="flex min-w-0 flex-col gap-0.5 border-t border-border px-3 py-2.5 text-start outline-none after:absolute after:inset-0 after:rounded-lg focus-visible:after:ring-2 focus-visible:after:ring-ring"
         >
           <span className="flex min-w-0 text-sm text-foreground" dir="auto">
@@ -209,9 +224,11 @@ export function ReaderAttachments<T extends ReaderAttachmentItem>({
             </IconButton>
           )}
           {pluginMenu?.(attachment)}
-          <IconButton label={t("download_named", { name })} title={t("download")} onClick={() => onDownload(attachment)}>
-            <Download className="h-4 w-4" />
-          </IconButton>
+          {!downloadsOff && (
+            <IconButton label={t("download_named", { name })} title={t("download")} onClick={() => onDownload(attachment)}>
+              <Download className="h-4 w-4" />
+            </IconButton>
+          )}
         </div>
       </div>
     );
@@ -230,7 +247,10 @@ export function ReaderAttachments<T extends ReaderAttachmentItem>({
             <bdi>{formatFileSize(totalSize)}</bdi>
           </span>
         </div>
-        {attachments.length > 1 && (
+        {downloadsOff && (
+          <span className="text-xs text-muted-foreground" data-testid="attachments-downloads-off">{tDevice("downloads_off")}</span>
+        )}
+        {attachments.length > 1 && !downloadsOff && (
           <Button
             variant="ghost"
             size="sm"

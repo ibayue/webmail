@@ -1325,6 +1325,13 @@
   "retention_notice": {
     "line": "Nachrichten hier werden {count, plural, one {# Tag} other {# Tage}} nach dem Verschieben hierher gelöscht."
   },
+  "device_policy": {
+    "downloads_off": "Downloads sind von Ihrer Organisation abgeschaltet.",
+    "download_off_named": "{name}: Downloads sind von Ihrer Organisation abgeschaltet",
+    "download_blocked": "Ihre Organisation hat Downloads abgeschaltet.",
+    "export_blocked": "Ihre Organisation hat den Export von E-Mails abgeschaltet.",
+    "print_blocked": "Drucken ist von Ihrer Organisation abgeschaltet."
+  },
   "third_party": {
     "push_needs_relay": "Push-Benachrichtigungen brauchen ein Push-Relay Ihrer Organisation, und es ist keines eingerichtet. Neue E-Mails werden weiterhin angezeigt, solange die App geöffnet ist.",
     "relay_desc": "Es werden nur die eigenen Relays Ihrer Organisation angeboten, weil dieser Server keine externen Dienste kontaktiert.",

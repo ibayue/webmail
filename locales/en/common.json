@@ -1325,6 +1325,13 @@
   "retention_notice": {
     "line": "Messages here are deleted {count, plural, one {# day} other {# days}} after they were moved here."
   },
+  "device_policy": {
+    "downloads_off": "Downloads are turned off by your organisation.",
+    "download_off_named": "{name}: downloads are turned off by your organisation",
+    "download_blocked": "Your organisation turned off downloads.",
+    "export_blocked": "Your organisation turned off exporting mail.",
+    "print_blocked": "Printing is turned off by your organisation."
+  },
   "third_party": {
     "push_needs_relay": "Push notifications need a push relay run by your organisation, and none is set up. New mail still shows while the app is open.",
     "relay_desc": "Only your organisation's own relays are offered, because this server doesn't contact outside services.",

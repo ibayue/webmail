@@ -1325,6 +1325,13 @@
   "retention_notice": {
     "line": "Az itt lévő üzenetek az ide helyezésük után {count, plural, one {# nappal} other {# nappal}} törlődnek."
   },
+  "device_policy": {
+    "downloads_off": "A szervezete kikapcsolta a letöltést.",
+    "download_off_named": "{name}: a szervezete kikapcsolta a letöltést",
+    "download_blocked": "A szervezete kikapcsolta a letöltést.",
+    "export_blocked": "A szervezete kikapcsolta a levelek exportálását.",
+    "print_blocked": "A szervezete kikapcsolta a nyomtatást."
+  },
   "third_party": {
     "push_needs_relay": "A push-értesítésekhez a szervezeted által üzemeltetett push relé kell, és nincs beállítva egy sem. Az új levelek továbbra is megjelennek, amíg az alkalmazás nyitva van.",
     "relay_desc": "Csak a szervezeted saját reléi választhatók, mert ez a szerver nem kapcsolódik külső szolgáltatásokhoz.",

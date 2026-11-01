@@ -1325,6 +1325,13 @@
   "retention_notice": {
     "line": "此處的郵件會在移入 {count, plural, other {# 天}} 後刪除。"
   },
+  "device_policy": {
+    "downloads_off": "你的組織已關閉下載。",
+    "download_off_named": "{name}：你的組織已關閉下載",
+    "download_blocked": "你的組織已關閉下載。",
+    "export_blocked": "你的組織已關閉郵件匯出。",
+    "print_blocked": "你的組織已關閉列印。"
+  },
   "third_party": {
     "push_needs_relay": "推送通知需要由您的組織執行的推送中繼，但尚未設定。應用程式開啟時，新郵件仍會顯示。",
     "relay_desc": "由於此伺服器不會連線至外部服務，因此只提供您組織自己的中繼。",

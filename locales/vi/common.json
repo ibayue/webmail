@@ -1337,6 +1337,13 @@
   "retention_notice": {
     "line": "Thư ở đây sẽ bị xóa {count, plural, other {# ngày}} sau khi được chuyển vào đây."
   },
+  "device_policy": {
+    "downloads_off": "Tổ chức của bạn đã tắt tải xuống.",
+    "download_off_named": "{name}: tổ chức của bạn đã tắt tải xuống",
+    "download_blocked": "Tổ chức của bạn đã tắt tải xuống.",
+    "export_blocked": "Tổ chức của bạn đã tắt xuất thư.",
+    "print_blocked": "Tổ chức của bạn đã tắt in."
+  },
   "third_party": {
     "push_needs_relay": "Thông báo đẩy cần có một chuyển tiếp đẩy do tổ chức của bạn điều hành và chưa có cài đặt nào. Thư mới vẫn hiển thị khi ứng dụng đang mở.",
     "relay_desc": "Chỉ các rơle riêng của tổ chức bạn mới được cung cấp vì máy chủ này không liên hệ với các dịch vụ bên ngoài.",

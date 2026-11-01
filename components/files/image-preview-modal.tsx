@@ -12,7 +12,8 @@ import { useCloseOnBack } from "@/hooks/use-close-on-back";
 interface ImagePreviewModalProps {
   name: string;
   onClose: () => void;
-  onDownload: (name: string) => Promise<void>;
+  /** Left out when a device policy turned downloads off. */
+  onDownload?: (name: string) => Promise<void>;
   getImageUrl: (name: string) => Promise<string>;
   /** The previewed file as plugins see it (file-preview-section). */
   file?: FileResourceView | null;
@@ -56,7 +57,7 @@ export function ImagePreviewModal({ name, onClose, onDownload, getImageUrl, file
   }, [name, getImageUrl]);
 
   return (
-    <PreviewShell name={name} onClose={onClose} onDownload={() => void onDownload(name)} neighbours={neighbours}>
+    <PreviewShell name={name} onClose={onClose} onDownload={onDownload ? () => void onDownload(name) : undefined} neighbours={neighbours}>
       <div className="relative flex-1 min-h-0">
         {loading && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">

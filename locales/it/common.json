@@ -1325,6 +1325,13 @@
   "retention_notice": {
     "line": "I messaggi qui vengono eliminati {count, plural, one {# giorno} other {# giorni}} dopo essere stati spostati qui."
   },
+  "device_policy": {
+    "downloads_off": "La tua organizzazione ha disattivato i download.",
+    "download_off_named": "{name}: la tua organizzazione ha disattivato i download",
+    "download_blocked": "La tua organizzazione ha disattivato i download.",
+    "export_blocked": "La tua organizzazione ha disattivato l'esportazione della posta.",
+    "print_blocked": "La tua organizzazione ha disattivato la stampa."
+  },
   "third_party": {
     "push_needs_relay": "Le notifiche push richiedono un relay push gestito dalla tua organizzazione, e non ne è configurato nessuno. La nuova posta compare comunque finché l'app è aperta.",
     "relay_desc": "Vengono proposti solo i relay della tua organizzazione, perché questo server non contatta servizi esterni.",

@@ -1,5 +1,6 @@
 import type { ShareChange, ShareChangeResult, ShareTarget } from "./share-batch";
 import type { ShareKind } from "./share-rights";
+import type { DownloadKind } from "@/lib/download-guard";
 import type { ArchiveListResult, ArchiveQueryPage, RestoreResult } from "@/lib/recovery/archived-items";
 import type { Attachment, Email, Mailbox, MailboxRights, StateChange, AccountStates, CollectionChanges, ShareNotification, BusyPeriod, CalendarParticipantIdentity, CalendarEventNotification, Thread, Identity, EmailAddress, ContactCard, AddressBook, AddressBookRights, VacationResponse, Calendar, CreateCalendarOptions, CalendarRights, CalendarEvent, CalendarEventFilter, CalendarTask, FileNode, FileNodeRights, Principal, PrincipalAvailability, PrincipalListing, PushSubscription, EmailPushConfig, ScheduledEmail, SendEmailResult, SharedAccount } from "./types";
 import type { SieveScript, SieveCapabilities } from "./sieve-types";
@@ -563,7 +564,8 @@ export interface IJMAPClient {
    * every other request.
    */
   fetchBlobForTransfer?(blobId: string, accountId: string | undefined, signal?: AbortSignal): Promise<Uint8Array>;
-  downloadBlob(blobId: string, name?: string, type?: string, accountId?: string): Promise<void>;
+  /** Saves a blob as a download, unless the account's device policy forbids `kind` (default `attachment`). */
+  downloadBlob(blobId: string, name?: string, type?: string, accountId?: string, options?: { kind?: DownloadKind }): Promise<void>;
 
   // ── Identities ────────────────────────────────────────────────
   getIdentities(): Promise<Identity[]>;

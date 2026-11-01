@@ -139,6 +139,7 @@ import { useDocumentTitle } from "@/hooks/use-document-title";
 import { mailTitleContext } from "@/lib/tab-title";
 import { usePluginStore } from "@/stores/plugin-store";
 import { AppTopBannerSlot } from "@/components/plugins/app-top-banner-slot";
+import { canDownload } from "@/lib/device-policy";
 import { consumePendingMailto, subscribeToPendingMailto } from "@/lib/protocol-handlers/session";
 import { INTERNAL_MAILTO_EVENT, type ParsedMailto } from "@/lib/protocol-handlers/mailto";
 import { PLUGIN_REPLY_EVENT, type PluginReplyRequest } from "@/lib/plugin-sandbox/host-api-compose";
@@ -304,7 +305,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
   const [isLoadingConversation, setIsLoadingConversation] = useState(false);
   const [rateLimitSecondsLeft, setRateLimitSecondsLeft] = useState<number | null>(null);
   // linksOff: the attachment of a message reported as phishing.
-  const [previewAttachment, setPreviewAttachment] = useState<{ blobId: string; name: string; type?: string; accountId?: string; client: NonNullable<typeof client>; linksOff?: boolean } | null>(null);
+  const [previewAttachment, setPreviewAttachment] = useState<{ blobId: string; name: string; type?: string; accountId?: string; client: NonNullable<typeof client>; linksOff?: boolean; policyAccount?: string | null } | null>(null);
   // Office attachments open read-only in the configured WOPI editor (#1047).
   const [officeAttachment, setOfficeAttachment] = useState<{ blobId: string; name: string; type?: string; size?: number; accountId: string; slot: number | null } | null>(null);
   const wopiStatus = useWopiStatus(true);
@@ -3931,11 +3932,14 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     if (!blobClient || !name) return;
     try {
       const { mailAttachmentAction } = useSettingsStore.getState();
-      if (mailAttachmentAction === 'preview' && isFilePreviewable(name, attachment.type)) {
-        setPreviewAttachment({ blobId: attachment.blobId, name, type: attachment.type, accountId, client: blobClient, linksOff: isPhishingMarked(email) });
+      // The row's own account decides (Organisation > Devices): without
+      // downloads, whatever can be previewed is, and nothing else opens.
+      const downloadsOff = !canDownload(clientAccountId ?? email);
+      if ((mailAttachmentAction === 'preview' || downloadsOff) && isFilePreviewable(name, attachment.type)) {
+        setPreviewAttachment({ blobId: attachment.blobId, name, type: attachment.type, accountId, client: blobClient, linksOff: isPhishingMarked(email), policyAccount: clientAccountId ?? email.sourceClientAccountId ?? null });
         return;
       }
-      if (mailAttachmentAction === 'preview' && openOfficeAttachment(
+      if ((mailAttachmentAction === 'preview' || downloadsOff) && openOfficeAttachment(
         blobClient, { blobId: attachment.blobId, name, type: attachment.type, size: attachment.size }, accountId, clientAccountId,
       )) return;
       await blobClient.downloadBlob(attachment.blobId, name, attachment.type, accountId);
@@ -3990,12 +3994,15 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
 
     try {
       const { mailAttachmentAction } = useSettingsStore.getState();
+      // The message's own account decides (Organisation > Devices).
+      const downloadsOff = !canDownload(clientAccountId ?? { client: blobClient });
+      const previews = mailAttachmentAction === 'preview' || downloadsOff;
 
-      if (!forceDownload && mailAttachmentAction === 'preview' && isFilePreviewable(name, type)) {
-        setPreviewAttachment({ blobId, name, type, accountId, client: blobClient, linksOff: isPhishingMarked(selectedEmail) });
+      if (!forceDownload && previews && isFilePreviewable(name, type)) {
+        setPreviewAttachment({ blobId, name, type, accountId, client: blobClient, linksOff: isPhishingMarked(selectedEmail), policyAccount: clientAccountId ?? null });
         return;
       }
-      if (!forceDownload && mailAttachmentAction === 'preview' && openOfficeAttachment(
+      if (!forceDownload && previews && openOfficeAttachment(
         blobClient, { blobId, name, type }, accountId, clientAccountId,
       )) return;
 
@@ -5762,6 +5769,7 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
             onDownload={handlePreviewAttachmentDownload}
             getFileContent={getPreviewAttachmentContent}
             linksOff={previewAttachment.linksOff}
+            policyAccount={previewAttachment.policyAccount ?? null}
           />
         )}
 

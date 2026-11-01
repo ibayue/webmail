@@ -1325,6 +1325,13 @@
   "retention_notice": {
     "line": "Buradaki iletiler buraya taşındıktan {count, plural, one {# gün} other {# gün}} sonra silinir."
   },
+  "device_policy": {
+    "downloads_off": "Kuruluşunuz indirmeyi kapattı.",
+    "download_off_named": "{name}: kuruluşunuz indirmeyi kapattı",
+    "download_blocked": "Kuruluşunuz indirmeyi kapattı.",
+    "export_blocked": "Kuruluşunuz e-postaları dışa aktarmayı kapattı.",
+    "print_blocked": "Kuruluşunuz yazdırmayı kapattı."
+  },
   "third_party": {
     "push_needs_relay": "Anlık bildirimler için kuruluşunuzun işlettiği bir push rölesi gerekir ve hiçbiri ayarlanmamış. Uygulama açıkken yeni postalar yine de görünür.",
     "relay_desc": "Bu sunucu dış hizmetlerle bağlantı kurmadığı için yalnızca kuruluşunuzun kendi röleleri sunulur.",

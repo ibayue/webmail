@@ -1,4 +1,6 @@
 import { hasWebLocks, holdLock } from "@/lib/mail-import/locks";
+import { saveBlobAs } from "@/lib/download-guard";
+import { useMailTransferStore } from "@/stores/mail-transfer-store";
 
 /**
  * Where an export's bytes go, so a large mailbox never has to fit in memory:
@@ -83,15 +85,14 @@ function buffered(write: (chunk: Uint8Array) => Promise<void>) {
   };
 }
 
+/**
+ * Hands the finished file to the browser, unless the device policy "No
+ * export" of the account the export runs for is on (also when it was
+ * switched on while the export ran).
+ */
 function triggerDownload(url: string, name: string): void {
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = name;
-  a.rel = "noopener";
-  a.style.display = "none";
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
+  const scope = useMailTransferStore.getState().job?.scope;
+  saveBlobAs(url, name, { kind: "export", subject: scope && scope !== "default" ? scope : null });
 }
 
 type SavePicker = (options: { suggestedName?: string; types?: { description?: string; accept: Record<string, string[]> }[] }) => Promise<{ createWritable(): Promise<WritableLike> }>;

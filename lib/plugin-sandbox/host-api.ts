@@ -6,6 +6,8 @@ import type { AppInfoView, InstalledPlugin, Permission } from '../plugin-types';
 import { labelRawSend } from '@/lib/outgoing/classification-raw';
 import { fetchConfig } from '@/hooks/use-config';
 import { IS_LITE } from '../lite';
+import { downloadAllowed, saveBlobAs } from '../download-guard';
+import '../device-policy';
 import { doAppGetSettings, doAppSearchSettings } from './host-api-app';
 import { mayOfferSlot, pluginHasPermission } from './permissions';
 import { proxyAccounts, proxyCancel, proxyConnect, proxyDisconnect, proxyFetch, type StreamSink } from './proxy-client';
@@ -1314,16 +1316,14 @@ async function downloadFile(args: { content: string | ArrayBuffer | Uint8Array; 
   if (typeof content !== 'string' && !(content instanceof ArrayBuffer) && !(content instanceof Uint8Array)) {
     throw new Error('ui.downloadFile: content must be a string or bytes');
   }
-  const url = URL.createObjectURL(new Blob([content as BlobPart], { type: contentType }));
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  a.rel = 'noopener';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  // Revoking at once can cancel the download in some browsers.
-  setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  // A plugin that can read attachments or raw mail could hand them out
+  // here: refused while any signed-in account's device policy turns
+  // downloads or export off (Organisation > Devices).
+  if (!downloadAllowed('attachment') || !downloadAllowed('export')) {
+    throw new Error('ui.downloadFile: downloads are turned off by the organisation');
+  }
+  // Revoking at once can cancel the download in some browsers (saveBlobAs waits a minute).
+  saveBlobAs(new Blob([content as BlobPart], { type: contentType }), filename, { kind: 'attachment' });
 }
 
 // ─── Email keyword mutations ──────────────────────────────────

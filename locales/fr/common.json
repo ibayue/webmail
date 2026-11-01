@@ -1325,6 +1325,13 @@
   "retention_notice": {
     "line": "Les messages ici sont supprimés {count, plural, one {# jour} other {# jours}} après y avoir été déplacés."
   },
+  "device_policy": {
+    "downloads_off": "Votre organisation a désactivé les téléchargements.",
+    "download_off_named": "{name} : votre organisation a désactivé les téléchargements",
+    "download_blocked": "Votre organisation a désactivé les téléchargements.",
+    "export_blocked": "Votre organisation a désactivé l'export des e-mails.",
+    "print_blocked": "Votre organisation a désactivé l'impression."
+  },
   "third_party": {
     "push_needs_relay": "Les notifications push nécessitent un relais push géré par votre organisation, et aucun n'est configuré. Les nouveaux messages s'affichent toujours tant que l'application est ouverte.",
     "relay_desc": "Seuls les relais de votre organisation sont proposés, car ce serveur ne contacte pas de services extérieurs.",

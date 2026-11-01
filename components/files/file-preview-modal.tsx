@@ -12,6 +12,9 @@ import dynamic from "next/dynamic";
 import { EmlPreview, type EmlAttachment, type ParsedEml } from "@/components/files/eml-preview";
 import { FilePreviewPluginSection } from "@/components/files/file-preview-plugin-section";
 import { canOpenUrlInNewWindow } from "@/lib/standalone-display";
+import { saveBlobAs } from "@/lib/download-guard";
+import { useDevicePolicy, useStrictestDevices } from "@/hooks/use-device-policy";
+import { Watermark, useWatermarkText } from "@/components/device/watermark";
 import { stripBidiControls } from "@/lib/bidi";
 import { emailIframeCsp, sanitizeEmailBodyForIframe } from "@/lib/email-sanitization";
 import { turnOffLinks, type LinksOffText } from "@/lib/phishing-links";
@@ -56,6 +59,12 @@ interface FilePreviewModalProps {
   neighbours?: PreviewNeighbours;
   /** The file is an attachment of a message reported as phishing: links in it are off. */
   linksOff?: boolean;
+  /**
+   * Whose device policy applies (Organisation > Devices): the signed-in
+   * account the file or message belongs to. Left out: the strictest of the
+   * accounts signed in here.
+   */
+  policyAccount?: string | { sourceClientAccountId?: string | null } | null;
 }
 
 function SimpleMarkdown({ content }: { content: string }) {
@@ -149,8 +158,16 @@ function processInline(text: string): React.ReactNode {
   return parts.length === 1 ? parts[0] : <>{parts}</>;
 }
 
-export function FilePreviewModal({ name, onClose, onDownload, getFileContent, file, neighbours, linksOff }: FilePreviewModalProps) {
+export function FilePreviewModal({ name, onClose, onDownload, getFileContent, file, neighbours, linksOff, policyAccount }: FilePreviewModalProps) {
   const t = useTranslations("files");
+  // No downloads: no download button, no new tab, no save from the
+  // browser's own PDF viewer or media controls. No printing: the PDF goes
+  // through pdf.js, which has no print button. The preview itself stays.
+  const ownDevices = useDevicePolicy(policyAccount ?? undefined);
+  const strictestDevices = useStrictestDevices();
+  const devices = policyAccount === undefined ? strictestDevices : ownDevices;
+  const downloadsOff = devices.noDownloads;
+  const watermark = useWatermarkText(policyAccount ?? undefined, { strictest: policyAccount === undefined });
   const tPhishing = useTranslations("phishing_report");
   const linksOffText = useMemo<LinksOffText | undefined>(
     () => (linksOff ? { title: tPhishing("link_off"), note: tPhishing("link_off_note") } : undefined),
@@ -206,6 +223,8 @@ export function FilePreviewModal({ name, onClose, onDownload, getFileContent, fi
   useCloseOnBack({ onBack: onClose });
 
   const fileType = resolvedFileType;
+  // The browser's own PDF viewer has Download and Print buttons of its own.
+  const pdfViaPdfJs = devices.noDownloads || devices.noPrint;
 
   useEffect(() => {
     let cancelled = false;
@@ -301,14 +320,7 @@ export function FilePreviewModal({ name, onClose, onDownload, getFileContent, fi
   );
   const downloadNested = () => {
     if (!nestedPreview) return;
-    const url = URL.createObjectURL(nestedPreview.blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = nestedPreview.name;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    saveBlobAs(nestedPreview.blob, nestedPreview.name, { kind: "attachment", subject: policyAccount });
   };
 
   // In place of this frame, not on top of it: one frame at a time takes
@@ -321,6 +333,7 @@ export function FilePreviewModal({ name, onClose, onDownload, getFileContent, fi
         onDownload={downloadNested}
         getFileContent={nestedContent}
         linksOff={linksOff}
+        policyAccount={policyAccount}
       />
     );
   }
@@ -329,11 +342,11 @@ export function FilePreviewModal({ name, onClose, onDownload, getFileContent, fi
     <PreviewShell
       name={name}
       onClose={onClose}
-      onDownload={() => void onDownload()}
+      onDownload={downloadsOff ? undefined : () => void onDownload()}
       neighbours={neighbours}
       // An installed app hands the new window to the system browser, which
       // cannot load our blob: URL (#865): no dead button there.
-      actions={objectUrl && canOpenInNewTab && canOpenUrlInNewWindow(objectUrl) ? (
+      actions={objectUrl && canOpenInNewTab && !downloadsOff && canOpenUrlInNewWindow(objectUrl) ? (
         <IconButton label={t("open_in_new_tab")} onClick={() => window.open(objectUrl, "_blank", "noopener,noreferrer")}>
           <ExternalLink />
         </IconButton>
@@ -341,6 +354,7 @@ export function FilePreviewModal({ name, onClose, onDownload, getFileContent, fi
     >
       <div className="relative flex-1 min-h-0 flex items-center justify-center overflow-auto p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pl-[calc(1rem+env(safe-area-inset-left))] pr-[calc(1rem+env(safe-area-inset-right))]">
         {loading && <Spinner label={t("loading")} className="w-8 h-8 text-white/80" />}
+        {!loading && !error && <Watermark text={watermark} />}
 
         {error && (
           <p className="text-sm text-destructive">{t("preview_error")}</p>
@@ -365,11 +379,11 @@ export function FilePreviewModal({ name, onClose, onDownload, getFileContent, fi
         )}
 
         {!loading && !error && fileType === "eml" && emlContent && (
-          <EmlPreview message={emlContent} onOpenAttachment={openEmlAttachment} linksOff={linksOff} />
+          <EmlPreview message={emlContent} onOpenAttachment={openEmlAttachment} linksOff={linksOff} downloadsOff={downloadsOff} />
         )}
 
         {!loading && !error && fileType === "image" && objectUrl && (
-          <div className="absolute inset-0">
+          <div className="absolute inset-0" onContextMenu={downloadsOff ? (e) => e.preventDefault() : undefined}>
             <ZoomableImage src={objectUrl} alt={name} onBackgroundClick={onClose} />
           </div>
         )}
@@ -384,7 +398,7 @@ export function FilePreviewModal({ name, onClose, onDownload, getFileContent, fi
           />
         )}
 
-        {!loading && !error && fileType === "pdf" && objectUrl && pdfInlineSupported && (
+        {!loading && !error && fileType === "pdf" && objectUrl && pdfInlineSupported && !pdfViaPdfJs && (
           // <iframe> renders PDFs reliably across desktop Chromium, Firefox,
           // and Safari from a blob: URL. <object> was prone to falling back to
           // a silent download when the blob's Content-Type wasn't recognised.
@@ -396,7 +410,7 @@ export function FilePreviewModal({ name, onClose, onDownload, getFileContent, fi
           />
         )}
 
-        {!loading && !error && fileType === "pdf" && objectUrl && pdfBlob && !pdfInlineSupported && (
+        {!loading && !error && fileType === "pdf" && objectUrl && pdfBlob && (!pdfInlineSupported || pdfViaPdfJs) && (
           // Mobile browsers can't show a PDF inline in an <iframe> (Android: a
           // blank frame / silent download; iOS: only the first page), so render
           // it with pdf.js (canvas) instead. The header's open-in-new-tab /
@@ -405,20 +419,23 @@ export function FilePreviewModal({ name, onClose, onDownload, getFileContent, fi
             className="w-full max-w-3xl h-full overflow-auto rounded-lg bg-neutral-200 dark:bg-neutral-800 p-2"
             onClick={(e) => e.stopPropagation()}
           >
-            <PdfMobileViewer url={objectUrl} blob={pdfBlob} />
+            <PdfMobileViewer url={objectUrl} blob={pdfBlob} allowNewTab={!downloadsOff} />
           </div>
         )}
 
         {!loading && !error && fileType === "audio" && objectUrl && (
           <div className="bg-background rounded-lg p-8 max-w-lg w-full" onClick={(e) => e.stopPropagation()}>
             <p className="text-sm font-medium mb-4 text-center">{name}</p>
-            <audio controls className="w-full" src={objectUrl} />
+            <audio controls className="w-full" src={objectUrl} controlsList={downloadsOff ? "nodownload" : undefined} onContextMenu={downloadsOff ? (e) => e.preventDefault() : undefined} />
           </div>
         )}
 
         {!loading && !error && fileType === "video" && objectUrl && (
           <video
             controls
+            controlsList={downloadsOff ? "nodownload" : undefined}
+            disablePictureInPicture={downloadsOff || undefined}
+            onContextMenu={downloadsOff ? (e) => e.preventDefault() : undefined}
             className="max-w-4xl max-h-full rounded-lg"
             src={objectUrl}
             onClick={(e) => e.stopPropagation()}

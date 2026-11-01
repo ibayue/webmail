@@ -1325,6 +1325,13 @@
   "retention_notice": {
     "line": "Beskeder her slettes {count, plural, one {# dag} other {# dage}} efter, at de blev flyttet hertil."
   },
+  "device_policy": {
+    "downloads_off": "Din organisation har slået download fra.",
+    "download_off_named": "{name}: din organisation har slået download fra",
+    "download_blocked": "Din organisation har slået download fra.",
+    "export_blocked": "Din organisation har slået eksport af mail fra.",
+    "print_blocked": "Din organisation har slået udskrivning fra."
+  },
   "third_party": {
     "push_needs_relay": "Push-notifikationer kræver et push-relæ, som din organisation driver, og der er ikke sat noget op. Ny mail vises stadig, mens appen er åben.",
     "relay_desc": "Kun din organisations egne relæer tilbydes, fordi denne server ikke kontakter eksterne tjenester.",

@@ -1325,6 +1325,13 @@
   "retention_notice": {
     "line": "Správy tu sa vymažú {count, plural, one {# deň} few {# dni} many {# dňa} other {# dní}} po presunutí sem."
   },
+  "device_policy": {
+    "downloads_off": "Vaša organizácia vypla sťahovanie.",
+    "download_off_named": "{name}: vaša organizácia vypla sťahovanie",
+    "download_blocked": "Vaša organizácia vypla sťahovanie.",
+    "export_blocked": "Vaša organizácia vypla export pošty.",
+    "print_blocked": "Vaša organizácia vypla tlač."
+  },
   "third_party": {
     "push_needs_relay": "Push oznámenia potrebujú push relay prevádzkovaný vašou organizáciou a žiadny nie je nastavený. Nová pošta sa naďalej zobrazuje, kým je aplikácia otvorená.",
     "relay_desc": "Ponúkajú sa iba vlastné relaye vašej organizácie, pretože tento server nekontaktuje externé služby.",

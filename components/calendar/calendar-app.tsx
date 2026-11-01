@@ -37,6 +37,7 @@ import { EventModal, type PendingEventPreview } from "@/components/calendar/even
 import { EventDetailPopover } from "@/components/calendar/event-detail-popover";
 import { EventContextMenu } from "@/components/calendar/event-context-menu";
 import { AppTopBannerSlot } from "@/components/plugins/app-top-banner-slot";
+import { useStrictestDevices } from "@/hooks/use-device-policy";
 import { EmptySpaceContextMenu } from "@/components/calendar/empty-space-context-menu";
 import { useContextMenu } from "@/hooks/use-context-menu";
 import { useRefreshGesture } from "@/hooks/use-refresh-gesture";
@@ -143,6 +144,8 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
   const linkSegments = useLiteLinkSegments('calendar', routeSegments);
   const router = useRouter();
   const t = useTranslations("calendar");
+  // Organisation > Devices > No printing: no Print buttons (Ctrl+P prints a note).
+  const printOff = useStrictestDevices().noPrint;
   // The server's reason for a refused change, where the user can act on it.
   const describeError = useCalendarErrorMessage();
   const tSidebar = useTranslations("sidebar");
@@ -2064,7 +2067,7 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
       onImport={demoMode ? undefined : () => setShowImportModal(true)}
       onSubscribe={canSubscribe ? () => setShowSubscriptionModal(true) : undefined}
       onRefresh={() => { void refreshCalendar(); }}
-      onPrint={() => { void requestPrint({ kind: "calendar-view" }); }}
+      onPrint={printOff ? undefined : () => { void requestPrint({ kind: "calendar-view" }); }}
       isMobile={isMobile}
       onNavigateBack={isMobile && mobileReturnToMonth && normalizedViewMode === "day" ? navigateBackToMonth : undefined}
       calendars={toolbarCalendars}
@@ -2383,7 +2386,7 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
           onCopyTitle={() => handleCopyTitle(eventContextMenu.data!)}
           onCopyMeetingLink={() => handleCopyMeetingLink(eventContextMenu.data!)}
           onDelete={() => handleDeleteContextMenu(eventContextMenu.data!)}
-          onPrint={() => { void requestPrint({ kind: "calendar-event", event: eventContextMenu.data! }); }}
+          onPrint={printOff ? undefined : () => { void requestPrint({ kind: "calendar-event", event: eventContextMenu.data! }); }}
           editable={canEditEvent(eventContextMenu.data)}
         />
       )}
@@ -2443,7 +2446,7 @@ export function CalendarApp({ linkSegments: routeSegments }: CalendarAppProps = 
           onDelete={handleDeleteFromDetail}
           onDuplicate={handleDuplicateFromDetail}
           onMore={(e) => handleContextMenuEvent(e, detailEvent)}
-          onPrint={() => { void requestPrint({ kind: "calendar-event", event: detailEvent }); }}
+          onPrint={printOff ? undefined : () => { void requestPrint({ kind: "calendar-event", event: detailEvent }); }}
           onClose={closeDetail}
           onSaveNote={handleSaveNoteFromDetail}
           onRsvp={handleRsvpFromDetail}

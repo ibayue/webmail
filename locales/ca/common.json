@@ -1325,6 +1325,13 @@
   "retention_notice": {
     "line": "Els missatges d'aquí s'eliminen {count, plural, one {# dia} other {# dies}} després de moure'ls aquí."
   },
+  "device_policy": {
+    "downloads_off": "La vostra organització ha desactivat les baixades.",
+    "download_off_named": "{name}: la vostra organització ha desactivat les baixades",
+    "download_blocked": "La vostra organització ha desactivat les baixades.",
+    "export_blocked": "La vostra organització ha desactivat l'exportació del correu.",
+    "print_blocked": "La vostra organització ha desactivat la impressió."
+  },
   "third_party": {
     "push_needs_relay": "Les notificacions push necessiten un repetidor push gestionat per la vostra organització, i no n'hi ha cap de configurat. El correu nou es continua mostrant mentre l'aplicació està oberta.",
     "relay_desc": "Només s'ofereixen els repetidors propis de la vostra organització, perquè aquest servidor no contacta amb serveis externs.",

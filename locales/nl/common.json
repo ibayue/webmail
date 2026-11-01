@@ -1325,6 +1325,13 @@
   "retention_notice": {
     "line": "Berichten hier worden {count, plural, one {# dag} other {# dagen}} nadat ze hierheen zijn verplaatst verwijderd."
   },
+  "device_policy": {
+    "downloads_off": "Uw organisatie heeft downloaden uitgezet.",
+    "download_off_named": "{name}: uw organisatie heeft downloaden uitgezet",
+    "download_blocked": "Uw organisatie heeft downloaden uitgezet.",
+    "export_blocked": "Uw organisatie heeft het exporteren van e-mail uitgezet.",
+    "print_blocked": "Uw organisatie heeft afdrukken uitgezet."
+  },
   "third_party": {
     "push_needs_relay": "Pushmeldingen hebben een pushrelay van je organisatie nodig, en er is er geen ingesteld. Nieuwe e-mail wordt nog steeds getoond zolang de app open is.",
     "relay_desc": "Alleen de eigen relays van je organisatie worden aangeboden, omdat deze server geen externe diensten benadert.",

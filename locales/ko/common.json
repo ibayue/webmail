@@ -1325,6 +1325,13 @@
   "retention_notice": {
     "line": "여기 있는 메일은 이곳으로 옮겨진 지 {count, plural, other {#일}} 후에 삭제됩니다."
   },
+  "device_policy": {
+    "downloads_off": "조직에서 다운로드를 사용하지 않도록 설정했습니다.",
+    "download_off_named": "{name}: 조직에서 다운로드를 사용하지 않도록 설정했습니다",
+    "download_blocked": "조직에서 다운로드를 사용하지 않도록 설정했습니다.",
+    "export_blocked": "조직에서 메일 내보내기를 사용하지 않도록 설정했습니다.",
+    "print_blocked": "조직에서 인쇄를 사용하지 않도록 설정했습니다."
+  },
   "third_party": {
     "push_needs_relay": "푸시 알림을 받으려면 조직에서 운영하는 푸시 릴레이가 필요한데, 설정된 릴레이가 없어요. 앱이 열려 있는 동안에는 새 메일이 계속 표시돼요.",
     "relay_desc": "이 서버는 외부 서비스에 연결하지 않으므로 조직 자체 릴레이만 표시돼요.",

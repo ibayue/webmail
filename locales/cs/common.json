@@ -1325,6 +1325,13 @@
   "retention_notice": {
     "line": "Zprávy zde se smažou {count, plural, one {# den} few {# dny} many {# dne} other {# dní}} poté, co sem byly přesunuty."
   },
+  "device_policy": {
+    "downloads_off": "Stahování vypnula vaše organizace.",
+    "download_off_named": "{name}: stahování vypnula vaše organizace",
+    "download_blocked": "Vaše organizace vypnula stahování.",
+    "export_blocked": "Vaše organizace vypnula export pošty.",
+    "print_blocked": "Tisk vypnula vaše organizace."
+  },
   "third_party": {
     "push_needs_relay": "Push oznámení potřebují push relay provozovaný vaší organizací a žádný není nastaven. Nová pošta se dál zobrazuje, dokud je aplikace otevřená.",
     "relay_desc": "Nabízejí se jen vlastní relaye vaší organizace, protože tento server nekontaktuje externí služby.",

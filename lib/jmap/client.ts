@@ -1,5 +1,6 @@
 import { advertisesMailboxMetadata, bulwarkEntries, escapeMetadataPathSegment, MAX_METADATA_ENTRY_BYTES, METADATA_CAPABILITY, MetadataPatchError, MetadataRefusedError, MetadataTooLargeError, MetadataUnsupportedError, metadataValueBytes, namespaceFor } from "./bulwark-metadata";
 import { IncompleteDeleteError } from "./delete-error";
+import { downloadAllowed, saveBlobAs, type DownloadKind } from "@/lib/download-guard";
 import { ArchiveEmailsError } from "./archive-error";
 import { generateUUID } from '@/lib/utils';
 import type { Attachment, Email, Mailbox, MailboxRights, StateChange, AccountStates, CollectionChanges, ShareNotification, BusyPeriod, CalendarParticipantIdentity, CalendarEventNotification, Thread, Identity, EmailAddress, ContactCard, AddressBook, AddressBookRights, VacationResponse, Calendar, CalendarComponentType, CalendarRights, CalendarEvent, CalendarEventFilter, CalendarTask, CreateCalendarOptions, FileNode, FileNodeFilter, FileNodeRights, Principal, PrincipalAvailability, PrincipalListing, PushSubscription, EmailPushConfig, DeliveryStatus, EmailSubmission, RejectedRecipient, ScheduledEmail, SendEmailResult, SharedAccount } from "./types";
@@ -10479,17 +10480,12 @@ export class JMAPClient implements IJMAPClient {
     return kept;
   }
 
-  async downloadBlob(blobId: string, name?: string, type?: string, accountId?: string): Promise<void> {
+  async downloadBlob(blobId: string, name?: string, type?: string, accountId?: string, options?: { kind?: DownloadKind }): Promise<void> {
+    // The device policy of this client's account (lib/device-policy.ts) may forbid it.
+    const kind = options?.kind ?? 'attachment';
+    if (!downloadAllowed(kind, { client: this })) return;
     const blob = await this.fetchBlob(blobId, name, type, accountId);
-    const blobUrl = URL.createObjectURL(blob);
-
-    const a = document.createElement('a');
-    a.href = blobUrl;
-    a.download = name || 'download';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(blobUrl);
+    saveBlobAs(blob, name || 'download', { kind, subject: { client: this }, revokeAfterMs: 0 });
   }
 
   private pollingInterval: NodeJS.Timeout | null = null;

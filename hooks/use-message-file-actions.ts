@@ -12,6 +12,8 @@ import { emailExportFilename, DEFAULT_EMAIL_TEMPLATE } from "@/lib/download-file
 import { runBatchEmailAction } from "@/lib/email-action-toast";
 import type { Email } from "@/lib/jmap/types";
 import type { CopyTargetAccount } from "@/components/email/email-context-menu";
+import { downloadAllowed } from "@/lib/download-guard";
+import { canPrint, type DeviceSubject } from "@/lib/device-policy";
 
 /** What follows an export, by the "After export" setting. */
 export interface ExportFollowUp {
@@ -30,6 +32,9 @@ export function useEmailExport(): (email: Email, followUp?: ExportFollowUp, sour
   return useCallback(async (email, followUp = {}, source) => {
     const context = source ?? resolveEmailBlobContext(email, useAuthStore.getState().client);
     if (!email.blobId || !context.client) return;
+    // The device policy of the message's account (Organisation > Devices);
+    // refused, the message is not archived or deleted either.
+    if (!downloadAllowed("export", email)) return;
     const s = useSettingsStore.getState();
     const options = {
       template: s.emailDownloadTemplate || DEFAULT_EMAIL_TEMPLATE,
@@ -39,7 +44,7 @@ export function useEmailExport(): (email: Email, followUp?: ExportFollowUp, sour
       collapseSeparators: s.filenameCollapseSeparators,
     };
     try {
-      await context.client.downloadBlob(email.blobId, emailExportFilename(email, options), "message/rfc822", context.accountId);
+      await context.client.downloadBlob(email.blobId, emailExportFilename(email, options), "message/rfc822", context.accountId, { kind: "export" });
     } catch {
       toast.error(tNotifications("export_email_error"));
       return;
@@ -73,7 +78,9 @@ export const usePrintRequestStore = create<{
 }));
 
 /** Opens the print window now (in the click) and asks the reader to fill it. */
-export function requestPrint(key: string): boolean {
+export function requestPrint(key: string, subject?: DeviceSubject): boolean {
+  // Not under the device policy "No printing".
+  if (!canPrint(subject)) return false;
   const win = window.open("", "_blank");
   if (!win) return false;
   // See the reader's print: no opener for a document the sender shaped.

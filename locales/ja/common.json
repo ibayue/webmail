@@ -1325,6 +1325,13 @@
   "retention_notice": {
     "line": "ここにあるメッセージは、移動されてから{count, plural, other {#日}}後に削除されます。"
   },
+  "device_policy": {
+    "downloads_off": "組織によりダウンロードは無効になっています。",
+    "download_off_named": "{name}: 組織によりダウンロードは無効になっています",
+    "download_blocked": "組織がダウンロードを無効にしています。",
+    "export_blocked": "組織がメールのエクスポートを無効にしています。",
+    "print_blocked": "組織により印刷は無効になっています。"
+  },
   "third_party": {
     "push_needs_relay": "プッシュ通知には組織が運用するプッシュリレーが必要ですが、設定されていません。アプリを開いている間は、新着メールが引き続き表示されます。",
     "relay_desc": "このサーバーは外部サービスに接続しないため、組織独自のリレーのみが表示されます。",

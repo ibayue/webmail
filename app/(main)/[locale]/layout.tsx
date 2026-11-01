@@ -25,6 +25,7 @@ import { PluginConsentDialog } from "@/components/plugins/plugin-consent-dialog"
 import { PluginAppEvents } from "@/components/providers/plugin-app-events";
 import { PluginOAuthCallbackListener } from "@/components/providers/plugin-oauth-callback-listener";
 import { PWAInstallPrompt } from "@/components/pwa-install-prompt";
+import { DevicePolicyHost } from "@/components/device/device-policy-host";
 import { PushNotificationPrompt } from "@/components/push-notification-prompt";
 import { AccountArchiveRestorePrompt } from "@/components/account-archive-prompt";
 import { SessionTimeoutGuard } from "@/components/session/session-timeout-guard";
@@ -97,6 +98,7 @@ export default async function LocaleLayout({
                   <PluginAppEvents />
                   <PluginPageNavigator />
                   <PWAInstallPrompt />
+                  <DevicePolicyHost />
                   <PushNotificationPrompt />
                   {/* Lite is a static bundle: no server keeps an archive there. */}
                   {!IS_LITE && <AccountArchiveRestorePrompt />}

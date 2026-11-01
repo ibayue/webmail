@@ -1325,6 +1325,13 @@
   "retention_notice": {
     "line": "Meldinger her slettes {count, plural, one {# dag} other {# dager}} etter at de ble flyttet hit."
   },
+  "device_policy": {
+    "downloads_off": "Organisasjonen din har slått av nedlasting.",
+    "download_off_named": "{name}: organisasjonen din har slått av nedlasting",
+    "download_blocked": "Organisasjonen din har slått av nedlasting.",
+    "export_blocked": "Organisasjonen din har slått av eksport av e-post.",
+    "print_blocked": "Organisasjonen din har slått av utskrift."
+  },
   "third_party": {
     "push_needs_relay": "Push-varsler trenger et push-relé som organisasjonen din driver, og det er ikke satt opp noe. Ny e-post vises fortsatt mens appen er åpen.",
     "relay_desc": "Bare organisasjonens egne reléer tilbys, fordi denne serveren ikke kontakter eksterne tjenester.",
