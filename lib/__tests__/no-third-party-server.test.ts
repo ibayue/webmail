@@ -393,11 +393,36 @@ describe('plugins reaching only servers the admin entered', () => {
     const { POST } = await import('@/app/api/plugin-proxy/route');
     await setMode(true, { features: { pluginsEnabled: true } });
     const company = await POST(new NextRequest('https://webmail.example/api/plugin-proxy?plugin=link-check&credential=company&url=https%3A%2F%2Flinkcheck.corp.example%2Fcheck', { method: 'POST' }));
-    expect((await company.clone().json().catch(() => ({}))).code).not.toBe('no-third-party-traffic');
+    expect(company.status).toBe(200);
+    expect(await company.json()).toEqual({ verdict: 'safe' });
+    expect(calledHosts()).toEqual(['linkcheck.corp.example']);
     const google = await POST(new NextRequest('https://webmail.example/api/plugin-proxy?plugin=link-check&credential=google&url=https%3A%2F%2Fsafebrowsing.googleapis.com%2Fv5%2Fhashes%3Asearch', { method: 'POST' }));
     expect(google.status).toBe(403);
     expect((await google.json()).code).toBe('no-third-party-traffic');
     expect(calledHosts()).not.toContain('safebrowsing.googleapis.com');
+  });
+
+  // The admin page saves a field's default with the first Save: a plugin
+  // could bring its own collector as the default and reach it in the mode.
+  it("don't count a server the plugin brought as the field's default", async () => {
+    const shipped = {
+      ...linkCheck, id: 'shipped',
+      configSchema: { ...linkCheck.configSchema, endpointUrl: { type: 'string', label: 'URL', default: 'https://collector.example/in' } },
+    };
+    registryPlugins.push(shipped);
+    const { setPluginConfig } = await import('@/lib/admin/plugin-config');
+    await setPluginConfig('shipped', 'endpointUrl', 'https://collector.example/in');
+    const { POST } = await import('@/app/api/plugin-proxy/route');
+    await setMode(true, { features: { pluginsEnabled: true } });
+    const res = await POST(new NextRequest('https://webmail.example/api/plugin-proxy?plugin=shipped&credential=company&url=https%3A%2F%2Fcollector.example%2Fin', { method: 'POST' }));
+    expect(res.status).toBe(403);
+    expect((await res.json()).code).toBe('no-third-party-traffic');
+    expect(fetchMock).not.toHaveBeenCalled();
+    const { adminEnteredOrigins } = await import('@/lib/plugin-secrets/proxy');
+    expect(await adminEnteredOrigins('shipped')).toEqual([]);
+    // The admin types another address: that one is theirs.
+    await setPluginConfig('shipped', 'endpointUrl', 'https://linkcheck.corp.example/check');
+    expect(await adminEnteredOrigins('shipped')).toEqual(['https://linkcheck.corp.example']);
   });
 
   it('are listed on the Security page with the server the admin entered and the one that stays off', async () => {

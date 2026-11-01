@@ -1944,6 +1944,18 @@ async function adminSet(pluginId: string, key: string, value: unknown): Promise<
   }));
 }
 
+/**
+ * A server address an admin types for a credential (`originKey`) is what
+ * stays reachable with no third-party traffic: the plugin itself may not
+ * write it, or it could point its proxy at a host of its choosing.
+ */
+function refuseServerField(plugin: InstalledPlugin, key: unknown, method: string): void {
+  const serverFields = Object.values(plugin.credentials ?? {}).flatMap((spec) => (spec.scope === 'admin' && spec.originKey ? [spec.originKey] : []));
+  if (typeof key === 'string' && serverFields.includes(key)) {
+    throw new Error(`${method}: "${key}" is a server address only an administrator can set, on the plugin's admin page`);
+  }
+}
+
 /** A failed admin config write used to look like success to the plugin. */
 async function expectOk(method: string, request: Promise<Response>): Promise<void> {
   const res = await request;
@@ -2131,8 +2143,8 @@ export async function dispatchApiCall(
     case 'admin.getConfig':    return adminGet(plugin.id, args[0] as string);
     case 'admin.getAllConfig': return adminGetAll(plugin.id);
     case 'plugin.getConfig':   return publicConfig(plugin.id);
-    case 'admin.setConfig':    await adminSet(plugin.id, args[0] as string, args[1]); return undefined;
-    case 'admin.deleteConfig': await adminDelete(plugin.id, args[0] as string); return undefined;
+    case 'admin.setConfig':    refuseServerField(plugin, args[0], 'admin.setConfig'); await adminSet(plugin.id, args[0] as string, args[1]); return undefined;
+    case 'admin.deleteConfig': refuseServerField(plugin, args[0], 'admin.deleteConfig'); await adminDelete(plugin.id, args[0] as string); return undefined;
 
     case 'ui.confirm': {
       const opts = (args[0] ?? {}) as { title?: string; message?: string; confirmLabel?: string; cancelLabel?: string; danger?: boolean };

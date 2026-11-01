@@ -6,7 +6,8 @@ import { getStalwartCredentials } from '@/lib/stalwart/credentials';
 import { CREDENTIAL_ID_RE, type CredentialSpec } from '@/lib/plugin-secrets/credentials';
 import { credentialAllowedInMode } from '@/lib/outgoing-hosts';
 import { getPlugin } from '@/lib/admin/plugin-registry';
-import { ProxyError, proxyRequest, type CaptureSpec } from '@/lib/plugin-secrets/proxy';
+import { ProxyError, adminEnteredOrigin, proxyRequest, type CaptureSpec } from '@/lib/plugin-secrets/proxy';
+import { getPluginConfig } from '@/lib/admin/plugin-config';
 import { bootGateResponse } from '@/lib/shared-store/boot-gate';
 
 const PLUGIN_ID_RE = /^[a-z0-9][a-z0-9-]*[a-z0-9]$/;
@@ -60,13 +61,15 @@ export async function POST(request: NextRequest) {
   if (!PLUGIN_ID_RE.test(pluginId) || !CREDENTIAL_ID_RE.test(credentialId) || !url) {
     return NextResponse.json({ error: 'plugin, credential and url are required', code: 'bad_request' }, { status: 400 });
   }
-  // With third-party traffic off only a server the admin entered on the
+  // With third-party traffic off only a server the admin typed on the
   // plugin's admin page stays reachable (a company link check); servers
-  // fixed in a manifest and accounts users connect are outside hosts (#903).
+  // fixed in a manifest or brought as a field's default, and accounts users
+  // connect, are outside hosts (#903).
   if (thirdPartyOff) {
     const plugin = await getPlugin(pluginId);
     const spec = (plugin as { credentials?: Record<string, CredentialSpec> } | null)?.credentials?.[credentialId];
     if (!credentialAllowedInMode(spec)) return thirdPartyRefusal('The plugin proxy');
+    if (!adminEnteredOrigin(spec, await getPluginConfig(pluginId), plugin?.configSchema)) return thirdPartyRefusal('The plugin proxy');
   }
   const capture = parseCapture(request.headers.get('x-bulwark-capture'));
   if (capture === null) {

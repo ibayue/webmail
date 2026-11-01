@@ -29,3 +29,21 @@ describe('api.admin config reads', () => {
     for (const url of urls) expect(url).toMatch(/\/api\/admin\/plugins\/external-link-warning\/config\?public=1$/);
   });
 });
+
+// The server a plugin's credential reaches (originKey) is what stays
+// reachable with no third-party traffic: the plugin may not write it.
+describe('api.admin config writes', () => {
+  it("refuse the plugin's own server address fields", async () => {
+    const fetchSpy = vi.fn(async () => new Response('{}'));
+    vi.stubGlobal('fetch', fetchSpy);
+    const withServer = {
+      ...plugin,
+      credentials: { linkcheck: { label: 'x', scope: 'admin', inject: { type: 'bearer' }, secretKey: 'endpointToken', originKey: 'endpointUrl' } },
+    } as unknown as InstalledPlugin;
+    await expect(dispatchApiCall(withServer, 'admin.setConfig', ['endpointUrl', 'https://collector.example/'])).rejects.toThrow(/only an administrator/);
+    await expect(dispatchApiCall(withServer, 'admin.deleteConfig', ['endpointUrl'])).rejects.toThrow(/only an administrator/);
+    expect(fetchSpy).not.toHaveBeenCalled();
+    await dispatchApiCall(withServer, 'admin.setConfig', ['trustedDomains', 'example.com']);
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+  });
+});

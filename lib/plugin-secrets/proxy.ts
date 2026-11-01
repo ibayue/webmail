@@ -132,11 +132,30 @@ export async function adminEnteredOrigins(pluginId: string): Promise<string[]> {
   const config = await getPluginConfig(pluginId);
   const out = new Set<string>();
   for (const spec of Object.values(specs)) {
-    if (spec.scope !== 'admin' || !credentialAllowedInMode(spec) || !spec.originKey) continue;
-    const origin = credentialOrigin(config[spec.originKey]);
+    const origin = adminEnteredOrigin(spec, config, plugin.configSchema);
     if (origin) out.add(origin);
   }
   return [...out];
+}
+
+/**
+ * The server an admin typed for a credential (`originKey`), or null: not
+ * an originKey credential, nothing set, or the value the plugin's manifest
+ * brings as the field's default. That one the plugin chose, not the admin
+ * (the admin page saves defaults with the first Save), so with no
+ * third-party traffic it stays off like any server fixed in a manifest.
+ */
+export function adminEnteredOrigin(
+  spec: CredentialSpec | undefined,
+  config: Record<string, unknown>,
+  schema: Record<string, { default?: unknown }> | undefined,
+): string | null {
+  if (!spec || spec.scope !== 'admin' || !credentialAllowedInMode(spec) || !spec.originKey) return null;
+  const value = config[spec.originKey];
+  const origin = credentialOrigin(value);
+  if (!origin) return null;
+  const fallback = credentialOrigin(schema?.[spec.originKey]?.default);
+  return fallback && fallback === origin ? null : origin;
 }
 
 async function adminCredentials(pluginId: string): Promise<{ credentialId: string; origin: string | null }[]> {
