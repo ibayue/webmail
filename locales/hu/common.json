@@ -6031,7 +6031,7 @@
       },
       "compose_read": {
         "title": "Az éppen írt üzeneted olvasása",
-        "body": "Az üzenet szövegének olvasása írás közben, amikor a bővítményt a szerkesztőben használod. Az aláírást és az idézett üzenetet nem."
+        "body": "Az üzenet olvasása írás közben, amikor a bővítményt a szerkesztőben használod: a szöveg, a tárgy, a címzettek a titkos másolattal együtt, valamint a mellékletek neve és mérete. Az aláírást és az idézett üzenetet nem."
       },
       "compose_write": {
         "title": "Az éppen írt üzeneted módosítása",

@@ -6031,7 +6031,7 @@
       },
       "compose_read": {
         "title": "Lire le message que vous écrivez",
-        "body": "Lire le texte d'un message pendant que vous l'écrivez, quand vous utilisez le plugin dans l'éditeur. Ni la signature ni le message cité."
+        "body": "Lire un message pendant que vous l'écrivez, quand vous utilisez le plugin dans l'éditeur : le texte, l'objet, les destinataires (Cci compris) ainsi que le nom et la taille des pièces jointes. Ni la signature ni le message cité."
       },
       "compose_write": {
         "title": "Modifier le message que vous écrivez",

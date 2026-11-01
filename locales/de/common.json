@@ -6031,7 +6031,7 @@
       },
       "compose_read": {
         "title": "Die Nachricht lesen, die Sie schreiben",
-        "body": "Den Text einer Nachricht lesen, während Sie sie schreiben, wenn Sie das Plugin im Editor benutzen. Nicht die Signatur und nicht die zitierte Nachricht."
+        "body": "Eine Nachricht lesen, während Sie sie schreiben, wenn Sie das Plugin im Editor benutzen: Text, Betreff, Empfänger einschließlich Bcc sowie Namen und Größen der Anhänge. Nicht die Signatur und nicht die zitierte Nachricht."
       },
       "compose_write": {
         "title": "Die Nachricht ändern, die Sie schreiben",

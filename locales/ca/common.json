@@ -6031,7 +6031,7 @@
       },
       "compose_read": {
         "title": "Llegir el missatge que escriviu",
-        "body": "Llegir el text d'un missatge mentre l'escriviu, quan feu servir el connector a l'editor. No la signatura ni el missatge citat."
+        "body": "Llegir un missatge mentre l'escriviu, quan feu servir el connector a l'editor: el text, l'assumpte, els destinataris (també en Cco) i el nom i la mida dels adjunts. No la signatura ni el missatge citat."
       },
       "compose_write": {
         "title": "Canviar el missatge que escriviu",

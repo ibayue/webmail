@@ -6031,7 +6031,7 @@
       },
       "compose_read": {
         "title": "Yazdığınız iletiyi okuma",
-        "body": "Eklentiyi düzenleyicide kullandığınızda, yazarken iletinin metnini okur. İmzayı ve alıntılanan iletiyi okumaz."
+        "body": "Eklentiyi düzenleyicide kullandığınızda, yazarken iletiyi okur: metni, konuyu, gizli alıcılar (Bcc) dahil alıcıları ve eklerin adlarını ve boyutlarını. İmzayı ve alıntılanan iletiyi okumaz."
       },
       "compose_write": {
         "title": "Yazdığınız iletiyi değiştirme",

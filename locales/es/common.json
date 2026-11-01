@@ -6031,7 +6031,7 @@
       },
       "compose_read": {
         "title": "Leer el mensaje que escribes",
-        "body": "Leer el texto de un mensaje mientras lo escribes, cuando usas el complemento en el editor. No la firma ni el mensaje citado."
+        "body": "Leer un mensaje mientras lo escribes, cuando usas el complemento en el editor: el texto, el asunto, los destinatarios (también en CCO) y el nombre y tamaño de los adjuntos. No la firma ni el mensaje citado."
       },
       "compose_write": {
         "title": "Cambiar el mensaje que escribes",

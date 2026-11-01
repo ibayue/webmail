@@ -6031,7 +6031,7 @@
       },
       "compose_read": {
         "title": "Číst zprávu, kterou píšete",
-        "body": "Číst text zprávy během psaní, když plugin použijete v editoru. Ne podpis ani citovanou zprávu."
+        "body": "Číst zprávu během psaní, když plugin použijete v editoru: text, předmět, příjemce včetně skryté kopie a názvy a velikosti příloh. Ne podpis ani citovanou zprávu."
       },
       "compose_write": {
         "title": "Měnit zprávu, kterou píšete",

@@ -6031,7 +6031,7 @@
       },
       "compose_read": {
         "title": "Lese meldingen du skriver",
-        "body": "Lese teksten i en melding mens du skriver den, når du bruker tillegget i redigeringsvinduet. Ikke signaturen eller den siterte meldingen."
+        "body": "Lese en melding mens du skriver den, når du bruker tillegget i redigeringsvinduet: tekst, emne, mottakere inkludert blindkopi og navn og størrelse på vedlegg. Ikke signaturen eller den siterte meldingen."
       },
       "compose_write": {
         "title": "Endre meldingen du skriver",

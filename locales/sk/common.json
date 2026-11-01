@@ -6031,7 +6031,7 @@
       },
       "compose_read": {
         "title": "Čítať správu, ktorú píšete",
-        "body": "Čítať text správy počas písania, keď doplnok použijete v editore. Nie podpis ani citovanú správu."
+        "body": "Čítať správu počas písania, keď doplnok použijete v editore: text, predmet, príjemcov vrátane skrytej kópie a názvy a veľkosti príloh. Nie podpis ani citovanú správu."
       },
       "compose_write": {
         "title": "Meniť správu, ktorú píšete",

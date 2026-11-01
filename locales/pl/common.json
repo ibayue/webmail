@@ -6031,7 +6031,7 @@
       },
       "compose_read": {
         "title": "Czytanie pisanej wiadomości",
-        "body": "Czytanie tekstu wiadomości podczas pisania, gdy używasz wtyczki w edytorze. Bez podpisu i cytowanej wiadomości."
+        "body": "Czytanie wiadomości podczas pisania, gdy używasz wtyczki w edytorze: treści, tematu, odbiorców razem z ukrytymi (UDW) oraz nazw i rozmiarów załączników. Bez podpisu i cytowanej wiadomości."
       },
       "compose_write": {
         "title": "Zmiana pisanej wiadomości",

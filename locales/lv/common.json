@@ -6031,7 +6031,7 @@
       },
       "compose_read": {
         "title": "Lasīt ziņojumu, ko rakstāt",
-        "body": "Lasīt ziņojuma tekstu rakstīšanas laikā, kad izmantojat spraudni redaktorā. Ne parakstu, ne citēto ziņojumu."
+        "body": "Lasīt ziņojumu rakstīšanas laikā, kad izmantojat spraudni redaktorā: tekstu, tēmu, adresātus, arī diskrētās kopijas (Bcc) adresātus, un pielikumu nosaukumus un izmērus. Ne parakstu, ne citēto ziņojumu."
       },
       "compose_write": {
         "title": "Mainīt ziņojumu, ko rakstāt",

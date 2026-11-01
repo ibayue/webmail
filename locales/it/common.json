@@ -6031,7 +6031,7 @@
       },
       "compose_read": {
         "title": "Leggere il messaggio che stai scrivendo",
-        "body": "Leggere il testo di un messaggio mentre lo scrivi, quando usi il plugin nell'editor. Non la firma né il messaggio citato."
+        "body": "Leggere un messaggio mentre lo scrivi, quando usi il plugin nell'editor: testo, oggetto, destinatari compresi quelli in Ccn, e nome e dimensione degli allegati. Non la firma né il messaggio citato."
       },
       "compose_write": {
         "title": "Modificare il messaggio che stai scrivendo",

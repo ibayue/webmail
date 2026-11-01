@@ -6031,7 +6031,7 @@
       },
       "compose_read": {
         "title": "Læse den besked, du skriver",
-        "body": "Læse teksten i en besked, mens du skriver den, når du bruger pluginet i editoren. Ikke signaturen eller den citerede besked."
+        "body": "Læse en besked, mens du skriver den, når du bruger pluginet i editoren: tekst, emne, modtagere inklusive Bcc og vedhæftningernes navne og størrelser. Ikke signaturen eller den citerede besked."
       },
       "compose_write": {
         "title": "Ændre den besked, du skriver",

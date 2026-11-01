@@ -6071,7 +6071,7 @@
       },
       "compose_read": {
         "title": "Đọc thư bạn đang soạn",
-        "body": "Đọc nội dung thư khi bạn đang soạn và sử dụng plugin trong khung soạn thư. Không bao gồm chữ ký hoặc phần thư được trích dẫn."
+        "body": "Đọc thư khi bạn đang soạn và sử dụng plugin trong khung soạn thư: nội dung, tiêu đề, người nhận (kể cả Bcc), tên và kích thước tệp đính kèm. Không bao gồm chữ ký hoặc phần thư được trích dẫn."
       },
       "compose_write": {
         "title": "Thay đổi thư bạn đang soạn",

@@ -6031,7 +6031,7 @@
       },
       "compose_read": {
         "title": "Citirea mesajului pe care îl scrieți",
-        "body": "Citirea textului unui mesaj în timp ce îl scrieți, când folosiți pluginul în editor. Nu și semnătura sau mesajul citat."
+        "body": "Citirea unui mesaj în timp ce îl scrieți, când folosiți pluginul în editor: textul, subiectul, destinatarii, inclusiv cei din Bcc, și numele și dimensiunea atașamentelor. Nu și semnătura sau mesajul citat."
       },
       "compose_write": {
         "title": "Modificarea mesajului pe care îl scrieți",

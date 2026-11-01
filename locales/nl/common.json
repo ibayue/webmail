@@ -6031,7 +6031,7 @@
       },
       "compose_read": {
         "title": "Het bericht lezen dat je schrijft",
-        "body": "De tekst van een bericht lezen terwijl je het schrijft, als je de plug-in in de editor gebruikt. Niet de handtekening of het geciteerde bericht."
+        "body": "Een bericht lezen terwijl je het schrijft, als je de plug-in in de editor gebruikt: de tekst, het onderwerp, de ontvangers inclusief Bcc, en de namen en groottes van bijlagen. Niet de handtekening of het geciteerde bericht."
       },
       "compose_write": {
         "title": "Het bericht wijzigen dat je schrijft",

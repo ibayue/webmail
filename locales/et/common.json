@@ -6059,7 +6059,7 @@
       },
       "compose_read": {
         "title": "Loe kirja, mida kirjutad",
-        "body": "Lugeda kirja teksti selle kirjutamise ajal, kui kasutad pistikprogrammi kirjakoostajas. Mitte allkirja ega tsiteeritud kirja."
+        "body": "Lugeda kirja selle kirjutamise ajal, kui kasutad pistikprogrammi kirjakoostajas: teksti, teemat, saajaid koos pimekoopia saajatega ning manuste nimesid ja suurusi. Mitte allkirja ega tsiteeritud kirja."
       },
       "compose_write": {
         "title": "Muuda kirja, mida kirjutad",

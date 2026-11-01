@@ -6059,7 +6059,7 @@
       },
       "compose_read": {
         "title": "Read the message you are writing",
-        "body": "Read the text of a message while you write it, when you use the plugin in the composer. Not the signature or the quoted message."
+        "body": "Read a message while you write it, when you use the plugin in the composer: its text, subject, recipients including Bcc, and the names and sizes of attachments. Not the signature or the quoted message."
       },
       "compose_write": {
         "title": "Change the message you are writing",
