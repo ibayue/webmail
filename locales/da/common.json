@@ -1282,6 +1282,9 @@
     "plugin_refused": "Ikke startet: dette plugin forbinder til eksterne tjenester, som din organisation har slået fra.",
     "remote_content_blocked": "Din organisation blokerer indhold fra andre servere, så eksterne billeder i denne besked vises ikke."
   },
+  "remote_content_lock": {
+    "trusted_senders_note": "Din organisation blokerer fjernindhold i al mail, så det indlæses heller ikke fra betroede afsendere."
+  },
   "date": {
     "today": "I dag",
     "yesterday": "I går",

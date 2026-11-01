@@ -1282,6 +1282,9 @@
     "plugin_refused": "Ei käivitatud: see pistikprogramm ühendub väliste teenustega, mille sinu organisatsioon on välja lülitanud.",
     "remote_content_blocked": "Sinu organisatsioon blokeerib teiste serverite sisu, seega selle kirja kaugpilte ei kuvata."
   },
+  "remote_content_lock": {
+    "trusted_senders_note": "Teie organisatsioon blokeerib kaugsisu kõigis kirjades, seega ei laadita seda ka usaldusväärsetelt saatjatelt."
+  },
   "date": {
     "today": "Täna",
     "yesterday": "Eile",

@@ -31,6 +31,11 @@ interface PolicyState {
   coversAddress: (email: string) => boolean;
   loaded: boolean;
   /**
+   * A policy fetch is on its way. While it is and nothing has loaded yet,
+   * things the policy may lock fail closed (hooks/use-third-party-mode.ts).
+   */
+  fetching: boolean;
+  /**
    * The server answered with the public subset (not signed in yet); the
    * full policy is fetched again once a session exists.
    */
@@ -90,6 +95,7 @@ export const usePolicyStore = create<PolicyState>()((set, get) => ({
   subject: null,
   scopeDomains: null,
   loaded: false,
+  fetching: false,
   partial: false,
   demoFeatureOverrides: {},
 
@@ -99,6 +105,7 @@ export const usePolicyStore = create<PolicyState>()((set, get) => ({
     // A fetch started before signing in may answer after the one started
     // after it; only the latest may land.
     const request = ++policyRequest;
+    set({ fetching: true });
     // Static Lite build: an optional policy.json next to index.html stands in
     // for the admin server; missing means defaults, and the gates that need
     // the server stay pinned off either way (lib/lite-config.ts).
@@ -121,6 +128,8 @@ export const usePolicyStore = create<PolicyState>()((set, get) => ({
       }
     } catch {
       if (request === policyRequest) set({ ...(fallback.policy ? resolved(fallback.policy, get().subject) : {}), loaded: true });
+    } finally {
+      if (request === policyRequest) set({ fetching: false });
     }
   },
 

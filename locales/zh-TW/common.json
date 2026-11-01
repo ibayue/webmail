@@ -1282,6 +1282,9 @@
     "plugin_refused": "未啟動：此外掛程式會連線至外部服務，而您的組織已將其關閉。",
     "remote_content_blocked": "您的組織會封鎖來自其他伺服器的內容，因此此郵件中的遠端圖片不會顯示。"
   },
+  "remote_content_lock": {
+    "trusted_senders_note": "你的組織在所有郵件中封鎖遠端內容，因此受信任寄件者的遠端內容也不會載入。"
+  },
   "date": {
     "today": "今天",
     "yesterday": "昨天",

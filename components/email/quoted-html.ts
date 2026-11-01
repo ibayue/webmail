@@ -9,6 +9,7 @@ import { addParagraphSpacing, addTrailingParagraphBreaks } from "@/components/em
 import { buildSignatureBlock } from "@/components/email/signature-block";
 import { parkRemoteResources, restoreRemoteResources, sanitizeComposerIslandHtml } from "@/lib/email-sanitization";
 import { useSettingsStore } from "@/stores/settings-store";
+import { remoteContentHeldBack } from "@/hooks/use-third-party-mode";
 
 // Marker attribute that identifies the quoted-original wrapper in serialized
 // HTML, so parseHTML can recognise it on the way back in.
@@ -166,8 +167,11 @@ export const QuotedHtml = TiptapNode.create({
       // content, its images and backgrounds are parked so opening a reply
       // doesn't fire the trackers the viewer held back. Parking is
       // display-only - the html attribute (what gets sent) keeps them.
-      const blockRemote =
-        !node.attrs.remoteAllowed && useSettingsStore.getState().externalContentPolicy !== "allow";
+      // A draft re-opened after the organisation blocked remote content (or
+      // before its policy loaded) keeps its quote parked, whatever the
+      // wrapper remembered from when the draft was started.
+      const blockRemote = remoteContentHeldBack()
+        || (!node.attrs.remoteAllowed && useSettingsStore.getState().externalContentPolicy !== "allow");
       let renderedHtml = "";
       const render = (html: string) => {
         renderedHtml = html;

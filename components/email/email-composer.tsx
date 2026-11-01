@@ -96,7 +96,7 @@ import { personalTemplatesFor } from "@/lib/templates/personal-templates";
 import { notifyIdentitySelected } from "@/stores/identity-store";
 import { usePluginSignature } from "@/hooks/use-plugin-signature";
 import { useOrgSignature, useOrgSignatureIdentity } from "@/hooks/use-org-signature";
-import { remoteContentBlockedByOrg } from "@/hooks/use-third-party-mode";
+import { remoteContentBlockedByOrg, remoteContentHeldBack } from "@/hooks/use-third-party-mode";
 import { OrgDisclaimerPreview } from "@/components/email/org-disclaimer-preview";
 // Registers the organisation signature check and the disclaimer on the send path.
 import "@/lib/org/outgoing";
@@ -748,7 +748,7 @@ export function EmailComposer({
     // Whether the quoted original may show its remote images in the editor:
     // the viewer's rule, minus the per-message "load" click it doesn't know.
     const { externalContentPolicy, isSenderTrusted } = useSettingsStore.getState();
-    const quoteRemoteAllowed = !remoteContentBlockedByOrg()
+    const quoteRemoteAllowed = !remoteContentHeldBack()
       && (externalContentPolicy === 'allow' || (!!from?.email && isSenderTrusted(from.email)));
 
     const replyHeader = (html: string) => mode === 'reply' || mode === 'replyAll'
@@ -3706,7 +3706,10 @@ export function EmailComposer({
         // Not when nothing went: no host, or one that sent nothing.
         if (draftElsewhere && onSend && outcome !== false) await removeDraftVersion(finalDraftId!, draftLogin, draftAccountAtSend);
 
-        if (mode === 'reply' || mode === 'replyAll') {
+        // Replying trusts the recipients, but not while the organisation
+        // blocks remote content: the list would take effect the moment the
+        // block is lifted, with senders nobody chose to trust.
+        if ((mode === 'reply' || mode === 'replyAll') && !remoteContentBlockedByOrg()) {
           for (const recipient of [...outgoing.to, ...outgoing.cc].filter(Boolean)) {
             if (trustedSendersAddressBook && client) {
               addToTrustedSendersBook(client, recipient).catch(err => {

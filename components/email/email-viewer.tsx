@@ -170,7 +170,7 @@ import type { AttachmentInfo, AttachmentPreview } from "@/lib/plugin-types";
 import { useAttachmentDrag, isDragOutSupported, type AttachmentDragSource } from "@/hooks/use-attachment-drag";
 import type { IJMAPClient } from "@/lib/jmap/client-interface";
 import { useArchiveActionEnabled } from "@/lib/archive-gate";
-import { useRemoteContentBlockedByOrg } from "@/hooks/use-third-party-mode";
+import { useRemoteContentBlockedByOrg, useRemoteContentHeldBack } from "@/hooks/use-third-party-mode";
 import { useSenderWarning } from "@/hooks/use-sender-warning";
 import { BrandVerifiedBadge } from "@/components/email/brand-verified-badge";
 
@@ -1314,6 +1314,8 @@ export function EmailViewer({
   // No third-party traffic (#903), or the organisation locked "block": remote
   // content never loads, whatever trust says, and nothing offers to load it.
   const remoteBlockedByOrg = useRemoteContentBlockedByOrg();
+  // Also true while the policy is still loading: trust can't unblock yet.
+  const remoteHeldBack = useRemoteContentHeldBack();
   const tThirdParty = useTranslations('third_party');
   const messageSpacing = useSettingsStore((state) => state.messageSpacing);
   const plainTextFont = useSettingsStore((state) => state.plainTextFont);
@@ -2630,7 +2632,7 @@ export function EmailViewer({
   //   'ask'   = block until the user allows this message or trusts the sender.
   const shouldBlockExternal = useMemo(() => {
     if (!email) return false;
-    if (remoteBlockedByOrg) return true;
+    if (remoteHeldBack) return true;
     const senderEmail = email.from?.[0]?.email?.toLowerCase();
     const senderIsTrusted = senderEmail
       ? isSenderTrusted(senderEmail) || (trustedSendersAddressBook && isTrustedAddressBookSender(senderEmail))
@@ -2643,7 +2645,7 @@ export function EmailViewer({
     // permission changes, so they're deliberately omitted from deps (matches
     // the srcDoc rebuild contract described on `emailContent`).
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [email, externalContentPolicy, allowExternalContent, remoteBlockedByOrg]);
+  }, [email, externalContentPolicy, allowExternalContent, remoteHeldBack]);
 
   // Booking, parcel and order cards of the message itself (never of an
   // unwrapped attached .eml); empty unless the sender is verified and the
@@ -5647,7 +5649,9 @@ export function EmailViewer({
                 )}
 
                 {/* External Content Controls */}
-                {!plainView && hasBlockedContent && (remoteBlockedByOrg || (!allowExternalContent && externalContentPolicy !== 'allow')) && (
+                {/* shouldBlockExternal: gone once trust applies (e.g. the
+                    policy finished loading after the first paint). */}
+                {!plainView && hasBlockedContent && shouldBlockExternal && (remoteBlockedByOrg || (!allowExternalContent && externalContentPolicy !== 'allow')) && (
                   <div className="flex items-start gap-3 py-1" data-testid="external-content-notice">
                     <div className="w-10 h-10 rounded-full bg-info/15 text-info flex items-center justify-center flex-shrink-0 shadow-sm">
                       <Image className="w-5 h-5" />

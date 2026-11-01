@@ -1282,6 +1282,9 @@
     "plugin_refused": "No s'ha iniciat: aquest connector es connecta a serveis externs, que la vostra organització ha desactivat.",
     "remote_content_blocked": "La vostra organització bloqueja el contingut d'altres servidors, així que les imatges remotes d'aquest missatge no es mostren."
   },
+  "remote_content_lock": {
+    "trusted_senders_note": "La vostra organització bloqueja el contingut remot a tots els correus, de manera que tampoc es carrega dels remitents de confiança."
+  },
   "date": {
     "today": "Avui",
     "yesterday": "Ahir",

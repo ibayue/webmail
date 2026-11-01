@@ -15,9 +15,14 @@ export function useNoThirdPartyTraffic(): boolean {
 
 type PolicyState = ReturnType<typeof usePolicyStore.getState>;
 
-/** The external content setting locked to "block" by the organisation. */
+/**
+ * The external content setting locked to "block" by the organisation, or
+ * limited to "block" as its only allowed value.
+ */
 function externalContentLockedToBlock(state: PolicyState): boolean {
   const restriction = state.getRestriction('externalContentPolicy');
+  const allowed = restriction?.allowedValues;
+  if (Array.isArray(allowed) && allowed.length > 0 && !allowed.includes('allow') && !allowed.includes('ask')) return true;
   if (restriction?.locked !== true) return false;
   // A lock without a value locks the organisation's default (as the
   // settings store applies it).
@@ -41,4 +46,25 @@ export function useRemoteContentBlockedByOrg(): boolean {
 /** useRemoteContentBlockedByOrg, read once outside React. */
 export function remoteContentBlockedByOrg(): boolean {
   return noThirdPartyTraffic() || externalContentLockedToBlock(usePolicyStore.getState());
+}
+
+// The first policy fetch hasn't answered yet (a later refetch keeps the
+// policy it already has, so it doesn't count).
+const policyPending = (state: PolicyState) => state.fetching && !state.loaded;
+
+/**
+ * Whether remote content stays blocked whatever the user chose: blocked by
+ * the organisation, or the policy that may lock it hasn't loaded yet. Until
+ * it has, neither a trusted sender nor a one-off load lets anything through,
+ * so the first paint can't fire a tracker the organisation blocks.
+ */
+export function useRemoteContentHeldBack(): boolean {
+  const blockedByOrg = useRemoteContentBlockedByOrg();
+  const pending = usePolicyStore(policyPending);
+  return blockedByOrg || pending;
+}
+
+/** useRemoteContentHeldBack, read once outside React. */
+export function remoteContentHeldBack(): boolean {
+  return remoteContentBlockedByOrg() || policyPending(usePolicyStore.getState());
 }

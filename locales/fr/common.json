@@ -1282,6 +1282,9 @@
     "plugin_refused": "Non démarré : ce plugin se connecte à des services extérieurs, que votre organisation a désactivés.",
     "remote_content_blocked": "Votre organisation bloque le contenu provenant d'autres serveurs, les images distantes de ce message ne sont donc pas affichées."
   },
+  "remote_content_lock": {
+    "trusted_senders_note": "Votre organisation bloque le contenu distant dans tous les e-mails : il ne se charge pas non plus pour les expéditeurs de confiance."
+  },
   "date": {
     "today": "Aujourd'hui",
     "yesterday": "Hier",

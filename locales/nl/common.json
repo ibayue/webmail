@@ -1282,6 +1282,9 @@
     "plugin_refused": "Niet gestart: deze plug-in maakt verbinding met externe diensten, en die heeft je organisatie uitgeschakeld.",
     "remote_content_blocked": "Je organisatie blokkeert inhoud van andere servers, daarom worden externe afbeeldingen in dit bericht niet getoond."
   },
+  "remote_content_lock": {
+    "trusted_senders_note": "Je organisatie blokkeert externe inhoud in alle mail, dus die wordt ook bij vertrouwde afzenders niet geladen."
+  },
   "date": {
     "today": "Vandaag",
     "yesterday": "Gisteren",

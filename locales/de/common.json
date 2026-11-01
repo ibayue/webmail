@@ -1282,6 +1282,9 @@
     "plugin_refused": "Nicht gestartet: Dieses Plugin verbindet sich mit externen Diensten, die Ihre Organisation abgeschaltet hat.",
     "remote_content_blocked": "Ihre Organisation blockiert Inhalte von anderen Servern, daher werden externe Bilder in dieser Nachricht nicht angezeigt."
   },
+  "remote_content_lock": {
+    "trusted_senders_note": "Ihre Organisation blockiert externe Inhalte in allen E-Mails, daher werden sie auch bei vertrauenswürdigen Absendern nicht geladen."
+  },
   "date": {
     "today": "Heute",
     "yesterday": "Gestern",

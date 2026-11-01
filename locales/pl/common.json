@@ -1282,6 +1282,9 @@
     "plugin_refused": "Nie uruchomiono: ta wtyczka łączy się z usługami zewnętrznymi, które Twoja organizacja wyłączyła.",
     "remote_content_blocked": "Twoja organizacja blokuje treści z innych serwerów, dlatego zdalne obrazy w tej wiadomości nie są wyświetlane."
   },
+  "remote_content_lock": {
+    "trusted_senders_note": "Twoja organizacja blokuje treści zdalne we wszystkich wiadomościach, więc nie wczytują się one także od zaufanych nadawców."
+  },
   "date": {
     "today": "Dzisiaj",
     "yesterday": "Wczoraj",

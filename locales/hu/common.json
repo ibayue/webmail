@@ -1282,6 +1282,9 @@
     "plugin_refused": "Nem indult el: ez a bővítmény külső szolgáltatásokhoz kapcsolódik, amelyeket a szervezeted kikapcsolt.",
     "remote_content_blocked": "A szervezeted letiltja a más szerverekről származó tartalmat, ezért az üzenet távoli képei nem jelennek meg."
   },
+  "remote_content_lock": {
+    "trusted_senders_note": "A szervezete minden levélben letiltja a távoli tartalmat, ezért a megbízható feladóktól sem töltődik be."
+  },
   "date": {
     "today": "Ma",
     "yesterday": "Tegnap",

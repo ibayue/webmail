@@ -1282,6 +1282,9 @@
     "plugin_refused": "시작되지 않음: 이 플러그인은 외부 서비스에 연결하는데, 조직에서 이를 꺼 두었어요.",
     "remote_content_blocked": "조직에서 다른 서버의 콘텐츠를 차단하므로 이 메시지의 외부 이미지가 표시되지 않아요."
   },
+  "remote_content_lock": {
+    "trusted_senders_note": "조직에서 모든 메일의 원격 콘텐츠를 차단하므로 신뢰할 수 있는 발신자의 메일에서도 불러오지 않습니다."
+  },
   "date": {
     "today": "오늘",
     "yesterday": "어제",

@@ -1282,6 +1282,9 @@
     "plugin_refused": "Non avviato: questo plugin si collega a servizi esterni, che la tua organizzazione ha disattivato.",
     "remote_content_blocked": "La tua organizzazione blocca i contenuti di altri server, quindi le immagini remote di questo messaggio non vengono mostrate."
   },
+  "remote_content_lock": {
+    "trusted_senders_note": "La tua organizzazione blocca i contenuti remoti in tutte le email, quindi non vengono caricati nemmeno dai mittenti attendibili."
+  },
   "date": {
     "today": "Oggi",
     "yesterday": "Ieri",

@@ -1282,6 +1282,9 @@
     "plugin_refused": "Ikke startet: dette tillegget kobler til eksterne tjenester, som organisasjonen din har slått av.",
     "remote_content_blocked": "Organisasjonen din blokkerer innhold fra andre servere, så eksterne bilder i denne meldingen vises ikke."
   },
+  "remote_content_lock": {
+    "trusted_senders_note": "Organisasjonen din blokkerer eksternt innhold i all e-post, så det lastes heller ikke fra pålitelige avsendere."
+  },
   "date": {
     "today": "I dag",
     "yesterday": "I går",

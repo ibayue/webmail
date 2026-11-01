@@ -1282,6 +1282,9 @@
     "plugin_refused": "Nav palaists: šis spraudnis savienojas ar ārējiem pakalpojumiem, kurus jūsu organizācija ir izslēgusi.",
     "remote_content_blocked": "Jūsu organizācija bloķē saturu no citiem serveriem, tāpēc attālie attēli šajā vēstulē netiek rādīti."
   },
+  "remote_content_lock": {
+    "trusted_senders_note": "Jūsu organizācija bloķē attālo saturu visās vēstulēs, tāpēc tas netiek ielādēts arī no uzticamiem sūtītājiem."
+  },
   "date": {
     "today": "Šodien",
     "yesterday": "Vakar",

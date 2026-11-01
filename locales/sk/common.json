@@ -1282,6 +1282,9 @@
     "plugin_refused": "Nespustené: tento doplnok sa pripája k externým službám, ktoré vaša organizácia vypla.",
     "remote_content_blocked": "Vaša organizácia blokuje obsah z iných serverov, preto sa vzdialené obrázky v tejto správe nezobrazujú."
   },
+  "remote_content_lock": {
+    "trusted_senders_note": "Vaša organizácia blokuje vzdialený obsah vo všetkých správach, takže sa nenačíta ani od dôveryhodných odosielateľov."
+  },
   "date": {
     "today": "Dnes",
     "yesterday": "Včera",

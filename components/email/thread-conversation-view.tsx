@@ -66,7 +66,7 @@ import { useDeviceDetection } from "@/hooks/use-media-query";
 import { usePluginRenderedBody } from "@/hooks/use-plugin-rendered-body";
 import { emailToReadView } from "@/lib/plugin-projection";
 import { AttachmentPluginMenu, ReaderAboveQuoteSlot } from "./reader-plugin-surfaces";
-import { useRemoteContentBlockedByOrg } from "@/hooks/use-third-party-mode";
+import { useRemoteContentBlockedByOrg, useRemoteContentHeldBack } from "@/hooks/use-third-party-mode";
 import { ConversationHeaderActions, type ConversationActions } from "./conversation-header-actions";
 
 export type ConversationAttachmentHandler = (
@@ -110,6 +110,8 @@ export function useConversationExternalContent() {
   // No third-party traffic (#903), or the organisation locked "block":
   // nothing remote loads and nothing offers to.
   const remoteBlockedByOrg = useRemoteContentBlockedByOrg();
+  // Also true until the policy has loaded: trust can't unblock before it.
+  const remoteHeldBack = useRemoteContentHeldBack();
 
   const allow = useCallback((emailId: string) => {
     setAllowedIds(prev => new Set(prev).add(emailId));
@@ -120,7 +122,7 @@ export function useConversationExternalContent() {
     const senderIsTrusted = senderEmail
       ? isSenderTrusted(senderEmail) || (trustedSendersAddressBook && isTrustedAddressBookSender(senderEmail))
       : false;
-    if (remoteBlockedByOrg) return false;
+    if (remoteHeldBack) return false;
     return externalContentPolicy === 'allow' || !!senderIsTrusted || allowedIds.has(email.id);
   };
 
