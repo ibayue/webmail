@@ -12,7 +12,9 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { ENT, ENT_PASSWORD, jmapAs, requireEntEnv, shot, userPage } from './helpers/ent';
 import { JMAP_URL } from './helpers/config';
-import { folderRow } from './helpers/app';
+import { expandSharedFolders, folderRow } from './helpers/app';
+import { listZipEntries, streamZipEntry } from '../../lib/mail-import/zip-reader';
+import { ZipWriter } from '../../lib/mail-export/zip-writer';
 
 requireEntEnv();
 
@@ -137,6 +139,16 @@ async function exportFolder(page: Page, folder: string, format: 'mbox' | 'eml'):
 
 async function readDownload(download: Download): Promise<Buffer> {
   return readFileSync(await download.path());
+}
+
+async function openBackupSettings(page: Page): Promise<void> {
+  await page.goto('/settings/backup');
+  // On a phone a settings link opens the list of sections first.
+  const button = page.getByTestId('settings-mail-import');
+  if (!(await button.isVisible().catch(() => false))) {
+    await page.getByText('Backup & reset', { exact: true }).first().click();
+  }
+  await expect(button).toBeVisible();
 }
 
 test.describe.configure({ mode: 'serial' });
@@ -267,9 +279,94 @@ test('a folder exported as a ZIP of .eml files imports back to the same messages
   await expect(dialog.getByText('ZIP archive')).toBeVisible();
   await page.getByTestId('mail-import-start').click();
   await expect(dialog.getByRole('heading', { name: 'Import finished' })).toBeVisible({ timeout: 60_000 });
-  const original = (await messagesIn(sourceId)).map((m) => m.subject).sort();
-  const back = (await messagesIn(backId)).map((m) => m.subject).sort();
-  expect(back).toEqual(original);
+  const original = await messagesIn(sourceId);
+  const back = await messagesIn(backId);
+  // Kept: every message, byte for byte. Lost: the state and arrival time,
+  // which .eml files don't hold. They come back read and dated by their Date header.
+  expect(back.map((m) => m.subject).sort()).toEqual(original.map((m) => m.subject).sort());
+  expect(original.some((m) => !m.keywords.$seen)).toBe(true);
+  expect(back.every((m) => m.keywords.$seen)).toBe(true);
+  expect(back.every((m) => m.receivedAt === '2018-01-01T08:00:00Z')).toBe(true);
+  await page.context().close();
+});
+
+test('the whole account exported from Settings holds a mbox file per folder', async ({ browser }) => {
+  const page = await userPage(browser, USER);
+  await openBackupSettings(page);
+  await withoutSavePicker(page);
+  await page.getByTestId('settings-mail-export').click();
+  const dialog = page.getByTestId('mail-export-dialog');
+  await expect(dialog.getByRole('heading', { name: 'Export all mail' })).toBeVisible();
+  const download = page.waitForEvent('download', { timeout: 120_000 });
+  await page.getByTestId('mail-export-start').click();
+  const file = await download;
+  await expect(dialog.getByRole('heading', { name: 'Export finished' })).toBeVisible({ timeout: 120_000 });
+  expect(file.suggestedFilename()).toMatch(/^ent-carol@example\.org-\d{4}-\d{2}-\d{2}\.zip$/);
+  const zip = new Blob([await readDownload(file)]);
+  const entries = await listZipEntries(zip);
+  const exported = entries.find((e) => e.name === `${STAMP} export.mbox`);
+  expect(exported, entries.map((e) => e.name).join(', ')).toBeTruthy();
+  let text = '';
+  for await (const chunk of streamZipEntry(zip, exported!)) text += Buffer.from(chunk).toString('latin1');
+  expect(text.match(/^From bulwark-export /gm)).toHaveLength(3);
+  expect(text).toContain(`Subject: ${STAMP} exp flagged`);
+  // A folder inside another one is written under its path.
+  expect(entries.some((e) => e.name === `${STAMP} pst/Sent Items.mbox`)).toBe(true);
+  await page.context().close();
+});
+
+test('an import into a folder shared with the user lands in the sharer\'s account', async ({ browser }) => {
+  const alice = await jmapAs(ENT.alice);
+  const sharedName = `${STAMP} shared`;
+  const sharedId = await alice.createSharedFolder(sharedName, USER);
+  try {
+    const page = await userPage(browser, USER);
+    await expandSharedFolders(page, ENT.alice);
+    const row = folderRow(page, { name: sharedName, shared: true }).first();
+    await expect(row).toBeVisible({ timeout: 30_000 });
+    await row.click({ button: 'right' });
+    await page.getByRole('menuitem', { name: 'Import mail…' }).click();
+    const dialog = page.getByTestId('mail-import-dialog');
+    await page.getByTestId('mail-import-file').setInputFiles({ name: 'shared.mbox', mimeType: 'application/mbox', buffer: Buffer.from(`From - Mon Jun  1 10:00:00 2020\nSubject: ${STAMP} into shared\nDate: Mon, 1 Jun 2020 09:00:00 +0000\n\nbody\n`) });
+    await page.getByTestId('mail-import-start').click();
+    await expect(dialog.getByRole('heading', { name: 'Import finished' })).toBeVisible({ timeout: 60_000 });
+    const res = await alice.request([
+      ['Email/query', { accountId: alice.accountId, filter: { inMailbox: sharedId } }, '0'],
+      ['Email/get', { accountId: alice.accountId, '#ids': { resultOf: '0', name: 'Email/query', path: '/ids' }, properties: ['subject'] }, '1'],
+    ]);
+    expect(res.methodResponses[1][1].list.map((m: { subject: string }) => m.subject)).toEqual([`${STAMP} into shared`]);
+    await page.context().close();
+  } finally {
+    await alice.request([['Mailbox/set', { accountId: alice.accountId, destroy: [sharedId], onDestroyRemoveEmails: true }, '0']]).catch(() => {});
+  }
+});
+
+test('a ZIP imported at the top level puts its Sent Items folder into the user\'s own Sent folder', async ({ browser }) => {
+  const parts: Uint8Array[] = [];
+  const z = new ZipWriter(async (c) => { parts.push(c.slice()); });
+  await z.addFile('Sent Items/1.eml', new TextEncoder().encode(`From: ${USER}\r\nTo: x@example.org\r\nSubject: ${STAMP} into sent\r\nDate: Mon, 1 Jun 2020 09:00:00 +0000\r\n\r\nbody\r\n`));
+  await z.finish();
+  const client = await jmapAs(USER);
+  const sent = (await client.mailboxByRole('sent'))!;
+  const page = await userPage(browser, USER);
+  await openBackupSettings(page);
+  await page.getByTestId('settings-mail-import').click();
+  const dialog = page.getByTestId('mail-import-dialog');
+  await page.getByTestId('mail-import-file').setInputFiles({ name: 'tree.zip', mimeType: 'application/zip', buffer: Buffer.concat(parts) });
+  await expect(dialog.getByRole('checkbox', { name: /Recreate the folders/ })).toBeChecked();
+  await page.getByTestId('mail-import-target').selectOption({ label: 'Top level' });
+  await expect(dialog.getByText(/At the top level, Inbox, Sent Items/)).toBeVisible();
+  await page.getByTestId('mail-import-start').click();
+  await expect(dialog.getByRole('heading', { name: 'Import finished' })).toBeVisible({ timeout: 60_000 });
+  await expect(dialog.getByText(/Folders created/)).toHaveCount(0);
+  const res = await client.request([
+    ['Email/query', { accountId: client.accountId, filter: { inMailbox: sent.id, text: STAMP } }, '0'],
+    ['Email/get', { accountId: client.accountId, '#ids': { resultOf: '0', name: 'Email/query', path: '/ids' }, properties: ['subject'] }, '1'],
+  ]);
+  const found = (res.methodResponses[1][1].list as { id: string; subject: string }[]).filter((m) => m.subject === `${STAMP} into sent`);
+  expect(found).toHaveLength(1);
+  // Not left in the user's real Sent folder.
+  await client.request([['Email/set', { accountId: client.accountId, destroy: found.map((m) => m.id) }, '0']]);
   await page.context().close();
 });
 
@@ -314,16 +411,6 @@ test('the progress dialog cancels an import, keeps what came in, and continues l
   expect(new Set(all.map((m) => m.subject)).size).toBe(count);
   await page.context().close();
 });
-
-async function openBackupSettings(page: Page): Promise<void> {
-  await page.goto('/settings/backup');
-  // On a phone a settings link opens the list of sections first.
-  const button = page.getByTestId('settings-mail-import');
-  if (!(await button.isVisible().catch(() => false))) {
-    await page.getByText('Backup & reset', { exact: true }).first().click();
-  }
-  await expect(button).toBeVisible();
-}
 
 test('import and export dialogs fill the screen at 390 px and import from Settings', async ({ browser }) => {
   const targetName = `${STAMP} phone`;
