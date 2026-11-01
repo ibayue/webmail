@@ -403,6 +403,12 @@ function decodeMimeWords(value: string): string {
 /** Reads the queue into the store, for the outbox view and the banner. */
 export async function refreshQueueState(): Promise<void> {
   if (!offlineSupported()) return;
+  // Nothing is kept for an account that hasn't it on; and opening the
+  // database would create it (on the sign-in page, after a sign-out).
+  if (useOfflineStore.getState().enabled.length === 0) {
+    useOfflineStore.setState({ outbox: [], pendingChanges: 0 });
+    return;
+  }
   try {
     const { patches, outbox: entries } = await readQueue();
     const rows: OutboxRow[] = entries.map((entry) => ({
@@ -421,7 +427,7 @@ export async function refreshQueueState(): Promise<void> {
 }
 
 export async function refreshUsage(): Promise<void> {
-  if (!offlineSupported()) return;
+  if (!offlineSupported() || useOfflineStore.getState().enabled.length === 0) return;
   try {
     useOfflineStore.setState({ usageBytes: (await cacheUsage()).total });
   } catch {

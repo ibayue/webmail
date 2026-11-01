@@ -220,3 +220,15 @@ describe('signing out with unsent mail', () => {
     expect(await passSignOutGates('all')).toBe(true);
   });
 });
+
+describe('after a sign-out', () => {
+  it('starting offline mode on the sign-in page doesn\'t create the database again', async () => {
+    const stop = startOfflineMode();
+    await new Promise((r) => setTimeout(r, 50));
+    const { refreshQueueState, refreshUsage } = await import('../offline-mode');
+    await refreshQueueState();
+    await refreshUsage();
+    stop();
+    expect((await indexedDB.databases()).map((d) => d.name)).not.toContain('bulwark-offline');
+  });
+});
