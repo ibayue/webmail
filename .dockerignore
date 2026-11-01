@@ -11,6 +11,7 @@ lite-image
 scripts/
 !scripts/lite/
 !scripts/build-plugin-sandbox.mjs
+!scripts/build-pst-worker.mjs
 !scripts/healthcheck.mjs
 !scripts/sourcemaps.mjs
 # Built in the image by scripts/build-plugin-sandbox.mjs
