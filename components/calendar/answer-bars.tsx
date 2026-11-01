@@ -6,7 +6,7 @@ import { useAuthStore } from "@/stores/auth-store";
 import { useCalendarStore } from "@/stores/calendar-store";
 import type { IJMAPClient } from "@/lib/jmap/client-interface";
 import type { Calendar, CalendarEvent, CalendarParticipant, Principal } from "@/lib/jmap/types";
-import { accountOwnerOf, resolveAnswerTargets, type AnswerTarget, type AnswerView } from "@/lib/calendar-delegate";
+import { accountOwnerOf, resolveAnswerTargets, type AccountOwner, type AnswerTarget, type AnswerView } from "@/lib/calendar-delegate";
 import { RsvpButtons } from "./rsvp-buttons";
 
 type Status = CalendarParticipant["participationStatus"];
@@ -31,6 +31,26 @@ function loadAccountOwner(client: IJMAPClient, accountId: string): Promise<Princ
 }
 
 /**
+ * The owner of a shared or group account (Principal/get, else the session's
+ * account name), or null for none.
+ */
+export function useAccountOwner(client: IJMAPClient | null, accountId: string | null, accountName: string | undefined): AccountOwner | null {
+  const [principal, setPrincipal] = useState<{ accountId: string; principal: Principal | null } | null>(null);
+  useEffect(() => {
+    if (!client || !accountId) return;
+    let cancelled = false;
+    void loadAccountOwner(client, accountId).then((found) => {
+      if (!cancelled) setPrincipal({ accountId, principal: found });
+    });
+    return () => { cancelled = true; };
+  }, [client, accountId]);
+  return useMemo(
+    () => (accountId ? accountOwnerOf(principal?.accountId === accountId ? principal.principal : null, accountName) : null),
+    [accountId, accountName, principal],
+  );
+}
+
+/**
  * The answer bars of an event: the user's own, and "Answer for <owner>" for
  * an invitation in a calendar shared with them by its owner
  * (lib/calendar-delegate.ts).
@@ -44,30 +64,20 @@ export function useAnswerView(
   const client = useAuthStore((s) => s.client);
   const events = useCalendarStore((s) => s.events);
   const sharedAccountId = calendar?.isShared ? calendar.accountId ?? null : null;
-  const [principal, setPrincipal] = useState<{ accountId: string; principal: Principal | null } | null>(null);
-
-  useEffect(() => {
-    if (!client || !sharedAccountId) return;
-    let cancelled = false;
-    void loadAccountOwner(client, sharedAccountId).then((found) => {
-      if (!cancelled) setPrincipal({ accountId: sharedAccountId, principal: found });
-    });
-    return () => { cancelled = true; };
-  }, [client, sharedAccountId]);
+  const owner = useAccountOwner(client, sharedAccountId, calendar?.accountName);
 
   return useMemo(() => {
     if (!event) return { targets: [], note: null, answeredBy: null };
-    const owner = sharedAccountId
-      ? accountOwnerOf(principal?.accountId === sharedAccountId ? principal.principal : null, calendar?.accountName)
-      : null;
+    // The same occurrence in the user's own calendar: the store holds a
+    // series as its expanded occurrences.
     const ownCopy = event.uid
-      ? events.find((e) => e.uid === event.uid && !e.isShared && e.id !== event.id && !e.recurrenceId) ?? null
+      ? events.find((e) => e.uid === event.uid && !e.isShared && e.id !== event.id && (e.recurrenceId ?? null) === (event.recurrenceId ?? null)) ?? null
       : null;
     // Stalwart 1.0 lists principals:owner in every account; 0.16 never does.
     const server016 = !!client && !!sharedAccountId
       && !client.hasAccountCapability("urn:ietf:params:jmap:principals:owner", sharedAccountId);
     return resolveAnswerTargets({ event, calendar, userEmails, canRsvpSelf, owner, ownCopy, server016 });
-  }, [event, calendar, userEmails, canRsvpSelf, sharedAccountId, principal, events, client]);
+  }, [event, calendar, userEmails, canRsvpSelf, sharedAccountId, owner, events, client]);
 }
 
 /**
