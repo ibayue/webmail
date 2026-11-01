@@ -4,7 +4,7 @@ import { ArchiveEmailsError } from "./archive-error";
 import { generateUUID } from '@/lib/utils';
 import type { Attachment, Email, Mailbox, MailboxRights, StateChange, AccountStates, CollectionChanges, ShareNotification, BusyPeriod, CalendarParticipantIdentity, CalendarEventNotification, Thread, Identity, EmailAddress, ContactCard, AddressBook, AddressBookRights, VacationResponse, Calendar, CalendarComponentType, CalendarRights, CalendarEvent, CalendarEventFilter, CalendarTask, CreateCalendarOptions, FileNode, FileNodeFilter, FileNodeRights, Principal, PrincipalAvailability, PrincipalListing, PushSubscription, EmailPushConfig, DeliveryStatus, EmailSubmission, RejectedRecipient, ScheduledEmail, SendEmailResult, SharedAccount } from "./types";
 import type { SieveScript, SieveCapabilities } from "./sieve-types";
-import type { BlobBatch, CalendarEventUpdateOptions, CalendarQueryOptions, FileNodeListings, IJMAPClient, KeywordDiscoveryResult, KeywordInfo, KeywordMigration, SearchEmailsResult, SearchRequestOptions } from "./client-interface";
+import type { BlobBatch, CalendarEventUpdateOptions, CalendarQueryOptions, FileNodeListings, IJMAPClient, KeywordDiscoveryResult, KeywordInfo, KeywordMigration, SearchEmailsResult, SearchRequestOptions, UploadedEmailImport, UploadedEmailImportResult } from "./client-interface";
 import { attachSearchSnippets, filterHasSnippetTerms, snippetFilterFor, type SearchSnippetResult } from "@/lib/search-snippet";
 import { textConditions, textFilter } from "./search-utils";
 import { batched, batchedBySize, itemsPerRequest } from "./request-limits";
@@ -11222,6 +11222,33 @@ export class JMAPClient implements IJMAPClient {
       throw new Error('Email import succeeded but no ID returned');
     }
     return emailId;
+  }
+
+  async importUploadedEmails(entries: UploadedEmailImport[], accountId?: string): Promise<UploadedEmailImportResult[]> {
+    if (entries.length === 0) return [];
+    const targetAccountId = accountId || this.accountId;
+    const emails: Record<string, Record<string, unknown>> = {};
+    entries.forEach((entry, i) => {
+      emails[`imp${i}`] = {
+        blobId: entry.blobId,
+        mailboxIds: entry.mailboxIds,
+        keywords: entry.keywords,
+        ...(entry.receivedAt ? { receivedAt: entry.receivedAt } : {}),
+      };
+    });
+    const response = await this.request([
+      ['Email/import', { accountId: targetAccountId, emails }, '0'],
+    ]);
+    const [name, result] = response.methodResponses?.[0] ?? [];
+    if (name !== 'Email/import') {
+      throw jmapError(`Email/import failed: ${result?.description || result?.type || 'unknown'}`, result);
+    }
+    return entries.map((_, i) => {
+      const created = result?.created?.[`imp${i}`];
+      if (created?.id) return { id: created.id as string };
+      const err = result?.notCreated?.[`imp${i}`];
+      return { error: (err?.description || err?.type || 'Email/import returned nothing') as string, type: err?.type as string | undefined };
+    });
   }
 
   /** Submit an already-imported email for delivery. */

@@ -123,7 +123,7 @@ import { isFilePreviewable } from "@/lib/file-preview";
 import { prepareQuickReply, type QuickReplyQuestion } from "@/lib/outgoing/quick-reply";
 import enMessages from "@/locales/en/common.json";
 import { computeReplyThreadingHeaders } from "@/lib/email-threading";
-import { EML_IMPORT_ACCEPT, expandImportableEmails } from "@/lib/eml-import";
+import { openMailImport } from "@/stores/mail-transfer-store";
 import { deliveryAddresses, resolveComposeAccountEmail } from "@/lib/reply-identity";
 import { useProMultiAccountIdentities } from "@/hooks/use-pro-multi-account-identities";
 import { Filter, X, Mail, MailOpen, PenSquare, CheckSquare, Square, AlertTriangle, ArrowLeft, RefreshCw, Reply, ReplyAll, Forward, Archive, Trash2, FolderInput, ShieldAlert, ShieldCheck, Folder } from "@/components/icons";
@@ -3763,48 +3763,9 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     }
   };
 
+  // The import dialog (lib/mail-import) picks the files and runs the import.
   const handleImportEmailFromContextMenu = (mailboxId: string) => {
-    if (!client) return;
-    const mailbox = mailboxes.find(mb => mb.id === mailboxId);
-    if (!mailbox) return;
-    const targetMailboxId = mailbox.originalId || mailbox.id;
-
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = EML_IMPORT_ACCEPT;
-    input.multiple = true;
-    input.onchange = async (e) => {
-      const files = Array.from((e.target as HTMLInputElement).files ?? []);
-      if (files.length === 0) return;
-
-      let emails;
-      try {
-        emails = await expandImportableEmails(files);
-      } catch {
-        toast.error(t('notifications.import_email_error'));
-        return;
-      }
-
-      let imported = 0;
-      let failed = 0;
-      for (const { blob, receivedAt } of emails) {
-        try {
-          await client.importRawEmail(blob, { [targetMailboxId]: true }, { '$seen': true }, undefined, receivedAt);
-          imported++;
-        } catch {
-          failed++;
-        }
-      }
-
-      if (imported > 0) {
-        toast.success(t('notifications.import_email_success'));
-        if (selectedMailbox) await fetchEmails(client, selectedMailbox);
-      }
-      if (failed > 0 || (imported === 0 && emails.length === 0)) {
-        toast.error(t('notifications.import_email_error'));
-      }
-    };
-    input.click();
+    openMailImport({ mailboxId });
   };
 
   const handleRefreshMailboxes = async () => {

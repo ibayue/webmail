@@ -31,6 +31,11 @@ const HEADER_SCAN_BYTES = 64 * 1024;
  */
 export async function readMessageDate(blob: Blob, now: number = Date.now()): Promise<string | undefined> {
   const head = await blob.slice(0, HEADER_SCAN_BYTES).text();
+  return dateFromHeaderBlock(head, now);
+}
+
+/** `readMessageDate` for header text already read (anything after the header block is ignored). */
+export function dateFromHeaderBlock(head: string, now: number = Date.now()): string | undefined {
   const end = head.search(/\r?\n\r?\n/);
   const headers = (end === -1 ? head : head.slice(0, end)).replace(/\r?\n[ \t]+/g, " ");
   const match = /^Date:[ \t]*(.+)$/im.exec(headers);

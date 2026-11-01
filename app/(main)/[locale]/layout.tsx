@@ -19,6 +19,7 @@ import { AccessibilityQuickPanelHost } from "@/components/accessibility/accessib
 import { TotpReauthDialog } from "@/components/totp-reauth-dialog";
 import { PluginConnectDialog } from "@/components/plugins/plugin-connect-dialog";
 import { QuickRuleHost } from "@/components/filters/quick-rule-host";
+import { MailTransferHost } from "@/components/mail-transfer/mail-transfer-host";
 import { PluginConsentDialog } from "@/components/plugins/plugin-consent-dialog";
 import { PluginAppEvents } from "@/components/providers/plugin-app-events";
 import { PluginOAuthCallbackListener } from "@/components/providers/plugin-oauth-callback-listener";
@@ -86,6 +87,7 @@ export default async function LocaleLayout({
                   <TotpReauthDialog />
                   <PluginConnectDialog />
                   <QuickRuleHost />
+                  <MailTransferHost />
                   <PluginConsentDialog />
                   <PluginOAuthCallbackListener />
                   <PluginAppEvents />

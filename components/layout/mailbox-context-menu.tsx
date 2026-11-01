@@ -140,6 +140,7 @@ export function MailboxContextMenu({
   notifications,
 }: MailboxContextMenuProps) {
   const t = useTranslations("mailbox_context_menu");
+  const tImport = useTranslations("mail_import");
 
   const handleAction = (action: () => void) => {
     action();
@@ -317,7 +318,7 @@ export function MailboxContextMenu({
 
       <ContextMenuItem
         icon={Upload}
-        label={t("import_email")}
+        label={tImport("menu_import")}
         onClick={() => handleAction(() => onImportEmail?.(mailbox.id))}
         disabled={!onImportEmail || !canAddItems}
       />
