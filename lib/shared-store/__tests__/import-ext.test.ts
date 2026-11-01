@@ -2,7 +2,7 @@
  * @vitest-environment node
  */
 import { createHash, generateKeyPairSync } from 'node:crypto';
-import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -132,6 +132,30 @@ describe('importing plugins, themes and branding into the shared store', () => {
       expect(statSync(path.join(dir, 'state', 'directory-keyrings.json')).mode & 0o777).toBe(0o600);
       expect(statSync(path.join(dir, 'config', 'plugin-signing.key')).mode & 0o777).toBe(0o600);
     }
+  });
+
+  it('removes on export the local files of this part the store no longer holds, and nothing else', async () => {
+    await importLocalData(steps);
+    // Left on the volume from before: an uninstalled plugin's config (may
+    // hold secrets), a stale signature, a pruned kept version, an old package.
+    const stale = [
+      'config/plugin-config/gone-plugin.json',
+      'config/plugins/gone-plugin.sig',
+      'config/plugins/history/demo/0.9.0/entry.json',
+      `config/plugin-approvals/gone-plugin-${'b'.repeat(64)}.zip`,
+      'config/branding/appLogoDarkUrl.svg',
+    ];
+    for (const file of stale) {
+      mkdirSync(path.dirname(path.join(dir, file)), { recursive: true });
+      writeFileSync(path.join(dir, file), 'old');
+    }
+    writeFileSync(path.join(dir, 'config', 'unrelated.txt'), 'mine');
+
+    await exportSharedData(exportSteps);
+    for (const file of stale) expect(existsSync(path.join(dir, file)), file).toBe(false);
+    expect(readFileSync(path.join(dir, 'config', 'unrelated.txt'), 'utf-8')).toBe('mine');
+    expect(readFileSync(path.join(dir, 'config', 'config.json'), 'utf-8')).toContain('not part of ext');
+    expect(readFileSync(path.join(dir, 'config', 'plugins', 'demo.js'), 'utf-8')).toBe('v2()');
   });
 
   it('keeps what the store already holds', async () => {
