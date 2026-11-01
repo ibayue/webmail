@@ -73,7 +73,8 @@ export async function fetchJmapServer(
 ): Promise<Response> {
   const authHeader = new Headers(givenInit.headers).get('authorization');
   if (authHeader && (await isStoredCredentialRefused(authHeader))) return refusedCredentialResponse();
-  const response = await observeUpstream('stalwart', () => fetchUnbudgeted(url, givenInit, trusted));
+  // With tracing on, Stalwart gets the trace context and its spans join ours.
+  const response = await observeUpstream('stalwart', (trace) => fetchUnbudgeted(url, withTraceHeaders(givenInit, trace), trusted));
   // Not awaited: this process's copy is updated at once, the shared write follows.
   if (authHeader) {
     void recordStoredCredentialStatus(authHeader, response.status).catch((error) => {
@@ -81,6 +82,13 @@ export async function fetchJmapServer(
     });
   }
   return response;
+}
+
+function withTraceHeaders(init: ServerFetchInit, trace: Record<string, string>): ServerFetchInit {
+  if (Object.keys(trace).length === 0) return init;
+  const headers = new Headers(init.headers);
+  for (const [name, value] of Object.entries(trace)) headers.set(name, value);
+  return { ...init, headers };
 }
 
 async function fetchUnbudgeted(

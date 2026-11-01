@@ -1,7 +1,16 @@
 import type { Instrumentation } from "next";
+import { tracingConfigured } from "./lib/tracing/config";
 
 export async function register() {
   if (process.env.NEXT_RUNTIME === "nodejs") {
+    // OpenTelemetry, only with an OTLP endpoint in the standard OTEL_*
+    // variables; otherwise the SDK is never loaded. First, so Next's own
+    // spans from the first request on go to it.
+    // https://bulwarkmail.org/docs/admin/monitoring#tracing
+    if (tracingConfigured()) {
+      const { startTracing } = await import("./lib/tracing/start");
+      startTracing();
+    }
     await import("./instrumentation.node");
   }
 }

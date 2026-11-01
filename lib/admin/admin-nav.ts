@@ -255,6 +255,7 @@ export const ADMIN_PAGES: readonly AdminPageDef[] = [
       { id: 'errors-today', title: 'Errors today', keywords: 'count fingerprint top' },
       { id: 'metrics', title: 'Metrics', keywords: 'prometheus scrape token grafana' },
       { id: 'health', title: 'Health checks', keywords: 'liveness readiness probe kubernetes docker' },
+      { id: 'tracing', title: 'Tracing', keywords: 'opentelemetry otel otlp jaeger tempo spans traceparent' },
     ],
   },
   {

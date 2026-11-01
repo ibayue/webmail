@@ -32,6 +32,7 @@ interface MonitoringState {
   day: string;
   errorsToday: { total: number; top: ErrorEntry[] };
   metrics?: { enabled: boolean };
+  tracing?: { configured: boolean; active: boolean; endpointHost: string | null };
 }
 
 const PAGE = adminPageDef('monitoring');
@@ -180,6 +181,21 @@ export function MonitoringPage() {
             <li><code className="font-mono">/api/health/live</code>: the process answers. For liveness probes and the Docker health check.</li>
             <li><code className="font-mono">/api/health/ready</code>: config loaded, data dirs writable, Stalwart reachable. For readiness probes.</li>
           </ul>
+        </SettingsSection>
+
+        <SettingsSection id="tracing" title="Tracing">
+          <p className="text-sm">
+            {state?.tracing?.active
+              ? <>On. Spans go to <code className="font-mono">{state.tracing.endpointHost ?? 'the OTLP endpoint'}</code> over OTLP/HTTP.</>
+              : state?.tracing?.configured
+                ? <>Configured, but not running in this process. Restart Bulwark after setting the <code className="font-mono">OTEL_*</code> variables.</>
+                : <>Off. Set <code className="font-mono">OTEL_EXPORTER_OTLP_ENDPOINT</code> (and the other standard <code className="font-mono">OTEL_*</code> variables you need) to send traces.</>}
+          </p>
+          <ConfigNote>
+            Next&apos;s request spans plus spans for calls to Stalwart and other services. Stalwart gets the trace
+            context, so its spans join the trace. URLs, user agents and addresses are removed from spans.{' '}
+            <a className="underline" href={`${DOCS}#tracing`} target="_blank" rel="noreferrer">Setup</a>
+          </ConfigNote>
         </SettingsSection>
       </div>
 
