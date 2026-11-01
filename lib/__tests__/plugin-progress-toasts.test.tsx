@@ -9,7 +9,7 @@ import type { InstalledPlugin } from '../plugin-types';
 let sequence = 0;
 const lifetimes: AbortController[] = [];
 
-/** Give each test its own plugin and frame lifetime. 각 시험의 플러그인과 프레임 수명을 분리합니다. */
+/** Give each test its own plugin and frame lifetime. */
 function owner() {
   const controller = new AbortController();
   lifetimes.push(controller);
@@ -21,7 +21,7 @@ function owner() {
   return { plugin, controller, options };
 }
 
-/** Render the real host notification lifecycle. 실제 호스트 알림 수명 주기를 렌더링합니다. */
+/** Render the real host notification lifecycle. */
 function Toasts() {
   const toasts = useToastStore((state) => state.toasts);
   const removeToast = useToastStore((state) => state.removeToast);

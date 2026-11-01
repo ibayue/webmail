@@ -303,8 +303,7 @@ export class SandboxInstance {
   private ready = false;
   /** The runtime's activity reports (see ReadyMsg). */
   private activityPort: MessagePort | null = null;
-  /** Own notification cleanup for exactly this sandbox frame.
-   * 현재 샌드박스 프레임의 알림 정리 수명을 소유합니다. */
+  /** Own notification cleanup for exactly this sandbox frame. */
   private readonly toastLifetime = new AbortController();
   /** The frame has answered init-done: its hooks and slots are in place. */
   private initialized = false;
