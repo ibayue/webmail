@@ -1277,6 +1277,10 @@ export interface AttachmentPreview {
  * Return false to cancel the navigation. Mutate `href` to rewrite it.
  */
 export interface ExternalLinkContext {
+  /**
+   * The address as the browser parses it (`new URL(href).href`, Bulwark
+   * 1.20 and later); exactly this string opens.
+   */
   href: string;
   /** Anchor target ('_blank', '_self', etc.) when set */
   target?: string;
