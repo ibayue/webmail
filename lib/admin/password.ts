@@ -2,7 +2,7 @@ import { scrypt, randomBytes, timingSafeEqual } from 'node:crypto';
 import { logger } from '@/lib/logger';
 import { isSharedMode, type DocCollection, type PutOptions, type PutResult, type StoredDoc } from '@/lib/shared-store';
 import { announceChange, onSharedChange } from '@/lib/shared-store/changes';
-import { assertWritable } from './paths';
+import { assertWritable, isConfigReadOnly } from './paths';
 import { adminConfigDocs, adminStateDocs, isStoreUnavailable } from './admin-store';
 import type { AdminConfigData, AdminStateData } from './types';
 import { readFileEnv } from '../read-file-env';
@@ -131,6 +131,12 @@ interface AdminCache {
   initialized: boolean;
   /** Shared mode: one read of the state for checks that run together. */
   stateRead?: Promise<AdminStateData | null>;
+  /**
+   * The password came from ADMIN_PASSWORD into a read-only config without an
+   * admin.json: it lives in this process only, and every replica makes it
+   * from the same variable on start.
+   */
+  fromEnvOnly?: boolean;
   unlisten?: () => void;
 }
 
@@ -149,6 +155,7 @@ export function resetAdminCacheForTests(): void {
   cache.initialized = false;
   cache.stateRead = undefined;
   cache.unlisten = undefined;
+  cache.fromEnvOnly = undefined;
 }
 
 function freshState(): AdminStateData {
@@ -271,6 +278,24 @@ export async function initAdminPassword(): Promise<boolean> {
 
   const hash = isHashed(envPassword) ? envPassword : await hashPassword(envPassword);
   const config: AdminConfigData = { passwordHash: hash, passwordHashFile: undefined };
+  if (isConfigReadOnly()) {
+    // Nowhere to save admin.json (a ConfigMap, a :ro volume). Keep the
+    // password in memory instead of failing the start; each replica does the
+    // same from the same variable. Changing it in the admin console is
+    // refused, as every other write to read-only config is.
+    cache.config = config;
+    cache.fromEnvOnly = true;
+    cache.state = shared ? await readStateData() : (await readStateData()) ?? freshState();
+    if (shared && !cache.state) {
+      const fresh = freshState();
+      cache.state = (await writeStateData(fresh, { ifVersion: null })).ok ? fresh : (await readStateData()) ?? fresh;
+    }
+    if (!cache.initialized) {
+      logger.info('Admin dashboard enabled with ADMIN_PASSWORD (config is read-only, so it is not saved to admin.json)');
+    }
+    cache.initialized = true;
+    return true;
+  }
   if (shared) {
     // Replicas booting together with ADMIN_PASSWORD: the first one writes
     // admin.json and moves the session generation on, the others use it.
@@ -319,6 +344,11 @@ function verifyAgainst(config: AdminConfigData, password: string): Promise<boole
  * replica counts at once.
  */
 export async function verifyAdminPassword(password: string): Promise<boolean> {
+  if (cache.fromEnvOnly && cache.config) {
+    // A mounted admin.json that appeared later still wins.
+    const mounted = (await readConfigDoc())?.data ?? null;
+    return verifyAgainst(mounted ?? cache.config, password);
+  }
   if (isSharedMode()) {
     cache.config = (await readConfigDoc())?.data ?? null;
   } else if (!cache.config) {
