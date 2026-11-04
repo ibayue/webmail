@@ -176,30 +176,39 @@ function expandColSpans(doc: Document) {
 }
 
 /**
- * Office pins tables to `table-layout: fixed` with `white-space: nowrap`
- * cells, sized for the spreadsheet's own grid. In mail that combination
- * overflows: the fixed columns stay narrow and the un-wrapping text runs
- * into the neighbouring cell. Both come off, so the browser sizes columns
- * to their content and long text wraps inside its cell, as the spreadsheet
- * displayed it.
+ * Office tables come pinned to the spreadsheet's grid: table-layout:fixed,
+ * nowrap cells, and pt-sized widths on the table, cols and cells. In the
+ * composer that grid either spills (fixed layout ignores content, so nowrap
+ * text runs into the neighbouring cell) or wraps (every width pin caps the
+ * column). The pins come off and the table carries its own `table-layout:
+ * auto`: each column then stretches to its longest cell, so text stays on
+ * one line as the spreadsheet showed it. The inline auto is what beats the
+ * editor stylesheet, which pins .tiptap table to fixed/100% and would
+ * otherwise split the width evenly and wrap every long cell.
  */
-function stripSpillLayout(doc: Document) {
+function applyContentLayout(doc: Document) {
   for (const table of doc.querySelectorAll("table")) {
     stripStyleProperties(table, /^table-layout$/i);
     // The spreadsheet's column grid (and its width) does not survive mail:
     // a width the table cannot exceed forces long content to wrap early.
-    // Without it the browser sizes columns to their content, like the
-    // spreadsheet's auto-fit.
     stripStyleProperties(table, /^(min-)?width$/i);
     table.removeAttribute("width");
+    appendStyle(table, "table-layout: auto");
   }
   for (const cell of doc.querySelectorAll("td, th")) {
-    stripStyleProperties(cell, /^white-space$/i);
     // The spreadsheet's per-cell width is a preferred width: in the auto
     // layout the browser keeps the column near it and wraps what exceeds
     // it, instead of widening the column to fit the content.
     stripStyleProperties(cell, /^(min-)?width$/i);
     cell.removeAttribute("width");
+    // One line per cell, as the spreadsheet grid displayed it: under the
+    // auto layout the column stretches to the text instead of the text
+    // wrapping onto a second (taller) line. A cell that explicitly carries
+    // its own white-space (e.g. wrap-text was enabled in the spreadsheet)
+    // keeps it.
+    if (!/white-space\s*:/i.test(cell.getAttribute("style") || "")) {
+      appendStyle(cell, "white-space: nowrap");
+    }
   }
 }
 
@@ -248,7 +257,7 @@ export function inlineClipboardStyles(html: string): string {
   }
 
   expandColSpans(doc);
-  stripSpillLayout(doc);
+  applyContentLayout(doc);
   dropColWidths(doc);
   for (const el of doc.querySelectorAll("table, tr, td, th")) {
     mapLegacyAttributes(el);

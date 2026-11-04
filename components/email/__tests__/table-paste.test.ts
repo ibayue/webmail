@@ -55,6 +55,12 @@ describe('inlineClipboardStyles', () => {
     expect(cells[0].style.paddingTop).toBe('1px');
     expect(cells[0].style.width).toBe('');
     expect(cells[0].style.height).toBe('15pt');
+    // One line per cell, like the spreadsheet grid.
+    expect(cells[0].style.whiteSpace).toBe('nowrap');
+    // The pasted table carries its own auto layout: the editor stylesheet
+    // pins .tiptap table to table-layout:fixed/width:100%, and only an
+    // inline auto beats that.
+    expect(doc.querySelector('table')!.style.tableLayout).toBe('auto');
     expect(cells[1].style.backgroundColor).toMatch(/#ffc7ce|rgb/i);
     // bgcolor maps to background-color, class rule first, attribute second.
     expect(cells[1].style.backgroundColor).toBeTruthy();
@@ -90,16 +96,18 @@ describe('inlineClipboardStyles', () => {
     expect(new DOMParser().parseFromString(result, 'text/html').querySelector('td')!.textContent).toBe('a');
   });
 
-  it('drops the fixed layout and nowrap that spill long text into the next cell', () => {
+  it('re-pins pasted tables to an auto layout with one-line cells', () => {
     const html = inlineClipboardStyles(`<html><head><meta name=ProgId content=Excel.Sheet>
 <style><!--td{white-space:nowrap;}--></style></head><body>
 <table style='table-layout:fixed;width:300pt'>
 <tr><td class=xl65 style='white-space:nowrap'>a long cell value</td><td>x</td></tr>
 </table></body></html>`);
     const doc = new DOMParser().parseFromString(html, 'text/html');
-    expect(doc.querySelector('table')!.getAttribute('style')).toBeNull();
-    // The cell's only style was the nowrap; with it gone the attribute is gone too.
-    expect(doc.querySelector('td')!.getAttribute('style')).toBeNull();
+    // fixed layout + nowrap is the spill combination; the auto layout that
+    // replaces it stretches the column instead, so nowrap is safe again.
+    expect(doc.querySelector('table')!.style.tableLayout).toBe('auto');
+    expect(doc.querySelector('table')!.getAttribute('style')).not.toMatch(/width/i);
+    expect(doc.querySelector('td')!.style.whiteSpace).toBe('nowrap');
   });
 
   it('drops the spreadsheet column widths so columns size to their content', () => {
@@ -117,13 +125,14 @@ describe('inlineClipboardStyles', () => {
       expect(col.getAttribute('style')).toBeNull();
     }
     expect(doc.querySelector('td')!.style.width).toBe('');
+    expect(doc.querySelector('td')!.style.whiteSpace).toBe('nowrap');
   });
 
-  it('drops the fixed layout even without a style block or ProgId', () => {
+  it('applies the auto layout even without a style block or ProgId', () => {
     const html = '<table style="table-layout:fixed"><tr><td style="white-space:nowrap">t</td></tr></table>';
     const doc = new DOMParser().parseFromString(inlineClipboardStyles(html), 'text/html');
-    expect(doc.querySelector('table')!.getAttribute('style')).toBeNull();
-    expect(doc.querySelector('td')!.getAttribute('style')).toBeNull();
+    expect(doc.querySelector('table')!.style.tableLayout).toBe('auto');
+    expect(doc.querySelector('td')!.style.whiteSpace).toBe('nowrap');
   });
 });
 
@@ -171,12 +180,17 @@ describe('pasting an Office table into the composer', () => {
     const cells = Array.from(table!.querySelectorAll('td, th')).map((c) => c.textContent);
     expect(cells).toEqual(['Name', 'Qty', 'Apples', '3']);
 
-    // Table-level style survives the parse (jsdom normalizes hex to rgb).
+    // Table-level style survives the parse (jsdom normalizes hex to rgb),
+    // and the pasted table's inline auto layout beats the editor
+    // stylesheet's .tiptap table { table-layout: fixed }.
     expect(table!.getAttribute('style')).toMatch(/border-collapse/i);
+    expect(table!.style.tableLayout).toBe('auto');
     // Cell-level style from the class rule and the own inline style; the
-    // width pin is stripped so the column sizes to its content.
+    // width pin is stripped so the column sizes to its content, and every
+    // cell keeps one line.
     expect(cells.length && table!.querySelectorAll('td')[0].style.fontWeight).toBe('700');
     expect(table!.querySelectorAll('td')[0].getAttribute('style')).not.toMatch(/width/i);
+    expect(table!.querySelectorAll('td')[0].style.whiteSpace).toBe('nowrap');
     expect(table!.querySelectorAll('td')[1].getAttribute('style')).toMatch(/background/i);
     // Column widths come through the colgroup.
     const cols = table!.querySelectorAll('col');
@@ -190,7 +204,9 @@ describe('pasting an Office table into the composer', () => {
 
     const html = editor.getHTML();
     expect(html).toMatch(/<table[^>]*style="[^"]*border-collapse/i);
+    expect(html).toMatch(/<table[^>]*style="[^"]*table-layout:\s*auto/i);
     expect(html).toMatch(/<td[^>]*style="[^"]*font-weight/i);
+    expect(html).toMatch(/<td[^>]*style="[^"]*white-space:\s*nowrap/i);
     editor.destroy();
   });
 
