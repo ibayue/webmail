@@ -50,6 +50,7 @@ export const StyledTableCell = TableCell.extend({
 const OFFICE_DOCUMENT = /<meta[^>]+name=["']?ProgId["']?[^>]+content=["']?(?:Excel\.Sheet|Word\.Document)/i;
 const HAS_TABLE = /<table[\s>]/i;
 const HAS_STYLE_BLOCK = /<style[\s>]/i;
+const FIXED_LAYOUT = /table-layout\s*:\s*fixed/i;
 
 // Only presentation properties survive the inlining. A pasted <style> block
 // is attacker-controllable clipboard content, so anything that can move or
@@ -66,7 +67,7 @@ const ALLOWED_PROPERTIES = new Set([
   "border-top-width", "border-right-width", "border-bottom-width", "border-left-width",
   "border-top-color", "border-right-color", "border-bottom-color", "border-left-color",
   "padding", "padding-top", "padding-right", "padding-bottom", "padding-left",
-  "width", "height", "white-space",
+  "width", "height",
 ]);
 
 /** One `.class { prop: value; ... }` or `tag { ... }` rule of a style block. */
@@ -157,6 +158,40 @@ function expandColSpans(doc: Document) {
 }
 
 /**
+ * Office pins tables to `table-layout: fixed` with `white-space: nowrap`
+ * cells, sized for the spreadsheet's own grid. In mail that combination
+ * overflows: the fixed columns stay narrow and the un-wrapping text runs
+ * into the neighbouring cell. Both come off, so the browser sizes columns
+ * to their content and long text wraps inside its cell, as the spreadsheet
+ * displayed it.
+ */
+function stripSpillLayout(doc: Document) {
+  for (const table of doc.querySelectorAll("table")) {
+    stripStyleProperties(table, /^table-layout$/i);
+  }
+  for (const cell of doc.querySelectorAll("td, th")) {
+    stripStyleProperties(cell, /^white-space$/i);
+  }
+}
+
+/** Removes whole declarations for the matched properties from an inline style. */
+function stripStyleProperties(el: Element, property: RegExp) {
+  const style = el.getAttribute("style");
+  if (!style) return;
+  const kept = style
+    .split(";")
+    .filter((declaration) => {
+      const colon = declaration.indexOf(":");
+      if (colon <= 0) return true; // stray fragment, not ours to drop
+      return !property.test(declaration.slice(0, colon).trim());
+    })
+    .map((declaration) => declaration.trim())
+    .filter(Boolean);
+  if (kept.length > 0) el.setAttribute("style", kept.join("; "));
+  else el.removeAttribute("style");
+}
+
+/**
  * Moves clipboard class rules onto the elements they style, maps legacy
  * bgcolor/width/height attributes, and returns HTML the table schema can
  * parse with its style attribute. Non-Office HTML without a style block is
@@ -164,7 +199,7 @@ function expandColSpans(doc: Document) {
  */
 export function inlineClipboardStyles(html: string): string {
   if (!HAS_TABLE.test(html)) return html;
-  if (!OFFICE_DOCUMENT.test(html) && !HAS_STYLE_BLOCK.test(html)) return html;
+  if (!OFFICE_DOCUMENT.test(html) && !HAS_STYLE_BLOCK.test(html) && !FIXED_LAYOUT.test(html)) return html;
 
   const doc = new DOMParser().parseFromString(html, "text/html");
   const styleText = Array.from(doc.querySelectorAll("style"))
@@ -184,6 +219,7 @@ export function inlineClipboardStyles(html: string): string {
   }
 
   expandColSpans(doc);
+  stripSpillLayout(doc);
   for (const el of doc.querySelectorAll("table, tr, td, th")) {
     mapLegacyAttributes(el);
     // The class did its job (its styles are inline now); the schema drops it anyway.

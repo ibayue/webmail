@@ -87,6 +87,27 @@ describe('inlineClipboardStyles', () => {
     // Nothing to inline, no legacy attributes: only whitespace-level changes.
     expect(new DOMParser().parseFromString(result, 'text/html').querySelector('td')!.textContent).toBe('a');
   });
+
+  it('drops the fixed layout and nowrap that spill long text into the next cell', () => {
+    const html = inlineClipboardStyles(`<html><head><meta name=ProgId content=Excel.Sheet>
+<style><!--td{white-space:nowrap;}--></style></head><body>
+<table style='table-layout:fixed;width:300pt'>
+<tr><td class=xl65 style='white-space:nowrap'>a long cell value</td><td>x</td></tr>
+</table></body></html>`);
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    expect(doc.querySelector('table')!.getAttribute('style')).not.toMatch(/table-layout/i);
+    // The cell's only style was the nowrap; with it gone the attribute is gone too.
+    expect(doc.querySelector('td')!.getAttribute('style')).toBeNull();
+    // The width the table carried for the spreadsheet grid stays.
+    expect(doc.querySelector('table')!.getAttribute('style')).toMatch(/width/i);
+  });
+
+  it('drops the fixed layout even without a style block or ProgId', () => {
+    const html = '<table style="table-layout:fixed"><tr><td style="white-space:nowrap">t</td></tr></table>';
+    const doc = new DOMParser().parseFromString(inlineClipboardStyles(html), 'text/html');
+    expect(doc.querySelector('table')!.getAttribute('style')).toBeNull();
+    expect(doc.querySelector('td')!.getAttribute('style')).toBeNull();
+  });
 });
 
 describe('pasting an Office table into the composer', () => {
