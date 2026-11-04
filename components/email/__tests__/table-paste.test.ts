@@ -95,11 +95,25 @@ describe('inlineClipboardStyles', () => {
 <tr><td class=xl65 style='white-space:nowrap'>a long cell value</td><td>x</td></tr>
 </table></body></html>`);
     const doc = new DOMParser().parseFromString(html, 'text/html');
-    expect(doc.querySelector('table')!.getAttribute('style')).not.toMatch(/table-layout/i);
+    expect(doc.querySelector('table')!.getAttribute('style')).toBeNull();
     // The cell's only style was the nowrap; with it gone the attribute is gone too.
     expect(doc.querySelector('td')!.getAttribute('style')).toBeNull();
-    // The width the table carried for the spreadsheet grid stays.
-    expect(doc.querySelector('table')!.getAttribute('style')).toMatch(/width/i);
+  });
+
+  it('drops the spreadsheet column widths so columns size to their content', () => {
+    const html = inlineClipboardStyles(`<html><head><meta name=ProgId content=Excel.Sheet></head><body>
+<table style='border-collapse:collapse;width:300pt'>
+<col width=100><col width=300>
+<tr><td style='width:48pt'>a long cell value</td><td>x</td></tr>
+</table></body></html>`);
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    // The table width and the col widths both go; the cell width (explicit on
+    // the td) stays for the schema's own width handling to decide.
+    expect(doc.querySelector('table')!.getAttribute('style')).not.toMatch(/width/i);
+    for (const col of doc.querySelectorAll('col')) {
+      expect(col.getAttribute('width')).toBeNull();
+      expect(col.getAttribute('style')).toBeNull();
+    }
   });
 
   it('drops the fixed layout even without a style block or ProgId', () => {

@@ -144,8 +144,26 @@ function mapLegacyAttributes(el: Element) {
   if (add.length > 0) el.setAttribute("style", [...add, style].filter(Boolean).join("; "));
 }
 
-/** `<col span=2 width=64>` becomes two width-64 cols: the schema's colwidth
- *  fallback matches <col> elements by cell index and does not expand spans. */
+/**
+ * The spreadsheet's `<col>` widths (pt-sized for its own grid) become the
+ * schema's colwidth - fixed column widths the table then obeys in mail.
+ * A cell with more text than its column can hold wraps, which looks like a
+ * lost row height rather than the spreadsheet's auto-fit. Drop them: the
+ * auto layout sizes each column to its content, and the user can still fix
+ * widths by dragging the column handles in the editor.
+ */
+function dropColWidths(doc: Document) {
+  for (const col of doc.querySelectorAll("col")) {
+    col.removeAttribute("width");
+    stripStyleProperties(col, /^(min-)?width$/i);
+  }
+}
+
+/**
+ * `<col span=2 width=64>` becomes two cols: the schema's colwidth fallback
+ * matches <col> elements by cell index and does not expand spans. Widths are
+ * dropped separately, so this only keeps the col-per-column mapping itself.
+ */
 function expandColSpans(doc: Document) {
   for (const col of Array.from(doc.querySelectorAll("col"))) {
     const span = parseInt(col.getAttribute("span") || "1", 10);
@@ -168,6 +186,12 @@ function expandColSpans(doc: Document) {
 function stripSpillLayout(doc: Document) {
   for (const table of doc.querySelectorAll("table")) {
     stripStyleProperties(table, /^table-layout$/i);
+    // The spreadsheet's column grid (and its width) does not survive mail:
+    // a width the table cannot exceed forces long content to wrap early.
+    // Without it the browser sizes columns to their content, like the
+    // spreadsheet's auto-fit.
+    stripStyleProperties(table, /^(min-)?width$/i);
+    table.removeAttribute("width");
   }
   for (const cell of doc.querySelectorAll("td, th")) {
     stripStyleProperties(cell, /^white-space$/i);
@@ -220,6 +244,7 @@ export function inlineClipboardStyles(html: string): string {
 
   expandColSpans(doc);
   stripSpillLayout(doc);
+  dropColWidths(doc);
   for (const el of doc.querySelectorAll("table, tr, td, th")) {
     mapLegacyAttributes(el);
     // The class did its job (its styles are inline now); the schema drops it anyway.
