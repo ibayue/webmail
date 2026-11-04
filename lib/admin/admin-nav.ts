@@ -23,6 +23,7 @@ export const ADMIN_PAGE_IDS = [
   'org-security',
   'org-sharing',
   'org-labels',
+  'org-proofreading',
   'org-calendars',
   'org-notices',
   'org-devices',
@@ -201,6 +202,16 @@ export const ADMIN_PAGES: readonly AdminPageDef[] = [
     ],
   },
   {
+    id: 'org-proofreading',
+    label: 'Proofreading',
+    description: 'Spelling and grammar checks while users write: required, off, or their choice',
+    group: 'organisation',
+    keywords: 'proofreading spelling grammar spell check languagetool writing language mandatory required',
+    sections: [
+      { id: 'proofreading', title: 'Proofreading', keywords: 'checker plugin required lock language force' },
+    ],
+  },
+  {
     id: 'org-calendars',
     label: 'Calendars',
     description: 'Company calendars every user sees, free/busy sharing and out-of-office in the calendar',
@@ -232,6 +243,7 @@ export const ADMIN_PAGES: readonly AdminPageDef[] = [
     sections: [
       { id: 'devices', title: 'Downloads, printing and notifications', keywords: 'download attachment export print watermark install prompt push sender subject' },
       { id: 'offline', title: 'Offline mode', keywords: 'offline cache device keep mail outbox' },
+      { id: 'registered', title: 'Registered devices', keywords: 'device registry wipe remote lost stolen laptop remove desktop app browser' },
     ],
   },
   {

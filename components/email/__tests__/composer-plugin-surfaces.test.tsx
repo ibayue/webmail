@@ -327,6 +327,8 @@ describe('composer-send-menu', () => {
     const schedule = screen.getAllByRole('menuitem', { name: /schedule_send/ })[0];
     const plugin = screen.getAllByRole('menuitem', { name: 'Send with Later' })[0];
     expect(follows(schedule, plugin)).toBe(true);
+    // It opens a dialog, and shows the key that opens it from the composer.
+    expect(schedule).toHaveTextContent('Ctrl + Shift + Enter');
   });
 
   it('keeps a plain Send button without plugin entries or scheduled send', () => {
@@ -541,6 +543,29 @@ describe('composer-sidebar and composer-sidebar-right', () => {
 
     render(<EmailComposer initialData={DRAFT} onClose={vi.fn()} />);
     expect(panel('right').style.width).toBe('360px');
+  });
+
+  it('keep a panel laid over the composer between its header and its bottom bar', () => {
+    stubWidth(700);
+    offerSlots('p1', ['composer-sidebar-right']);
+    const rect = (top: number, bottom: number) => ({ top, bottom, left: 0, right: 700, width: 700, height: bottom - top, x: 0, y: top, toJSON: () => ({}) });
+    const original = Element.prototype.getBoundingClientRect;
+    Element.prototype.getBoundingClientRect = function (this: Element) {
+      if (this.matches('[data-testid="email-composer"]')) return rect(100, 800);
+      if (this.matches('[data-composer-header]')) return rect(100, 156);
+      if (this.matches('[data-composer-footer]')) return rect(740, 800);
+      return original.call(this);
+    };
+    try {
+      localStorage.setItem('composerPluginSidebarCollapsed:right', '1');
+      render(<EmailComposer initialData={DRAFT} onClose={vi.fn()} />);
+      fireEvent.click(document.querySelector('[data-composer-panel-toggle="right"]')!);
+      expect(panel('right').dataset.composerSidebarMode).toBe('overlay');
+      expect(panel('right').style.top).toBe('56px');
+      expect(panel('right').style.bottom).toBe('60px');
+    } finally {
+      Element.prototype.getBoundingClientRect = original;
+    }
   });
 
   it('folds a widened panel sooner, since it needs the room', () => {

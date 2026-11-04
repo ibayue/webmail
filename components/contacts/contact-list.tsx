@@ -21,6 +21,7 @@ import { getContactDisplayName, getContactSortName, hasContactPhoto } from "@/st
 import { useSettingsStore } from "@/stores/settings-store";
 import { isAppShortcutBlocked } from "@/lib/keyboard";
 import { isSingleKeyShortcutOff } from "@/lib/single-key-shortcuts";
+import { ContactRowsSkeleton } from "@/components/boot-skeleton/contacts-skeleton";
 
 type TriState = boolean | null;
 
@@ -104,6 +105,8 @@ function ToggleChip({ icon, label, value, onClick }: { icon: React.ReactNode; la
 
 interface ContactListProps {
   contacts: ContactCard[];
+  /** A contact in an address book shared read-only: its menu has no Edit, Move or Delete. */
+  isContactReadOnly?: (contact: ContactCard) => boolean;
   selectedContactId: string | null;
   searchQuery: string;
   onSearchChange: (query: string) => void;
@@ -143,6 +146,7 @@ interface ContactListProps {
 
 export function ContactList({
   contacts,
+  isContactReadOnly,
   selectedContactId,
   searchQuery,
   onSearchChange,
@@ -648,20 +652,11 @@ export function ContactList({
         aria-label={t("title")}
         aria-multiselectable
         onKeyDown={handleListKeyDown}
-        className="flex-1 overflow-y-auto"
+        className="flex-1 overflow-y-auto max-md:pb-20"
       >
         {sorted.length === 0 && isLoading && !searchQuery && activeFilters === 0 ? (
-          <div aria-hidden className="py-1" data-testid="contact-list-skeleton">
-            {Array.from({ length: 8 }, (_, i) => (
-              <div key={i} className="flex items-center gap-3 px-4 py-2.5">
-                <div className="w-9 h-9 rounded-full bg-muted animate-pulse shrink-0" />
-                <div className="flex-1 min-w-0 space-y-1.5">
-                  <div className="h-3.5 rounded bg-muted animate-pulse" style={{ width: `${45 + ((i * 29) % 35)}%` }} />
-                  <div className="h-3 rounded bg-muted/70 animate-pulse" style={{ width: `${30 + ((i * 17) % 30)}%` }} />
-                </div>
-              </div>
-            ))}
-          </div>
+          // The rows the page skeleton drew, at the same density.
+          <ContactRowsSkeleton density={density} letters={groupByLetter} />
         ) : sorted.length === 0 ? (
           searchQuery || activeFilters > 0 ? (
             <EmptyState
@@ -796,6 +791,7 @@ export function ContactList({
           onBatchExport={onBulkExport}
           onBatchAddToGroup={onBulkAddToGroup}
           onBatchDelete={onBulkDelete}
+          readOnly={isContactReadOnly?.(contextMenu.data) ?? false}
         />
       )}
     </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useCallback, useRef, useEffect, useId } from "react";
+import { useCloseBesideControls } from "@/hooks/use-close-beside-controls";
 import { useTranslations } from "next-intl";
 import { X, Plus, ChevronDown, ChevronRight, User, Building, MapPin, Globe, Cake, Heart, Tag, StickyNote, Mail, Phone, Calendar, UserCircle, Book, Camera, Trash2 } from "@/components/icons";
 import { Button } from "@/components/ui/button";
@@ -220,6 +221,9 @@ function Select({ value, onChange, children, className, id, "aria-label": ariaLa
 export function ContactForm({ contact, addressBooks, allKeywords, defaultAddressBookId, prefill, onSave, onCancel, loadCurrentMedia, onDirtyChange }: ContactFormProps) {
   const t = useTranslations("contacts.form");
   const isEditing = !!contact;
+  // The header's close goes to its start when the window's own close is at its end.
+  const [header, setHeader] = useState<HTMLDivElement | null>(null);
+  const closeFirst = useCloseBesideControls(header);
   // Ids that tie each visible label to its field.
   const fieldIdBase = useId();
   const fieldId = (key: string) => `${fieldIdBase}-${key}`;
@@ -700,17 +704,22 @@ export function ContactForm({ contact, addressBooks, allKeywords, defaultAddress
   const previewName = (isOrg ? "" : [givenName, surname].filter(Boolean).join(" ").trim()) || organization.trim();
   const previewEmail = emails.find(e => e.address.trim())?.address.trim() || "";
 
+  const close = (
+    <IconButton label={t("close")} onClick={onCancel}>
+      <X />
+    </IconButton>
+  );
+
   return (
     // The app checks the fields itself and says what is wrong inline; the
     // browser's own bubble covered that message.
     <form onSubmit={handleSubmit} noValidate className="flex flex-col h-full bg-background">
-      <div className="flex items-center justify-between px-6 py-4 border-b border-border flex-shrink-0">
-        <h2 className="text-lg font-semibold">
+      <div ref={setHeader} data-window-top-row="" className="flex items-center gap-2 px-6 py-4 border-b border-border flex-shrink-0">
+        {closeFirst && close}
+        <h2 className="min-w-0 flex-1 text-lg font-semibold">
           {isEditing ? t("edit_title") : t("create_title")}
         </h2>
-        <IconButton label={t("close")} onClick={onCancel}>
-          <X />
-        </IconButton>
+        {!closeFirst && close}
       </div>
 
       <div className="flex-1 overflow-y-auto">
@@ -873,10 +882,10 @@ export function ContactForm({ contact, addressBooks, allKeywords, defaultAddress
 
           {/* Email */}
           <FormSection icon={Mail} title={t("email")}>
-            <div className="space-y-2">
+            <div className="space-y-2 @container">
               {emails.map((entry, i) => (
                 <div key={i}>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap @md:flex-nowrap items-center gap-2">
                     <Input
                       type="email"
                       inputMode="email"
@@ -894,7 +903,7 @@ export function ContactForm({ contact, addressBooks, allKeywords, defaultAddress
                       aria-label={t("email")}
                       aria-invalid={emailErrors[i] ? true : undefined}
                       aria-describedby={emailErrors[i] ? fieldId(`email-error-${i}`) : undefined}
-                      className={cn("flex-1", emailErrors[i] && "border-destructive focus-visible:border-destructive")}
+                      className={cn("grow basis-full @md:basis-0", emailErrors[i] && "border-destructive focus-visible:border-destructive")}
                     />
                     <Select
                       value={entry.context}
@@ -929,9 +938,10 @@ export function ContactForm({ contact, addressBooks, allKeywords, defaultAddress
 
           {/* Phone */}
           <FormSection icon={Phone} title={t("phone")}>
-            <div className="space-y-2">
+            <div className="space-y-2 @container">
+              {/* In a narrow pane the number takes a line of its own: beside the two selects it was cut to two digits. */}
               {phones.map((entry, i) => (
-                <div key={i} className="flex items-center gap-2">
+                <div key={i} className="flex flex-wrap @md:flex-nowrap items-center gap-2">
                   <Input
                     type="tel"
                     inputMode="tel"
@@ -943,7 +953,7 @@ export function ContactForm({ contact, addressBooks, allKeywords, defaultAddress
                     }}
                     placeholder={t("phone_placeholder")}
                     aria-label={t("phone")}
-                    className="flex-1"
+                    className="grow basis-full @md:basis-0"
                   />
                   <Select
                     value={entry.feature}
@@ -952,7 +962,7 @@ export function ContactForm({ contact, addressBooks, allKeywords, defaultAddress
                       next[i] = { ...next[i], feature: e.target.value as PhoneEntry["feature"] };
                       setPhones(next);
                     }}
-                    className="w-[5.5rem]"
+                    className="w-28"
                     aria-label={t("phone_type")}
                   >
                     <option value="">{t("phone_type")}</option>

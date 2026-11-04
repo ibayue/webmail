@@ -28,6 +28,7 @@ import { toast } from '@/stores/toast-store';
 import { useConfirmDialog } from '@/hooks/use-confirm-dialog';
 import { useDiscardChanges } from '@/components/settings/use-discard-changes';
 import { toUnicodeEmail } from '@/lib/idn';
+import { getPlainTextSignature } from '@/lib/signature-utils';
 import { sortIdentities } from '@/lib/identity-order';
 import { useRestriction } from '@/hooks/use-restriction';
 
@@ -271,8 +272,9 @@ export function IdentityManagerModal({ isOpen, onClose }: IdentityManagerModalPr
                   </div>
                 ) : (
                   <div className="p-4">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1 min-w-0">
+                    <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1 sm:flex-nowrap">
+                      {/* On a phone the actions go under the name instead of squeezing it. */}
+                      <div className="flex-1 min-w-0 max-sm:basis-full">
                         <div className="flex items-center gap-2 mb-1">
                           <h3 className="font-semibold text-foreground truncate" title={identity.name || toUnicodeEmail(identity.email)} dir="auto">
                             {identity.name || toUnicodeEmail(identity.email)}
@@ -301,16 +303,17 @@ export function IdentityManagerModal({ isOpen, onClose }: IdentityManagerModalPr
                               {t('display.bcc')} {identity.bcc.map((a) => toUnicodeEmail(a.email)).join(', ')}
                             </p>
                           )}
-                          {showOwnSignature && identity.textSignature && (
+                          {/* An HTML-only signature shows as its text, not as none. */}
+                          {showOwnSignature && getPlainTextSignature(identity) && (
                             <p className="line-clamp-2">
-                              {t('display.signature')} {identity.textSignature}
+                              {t('display.signature')} {getPlainTextSignature(identity)}
                             </p>
                           )}
                         </div>
                       </div>
 
                       {/* Actions */}
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-1 max-sm:ms-auto">
                         {identities[0]?.id !== identity.id && identities.length > 1 && (
                           <IconButton
                             label={t('set_as_primary')}

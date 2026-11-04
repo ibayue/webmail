@@ -14,6 +14,8 @@ export type { RegionalSnapshot };
 import { withBasePath } from '../browser-navigation';
 import { snapshotHostTheme, type ThemeSnapshot } from './host-theme';
 import { snapshotHostFeatures, watchHostFeatures } from './host-features';
+import { assistantFeatures } from './assistant';
+import { keystoreFeature } from './host-api-keystore';
 import { effectiveSettings } from '../plugin-settings';
 import { clampSlotHeight, clampSlotWidth, isInlineSlot, MAX_INLINE_SLOT_WIDTH } from './slot-layout';
 import { resolveDateLocale } from '../utils';
@@ -257,7 +259,8 @@ function pushThemeToFrames(): void {
 /** Every frame hears about a Bulwark feature that replaces plugins turning on or off. */
 function pushHostFeaturesToFrames(features: HostFeaturesView): void {
   for (const instance of liveInstances) {
-    try { instance.setHostFeatures(features); } catch { /* one broken iframe must not stop the rest */ }
+    // Some of the assistant's flags depend on the plugin's grants (host-features.ts).
+    try { instance.setHostFeatures({ ...features, ...instance.ownHostFeatures() }); } catch { /* one broken iframe must not stop the rest */ }
   }
 }
 
@@ -383,12 +386,16 @@ export class SandboxInstance {
     }
     this.iframe.style.display = 'block';
     if (initPayload.mode === 'background') {
-      this.iframe.style.position = 'absolute';
+      // In the corner, 1px, invisible: far off to one side it widened a
+      // right-to-left page by as much, with blank space to scroll into.
+      this.iframe.style.position = 'fixed';
       this.iframe.style.width = '1px';
       this.iframe.style.height = '1px';
       this.iframe.style.opacity = '0';
       this.iframe.style.pointerEvents = 'none';
-      this.iframe.style.left = '-9999px';
+      this.iframe.style.left = '0px';
+      this.iframe.style.top = '0px';
+      this.iframe.tabIndex = -1;
       this.iframe.setAttribute('aria-hidden', 'true');
     } else if (this.inline) {
       // Starts at the widest it may get; the first resize shrinks it.
@@ -499,7 +506,7 @@ export class SandboxInstance {
         const { id, method, args } = msg;
         void (async () => {
           try {
-            const result = await dispatchApiCall(this.plugin, method, args ?? [], { privileged: this.privileged, sink: this, toastSignal: this.toastLifetime.signal });
+            const result = await dispatchApiCall(this.plugin, method, args ?? [], { privileged: this.privileged, sink: this, toastSignal: this.toastLifetime.signal, frame: this.mode });
             this.send({ type: 'api-response', id, ok: true, result });
           } catch (err) {
             this.send({ type: 'api-response', id, ok: false, error: (err as Error).message ?? String(err) });
@@ -542,6 +549,15 @@ export class SandboxInstance {
         if (!cb) return;
         this.pendingShouldShow.delete(msg.id);
         cb(msg.show);
+        return;
+      }
+
+      case 'frame-escape': {
+        // Only for a dialog's own frame: elsewhere Escape in a frame means
+        // nothing to the host, and shouldn't close the message around it.
+        if (this.iframe.closest('[data-plugin-dialog], [data-plugin-dialog-popover]')) {
+          this.iframe.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+        }
         return;
       }
 
@@ -672,6 +688,11 @@ export class SandboxInstance {
   }
 
   /** Push what api.host.features says now; before init it goes into the init payload. */
+  /** The flags of api.host.features that depend on this plugin. */
+  ownHostFeatures(): Partial<HostFeaturesView> {
+    return { ...assistantFeatures(this.plugin), ...keystoreFeature(this.plugin) };
+  }
+
   setHostFeatures(features: HostFeaturesView): void {
     if (this.destroyed) return;
     if (this.pendingInit) {
@@ -782,7 +803,7 @@ export function createBackgroundInstance(opts: BackgroundOptions): SandboxInstan
     code: opts.code,
     locale: opts.locale,
     regional: opts.regional ?? snapshotRegionalSettings(opts.locale),
-    hostFeatures: snapshotHostFeatures(),
+    hostFeatures: snapshotHostFeatures(opts.plugin),
   };
   return new SandboxInstance(
     opts.plugin,
@@ -812,7 +833,7 @@ export function createSlotInstance(opts: SlotOptions): SandboxInstance {
     locale: opts.locale,
     regional: opts.regional ?? snapshotRegionalSettings(opts.locale),
     theme: snapshotHostTheme(),
-    hostFeatures: snapshotHostFeatures(),
+    hostFeatures: snapshotHostFeatures(opts.plugin),
   };
   return new SandboxInstance(opts.plugin, payload, opts.hostContainer, opts.onResize, opts.onFloatingDropdown);
 }

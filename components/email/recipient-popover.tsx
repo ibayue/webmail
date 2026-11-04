@@ -251,12 +251,14 @@ interface RecipientPopoverProps {
   email: string;
   /** Display label override (e.g. "me") */
   displayLabel?: string;
+  /** Rich content in place of the text label, such as a name over its address. */
+  label?: React.ReactNode;
   /** Called when user clicks "View contact" - receives the contact and email */
   onViewContact?: (contact: ContactCard | null, email: string) => void;
   className?: string;
 }
 
-export function RecipientPopover({ name, email, displayLabel, onViewContact, className }: RecipientPopoverProps) {
+export function RecipientPopover({ name, email, displayLabel, label, onViewContact, className }: RecipientPopoverProps) {
   const [anchor, setAnchor] = useState<CardAnchor | null>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const shownEmail = useOwnDomainAddress()(email);
@@ -276,11 +278,11 @@ export function RecipientPopover({ name, email, displayLabel, onViewContact, cla
         ref={triggerRef}
         onClick={handleToggle}
         className={cn(
-          "text-foreground hover:text-primary hover:underline cursor-pointer transition-colors min-w-0 break-words",
+          "text-foreground hover:text-primary hover:underline cursor-pointer transition-colors min-w-0 break-words text-start",
           className
         )}
       >
-        <bdi>{displayLabel || name || shownEmail}</bdi>
+        {label ?? <bdi>{displayLabel || name || shownEmail}</bdi>}
       </button>
 
       {anchor && (

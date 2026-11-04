@@ -3,11 +3,14 @@
 import { useCallback, useEffect, useState, useMemo, useRef } from "react";
 import { useTranslations } from "next-intl";
 import { EmailViewer } from "@/components/email/email-viewer";
+import { MoveToDialog } from "@/components/email/move-to-dialog";
 import { ErrorBoundary, EmailViewerErrorFallback } from "@/components/error";
 import { useAuthStore } from "@/stores/auth-store";
 import { useEmailStore, resolveEmailBlobContext, type EmailBlobContext, type EmailWriteSource } from "@/stores/email-store";
 import { useIdentityStore } from "@/stores/identity-store";
 import { useProMultiAccountIdentities } from "@/hooks/use-pro-multi-account-identities";
+import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts";
+import { useIsFocusedProTab } from "@/hooks/use-pane-context";
 import { findDraftIdentityIdForLogin } from "@/lib/draft-source";
 import { deliveryAddresses } from "@/lib/reply-identity";
 import { useSettingsStore } from "@/stores/settings-store";
@@ -22,16 +25,21 @@ import { getQuoteBodies } from "@/lib/email-composer-utils";
 import { buildForwardAsAttachmentPayload } from "@/lib/forward-as-attachment";
 import { KEYWORD_PREFIX, KEYWORD_PREFIX_LEGACY, emailKeyFor } from "@/lib/thread-utils";
 import { cn } from "@/lib/utils";
-import { getDraftTextBody } from '@/lib/email-body-selection';
+import { getDraftComposerBody } from '@/lib/email-body-selection';
 import { messagePriorityFromHeaders } from '@/lib/message-priority';
 import { labelSourceHeaders, reopenedLabelChoice } from '@/lib/outgoing/classification';
 import { useArchiveActionEnabled } from '@/lib/archive-gate';
 import { confirmMailRemoval } from '@/lib/mail-removal-confirm';
 import { useConfirmDialog } from '@/hooks/use-confirm-dialog';
+import { takeTabReply, useNotificationTabReply } from '@/lib/pwa-notify/tab-reply';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { saveQuickReplyDraft } from '@/lib/outgoing/quick-reply-envelope';
 import { canDownload } from '@/lib/device-policy';
+import { phishingMarkedNow } from '@/hooks/use-phishing-report';
+import { useOpenEmailInWindow } from '@/hooks/use-popouts-available';
 import { isFilePreviewable } from '@/lib/file-preview';
+import { useDesktopCommands } from '@/lib/desktop/commands';
+import { isPopoutWindow } from '@/lib/popout/window-role';
 import dynamic from 'next/dynamic';
 
 // Only needed when the device policy turns downloads off.
@@ -66,6 +74,18 @@ interface ProEmailViewProps {
   /** Fires once the full message is loaded (tab retitling, sidebar highlight). */
   onLoaded?: (email: Email) => void;
   /**
+   * Opens a reply, forward or draft somewhere else than a Pro tab: a pop-out
+   * window (components/popout) has no tabs. Resolves true once it is on screen
+   * there: a draft leaves this view only then.
+   */
+  onOpenCompose?: (data: Omit<ProComposeTabData, 'sessionId'>) => Promise<boolean>;
+  /** Flags and folders as the server has them now, when the host tracks them (a pop-out). */
+  liveState?: Pick<Email, 'keywords' | 'mailboxIds'> | null;
+  /** This view changed the message's flags, for a host other windows should hear from. */
+  onMailChanged?: () => void;
+  /** See EmailViewer. */
+  noAutomaticActions?: boolean;
+  /**
    * The message left this view: deleted, archived, moved, or reopened in the
    * composer. The host decides what that means (close the tab / clear the
    * folder tab's selection).
@@ -93,8 +113,19 @@ export function stampProSource(email: Email, source: EmailBlobContext, loginId: 
   return { ...email, sourceClientAccountId: login, sourceAccountId: account };
 }
 
-function buildReplyContext(email: Email): ProReplyContext {
+/**
+ * The login holding the message, for ProReplyContext.accountId: the composer
+ * defaults its From to that account and copies the original's parts from it
+ * (#1104, #1511). email.accountId can't say: it is for display, and a message
+ * read through client.getEmail() has none.
+ */
+function replyLogin(email: Email, source: EmailWriteSource): string | undefined {
+  return email.sourceClientAccountId ?? source.clientAccountId;
+}
+
+function buildReplyContext(email: Email, source: EmailWriteSource): ProReplyContext {
   return {
+    phishingMarked: phishingMarkedNow(email),
     from: email.from,
     replyToAddresses: email.replyTo,
     to: email.to,
@@ -104,7 +135,7 @@ function buildReplyContext(email: Email): ProReplyContext {
     subject: email.subject,
     ...getQuoteBodies(email),
     receivedAt: email.receivedAt,
-    accountId: email.accountId,
+    accountId: replyLogin(email, source),
     attachments: email.attachments,
     messageId: email.messageId,
     inReplyTo: email.inReplyTo,
@@ -120,7 +151,7 @@ function buildReplyContext(email: Email): ProReplyContext {
  * Hosted by `ProEmailTabBody` (a dedicated email tab) and by the folder tab's
  * reading pane.
  */
-export function ProEmailView({ emailId, client: clientOverride, clientAccountId, accountId, onLoaded, onClose, className }: ProEmailViewProps) {
+export function ProEmailView({ emailId, client: clientOverride, clientAccountId, accountId, onLoaded, onOpenCompose, liveState, onMailChanged, noAutomaticActions, onClose, className }: ProEmailViewProps) {
   const t = useTranslations();
   const tNotifications = useTranslations('notifications');
   const tRemove = useTranslations('email_list.confirm_remove');
@@ -175,6 +206,12 @@ export function ProEmailView({ emailId, client: clientOverride, clientAccountId,
     onOpened?: () => void,
   ) => {
     const open = (prefill: ComposePrefill | null) => {
+      if (onOpenCompose) {
+        void onOpenCompose({ ...data, prefill }).then((shown) => {
+          if (shown) onOpened?.();
+        });
+        return;
+      }
       composerSessionIdRef.current += 1;
       openComposeTabNow({ ...data, sessionId: composerSessionIdRef.current, prefill });
       onOpened?.();
@@ -191,7 +228,7 @@ export function ProEmailView({ emailId, client: clientOverride, clientAccountId,
     })).then((prefill) => {
       if (prefill) open(Object.keys(prefill).length > 0 ? prefill : null);
     });
-  }, [identities, openComposeTabNow, t]);
+  }, [identities, onOpenCompose, openComposeTabNow, t]);
 
   // Held in a ref so a host passing an inline callback doesn't refetch the
   // message on every render.
@@ -242,6 +279,13 @@ export function ProEmailView({ emailId, client: clientOverride, clientAccountId,
     };
   }, [client, clientOverride, clientAccountId, emailId, accountId, fetchEmailContent]);
 
+  useEffect(() => {
+    if (!liveState) return;
+    setEmail((prev) => (prev && prev.id === emailId
+      ? { ...prev, keywords: liveState.keywords ?? prev.keywords, mailboxIds: liveState.mailboxIds ?? prev.mailboxIds }
+      : prev));
+  }, [liveState, emailId]);
+
   const currentMailboxRole = useMemo(() => {
     if (!email) return undefined;
     const mb = email.mailboxIds
@@ -254,7 +298,7 @@ export function ProEmailView({ emailId, client: clientOverride, clientAccountId,
     if (!email) return;
     openComposeTab({
       mode: 'reply',
-      replyTo: buildReplyContext(email),
+      replyTo: buildReplyContext(email, writeSource),
       sourceEmailId: email.id,
       sourceEmailSource: writeSource,
       initialDraftText: draftText,
@@ -262,11 +306,19 @@ export function ProEmailView({ emailId, client: clientOverride, clientAccountId,
     }, { source: email, body: draftText ?? '' });
   }, [email, openComposeTab, t, writeSource]);
 
+  // A notification's Reply, once this tab has the message (mail-app.tsx).
+  const pendingTabReply = useNotificationTabReply((s) => s.pending);
+  useEffect(() => {
+    if (!email || pendingTabReply?.emailId !== email.id) return;
+    const text = takeTabReply(email.id);
+    if (text !== null) handleReply(text);
+  }, [email, pendingTabReply, handleReply]);
+
   const handleReplyAll = useCallback(() => {
     if (!email) return;
     openComposeTab({
       mode: 'replyAll',
-      replyTo: buildReplyContext(email),
+      replyTo: buildReplyContext(email, writeSource),
       sourceEmailId: email.id,
       sourceEmailSource: writeSource,
       title: buildReplySubject(email.subject || t('email_composer.new_message'), t('email_composer.prefix.reply')),
@@ -277,7 +329,7 @@ export function ProEmailView({ emailId, client: clientOverride, clientAccountId,
     if (!email) return;
     openComposeTab({
       mode: 'forward',
-      replyTo: buildReplyContext(email),
+      replyTo: buildReplyContext(email, writeSource),
       sourceEmailId: email.id,
       sourceEmailSource: writeSource,
       title: buildForwardSubject(email.subject || t('email_composer.new_message'), t('email_composer.prefix.forward')),
@@ -316,6 +368,7 @@ export function ProEmailView({ emailId, client: clientOverride, clientAccountId,
         attachments: [payload.attachment],
         headers: labelSourceHeaders(email.headers),
         originalFrom: email.from,
+        accountId: replyLogin(email, writeSource),
       },
       sourceEmailId: email.id,
       sourceEmailSource: writeSource,
@@ -359,6 +412,7 @@ export function ProEmailView({ emailId, client: clientOverride, clientAccountId,
     if (!client || !email) return;
     try {
       if (!(await toggleStar(client, email.id, emailKeyFor(email)))) return;
+      onMailChanged?.();
       // Reflect locally - the viewer re-reads from email-store's selectedEmail
       // shape only for the mail tab; here we update our local copy too.
       setEmail((prev) => prev ? {
@@ -372,12 +426,13 @@ export function ProEmailView({ emailId, client: clientOverride, clientAccountId,
       console.error('Toggle star failed:', err);
       toast.error(tNotifications('error_updating'));
     }
-  }, [client, email, toggleStar, tNotifications]);
+  }, [client, email, toggleStar, tNotifications, onMailChanged]);
 
   const handleMarkAsRead = useCallback(async (emailIdToMark: string, read: boolean, opts?: { automatic?: boolean }) => {
     if (!client) return;
     try {
       if (!(await markAsRead(client, emailIdToMark, read))) return;
+      onMailChanged?.();
       setEmail((prev) => prev && prev.id === emailIdToMark ? {
         ...prev,
         keywords: { ...prev.keywords, $seen: read },
@@ -387,7 +442,7 @@ export function ProEmailView({ emailId, client: clientOverride, clientAccountId,
       // A refused mark-as-read on opening needs no notice (see EmailViewer).
       if (!opts?.automatic) toast.error(tNotifications('error_updating'));
     }
-  }, [client, markAsRead, tNotifications]);
+  }, [client, markAsRead, tNotifications, onMailChanged]);
 
   const handleSetTag = useCallback((emailIdToTag: string, tagId: string | null) => {
     if (!email || email.id !== emailIdToTag) return;
@@ -415,6 +470,33 @@ export function ProEmailView({ emailId, client: clientOverride, clientAccountId,
     setEmail({ ...email, keywords });
   }, [email, setEmailKeywordsLocal]);
 
+  // In a pop-out this message is all there is, so the menu bar's Message menu means it.
+  const inOwnWindow = typeof window !== 'undefined' && isPopoutWindow();
+  const seen = !!email?.keywords?.$seen;
+  // Message > Move to… in a pop-out: the same folder list the command palette opens.
+  const [moveDialogOpen, setMoveDialogOpen] = useState(false);
+  useDesktopCommands({
+    'message.reply': () => handleReply(),
+    'message.replyAll': handleReplyAll,
+    'message.forward': handleForward,
+    'message.markRead': () => { if (email) void handleMarkAsRead(email.id, true); },
+    'message.markUnread': () => { if (email) void handleMarkAsRead(email.id, false); },
+    'message.star': () => void handleToggleStar(),
+    'message.archive': archiveActionEnabled ? () => void handleArchive() : undefined,
+    'message.delete': () => void handleDelete(),
+    'message.move': () => { if (email) setMoveDialogOpen(true); },
+  }, {
+    'message.reply': !!email,
+    'message.replyAll': !!email,
+    'message.forward': !!email,
+    'message.markRead': !!email && !seen,
+    'message.markUnread': !!email && seen,
+    'message.star': !!email,
+    'message.archive': !!email && archiveActionEnabled,
+    'message.delete': !!email,
+    'message.move': !!email,
+  }, inOwnWindow);
+
   const handleMoveToMailbox = useCallback(async (mailboxId: string) => {
     if (!client || !email) return;
     try {
@@ -423,6 +505,29 @@ export function ProEmailView({ emailId, client: clientOverride, clientAccountId,
       console.error('Move failed:', err);
     }
   }, [client, email, moveToMailbox, onClose]);
+
+  // This view's message answers the same keys as a message in the mail tab,
+  // while its tab is the one in front. c comes from the mail page, as on any tab.
+  const isFocusedTab = useIsFocusedProTab();
+  const singleKeyShortcuts = useSettingsStore((s) => s.singleKeyShortcuts);
+  const shortcutEmails = useMemo(() => (email ? [email] : []), [email]);
+  const shortcutHandlers = useMemo(() => ({
+    onReply: () => handleReply(),
+    onReplyAll: handleReplyAll,
+    onForward: handleForward,
+    onToggleStar: () => void handleToggleStar(),
+    onArchive: archiveActionEnabled ? () => void handleArchive() : undefined,
+    onDelete: () => void handleDelete(),
+    onMarkAsUnread: email ? () => void handleMarkAsRead(email.id, false) : undefined,
+    onMarkAsRead: email ? () => void handleMarkAsRead(email.id, true) : undefined,
+  }), [email, handleReply, handleReplyAll, handleForward, handleToggleStar, archiveActionEnabled, handleArchive, handleDelete, handleMarkAsRead]);
+  useKeyboardShortcuts({
+    enabled: isFocusedTab && !!email,
+    singleKeyShortcuts,
+    emails: shortcutEmails,
+    selectedEmailId: email?.id,
+    handlers: shortcutHandlers,
+  });
 
   // An attachment shown in the preview because the message's account turned
   // downloads off (Organisation > Devices); the tab downloads otherwise.
@@ -448,6 +553,8 @@ export function ProEmailView({ emailId, client: clientOverride, clientAccountId,
     return { blob, contentType: preview.type || blob.type };
   }, [preview]);
 
+  const openInWindow = useOpenEmailInWindow();
+
   const handleQuickReply = useCallback(async (body: string) => {
     handleReply(body);
   }, [handleReply]);
@@ -461,17 +568,7 @@ export function ProEmailView({ emailId, client: clientOverride, clientAccountId,
   const handleEditDraft = useCallback(() => {
     if (!email) return;
 
-    // Only the parts the server lists as the body: bodyValues also carries
-    // every text/* ATTACHMENT, which used to be joined in as the message.
-    const bodyText = getDraftTextBody(email);
-    // A plain-text-only draft lists its text/plain part under htmlBody
-    // (RFC 8621 § 4.1.4 fallback) - only treat it as HTML when it really is.
-    const draftHtmlPart = email.htmlBody?.[0];
-    const htmlBody = draftHtmlPart?.partId
-      && (!draftHtmlPart.type || draftHtmlPart.type.toLowerCase() === 'text/html')
-      && email.bodyValues?.[draftHtmlPart.partId]
-      ? email.bodyValues[draftHtmlPart.partId].value
-      : undefined;
+    const { body, bodyText, plainTextMode } = getDraftComposerBody(email);
 
     // Preserve the identity the draft was composed with — match name + address
     // against the same list the composer renders, this login's identities
@@ -493,7 +590,10 @@ export function ProEmailView({ emailId, client: clientOverride, clientAccountId,
         // Drafts saved before #1189 stored an empty subject as the composer's
         // "(No Subject)" placeholder; reopen those with an empty field.
         subject: email.subject && email.subject !== t('email_composer.no_subject') ? email.subject : '',
-        body: htmlBody || bodyText,
+        body,
+        // Re-open in the format the draft was written in, as the classic
+        // view does: without it the composer's setting decided.
+        plainTextMode,
         showCc: (email.cc?.length || 0) > 0,
         showBcc: (email.bcc?.length || 0) > 0,
         selectedIdentityId: matchedIdentityId,
@@ -519,6 +619,7 @@ export function ProEmailView({ emailId, client: clientOverride, clientAccountId,
     <div className={cn("flex h-full flex-col bg-background", className)}>
       <ErrorBoundary fallback={EmailViewerErrorFallback}>
         <EmailViewer
+          noAutomaticActions={noAutomaticActions}
           email={email}
           blobSource={blobSource}
           isLoading={isLoading}
@@ -532,6 +633,7 @@ export function ProEmailView({ emailId, client: clientOverride, clientAccountId,
           onMarkAsRead={handleMarkAsRead}
           onSetTag={handleSetTag}
           onDownloadAttachment={handleDownloadAttachment}
+          onOpenInWindow={openInWindow && email ? () => openInWindow(email) : undefined}
           onQuickReply={handleQuickReply}
           onSaveQuickReplyDraft={handleSaveQuickReplyDraft}
           onEditDraft={handleEditDraft}
@@ -541,9 +643,19 @@ export function ProEmailView({ emailId, client: clientOverride, clientAccountId,
           currentMailboxRole={currentMailboxRole}
           mailboxes={mailboxes}
           className="flex-1"
+          withListSelection={false}
         />
       </ErrorBoundary>
       <ConfirmDialog {...confirmDialogProps} />
+      {inOwnWindow && (
+        <MoveToDialog
+          emails={moveDialogOpen && email ? [email] : []}
+          mailboxes={mailboxes}
+          selectedMailbox=""
+          onClose={() => setMoveDialogOpen(false)}
+          onMove={(mailboxId) => void handleMoveToMailbox(mailboxId)}
+        />
+      )}
       {preview && (
         <FilePreviewModal
           name={preview.name}

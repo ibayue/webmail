@@ -143,6 +143,19 @@ describe('FileBrowser', () => {
     act(() => { useFileStore.setState({ client: null, sharedRoots: [], allFolders: [] }); });
   });
 
+  it('draws the loading listing in the list view, as the page skeleton did', () => {
+    renderBrowser({ resources: [], hasListed: false });
+    expect(screen.getByTestId('files-list-skeleton')).toBeInTheDocument();
+    expect(screen.queryByTestId('files-grid-skeleton')).toBeNull();
+  });
+
+  it('draws the loading listing as tiles when the grid view is picked', () => {
+    act(() => { useSettingsStore.setState({ filesSettings: { ...DEFAULT_FILES_SETTINGS, defaultViewMode: 'grid' } }); });
+    renderBrowser({ resources: [], hasListed: false });
+    expect(screen.getByTestId('files-grid-skeleton')).toBeInTheDocument();
+    expect(screen.queryByTestId('files-list-skeleton')).toBeNull();
+  });
+
   it('lists folders shared with the user at the root and in the sidebar (#1181)', async () => {
     const { onNavigate } = renderBrowser();
     await screen.findAllByText('Team');
@@ -208,7 +221,7 @@ describe('FileBrowser', () => {
     renderBrowser({ resources: [resource(OWN[1])], allFolders: [shared] });
 
     fireEvent.contextMenu(within(tree()).getByText('Documents'));
-    fireEvent.click(await screen.findByRole('menuitem', { name: 'share' }));
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'files_share' }));
 
     expect(await screen.findByTestId('share-dialog')).toHaveTextContent('Documents:p1');
   });
@@ -217,7 +230,7 @@ describe('FileBrowser', () => {
     renderBrowser();
     await screen.findAllByText('Team');
     fireEvent.contextMenu(within(tree()).getByText('Team'));
-    expect(screen.queryByRole('menuitem', { name: 'share' })).toBeNull();
+    expect(screen.queryByRole('menuitem', { name: 'files_share' })).toBeNull();
   });
 
   it('hides dot files unless the setting shows them', () => {
@@ -271,7 +284,7 @@ describe('FileBrowser', () => {
   it('offers new and upload entries on My files in the sidebar', () => {
     renderBrowser();
     fireEvent.contextMenu(within(tree()).getByText('my_files'));
-    for (const name of ['open', 'new_folder', 'new_text_file', 'upload_files', 'upload_folder']) {
+    for (const name of ['open', 'files_new_folder', 'files_new_text_file', 'files_upload_files', 'files_upload_folder']) {
       expect(screen.getByRole('menuitem', { name })).toBeInTheDocument();
     }
   });
@@ -444,7 +457,7 @@ describe('FileBrowser', () => {
     }
     render(<Probe />);
     const files = groups.find((g) => g.label === 'files');
-    expect(files?.commands.map((c) => c.label)).toEqual(expect.arrayContaining(['upload_files', 'new_folder', 'trash']));
+    expect(files?.commands.map((c) => c.label)).toEqual(expect.arrayContaining(['files_upload_files', 'files_new_folder', 'trash']));
 
     fireEvent.keyDown(document.body, { key: '/' });
     expect(document.activeElement).toHaveAttribute('role', 'searchbox');

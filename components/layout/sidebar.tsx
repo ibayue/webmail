@@ -44,6 +44,7 @@ import {
   MoreVertical,
 } from "@/components/icons";
 import { cn, buildMailboxTree, MailboxNode } from "@/lib/utils";
+import { FOLDER_CHEVRON_SLOT, FOLDER_ROW_PX_BASE, FolderRowsSkeleton } from "@/components/boot-skeleton/mail-skeleton";
 import { localizeMailboxName } from "@/lib/mailbox-label";
 import {
   buildKeywordTree,
@@ -60,6 +61,7 @@ import { Mailbox } from "@/lib/jmap/types";
 import { useContextMenu } from "@/hooks/use-context-menu";
 import { useLongPress } from "@/hooks/use-long-press";
 import { useMediaQuery } from "@/hooks/use-media-query";
+import { usePaneSize } from "@/hooks/use-pane-size";
 import { IconButton } from "@/components/ui/icon-button";
 import { MailboxContextMenu, type MailboxContextTarget, type MailboxNotificationActions } from "./mailbox-context-menu";
 import { useAccountStore } from '@/stores/account-store';
@@ -168,8 +170,8 @@ interface SidebarProps {
   onLoginSharedMailboxSelect?: (loginId: string, mailboxId: string) => void;
 }
 
-const ROW_PX_BASE = 8;
-const CHEVRON_SLOT = 20;
+const ROW_PX_BASE = FOLDER_ROW_PX_BASE;
+const CHEVRON_SLOT = FOLDER_CHEVRON_SLOT;
 const INDENT_STEP = 12;
 
 // Icons and colours follow the JMAP role only.
@@ -369,7 +371,6 @@ interface SidebarRowProps {
   isCollapsed: boolean;
   dropHandlers?: Record<string, unknown>;
   isValidDropTarget?: boolean;
-  isInvalidDropTarget?: boolean;
   onContextMenu?: (e: React.MouseEvent) => void;
   /** New mail here does not notify (#1169). */
   muted?: boolean;
@@ -397,7 +398,6 @@ function SidebarRow({
   isCollapsed,
   dropHandlers,
   isValidDropTarget,
-  isInvalidDropTarget,
   onContextMenu,
   muted = false,
   testRole,
@@ -430,11 +430,20 @@ function SidebarRow({
   const longPress = useLongPress((point) => {
     if (rowRef.current && onContextMenu) onContextMenu(menuEventAt(rowRef.current, point));
   }, hasMenu);
+  // The whole row opens the folder, not just its button: the row's padding,
+  // the chevron slot and the space around the count were dead (#1501). The
+  // button stays the keyboard target; controls of their own keep their click.
+  const openFromRow = !isVirtual && onClick
+    ? (e: React.MouseEvent) => {
+        if (!(e.target as Element).closest('button, a, input, [role="button"]')) onClick();
+      }
+    : undefined;
 
   return (
     <div
       ref={rowRef}
       {...(dropHandlers || {})}
+      onClick={openFromRow}
       onContextMenu={onContextMenu}
       onTouchStart={hasMenu ? longPress.onTouchStart : undefined}
       onTouchMove={hasMenu ? longPress.onTouchMove : undefined}
@@ -452,13 +461,15 @@ function SidebarRow({
       className={cn(
         "group w-full flex items-center max-lg:min-h-[44px] text-sm transition-colors duration-150",
         isCollapsed ? "justify-center px-1" : "pe-2",
+        openFromRow && "cursor-pointer select-none",
         isVirtual
           ? "text-muted-foreground"
           : isSelected
             ? "bg-accent text-accent-foreground font-semibold border-s-2 border-primary"
             : "hover:bg-muted/50 text-foreground border-s-2 border-transparent",
-        isValidDropTarget && "bg-primary/20 ring-2 ring-primary ring-inset",
-        isInvalidDropTarget && "bg-destructive/10 ring-2 ring-destructive/30 ring-inset opacity-50"
+        // Only a folder that takes the drop lights up. Elsewhere the pointer
+        // says no (dropEffect none), as in a native mail client.
+        isValidDropTarget && "bg-primary/20 ring-2 ring-primary ring-inset"
       )}
     >
       {!isCollapsed && (
@@ -744,7 +755,7 @@ function MailboxTreeItem({
       : undefined;
 
   const { isDragging: globalDragging } = useDragDropContext();
-  const { dropHandlers, isValidDropTarget, isInvalidDropTarget } = useMailboxDrop({
+  const { dropHandlers, isValidDropTarget } = useMailboxDrop({
     mailbox: node,
     accountId: dragAccountId ?? undefined,
     onSuccess: (count, mailboxName, restore, receipts) => {
@@ -788,7 +799,6 @@ function MailboxTreeItem({
             : undefined
         }
         isValidDropTarget={isValidDropTarget && !pickOnly}
-        isInvalidDropTarget={isInvalidDropTarget && !pickOnly}
         onContextMenu={onContextMenu && !isVirtualNode ? (e) => onContextMenu(e, node) : undefined}
         muted={muted}
       />
@@ -1155,7 +1165,12 @@ function SidebarImpl({
   // list behind it.
   const [railHovered, setRailHovered] = useState(false);
   const hoverExpanded = mvShell && sidebarCollapsed && railHovered;
-  const isCollapsed = sidebarCollapsed && !hoverExpanded;
+  // The rail is a desktop thing. Below that the sidebar is a drawer, opened to
+  // read the folder names, whatever the collapse button last said on a wider window.
+  const paneWidth = usePaneSize();
+  const narrowWindow = useMediaQuery('(width < 64rem)');
+  const isDrawer = paneWidth !== null ? paneWidth < 1024 : narrowWindow;
+  const isCollapsed = sidebarCollapsed && !hoverExpanded && !isDrawer;
   const { primaryIdentity: _primaryIdentity, activeAccountId } = useAuthStore(useShallow((state) => ({ primaryIdentity: state.primaryIdentity, activeAccountId: state.activeAccountId })));
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
   const [expandedTags, setExpandedTags] = useState<Set<string>>(new Set());
@@ -1949,13 +1964,13 @@ function SidebarImpl({
             data-tour="compose-button"
             className={cn(
               "flex items-center bg-[var(--mv-compose-bg)] text-[var(--mv-compose-fg)] hover:shadow-md transition-shadow",
-              isCollapsed ? "w-14 justify-center" : "gap-3 ps-4 pe-6"
+              isCollapsed ? "w-14 justify-center" : "max-w-full gap-[min(0.75rem,12px)] ps-[min(1rem,16px)] pe-[min(1.5rem,24px)]"
             )}
             title={t("compose_hint")}
             aria-label={t("compose")}
           >
             <Pencil className="w-6 h-6 flex-shrink-0" />
-            {!isCollapsed && <span className="text-sm font-medium">{t("compose")}</span>}
+            {!isCollapsed && <span className="min-w-0 truncate text-sm font-medium">{t("compose")}</span>}
           </button>
         </div>
       )}
@@ -2054,8 +2069,11 @@ function SidebarImpl({
                 {((expanded && !isCollapsed) || isCollapsed) && (
                   <>
                     {tree.length === 0 ? (
-                      <div className="px-4 py-2 text-sm text-muted-foreground">
-                        {!isCollapsed && t("loading_mailboxes")}
+                      // The page skeleton's folder rows, so nothing moves when the
+                      // folders arrive (components/boot-skeleton).
+                      <div data-testid="folders-loading">
+                        <span className="sr-only">{t("loading_mailboxes")}</span>
+                        {!isCollapsed && <FolderRowsSkeleton />}
                       </div>
                     ) : (
                       <>
@@ -2120,8 +2138,11 @@ function SidebarImpl({
             {(mvFoldersHeadless || (foldersExpanded && !isCollapsed) || isCollapsed) && (
               <>
                 {mailboxes.length === 0 ? (
-                  <div className="px-4 py-2 text-sm text-muted-foreground">
-                    {!isCollapsed && t("loading_mailboxes")}
+                  // The page skeleton's folder rows, so nothing moves when the
+                  // folders arrive (components/boot-skeleton).
+                  <div data-testid="folders-loading">
+                    <span className="sr-only">{t("loading_mailboxes")}</span>
+                    {!isCollapsed && <FolderRowsSkeleton />}
                   </div>
                 ) : (
                   <>

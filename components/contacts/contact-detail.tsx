@@ -35,6 +35,8 @@ interface ContactDetailProps {
   onPrint?: () => void;
   isMobile?: boolean;
   className?: string;
+  /** In an address book shared read-only: no Edit, Move or Delete. */
+  readOnly?: boolean;
 }
 
 // Contexts and phone features the contact form offers, shown with the same
@@ -74,7 +76,7 @@ function getCompletedYears(dateInput: AnniversaryDate): number | null {
 }
 
 
-export function ContactDetail({ contact, onEdit, onDelete, onAddToGroup, onDuplicate, onMoveTo, onCompose, onPrint, isMobile, className }: ContactDetailProps) {
+export function ContactDetail({ contact, onEdit, onDelete, onAddToGroup, onDuplicate, onMoveTo, onCompose, onPrint, isMobile, className, readOnly = false }: ContactDetailProps) {
   const t = useTranslations("contacts");
   const tCommon = useTranslations("common");
   const locale = useLocale();
@@ -99,7 +101,9 @@ export function ContactDetail({ contact, onEdit, onDelete, onAddToGroup, onDupli
 
   if (!contact) {
     return (
-      <div className={cn("flex flex-col items-center justify-center h-full text-muted-foreground", className)}>
+      <div className={cn("relative flex flex-col items-center justify-center h-full text-muted-foreground", className)}>
+        {/* The window's controls lie over this end, and its empty top is something to drag by. */}
+        <div aria-hidden="true" data-window-top-row="" className="absolute inset-x-0 top-0 h-14" />
         <BookUser className="w-16 h-16 mb-4 opacity-20" />
         <p className="text-sm">{t("detail.no_contact_selected")}</p>
       </div>
@@ -139,7 +143,7 @@ export function ContactDetail({ contact, onEdit, onDelete, onAddToGroup, onDupli
 
   return (
     <div className={cn("flex flex-col h-full overflow-y-auto", className)}>
-      <div className={cn("border-b border-border", isMobile ? "px-4 py-4" : "px-6 py-6")}>
+      <div data-window-top-row="" className={cn("border-b border-border", isMobile ? "px-4 py-4" : "px-6 py-6")}>
         <div className={cn("flex gap-4", isMobile ? "flex-col" : "flex-wrap items-start justify-between")}>
           <div className={cn("flex items-center gap-4 min-w-0 flex-1", !isMobile && "basis-60")}>
             <Avatar name={name} email={email} contactPhoto={photo} size={isMobile ? "md" : "lg"} />
@@ -153,7 +157,8 @@ export function ContactDetail({ contact, onEdit, onDelete, onAddToGroup, onDupli
               )}
             </div>
           </div>
-          <div className="flex items-center gap-1.5 flex-shrink-0 flex-wrap">
+          {/* May not grow past the pane: in a narrow one the buttons at the end were pushed out of reach. */}
+          <div className="flex items-center gap-1.5 max-w-full flex-wrap">
             {email && onCompose && (
               <Button variant="outline" size="xs" onClick={onCompose} className="gap-1.5 touch-manipulation">
                 <Send />
@@ -169,11 +174,19 @@ export function ContactDetail({ contact, onEdit, onDelete, onAddToGroup, onDupli
                 {t("context_menu.call")}
               </a>
             )}
-            <Button variant="outline" size="xs" onClick={onEdit} className="gap-1.5 touch-manipulation">
-              <Pencil />
-              {t("form.edit_title")}
-            </Button>
-            {onPrint && (
+            {/* A phone's row has no room for this label: the ⋮ fell onto a line of its own. */}
+            {readOnly ? null : isMobile ? (
+              <ToolbarButton label={t("form.edit_title")} onClick={onEdit} className="touch-manipulation">
+                <Pencil />
+              </ToolbarButton>
+            ) : (
+              <Button variant="outline" size="xs" onClick={onEdit} className="gap-1.5 touch-manipulation">
+                <Pencil />
+                {t("form.edit_title")}
+              </Button>
+            )}
+            {/* On a phone it stays in the ⋮, which has Print too. */}
+            {onPrint && !isMobile && (
               <ToolbarButton label={tCommon("print")} onClick={onPrint} className="touch-manipulation">
                 <Printer />
               </ToolbarButton>
@@ -196,6 +209,7 @@ export function ContactDetail({ contact, onEdit, onDelete, onAddToGroup, onDupli
                 onClose={moreMenu.closeContextMenu}
                 menuRef={moreMenu.menuRef}
                 inDetail
+                readOnly={readOnly}
                 onCompose={onCompose}
                 onDelete={onDelete}
                 onAddToGroup={onAddToGroup}

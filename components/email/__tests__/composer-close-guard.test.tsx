@@ -1,5 +1,6 @@
+import { PaneIdContext } from '@/hooks/use-pane-context';
 import { render, screen, fireEvent, waitFor, act, within } from '@testing-library/react';
-import { beforeEach, describe, it, expect, vi } from 'vitest';
+import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest';
 import React from 'react';
 import { EmailComposer } from '../email-composer';
 import { useAuthStore } from '@/stores/auth-store';
@@ -183,6 +184,32 @@ vi.mock('@/lib/template-utils', () => ({ substitutePlaceholders: (s: string) => 
 
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
+describe('a message row dragged over the composer', () => {
+  const rowDrag = { types: ['application/x-email-ids', 'text/plain'], files: [], getData: () => 'Subject of the row', dropEffect: '' };
+  const subjectField = () => screen.getByDisplayValue('Half-written');
+  const draft = {
+    to: '', cc: '', bcc: '', subject: 'Half-written', body: '', showCc: false, showBcc: false,
+    selectedIdentityId: 'id-me', subAddressTag: '', mode: 'compose' as const, draftId: null,
+  };
+
+  it('is stopped in the standard shell, or Subject would take the row\'s subject', () => {
+    render(<EmailComposer initialData={draft} onClose={vi.fn()} />);
+    // fireEvent returns false when the event's default was prevented.
+    expect(fireEvent.dragOver(subjectField(), { dataTransfer: rowDrag })).toBe(false);
+    expect(fireEvent.drop(subjectField(), { dataTransfer: rowDrag })).toBe(false);
+  });
+
+  it('is left to the shell inside a Pro pane', () => {
+    render(
+      <PaneIdContext.Provider value="main">
+        <EmailComposer initialData={draft} onClose={vi.fn()} />
+      </PaneIdContext.Provider>,
+    );
+    expect(fireEvent.dragOver(subjectField(), { dataTransfer: rowDrag })).toBe(true);
+    expect(fireEvent.drop(subjectField(), { dataTransfer: rowDrag })).toBe(true);
+  });
+});
+
 /**
  * A host that replaces the compose session - a mailto: click, say - must not
  * drop text the user has not sent. It hands a follow-up to requestCloseRef and
@@ -233,6 +260,39 @@ describe('composer close guard with a follow-up', () => {
 
     expect(await screen.findByText('close_draft_title')).toBeInTheDocument();
     expect(afterClose).not.toHaveBeenCalled();
+  });
+
+  describe('in the desktop app', () => {
+    afterEach(() => {
+      window.bulwarkDesktop = undefined;
+    });
+
+    const nativeBridge = (answer: number) => {
+      const confirm = vi.fn(async () => answer);
+      window.bulwarkDesktop = { version: 1, platform: 'win32', dialogs: { confirm } } as never;
+      return confirm;
+    };
+
+    it('asks through the OS, and shows no dialog of its own', async () => {
+      const confirm = nativeBridge(2);
+      const { requestCloseRef, afterClose, onClose } = renderWithCloseRef();
+      act(() => requestCloseRef.current!(afterClose));
+      await waitFor(() => expect(confirm).toHaveBeenCalledTimes(1));
+      expect(confirm.mock.calls[0]).toMatchObject([{ message: 'close_draft_title', buttons: ['save', 'discard', 'cancel'], defaultId: 0 }]);
+      expect(screen.queryByText('close_draft_title')).not.toBeInTheDocument();
+      // The last button is Cancel: nothing happens.
+      await act(async () => {});
+      expect(onClose).not.toHaveBeenCalled();
+      expect(afterClose).not.toHaveBeenCalled();
+    });
+
+    it('Discard discards, and the follow-up runs', async () => {
+      nativeBridge(1);
+      const { requestCloseRef, afterClose, onClose } = renderWithCloseRef();
+      act(() => requestCloseRef.current!(afterClose));
+      await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
+      await waitFor(() => expect(afterClose).toHaveBeenCalledTimes(1));
+    });
   });
 
   it('runs the follow-up after discarding', async () => {

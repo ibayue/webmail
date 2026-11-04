@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef, useMemo, useId } from "react";
+import { useCloseBesideControls } from "@/hooks/use-close-beside-controls";
 import { useTranslations, useLocale } from "next-intl";
 import { toast } from "@/stores/toast-store";
 import { Button } from "@/components/ui/button";
@@ -9,6 +10,7 @@ import { LinkifiedText } from "@/components/ui/linkified-text";
 import { X, Trash2, Users, CalendarDays, CopyPlus, Pencil, Clock, MapPin, Video, Repeat, Bell, AlignLeft, AlertTriangle, MoreVertical } from "@/components/icons";
 import { IconButton } from "@/components/ui/icon-button";
 import { findMeetingLink, locationAction, mapsUrl, primaryLocationName } from "@/lib/event-links";
+import { descriptionAsText, isHtmlDescription, plainDescriptionFields } from "@/lib/calendar-description";
 import { ParticipantStatusBadge } from "./rsvp-buttons";
 import { format, parseISO, addHours, isSameDay } from "date-fns";
 import type { CalendarEvent, Calendar, CalendarParticipant, CalendarEventAlert, CalendarRecurrenceRule } from "@/lib/jmap/types";
@@ -277,6 +279,9 @@ export function EventModal({
   const labelIdBase = useId();
   const labelFor = (key: string) => `${labelIdBase}-${key}`;
   const tCommon = useTranslations("common");
+  // The header's close goes to its start when the window's own close is at its end.
+  const [header, setHeader] = useState<HTMLDivElement | null>(null);
+  const closeFirst = useCloseBesideControls(header);
   const locale = useLocale();
   const timeFormat = useSettingsStore((s) => s.timeFormat);
   const timeDisplayFmt = timeFormat === "12h" ? "h:mm a" : "HH:mm";
@@ -287,7 +292,7 @@ export function EventModal({
   const isPaneScoped = useIsPaneScoped();
   const mobileRootClass = isPaneScoped
     ? "absolute inset-0 z-40 flex flex-col bg-background"
-    : "fixed inset-0 z-50 flex flex-col bg-background";
+    : "fixed inset-0 z-50 flex flex-col bg-background pt-[var(--titlebar-inset)]";
   const isEdit = !!event;
   const formatEventDate = useFormatEventDate();
   const [mode, setMode] = useState<"view" | "edit">(isEdit && !startInEditMode ? "view" : "edit");
@@ -371,7 +376,9 @@ export function EventModal({
   };
 
   const [title, setTitle] = useState(event?.title || defaultTitle || "");
-  const [description, setDescription] = useState(event?.description || "");
+  // An HTML description is shown and edited as its text.
+  const eventDescription = useMemo(() => (event ? descriptionAsText(event) : ""), [event]);
+  const [description, setDescription] = useState(eventDescription);
   const [location, setLocation] = useState(
     event?.locations ? Object.values(event.locations)[0]?.name || "" : ""
   );
@@ -788,8 +795,11 @@ export function EventModal({
     // On an existing event the empty string is how a description gets cleared, but
     // sending it on creation writes a `DESCRIPTION:` with nothing after it — which
     // invitation e-mails then render as a "Description" heading over blank space.
-    if (trimmedDescription || event) {
-      data.description = trimmedDescription;
+    // An HTML description the user did not touch stays as it was; one they
+    // edited is saved as the plain text it now is.
+    const keepsHtml = !!event && isHtmlDescription(event) && trimmedDescription === eventDescription.trim();
+    if ((trimmedDescription || event) && !keepsHtml) {
+      Object.assign(data, plainDescriptionFields(event, trimmedDescription));
     }
 
     if (!event) {
@@ -938,7 +948,7 @@ export function EventModal({
       savingRef.current = false;
       setIsSaving(false);
     }
-  }, [title, description, location, virtualLocation, startDate, startTime, endDate, endTime, allDay, calendarId, calendars, recurrence, customRule, useDefaultAlerts, defaultAlerts, alertRows, preservedAlerts, attendees, initialAttendees, sendInvitations, currentUserEmails, userIsOrganizer, resolveContactName, event, onSave, isSaving, t]);
+  }, [title, description, location, virtualLocation, startDate, startTime, endDate, endTime, allDay, calendarId, calendars, recurrence, customRule, useDefaultAlerts, defaultAlerts, alertRows, preservedAlerts, attendees, initialAttendees, sendInvitations, currentUserEmails, userIsOrganizer, resolveContactName, event, eventDescription, onSave, isSaving, t]);
 
   // The user's own answer, and the owner's in a calendar shared with them
   // (lib/calendar-delegate.ts).
@@ -1025,13 +1035,20 @@ export function EventModal({
     const eventCalendar = calendars.find(c => event.calendarIds[c.id]);
     const color = paint(getEventColor(event, eventCalendar));
 
+    const viewClose = (
+      <IconButton label={tCommon("close")} onClick={onClose} className="flex-shrink-0 mt-0.5 text-muted-foreground">
+        <X />
+      </IconButton>
+    );
+
     return (
       <div ref={modalRef} role="dialog" aria-modal={isMobile || undefined} aria-label={event.title || t("events.no_title")} className={isMobile ? mobileRootClass : "flex flex-col h-full bg-background"}>
         {/* Color accent bar */}
         <div className="h-1 w-full flex-shrink-0" style={{ backgroundColor: color }} />
 
         {/* Header */}
-        <div className="flex items-start justify-between gap-2 px-6 py-4 border-b border-border flex-shrink-0">
+        <div ref={setHeader} data-window-top-row="" className="flex items-start justify-between gap-2 px-6 py-4 border-b border-border flex-shrink-0">
+          {closeFirst && viewClose}
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
@@ -1046,9 +1063,7 @@ export function EventModal({
               <MoreVertical />
             </IconButton>
           )}
-          <IconButton label={tCommon("close")} onClick={onClose} className="flex-shrink-0 mt-0.5 text-muted-foreground">
-            <X />
-          </IconButton>
+          {!closeFirst && viewClose}
         </div>
 
         {/* Content */}
@@ -1189,11 +1204,11 @@ export function EventModal({
             )}
 
             {/* Description */}
-            {event.description && (
+            {eventDescription && (
               <div className="flex items-start gap-2.5">
                 <AlignLeft className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
                 <p className="text-sm text-muted-foreground whitespace-pre-line break-words">
-                  <LinkifiedText text={event.description} />
+                  <LinkifiedText text={eventDescription} />
                 </p>
               </div>
             )}
@@ -1239,15 +1254,20 @@ export function EventModal({
     );
   }
 
+  const editClose = (
+    <IconButton label={tCommon("close")} onClick={requestClose} className="flex-shrink-0 text-muted-foreground">
+      <X />
+    </IconButton>
+  );
+
   return (
     <div ref={modalRef} role="dialog" aria-modal={isMobile || undefined} aria-label={isEdit ? t("events.edit") : t("events.create")} data-tour="event-modal" className={isMobile ? mobileRootClass : "flex flex-col h-full bg-background"}>
-      <div className="flex items-center justify-between px-6 py-4 border-b border-border flex-shrink-0">
-        <h2 className="text-lg font-semibold">
+      <div ref={setHeader} data-window-top-row="" className="flex items-center gap-2 px-6 py-4 border-b border-border flex-shrink-0">
+        {closeFirst && editClose}
+        <h2 className="min-w-0 flex-1 text-lg font-semibold">
           {isEdit ? t("events.edit") : t("events.create")}
         </h2>
-        <IconButton label={tCommon("close")} onClick={requestClose} className="flex-shrink-0 text-muted-foreground">
-          <X />
-        </IconButton>
+        {!closeFirst && editClose}
       </div>
 
       <div className="flex-1 overflow-y-auto">

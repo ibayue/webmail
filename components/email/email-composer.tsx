@@ -1,8 +1,10 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useCloseBesideControls } from "@/hooks/use-close-beside-controls";
 import { useMvComposeWindow } from "@/components/email/mv-compose-context";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
+import { isServerOutage } from "@/lib/jmap/offline-hooks";
 import { Button, TOUCH_HIT_AREA } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Dialog } from "@/components/ui/dialog";
@@ -14,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import {
   X,
   Paperclip,
+  FilePen,
   Send,
   Save,
   Check,
@@ -54,6 +57,7 @@ import { debug } from "@/lib/debug";
 import { toast } from "@/stores/toast-store";
 import { useContextMenu, isContextMenuKey } from "@/hooks/use-context-menu";
 import { ContextMenu, ContextMenuItem, ContextMenuSeparator } from "@/components/ui/context-menu";
+import { formatShortcutCombo } from "@/lib/shortcut-keys";
 import { sanitizeSignatureHtml, sanitizeSignatureHtmlForDisplay, sanitizeEmailHtml, escapeHtml, sanitizePluginBodyHtml } from "@/lib/email-sanitization";
 import { buildReplySubject, buildForwardSubject } from "@/lib/subject-prefix";
 import { isFilePreviewable } from "@/lib/file-preview";
@@ -78,7 +82,9 @@ import { useIdentityStore } from "@/stores/identity-store";
 import { useProMultiAccountIdentities, stripCrossAccountIdentityPrefix } from "@/hooks/use-pro-multi-account-identities";
 import { useAccountStore } from "@/stores/account-store";
 import { useSettingsStore } from "@/stores/settings-store";
-import { ComposerPluginSidebar, useComposerSidebars } from "./composer-plugin-sidebars";
+import { ComposerPanelToggle, ComposerPluginSidebar, useComposerSidebars } from "./composer-plugin-sidebars";
+import { dragKindFromTypes } from "@/components/pro/pro-shell-drop";
+import { useIsPaneScoped } from "@/hooks/use-pane-context";
 import { ComposerSelectionMenu, useComposerSelectionMenu } from "./composer-selection-menu";
 import { PluginSlot } from "@/components/plugins/plugin-slot";
 import { usePluginSlotOffers } from "@/hooks/use-plugin-slot-offers";
@@ -89,6 +95,8 @@ import { FilePickerDialog } from "@/components/files/file-picker-dialog";
 import { DirectoryPickerDialog } from "@/components/contacts/directory-picker-dialog";
 import type { DirectoryEntry } from "@/stores/contact-store";
 import type { IJMAPClient } from "@/lib/jmap/client-interface";
+import { isStandInId } from "@/lib/jmap/stand-in-ids";
+import { noteDraftReplacedElsewhere } from "@/lib/offline/queue";
 import type { FileNode } from "@/lib/jmap/types";
 import { useContactStore, getContactDisplayName, getContactPrimaryEmail } from "@/stores/contact-store";
 import { renderTemplateWithPlugins, notifyTemplateApplied } from "@/stores/template-store";
@@ -103,7 +111,7 @@ import { OrgDisclaimerPreview } from "@/components/email/org-disclaimer-preview"
 import "@/lib/org/outgoing";
 import { SubAddressHelper } from "@/components/identity/sub-address-helper";
 import { generateSubAddress } from "@/lib/sub-addressing";
-import { substitutePlaceholders, spliceTemplateAboveSignature, composeBodyHasUserContent } from "@/lib/template-utils";
+import { substitutePlaceholders, spliceTemplateAboveSignature, composeBodyHasUserContent, embedTemplateImages } from "@/lib/template-utils";
 import { findUnfilledPlaceholders, stripEmbeddedSignatureHtml } from "@/lib/placeholder-check";
 import enMessages from "@/locales/en/common.json";
 import { TemplatePicker } from "@/components/templates/template-picker";
@@ -155,13 +163,35 @@ import { announce as announceStatus } from "@/lib/announce";
 import { isReportPart, normalizeCid } from "@/lib/attachment-visibility";
 import { unnamedAttachmentName } from "@/lib/attachment-name";
 import { RichTextEditor } from "@/components/email/rich-text-editor";
+import { useProofreading } from "@/components/email/proofreading/use-proofreading";
+import { IssuePopup } from "@/components/email/proofreading/issue-popup";
+import { ProofreadingStatus } from "@/components/email/proofreading/proofreading-status";
+import { ProofreadingNotice } from "@/components/email/proofreading/proofreading-notice";
+import { issueRect } from "@/components/email/proofreading/text-check-extension";
 import { isRecipientMentionActive } from "@/components/email/recipient-mention";
 import type { Editor } from "@tiptap/react";
 import { htmlToPlainText as htmlToPlainTextShared } from "@/lib/html-to-text";
 import { fileStorage } from "@/lib/plugin-storage";
 import { usePolicyStore } from "@/stores/policy-store";
-import { registerComposeFlush } from "@/lib/compose-flush-registry";
+import { isAppLockedNow } from "@/lib/app-lock/state";
+import { registerComposeFlush, registerComposeSnapshot } from "@/lib/compose-flush-registry";
+import { getDesktopBridge } from "@/lib/desktop/bridge";
+import { useDesktopCommands } from "@/lib/desktop/commands";
+import { noteComposerLanguage } from "@/lib/desktop/languages";
+import { noteOpenDraft } from "@/lib/desktop/window-restore";
+import type { RescuedDraft } from "@/lib/popout/channel";
 import { toUnicodeEmail } from "@/lib/idn";
+import { setComposerFileTarget } from "@/lib/desktop/window-files";
+import { useComposerEdits } from "@/hooks/use-composer-edits";
+
+// A Pro tab, message or folder dragged across a composer tab is on its way to
+// the pane or the split edge: those drags belong to the shell. There is no shell
+// outside Pro, and the composer stops them like any other drag: a message row
+// carries its subject as text, which To and Subject would take.
+function useIsShellDrag() {
+  const isPaneScoped = useIsPaneScoped();
+  return useCallback((e: React.DragEvent) => isPaneScoped && dragKindFromTypes(e.dataTransfer.types) !== null, [isPaneScoped]);
+}
 
 /**
  * Derives the text/plain alternative from the composer's HTML body, preserving
@@ -208,7 +238,16 @@ function createChipDragPreview(label: string): HTMLElement {
 // inserts as a single chip and expands into its members on send.
 type SuggestionItem = { name: string; email: string; group?: { id: string; memberCount: number } };
 
+// Which `initialFiles` arrays are attached: a remount gets the same array.
+const attachedInitialFiles = new WeakSet<File[]>();
+
 export interface ComposerDraftData {
+  /**
+   * Handed in from outside (a share, the desktop app) and not touched yet.
+   * It is only where the composer starts: no draft on the server until the
+   * user's first real edit.
+   */
+  unedited?: boolean;
   to: string;
   cc: string;
   bcc: string;
@@ -242,7 +281,11 @@ export interface ComposerDraftData {
    * File). Without these the composer starts with zero attachments and the
    * next save/send rebuilds the draft without them - silent data loss (#849).
    */
-  attachments?: Array<{ blobId: string; name?: string; type?: string; size: number; cid?: string; disposition?: string; sourceAccountId?: string }>;
+  attachments?: Array<{ blobId: string; name?: string; type?: string; size: number; cid?: string; disposition?: string; sourceAccountId?: string; editBlocked?: boolean }>;
+  /** The send options picked so far; absent, the defaults. Carried to another window. */
+  requestReadReceipt?: boolean;
+  requestDsn?: boolean;
+  requireTls?: boolean;
   /** When set, overrides the header From: and the envelope MAIL FROM, where the server allows it. */
   fromOverrideEmail?: string;
   fromOverrideName?: string;
@@ -273,6 +316,15 @@ export interface ComposerDraftData {
    * an automatic sign-out saves them (lib/compose-flush-registry.ts).
    */
   unsaved?: boolean;
+}
+
+/** The window a draft moves to; see EmailComposerProps.popOut. */
+export interface ComposerPopOut {
+  /** True once the composer is on screen there. Until then this one keeps the text. */
+  handOver(data: ComposerDraftData): Promise<boolean>;
+  cancel(): void;
+  /** What to say when handOver answered false, if not that the new window was late. */
+  notShownMessage?: () => string;
 }
 
 interface EmailComposerProps {
@@ -338,6 +390,37 @@ interface EmailComposerProps {
    */
   onDiscardDraft?: (draftId: string, draft?: { accountId?: string; localAccountId?: string }) => void;
   onSaveState?: (data: ComposerDraftData) => void;
+  /**
+   * Offers "Open in new window". Called in the click, since a browser only
+   * opens a window for a user action: the host opens it and answers with what
+   * takes the draft, or null when no window opened. The composer then saves,
+   * hands the draft over under the same draft id, and closes here.
+   */
+  popOut?: () => ComposerPopOut | null;
+  /** The move goes back to the main window: the button says that, and shows at any width. */
+  popOutToMainLabel?: string;
+  /**
+   * This composer is all a window shows (lib/popout). It closes itself once a
+   * message has gone. Closing the window with unsaved text hands the draft to
+   * another window to save, or asks first when there is none.
+   */
+  ownWindow?: {
+    /** The state as the window unloads, for a reload to start from. */
+    onUnloadState?: (data: ComposerDraftData) => void;
+    /**
+     * A save reached the server, for other windows showing the Drafts folder and for a
+     * reload to find it. `accountId`: the account it lives in, when not the own one.
+     * `localAccountId`: the login it was saved through.
+     */
+    onDraftSaved?: (draftId: string, where: { accountId?: string; localAccountId?: string }) => void;
+    /**
+     * Hands a draft to another window to save as this one closes: a request
+     * started now wouldn't survive. False when that can't be done safely.
+     */
+    rescueDraft?: (draft: RescuedDraft) => boolean;
+  };
+  /** The subject as typed, for a host that shows it (a Pro compose tab's title). */
+  onSubjectChange?: (subject: string) => void;
   className?: string;
   initialDraftText?: string;
   initialData?: ComposerDraftData | null;
@@ -355,6 +438,12 @@ interface EmailComposerProps {
   sessionKey?: string;
   /** Id of the message being replied to or forwarded, for onComposerOpen. */
   sourceEmailId?: string;
+  /**
+   * Files to attach when the composer opens, from a share or a launch (see
+   * lib/launch-handoff.ts). They go through the same checks as a picked file.
+   * Attached once per array, also when the composer remounts with it.
+   */
+  initialFiles?: File[] | null;
   mode?: 'compose' | 'reply' | 'replyAll' | 'forward';
   /**
    * Email of the mailbox/account the user is viewing when they start a new
@@ -397,6 +486,8 @@ interface EmailComposerProps {
     quoteWrapInBlockquote?: boolean;
     /** The original's headers: a reply or forward starts with its classification label. */
     headers?: Record<string, string | string[]>;
+    /** The original carries the phishing mark: its forwarded parts stay out of the desktop app's Edit. */
+    phishingMarked?: boolean;
     /** The original's From, when `from` is left out (a forward as attachment): whether its label counts. */
     originalFrom?: { email?: string; name?: string }[];
   };
@@ -404,10 +495,14 @@ interface EmailComposerProps {
 
 type ComposerAttachment = {
   file?: File;
+  // The desktop app's Edit: which session's file this is. See useComposerEdits.
+  editSessionId?: string;
   // Login whose server holds `blobId`, set for parts of the original message
   // on a forward - the message may go out through another account, which
   // cannot resolve them. See rehomeForeignBlobs.
   sourceAccountId?: string;
+  // From a message marked as phishing: stays out of the desktop app's Edit.
+  editBlocked?: boolean;
   name: string;
   type: string;
   size: number;
@@ -484,9 +579,14 @@ export function EmailComposer({
   requestCloseRef,
   onDiscardDraft,
   onSaveState,
+  popOut,
+  popOutToMainLabel,
+  ownWindow,
+  onSubjectChange,
   className,
   initialDraftText: initialDraftTextProp,
   initialData: initialDataProp,
+  initialFiles,
   prefill,
   sessionKey,
   sourceEmailId,
@@ -495,11 +595,17 @@ export function EmailComposer({
   replyTo
 }: EmailComposerProps) {
   const t = useTranslations('email_composer');
+  const tMenu = useTranslations('menuAudit');
   const tCommon = useTranslations('common');
+  const tWindows = useTranslations('pwaWindows');
   const tQuote = useTranslations('quote_header');
   const tViewer = useTranslations('email_viewer');
   const tClassification = useTranslations('classification');
+  const tEdit = useTranslations('desktopEdit');
+  const tProofreading = useTranslations('proofreading');
+  const tOfflineDrafts = useTranslations('offlineDrafts');
   const tOffline = useTranslations('offline');
+  const tOfflineNotes = useTranslations('offlineConflicts');
   const tSendGuards = useTranslations('send_guards');
   const timeFormat = useSettingsStore((state) => state.timeFormat);
   const plainTextModeDefault = useSettingsStore((state) => state.plainTextMode);
@@ -509,6 +615,10 @@ export function EmailComposer({
   const [plainTextMode, setPlainTextMode] = useState<boolean>(
     () => initialDataProp?.plainTextMode ?? plainTextModeDefault
   );
+  // The format right now, for async work that writes into the body after an
+  // await: the user may have switched it meanwhile.
+  const plainTextModeRef = useRef(plainTextMode);
+  plainTextModeRef.current = plainTextMode;
   // A plugin's onBeforeCompose prefill (plain text body) folded into what the
   // composer starts from: over `initialData` when the host hands one in (a
   // mailto:, a re-opened draft), otherwise over the fields built below.
@@ -779,10 +889,13 @@ export function EmailComposer({
           : (from.email || from.name || tCommon('unknown')))
       : tCommon('unknown');
 
+    // Like a new mail, an empty line above the signature gives the cursor a
+    // place for the reply. Without it the reply started on the "-- " line (#1503).
     const signatureBlock = buildEmbeddedSignatureHtml(initialSignatureIdentity, {
       embed: shouldEmbedSignatureAboveQuote,
       separator: signatureSeparatorEnabled,
     });
+    const head = `${prefix || (signatureBlock ? '<p></p>' : '')}${signatureBlock}`;
 
     // Whether the quoted original may show its remote images in the editor:
     // the viewer's rule, minus the per-message "load" click it doesn't know.
@@ -806,7 +919,7 @@ export function EmailComposer({
           rewriteCidImagesForEditor(sanitizeEmailHtml(replyTo.htmlBody)),
           { remoteAllowed: quoteRemoteAllowed, showQuoteBorder: replyTo.quoteWrapInBlockquote !== false },
         );
-        return `${prefix}${signatureBlock}<br>${replyHeader(replyTo.quoteHeaderHtml)}${island}`;
+        return `${head}<br>${replyHeader(replyTo.quoteHeaderHtml)}${island}`;
       }
       const escaped = replyTo.body
         ? replyTo.body.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>')
@@ -815,7 +928,7 @@ export function EmailComposer({
       const bodyHtml = wrap
         ? `<blockquote style="margin:0 0 0 0.8ex;border-left:2px solid #ccc;padding-left:1ex">${escaped}</blockquote>`
         : escaped;
-      return `${prefix}${signatureBlock}<br>${replyHeader(replyTo.quoteHeaderHtml)}${bodyHtml}`;
+      return `${head}<br>${replyHeader(replyTo.quoteHeaderHtml)}${bodyHtml}`;
     }
 
     // Build quoted content as HTML
@@ -833,15 +946,15 @@ export function EmailComposer({
         rewriteCidImagesForEditor(sanitizeEmailHtml(replyTo.htmlBody)),
         { remoteAllowed: quoteRemoteAllowed },
       );
-      return `${prefix}${signatureBlock}<br>${replyHeader(`<div>${quoteHeader}</div>`)}${island}`;
+      return `${head}<br>${replyHeader(`<div>${quoteHeader}</div>`)}${island}`;
     }
 
     if (replyTo.body) {
       const escapedOriginal = replyTo.body.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>');
       if (mode === 'forward') {
-        return `${prefix}${signatureBlock}<br><br>${tQuote('forwarded_separator')}<br>${tQuote('from_label')}: ${escapeHtml(fromStrFull)}<br>${tQuote('date_label')}: ${escapeHtml(date)}<br>${tQuote('subject_label')}: ${escapeHtml(replyTo.subject || '')}<br><br>${escapedOriginal}`;
+        return `${head}<br><br>${tQuote('forwarded_separator')}<br>${tQuote('from_label')}: ${escapeHtml(fromStrFull)}<br>${tQuote('date_label')}: ${escapeHtml(date)}<br>${tQuote('subject_label')}: ${escapeHtml(replyTo.subject || '')}<br><br>${escapedOriginal}`;
       } else if (mode === 'reply' || mode === 'replyAll') {
-        return `${prefix}${signatureBlock}<br><br>${replyHeader(`<p>${tQuote('reply_line', { date: escapeHtml(date), from: escapeHtml(fromStrFull) })}<br></p>`)}<blockquote style="margin:0 0 0 0.8ex;border-left:2px solid #ccc;padding-left:1ex">${escapedOriginal}</blockquote>`;
+        return `${head}<br><br>${replyHeader(`<p>${tQuote('reply_line', { date: escapeHtml(date), from: escapeHtml(fromStrFull) })}<br></p>`)}<blockquote style="margin:0 0 0 0.8ex;border-left:2px solid #ccc;padding-left:1ex">${escapedOriginal}</blockquote>`;
       }
     }
     return prefix;
@@ -960,11 +1073,11 @@ export function EmailComposer({
     input.trim() ? [...chips, parseRecipient(input)] : chips;
   const [isDraggingChipOverCc, setIsDraggingChipOverCc] = useState(false);
   const [isDraggingChipOverBcc, setIsDraggingChipOverBcc] = useState(false);
-  const [requestReadReceipt, setRequestReadReceipt] = useState(requestReadReceiptDefault);
+  const [requestReadReceipt, setRequestReadReceipt] = useState(initialData?.requestReadReceipt ?? requestReadReceiptDefault);
   // SMTP submission options, offered only when the server advertises the
   // extension (RFC 8621 §1.3 submissionExtensions).
-  const [requestDsn, setRequestDsn] = useState(false);
-  const [requireTls, setRequireTls] = useState(false);
+  const [requestDsn, setRequestDsn] = useState(initialData?.requestDsn ?? false);
+  const [requireTls, setRequireTls] = useState(initialData?.requireTls ?? false);
   // Message priority (#970): normal writes no header at all.
   const [priority, setPriority] = useState<MessagePriority>(initialData?.priority ?? 'normal');
   const priorityRef = useRef(priority);
@@ -981,6 +1094,8 @@ export function EmailComposer({
   const [draftLocalAccountId, setDraftLocalAccountId] = useState<string | undefined>(initialData?.draftLocalAccountId);
   const draftLocalAccountIdRef = useRef<string | undefined>(initialData?.draftLocalAccountId);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  // The last save stayed on this device: the server wasn't there.
+  const [savedOnDevice, setSavedOnDevice] = useState(false);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const saveCloseAttemptRef = useRef<{ cancelled: boolean; saving: boolean } | null>(null);
   const [isSavingAndClosing, setIsSavingAndClosing] = useState(false);
@@ -1020,6 +1135,7 @@ export function EmailComposer({
           // A forward stashed before its first save still holds the original
           // account's blobs: keep the tag so they are copied before saving.
           ...(att.sourceAccountId ? { sourceAccountId: att.sourceAccountId } : {}),
+          ...(att.editBlocked ? { editBlocked: true } : {}),
           fromDraftPart: true,
         }));
     }
@@ -1048,6 +1164,7 @@ export function EmailComposer({
           size: att.size,
           blobId: att.blobId,
           sourceAccountId: att.sourceAccountId ?? sourceAccountId ?? undefined,
+          ...(replyTo.phishingMarked ? { editBlocked: true } : {}),
         }));
     }
     return [];
@@ -1095,6 +1212,9 @@ export function EmailComposer({
   const [emptySubjectDelayedUntil, setEmptySubjectDelayedUntil] = useState<string | undefined>();
   const [emptySubjectDontAskAgain, setEmptySubjectDontAskAgain] = useState(false);
   const [showPlaceholderWarning, setShowPlaceholderWarning] = useState(false);
+  // A proofreading checker asked to warn before sending with open issues.
+  const [proofreadingWarning, setProofreadingWarning] = useState<{ count: number; delayedUntil?: string } | null>(null);
+  const proofreadingConfirmedRef = useRef(false);
   const [placeholderWarningMatches, setPlaceholderWarningMatches] = useState<string[]>([]);
   const [placeholderWarningDelayedUntil, setPlaceholderWarningDelayedUntil] = useState<string | undefined>();
   const [placeholderDontAskAgain, setPlaceholderDontAskAgain] = useState(false);
@@ -1744,6 +1864,16 @@ export function EmailComposer({
     }
     changeVersionRef.current += 1;
   }, [toStr, ccStr, bccStr, subject, body, attachments.length]);
+  // Handed-in text and files aren't the user's until they touch them. Nothing
+  // counts as dirty until then, so autosave, the page-close save and the flush
+  // before a sign-out all leave them alone.
+  const uneditedRef = useRef(initialData?.unedited === true);
+  const [firstEditSeen, setFirstEditSeen] = useState(false);
+  const markEdited = useCallback(() => {
+    if (!uneditedRef.current) return;
+    uneditedRef.current = false;
+    setFirstEditSeen(true);
+  }, []);
   const isDirtyRef = useRef(false);
   isDirtyRef.current = toStr !== initialValuesRef.current.to || ccStr !== initialValuesRef.current.cc ||
     bccStr !== initialValuesRef.current.bcc || subject !== initialValuesRef.current.subject ||
@@ -1755,6 +1885,26 @@ export function EmailComposer({
   if (priority !== initialPriorityRef.current) isDirtyRef.current = true;
   const initialLabelChoiceRef = useRef(classification.choice);
   if (classification.choice !== initialLabelChoiceRef.current) isDirtyRef.current = true;
+  // Text the host handed in is no edit to hand back: it has its own copy, and a
+  // stand-in mounted before the edits arrived must not overwrite them.
+  const hasEditsRef = useRef(false);
+  hasEditsRef.current = isDirtyRef.current;
+  // Text handed in that the server doesn't have yet is unsaved work, however
+  // little it differs from what this composer started with.
+  if (initialData?.unsaved && changeVersionRef.current !== savedVersionRef.current) isDirtyRef.current = true;
+  if (uneditedRef.current) isDirtyRef.current = false;
+  // Changes only the user makes, also without typing: a picked recipient, a
+  // removed attachment, a priority. Handed-in files move the count they're
+  // compared with (addFiles). The body isn't here, a signature can change it;
+  // typing in it comes through the composer root's input events.
+  useEffect(() => {
+    if (!uneditedRef.current) return;
+    const start = initialValuesRef.current;
+    if (toStr !== start.to || ccStr !== start.cc || bccStr !== start.bcc || subject !== start.subject
+      || attachments.length !== start.attachmentCount || priority !== initialPriorityRef.current) {
+      markEdited();
+    }
+  }, [toStr, ccStr, bccStr, subject, attachments.length, priority, markEdited]);
   const firstLabelRunRef = useRef(true);
   useEffect(() => {
     if (firstLabelRunRef.current) {
@@ -1807,34 +1957,105 @@ export function EmailComposer({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [effectiveSessionKey]);
 
+  const rescueRequestRef = useRef<() => RescuedDraft | null>(() => null);
+  const closedRef = useRef(false);
+
+  // The composer as a host needs it to bring it back: after a remount, in
+  // another window. Read through refs, so a handler set up once stays current.
+  const snapshotStateRef = useRef<() => ComposerDraftData>(() => { throw new Error('Not mounted'); });
+  snapshotStateRef.current = () => ({
+    ...stateRef.current,
+    draftAccountId: draftAccountIdRef.current,
+    mode,
+    replyTo,
+    priority: priorityRef.current,
+    classification: classificationRef.current.draftChoice,
+    // Edits the last save didn't cover; a minimised composer with
+    // none needs no save before an automatic sign-out.
+    unsaved: !uneditedRef.current && (changeVersionRef.current !== savedVersionRef.current || saveFailedRef.current),
+    ...(uneditedRef.current ? { unedited: true } : {}),
+    requestReadReceipt,
+    requestDsn,
+    requireTls,
+  });
+
+  useEffect(() => {
+    onSubjectChange?.(subject);
+  }, [onSubjectChange, subject]);
+
   // Auto-save state on unmount (when user navigates away without explicitly closing)
   useEffect(() => {
     return () => {
       if (explicitCloseRef.current) return;
-      if (onSaveState && isDirtyRef.current) {
-        const s = stateRef.current;
-        onSaveState({
-          ...s,
-          draftAccountId: draftAccountIdRef.current,
-          mode,
-          replyTo,
-          priority: priorityRef.current,
-          classification: classificationRef.current.draftChoice,
-          // Edits the last save didn't cover; a minimised composer with
-          // none needs no save before an automatic sign-out.
-          unsaved: changeVersionRef.current !== savedVersionRef.current || saveFailedRef.current,
-        });
+      // Kept in the host's memory across a remount, handed-in or not. Only the
+      // server stays out of it. Only what the host has no copy of: an edit, or a
+      // draft saved under a new id.
+      if (onSaveState && (hasEditsRef.current || uneditedRef.current || draftIdRef.current !== (initialData?.draftId ?? null))) {
+        onSaveState(snapshotStateRef.current());
       }
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Auto-save draft to server on page close (best-effort)
+  // A composer that comes back with the app: a draft it opened on counts from the start.
+  // Gone with the composer: sent, discarded or closed.
   useEffect(() => {
-    const handleBeforeUnload = () => {
-      if (isDirtyRef.current) {
-        saveDraftRef.current();
+    if (draftIdRef.current) noteOpenDraft(effectiveSessionKey, { draftId: draftIdRef.current, localAccountId: draftLocalAccountIdRef.current ?? useAuthStore.getState().activeAccountId, ownerAccountId: draftAccountIdRef.current });
+    return () => noteOpenDraft(effectiveSessionKey, null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [effectiveSessionKey]);
+
+  // The header's close goes to its start when the window's own close is at its end.
+  const [composerHeader, setComposerHeader] = useState<HTMLDivElement | null>(null);
+  const closeBesideControls = useCloseBesideControls(composerHeader);
+
+  // Auto-save draft to server on page close (best-effort)
+  const ownWindowRef = useRef(ownWindow);
+  ownWindowRef.current = ownWindow;
+  useEffect(() => {
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      // The lock saved what it could and is on its way to the lock screen: no prompt, and no copy of the text.
+      if (isAppLockedNow()) return;
+      const own = ownWindowRef.current;
+      if (!own) {
+        if (isDirtyRef.current) {
+          saveDraftRef.current();
+        }
+        return;
       }
+      // This composer closed itself: nothing left to keep.
+      if (closedRef.current) return;
+      // Closing now could stop a send halfway.
+      if (isSendingRef.current) {
+        event.preventDefault();
+        return;
+      }
+      // Sent, discarded or saved and closed.
+      if (explicitCloseRef.current || sentRef.current) return;
+      if (!isDirtyRef.current) return;
+      const state = snapshotStateRef.current();
+      own.onUnloadState?.(state);
+      if (!state.unsaved) return;
+      // A request started while a window closes is dropped, so another window
+      // saves it, but not when:
+      // - a plugin may change or stop what is saved, as it only runs here (and
+      //   rescueDraft says no while plugins haven't started);
+      // - the last save failed or the browser is offline, so that window's
+      //   would likely fail too, with nobody looking;
+      // - a save is running: its new id is unknown, and two saves make two drafts.
+      const canHandOver = own.rescueDraft
+        && emailHooks.onBeforeDraftAutoSave.size === 0
+        && !saveFailedRef.current
+        && navigator.onLine !== false
+        && !inflightSaveRef.current;
+      if (canHandOver) {
+        const draft = rescueRequestRef.current();
+        if (!draft || own.rescueDraft?.(draft)) return;
+      }
+      // Nobody can take it. The prompt keeps the window open: "stay" lets the
+      // save run, and "leave" is the user's own choice.
+      saveDraftRef.current();
+      event.preventDefault();
     };
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
@@ -1939,12 +2160,12 @@ export function EmailComposer({
     const editor = editorRef.current;
     const html = editor && !editor.isDestroyed ? serializeEditorContent(editor) : body;
     editorRef.current = null;
-    setBody(htmlComposeBodyToPlainText(html, signatureIdentity, { separator }));
+    setBody(htmlComposeBodyToPlainText(html, signatureIdentity, { separator, imageAlt: imageAltText }));
     setPlainTextMode(true);
     // Keyed on the signature fields, not the identity object (see the
     // signature effects above for the same rationale).
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [plainTextMode, body, signatureIdentity?.htmlSignature, signatureIdentity?.textSignature, signatureSeparatorEnabled]);
+  }, [plainTextMode, body, signatureIdentity?.htmlSignature, signatureIdentity?.textSignature, signatureSeparatorEnabled, imageAltText]);
 
   // Move a chip from one recipient field to another. `toIndex`, when given,
   // inserts at that position in the destination (drag-and-drop reordering,
@@ -2114,18 +2335,55 @@ export function EmailComposer({
     }
   };
 
+  const handleImageUpload = useCallback(async (
+    file: File,
+  ): Promise<{ src: string; cid: string } | null> => {
+    if (!client) return null;
+    try {
+      const readAsDataUrl = new Promise<string | null>((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (e) => resolve((e.target?.result as string) ?? null);
+        reader.onerror = () => resolve(null);
+        reader.readAsDataURL(file);
+      });
+      const [{ blobId }, dataUrl] = await Promise.all([
+        (composerClientRef.current ?? client).uploadBlob(file),
+        readAsDataUrl,
+      ]);
+      if (!dataUrl) throw new Error('Failed to read image as data URL');
+      const cid = `${generateUUID()}@webmail`;
+      inlineImagesRef.current.push({
+        cid,
+        blobId,
+        type: file.type || 'application/octet-stream',
+        name: file.name,
+        size: file.size,
+        dataUrl,
+        uploadedAt: Date.now(),
+      });
+      return { src: dataUrl, cid };
+    } catch (error) {
+      debug.error(`Failed to upload inline image ${file.name}:`, error);
+      toast.error(t('upload_failed', { filename: file.name }));
+      return null;
+    }
+  }, [client, t]);
+
   const handleTemplateSelect = useCallback(async (template: EmailTemplate, filledValues: Record<string, string>) => {
     let filledSubject = Object.keys(filledValues).length > 0
       ? substitutePlaceholders(template.subject, filledValues)
       : template.subject;
     const filledBody = Object.keys(filledValues).length > 0
-      ? substitutePlaceholders(template.body, filledValues)
+      ? substitutePlaceholders(template.body, filledValues, { html: !!template.isHTML })
       : template.body;
 
-    // In plain text mode, use template body as-is; otherwise convert to HTML
-    let bodyContent = plainTextMode || template.isHTML
-      ? filledBody
-      : `<p>${filledBody.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>')}</p>`;
+    // Match the template to the draft's format: an HTML template goes into a
+    // plain-text draft as its text, not its markup (#1506).
+    let bodyContent = plainTextMode
+      ? (template.isHTML ? htmlToPlainText(filledBody) : filledBody)
+      : template.isHTML
+        ? filledBody
+        : `<p>${filledBody.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>')}</p>`;
     // Plugins may rewrite the template before it goes in (onTemplateRender).
     const rendered = await renderTemplateWithPlugins(template.id, {
       subject: filledSubject,
@@ -2136,6 +2394,8 @@ export function EmailComposer({
       filledSubject = rendered.subject;
       bodyContent = plainTextMode ? rendered.text : sanitizePluginBodyHtml(rendered.html);
     }
+    // Its data: images go out as cid: parts, like pasted ones (#1490).
+    if (!plainTextMode) bodyContent = await embedTemplateImages(bodyContent, handleImageUpload);
 
     if (mode === 'compose') {
       // An empty template subject must not wipe one the user typed (#540).
@@ -2221,7 +2481,7 @@ export function EmailComposer({
 
     setShowTemplatePicker(false);
     notifyTemplateApplied(template);
-  }, [mode, plainTextMode, signatureIdentity, signatureSeparatorEnabled]);
+  }, [mode, plainTextMode, signatureIdentity, signatureSeparatorEnabled, handleImageUpload]);
 
   useEffect(() => {
     const handleTemplateKey = (e: KeyboardEvent) => {
@@ -2239,7 +2499,7 @@ export function EmailComposer({
     return () => window.removeEventListener('keydown', handleTemplateKey);
   }, [templatesEnabled]);
 
-  const addFiles = useCallback(async (files: File[]) => {
+  const addFiles = useCallback(async (files: File[], opts?: { handedIn?: boolean }) => {
     if (!client || files.length === 0) return;
 
     // Let plugins veto each upload before it's queued.
@@ -2293,6 +2553,8 @@ export function EmailComposer({
         abortController: controller,
       };
     });
+    // Files handed in are where the composer starts, not an edit.
+    if (opts?.handedIn) initialValuesRef.current.attachmentCount += newAttachments.length;
     setAttachments(prev => [...prev, ...newAttachments]);
 
     for (let i = 0; i < files.length; i++) {
@@ -2331,7 +2593,9 @@ export function EmailComposer({
             // offloading it - don't drop a link for a file they cancelled.
             if (controller?.signal.aborted) continue;
             setAttachments(prev => prev.filter(att => att.file !== file));
-            if (plainTextMode) {
+            // The ref, not the closure: the user may have switched format
+            // while the handler was offloading the file.
+            if (plainTextModeRef.current) {
               setBody(previous =>
                 previous && !previous.endsWith('\n') ? `${previous}\n${transformed.text}` : previous + transformed.text
               );
@@ -2402,41 +2666,13 @@ export function EmailComposer({
         );
       }
     }
-  }, [client, t, plainTextMode]);
-
-  const handleImageUpload = useCallback(async (
-    file: File,
-  ): Promise<{ src: string; cid: string } | null> => {
-    if (!client) return null;
-    try {
-      const readAsDataUrl = new Promise<string | null>((resolve) => {
-        const reader = new FileReader();
-        reader.onload = (e) => resolve((e.target?.result as string) ?? null);
-        reader.onerror = () => resolve(null);
-        reader.readAsDataURL(file);
-      });
-      const [{ blobId }, dataUrl] = await Promise.all([
-        (composerClientRef.current ?? client).uploadBlob(file),
-        readAsDataUrl,
-      ]);
-      if (!dataUrl) throw new Error('Failed to read image as data URL');
-      const cid = `${generateUUID()}@webmail`;
-      inlineImagesRef.current.push({
-        cid,
-        blobId,
-        type: file.type || 'application/octet-stream',
-        name: file.name,
-        size: file.size,
-        dataUrl,
-        uploadedAt: Date.now(),
-      });
-      return { src: dataUrl, cid };
-    } catch (error) {
-      debug.error(`Failed to upload inline image ${file.name}:`, error);
-      toast.error(t('upload_failed', { filename: file.name }));
-      return null;
-    }
   }, [client, t]);
+
+  useEffect(() => {
+    if (!client || !initialFiles || initialFiles.length === 0 || attachedInitialFiles.has(initialFiles)) return;
+    attachedInitialFiles.add(initialFiles);
+    void addFiles(initialFiles, { handedIn: true });
+  }, [client, initialFiles, addFiles]);
 
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     if (!event.target.files) return;
@@ -2460,35 +2696,40 @@ export function EmailComposer({
     dragTimeoutRef.current = setTimeout(clearDragState, 150);
   }, [clearDragState]);
 
+  const isShellDrag = useIsShellDrag();
   const handleDragEnter = useCallback((e: React.DragEvent) => {
+    if (isShellDrag(e)) return;
     e.preventDefault();
     e.stopPropagation();
     if (e.dataTransfer.types.includes('Files')) {
       setIsDraggingOver(true);
       resetDragTimeout();
     }
-  }, [resetDragTimeout]);
+  }, [isShellDrag, resetDragTimeout]);
 
   const handleDragLeave = useCallback((e: React.DragEvent) => {
+    if (isShellDrag(e)) return;
     e.preventDefault();
     e.stopPropagation();
     resetDragTimeout();
-  }, [resetDragTimeout]);
+  }, [isShellDrag, resetDragTimeout]);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
+    if (isShellDrag(e)) return;
     e.preventDefault();
     e.stopPropagation();
     resetDragTimeout();
-  }, [resetDragTimeout]);
+  }, [isShellDrag, resetDragTimeout]);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
+    if (isShellDrag(e)) return;
     e.preventDefault();
     e.stopPropagation();
     clearDragState();
     if (e.dataTransfer.files?.length) {
       addFiles(Array.from(e.dataTransfer.files));
     }
-  }, [addFiles, clearDragState]);
+  }, [addFiles, clearDragState, isShellDrag]);
 
   const removeAttachment = (index: number) => {
     const att = attachments[index];
@@ -2502,7 +2743,9 @@ export function EmailComposer({
   // offers "attach from there". No `file` is set, matching the existing
   // draft-part hydration path above (a blobId-only attachment is already a
   // supported shape, just never previously reachable from a plugin).
-  const handlePluginAttachmentAdd = useCallback(async (raw: PluginAttachmentUpload): Promise<boolean> => {
+  // `sourceAccountId` (host only, api.files.attach): the login whose Files
+  // hold the blob, so a draft sent from another login copies it over first.
+  const handlePluginAttachmentAdd = useCallback(async (raw: PluginAttachmentUpload, sourceAccountId?: string): Promise<boolean> => {
     // The values come from a plugin: check them, and run the same intercept
     // and size limit every other way of attaching a file goes through.
     const upload = normalizePluginAttachment(raw);
@@ -2520,7 +2763,7 @@ export function EmailComposer({
       toast.error(t('attachments_total_too_large', { max: formatFileSize(maxTotal) }));
       return false;
     }
-    setAttachments(prev => [...prev, upload]);
+    setAttachments(prev => [...prev, sourceAccountId ? { ...upload, sourceAccountId } : upload]);
     return true;
   }, [composerClient, t]);
   // Stable props, so a re-render of the composer doesn't post them to the
@@ -2528,6 +2771,45 @@ export function EmailComposer({
   const pluginToolbarOffers = usePluginSlotOffers('composer-toolbar');
   // The plugin side panels fold when the composer gets too narrow for them.
   const [composerRootEl, setComposerRootEl] = useState<HTMLDivElement | null>(null);
+
+  // The desktop app: files dropped or pasted anywhere on the window come here, if this one's on screen.
+  const loadAttachmentForEdit = useCallback(async (att: ComposerAttachment): Promise<Blob> => {
+    if (att.file) return att.file;
+    // A forwarded part lives in its own login until the draft is saved through another.
+    const owner = att.sourceAccountId && att.sourceAccountId !== composerAccountId
+      ? useAuthStore.getState().getClientForAccount(att.sourceAccountId)
+      : composerClient;
+    if (!owner || !att.blobId) throw new Error('No content for this attachment');
+    return owner.fetchBlob(att.blobId, att.name, att.type);
+  }, [composerClient, composerAccountId]);
+  const composerEdits = useComposerEdits<ComposerAttachment>({
+    attachments,
+    setAttachments,
+    addFiles,
+    load: loadAttachmentForEdit,
+    account: composerAccountId ?? '',
+    draftId,
+    ownerAccountId: draftAccountId,
+    repliesTo: mode === 'reply' || mode === 'replyAll' ? sourceEmailId : undefined,
+    ready: !!client,
+  });
+  useEffect(() => setComposerFileTarget(
+    (files) => void addFiles(files),
+    () => !!composerRootEl?.isConnected && composerRootEl.getClientRects().length > 0,
+    // The file drop overlay's "Insert into the message": the editor's own paste, so the
+    // upload, the place and the question for a description are the same as pasting.
+    {
+      available: () => !!editorRef.current && !editorRef.current.isDestroyed,
+      insert: (files) => {
+        const editor = editorRef.current;
+        if (!editor || editor.isDestroyed) return;
+        const transfer = new DataTransfer();
+        for (const file of files) transfer.items.add(file);
+        editor.commands.focus();
+        editor.view.dom.dispatchEvent(new ClipboardEvent('paste', { clipboardData: transfer, cancelable: true }));
+      },
+    },
+  ), [addFiles, composerRootEl]);
   // The id plugins know this composer by (registered below, with the handle).
   const [pluginComposerId, setPluginComposerId] = useState<string | null>(null);
   const pluginSidebars = useComposerSidebars(composerRootEl, pluginComposerId);
@@ -2627,28 +2909,17 @@ export function EmailComposer({
   }, [previewAttachment, composerClient]);
 
   // Auto-save draft functionality
-  // `auto`: the debounced save while typing. Only that one may be skipped
-  // by a plugin; saves on close and before send always run, or the text
-  // would be lost.
-  const saveDraftOnce = async (auto = false): Promise<string | null> => {
-    if (!client || !composerClient) return null;
-    const versionAtStart = changeVersionRef.current;
+  const draftRecipients = () => ({
+    toAddresses: expandRecipients(withInput(to, toInput)).map(r => formatRecipient(r.name, r.email)),
+    ccAddresses: expandRecipients(withInput(cc, ccInput)).map(r => formatRecipient(r.name, r.email)),
+    bccAddresses: expandRecipients(withInput(bcc, bccInput)).map(r => formatRecipient(r.name, r.email)),
+  });
 
-    const toAddresses = expandRecipients(withInput(to, toInput)).map(r => formatRecipient(r.name, r.email));
-    const ccAddresses = expandRecipients(withInput(cc, ccInput)).map(r => formatRecipient(r.name, r.email));
-    const bccAddresses = expandRecipients(withInput(bcc, bccInput)).map(r => formatRecipient(r.name, r.email));
+  const draftHasContent = (toAddresses: string[]) =>
+    !!toAddresses.length || !!subject || !!(plainTextMode ? body.trim() : htmlToPlainText(body).trim());
 
-    if (!toAddresses.length && !subject && !(plainTextMode ? body.trim() : htmlToPlainText(body).trim())) {
-      return null;
-    }
-
-    try {
-      await rehomeForeignBlobs();
-    } catch (error) {
-      // The save below then fails with blobNotFound and reports it.
-      debug.warn('email', 'Failed to copy forwarded parts to the sending account:', error);
-    }
-
+  // What a saved draft holds, as of now. No awaits: a closing window has none to spare.
+  const draftContent = () => {
     // Prepare attachments for draft. cid/disposition ride along so inline
     // parts of a re-opened draft keep matching the body's cid: references.
     const uploadedAttachments = attachmentsRef.current
@@ -2682,6 +2953,82 @@ export function EmailComposer({
           : appendPlainTextSignature(body, signatureIdentity, { separator: signatureSeparatorEnabled }))
       : htmlToPlainText(draftHtmlBody!, imageAltText);
 
+    return { uploadedAttachments, draftHtmlBody, draftTextBody };
+  };
+
+  // Get the selected identity or primary identity
+  // Generate sub-addressed email if tag is set
+  const draftSender = () => {
+    const identityFromEmail = currentIdentity?.email
+      ? subAddressTag
+        ? generateSubAddress(currentIdentity.email, subAddressTag, subAddressDelimiter)
+        : currentIdentity.email
+      : undefined;
+    const fromEmail = (fromOverrideEnabled && fromOverrideEmail.trim())
+      ? fromOverrideEmail.trim()
+      : identityFromEmail;
+    const fromName = (fromOverrideEnabled && fromOverrideEmail.trim())
+      ? (fromOverrideName.trim() || undefined)
+      : (currentIdentity?.name || undefined);
+    return { fromEmail, fromName };
+  };
+
+  // The save below, for another window to make as this one closes. Null with nothing to save.
+  rescueRequestRef.current = () => {
+    const { toAddresses, ccAddresses, bccAddresses } = draftRecipients();
+    if (!draftHasContent(toAddresses)) return null;
+    const { uploadedAttachments, draftHtmlBody, draftTextBody } = draftContent();
+    const { fromEmail, fromName } = draftSender();
+    const login = loginFor(currentIdentityParts.localAccountId);
+    const previousLogin = draftLocalAccountIdRef.current;
+    // A version saved through another login can't be replaced from this one.
+    const replaces = !previousLogin || previousLogin === login;
+    return {
+      localAccountId: login,
+      to: toAddresses,
+      subject,
+      body: draftTextBody,
+      cc: ccAddresses,
+      bcc: bccAddresses,
+      identityId: currentIdentityRawId,
+      fromEmail,
+      draftId: replaces ? draftIdRef.current || undefined : undefined,
+      attachments: uploadedAttachments,
+      fromName,
+      htmlBody: draftHtmlBody,
+      inReplyTo: replyThreadingHeaders?.inReplyTo,
+      references: replyThreadingHeaders?.references,
+      options: {
+        priority,
+        previousDraftAccountId: replaces ? draftAccountIdRef.current : undefined,
+        classification: classificationRef.current.draftChoice,
+      },
+      state: snapshotStateRef.current(),
+    };
+  };
+
+  // `auto`: the debounced save while typing. Only that one may be skipped
+  // by a plugin; saves on close and before send always run, or the text
+  // would be lost.
+  const saveDraftOnce = async (auto = false): Promise<string | null> => {
+    if (!client || !composerClient) return null;
+    const versionAtStart = changeVersionRef.current;
+
+    const { toAddresses, ccAddresses, bccAddresses } = draftRecipients();
+
+    if (!draftHasContent(toAddresses)) {
+      return null;
+    }
+
+    try {
+      await rehomeForeignBlobs();
+    } catch (error) {
+      // The save below then fails with blobNotFound and reports it.
+      debug.warn('email', 'Failed to copy forwarded parts to the sending account:', error);
+    }
+
+    const { uploadedAttachments, draftHtmlBody, draftTextBody } = draftContent();
+
     // Create a hash of current data to compare with last saved. Hashing the
     // composed bodies (not the raw editor body) means a signature that changed
     // under an unchanged body - switching identity, toggling the separator -
@@ -2701,19 +3048,7 @@ export function EmailComposer({
 
     setSaveStatus('saving');
 
-    // Get the selected identity or primary identity
-    // Generate sub-addressed email if tag is set
-    const identityFromEmail = currentIdentity?.email
-      ? subAddressTag
-        ? generateSubAddress(currentIdentity.email, subAddressTag, subAddressDelimiter)
-        : currentIdentity.email
-      : undefined;
-    const fromEmail = (fromOverrideEnabled && fromOverrideEmail.trim())
-      ? fromOverrideEmail.trim()
-      : identityFromEmail;
-    const fromName = (fromOverrideEnabled && fromOverrideEmail.trim())
-      ? (fromOverrideName.trim() || undefined)
-      : (currentIdentity?.name || undefined);
+    const { fromEmail, fromName } = draftSender();
 
     try {
       const previousDraftId = draftIdRef.current;
@@ -2780,7 +3115,12 @@ export function EmailComposer({
         { priority, accountId: draftAccountId, previousDraftAccountId: replacedElsewhere ? undefined : previousDraftAccountId, classification: classificationRef.current.draftChoice },
       );
       if (replacedElsewhere) {
-        await removeDraftVersion(savedDraft.draftId!, previousDraftLogin, previousDraftAccountId);
+        if (isStandInId(savedDraftId) && savingLogin) {
+          // The new version is only on this device: the old one stays until it's up.
+          await noteDraftReplacedElsewhere(savingLogin, savedDraftId, { login: previousDraftLogin!, jmap: previousDraftAccountId, id: savedDraft.draftId! });
+        } else {
+          await removeDraftVersion(savedDraft.draftId!, previousDraftLogin, previousDraftAccountId);
+        }
       }
 
       // Update the ref synchronously so a queued save sees the new id and
@@ -2789,6 +3129,8 @@ export function EmailComposer({
       draftIdRef.current = savedDraftId;
       draftAccountIdRef.current = draftAccountId;
       draftLocalAccountIdRef.current = savingLogin;
+      // Before a save's promise settles: quitting waits for it, then keeps this list.
+      noteOpenDraft(effectiveSessionKey, { draftId: savedDraftId, localAccountId: savingLogin ?? useAuthStore.getState().activeAccountId, ownerAccountId: draftAccountId });
       setDraftId(savedDraftId);
       setDraftAccountId(draftAccountId);
       setDraftLocalAccountId(savingLogin);
@@ -2832,6 +3174,7 @@ export function EmailComposer({
         }
       }
 
+      setSavedOnDevice(isStandInId(savedDraftId));
       setSaveStatus('saved');
       saveFailedRef.current = false;
       lastDraftIdRef.current = savedDraftId;
@@ -2868,6 +3211,7 @@ export function EmailComposer({
       // Only the save the user asked for is read out: autosave would say it
       // every minute, and the save before sending is followed by "Sent".
       if (opts.announce && id && !saveFailedRef.current) announceStatus(t('draft_saved'));
+      if (id && !saveFailedRef.current) ownWindowRef.current?.onDraftSaved?.(id, { accountId: draftAccountIdRef.current, localAccountId: draftLocalAccountIdRef.current });
       return id;
     })();
     inflightSaveRef.current = promise;
@@ -2889,7 +3233,7 @@ export function EmailComposer({
   // login page can say a draft wasn't saved.
   useEffect(() => registerComposeFlush(async () => {
     while (isSendingRef.current) await new Promise((resolve) => setTimeout(resolve, SEND_WAIT_POLL_MS));
-    if (sentRef.current) return;
+    if (sentRef.current || uneditedRef.current) return;
     const unsaved = changeVersionRef.current !== savedVersionRef.current || saveFailedRef.current;
     if (!unsaved) return;
     if (saveTimeoutRef.current) {
@@ -2898,6 +3242,15 @@ export function EmailComposer({
     }
     await saveDraftRef.current();
     if (saveFailedRef.current) throw new Error('The draft was not saved');
+  }), []);
+
+  // Where this composer's text is, for the app lock.
+  useEffect(() => registerComposeSnapshot({
+    ownWindow: !!ownWindowRef.current,
+    state: () => (sentRef.current || uneditedRef.current ? null : snapshotStateRef.current()),
+    draft: () => (draftIdRef.current && !sentRef.current
+      ? { draftId: draftIdRef.current, localAccountId: draftLocalAccountIdRef.current, ownerAccountId: draftAccountIdRef.current }
+      : null),
   }), []);
 
   // The draft as plugins see it: onDraftChange, the frames above and below
@@ -2940,8 +3293,6 @@ export function EmailComposer({
   // catalogue): plain text at the caret, replacing the selection, so a
   // rewrite of a selected paragraph is one call and Ctrl+Z takes it back in
   // the rich editor. Stable, so the slot iframes don't get new props.
-  const plainTextModeRef = useRef(plainTextMode);
-  plainTextModeRef.current = plainTextMode;
   const pluginInsertText = useCallback((value: unknown) => {
     if (typeof value !== 'string' || value.length === 0 || value.length > MAX_PLUGIN_INSERT_LENGTH) return false;
     if (plainTextModeRef.current) {
@@ -3064,6 +3415,7 @@ export function EmailComposer({
         return !!editor && replaceEditorSelection(editor, html, { below });
       },
       attach: (file) => pluginAttachRef.current(file as PluginAttachmentUpload),
+      attachFile: ({ sourceAccountId, ...file }) => pluginAttachRef.current(file as PluginAttachmentUpload, sourceAccountId),
     });
     setPluginComposerId(id);
     return unregister;
@@ -3125,6 +3477,26 @@ export function EmailComposer({
     };
   }, [wantsPluginSelection, pluginEditor, plainTextMode]);
 
+  // Proofreading: checker plugins underline mistakes while the user types
+  // (components/email/proofreading). The browser's own spell check steps
+  // back while one checks spelling, and the text carries its language.
+  const uiLocale = useLocale();
+  const writingLanguage = useSettingsStore((s) => s.writingLanguage);
+  const textLang = writingLanguage && writingLanguage !== 'auto' ? writingLanguage : uiLocale;
+  // The desktop app's spellcheck follows what's being written.
+  useEffect(() => {
+    noteComposerLanguage(effectiveSessionKey, textLang);
+    return () => noteComposerLanguage(effectiveSessionKey, null);
+  }, [effectiveSessionKey, textLang]);
+  const proofreading = useProofreading({
+    composerId: pluginComposerId,
+    sessionKey: effectiveSessionKey,
+    editor: pluginEditor,
+    textareaRef: bodyRef,
+    plainTextMode,
+    ownOptions: pluginEditOptsRef,
+  });
+
   const pluginDraftProps = useMemo(
     () => ({ draft: pluginDraft, selection: pluginSelection, insertText: pluginInsertText, getSelectedText: pluginSelectedText, composerId: pluginComposerId }),
     [pluginDraft, pluginSelection, pluginInsertText, pluginSelectedText, pluginComposerId],
@@ -3137,6 +3509,14 @@ export function EmailComposer({
     () => ({ draft: pluginDraft, selection: pluginSelection, composerId: pluginComposerId, focusRequest: pluginSidebars.focusRequests.right }),
     [pluginDraft, pluginSelection, pluginComposerId, pluginSidebars.focusRequests.right],
   );
+
+  // The buttons that show and hide the plugin panels, in the header.
+  const leftPanelToggle = pluginSidebars.modes.left
+    ? <ComposerPanelToggle side="left" mode={pluginSidebars.modes.left} onToggle={() => pluginSidebars.toggle('left')} />
+    : null;
+  const rightPanelToggle = pluginSidebars.modes.right
+    ? <ComposerPanelToggle side="right" mode={pluginSidebars.modes.right} onToggle={() => pluginSidebars.toggle('right')} />
+    : null;
 
   // The right-click menu on selected text, when a plugin put entries in it.
   const selectionMenu = useComposerSelectionMenu();
@@ -3177,7 +3557,8 @@ export function EmailComposer({
   );
   // A cloud picker attaches files, or puts share links in the text.
   const pluginAttachmentSourceProps = useMemo(
-    () => ({ onAttach: handlePluginAttachmentAdd, insertText: pluginInsertText, composerId: pluginComposerId }),
+    // One argument only: the login of a blob is the host's to say (attachFile).
+    () => ({ onAttach: (raw: PluginAttachmentUpload) => handlePluginAttachmentAdd(raw), insertText: pluginInsertText, composerId: pluginComposerId }),
     [handlePluginAttachmentAdd, pluginInsertText, pluginComposerId],
   );
   const pluginComposerIdRef = useRef(pluginComposerId);
@@ -3219,7 +3600,7 @@ export function EmailComposer({
       }
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps -- saveDraft reads current state when called, not when effect is set up
-  }, [toStr, ccStr, bccStr, subject, body, attachments, priority]);
+  }, [toStr, ccStr, bccStr, subject, body, attachments, priority, firstEditSeen]);
 
   useEffect(() => {
     return () => {
@@ -3334,6 +3715,7 @@ export function EmailComposer({
   }, [attachments]);
   const [isWaitingForUploads, setIsWaitingForUploads] = useState(false);
   const sendCancelledRef = useRef(false);
+  const confirmingSendRef = useRef(false);
   // The user confirmed sending without a subject for this message.
   const emptySubjectConfirmedRef = useRef(false);
   // Placeholders the user chose to send as they are. The warning comes back
@@ -3386,6 +3768,19 @@ export function EmailComposer({
     delayedUntil?: string;
   } = {}) => {
     if (isSendingRef.current) return;
+
+    // Saved in another program and not on this message yet: not silently the older one.
+    // The wait lets a second click in, so that one goes no further.
+    if (composerEdits.holdsEdits()) {
+      if (confirmingSendRef.current) return;
+      confirmingSendRef.current = true;
+      try {
+        if (!(await composerEdits.confirmSend())) return;
+      } finally {
+        confirmingSendRef.current = false;
+      }
+      if (isSendingRef.current) return;
+    }
 
     if (attachmentsRef.current.some(att => att.uploading)) {
       isSendingRef.current = true;
@@ -3510,6 +3905,16 @@ export function EmailComposer({
           setShowAttachmentWarning(true);
           return;
         }
+      }
+    }
+
+    // Open proofreading issues, when a checker asked for the warning (the
+    // LanguageTool plugin's "warn before sending" option). Once per message.
+    if (!proofreadingConfirmedRef.current) {
+      const open = proofreading.sendWarningIssues().length;
+      if (open > 0) {
+        setProofreadingWarning({ count: open, delayedUntil });
+        return;
       }
     }
 
@@ -3912,6 +4317,7 @@ export function EmailComposer({
         }
       }
 
+      composerEdits.finish();
       setTo([]);
       setCc([]);
       setBcc([]);
@@ -3932,8 +4338,10 @@ export function EmailComposer({
       // Clear ref so unmount effect doesn't re-save
       stateRef.current = { to: '', cc: '', bcc: '', subject: '', body: '', showCc: false, showBcc: false, selectedIdentityId: null, subAddressTag: '', draftId: null, draftAccountId: undefined, draftLocalAccountId: undefined, fromOverrideEnabled: false, fromOverrideEmail: '', fromOverrideName: '', attachments: [], plainTextMode };
       // The host closes the composer from onSend or onScheduledSendCreated;
-      // a send the plugin made itself reaches neither (#1207).
-      if (sendHandledByPlugin && !effectiveDelayedUntil) cleanClose();
+      // a send the plugin made itself reaches neither (#1207). A window of
+      // its own closes only now: closing it stops whatever is still running,
+      // such as removing the draft's last version above.
+      if (ownWindowRef.current || (sendHandledByPlugin && !effectiveDelayedUntil)) cleanClose();
     } catch (err) {
       // Not sent, so the composer stays open and is an unsent draft again.
       explicitCloseRef.current = false;
@@ -3961,6 +4369,8 @@ export function EmailComposer({
       } else if (err instanceof SubmissionQuotaError) {
         // At a full submission quota only an administrator can help.
         toast.error(sendFailureMessage(err, t));
+      } else if (isServerOutage(err)) {
+        toast.error(t('send_failed'), { message: tOfflineNotes('server_not_answering') });
       } else if (err instanceof Error && OFFLINE_SEND_ERRORS[err.name]) {
         // Offline mode (#523) refused to keep it: says why, in the user's language.
         toast.error(t('send_failed'), { message: tOffline(OFFLINE_SEND_ERRORS[err.name]) });
@@ -3985,6 +4395,7 @@ export function EmailComposer({
   const afterCloseRef = useRef<(() => void) | null>(null);
 
   const emitClose = () => {
+    closedRef.current = true;
     onClose?.();
     const afterClose = afterCloseRef.current;
     afterCloseRef.current = null;
@@ -4073,6 +4484,86 @@ export function EmailComposer({
     }
   };
 
+  // Moves the draft to its own window. The window opens first, inside the
+  // click, and waits; this window saves what the server doesn't have yet,
+  // gives it the draft under the same id, and closes the composer here.
+  const [isPoppingOut, setIsPoppingOut] = useState(false);
+  const poppingOutRef = useRef(false);
+  const handlePopOut = async () => {
+    if (!popOut || poppingOutRef.current || isSendingRef.current || saveCloseAttemptRef.current) return;
+    const target = popOut();
+    if (!target) {
+      toast.error(tWindows('popup_blocked'));
+      return;
+    }
+    poppingOutRef.current = true;
+    setIsPoppingOut(true);
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+      saveTimeoutRef.current = null;
+    }
+    try {
+      const uploads = await waitForPendingUploads(() => attachmentsRef.current, () => false);
+      if (uploads === 'failed') {
+        target.cancel();
+        toast.error(t('save_failed'));
+        return;
+      }
+      if (isDirtyRef.current && (changeVersionRef.current !== savedVersionRef.current || saveFailedRef.current)) {
+        // A failed save doesn't stop the move: the text goes along, marked
+        // unsaved, and this composer lets go only once it is on screen there.
+        await saveDraftRef.current().catch(() => null);
+      }
+      const data = snapshotStateRef.current();
+      const shown = await target.handOver({
+        ...data,
+        draftId: draftIdRef.current ?? lastDraftIdRef.current,
+        draftLocalAccountId: draftLocalAccountIdRef.current,
+      });
+      // Not on screen there, so this is still the only copy of the text.
+      if (!shown) {
+        target.cancel();
+        toast.error(target.notShownMessage?.() ?? tWindows('window_not_ready'));
+        return;
+      }
+      explicitCloseRef.current = true;
+      sendCancelledRef.current = true;
+      emitClose();
+    } finally {
+      poppingOutRef.current = false;
+      setIsPoppingOut(false);
+    }
+  };
+
+  // Close at the top end (R4). On a phone it moves to the start, as the phone's
+  // mail apps have it, with Send at the end. Beside the window's own close it
+  // goes to the start too.
+  const composerCloseButton = (
+    <IconButton
+      onClick={() => handleClose()}
+      className={cn(closeBesideControls ? "-ms-2" : "-me-2", "max-md:order-first max-md:me-0 max-md:-ms-2 max-md:h-11 max-md:w-11")}
+      label={tCommon('close')}
+      data-testid="composer-close"
+      data-own-window-close={ownWindow ? "" : undefined}
+    >
+      <X className="w-5 h-5 md:w-4 md:h-4" />
+    </IconButton>
+  );
+
+  const popOutButton = (className: string, iconClassName: string) => popOut && (
+    <button
+      type="button"
+      onClick={(event) => { event.stopPropagation(); void handlePopOut(); }}
+      disabled={isPoppingOut || isSending}
+      className={popOutToMainLabel ? className.replace("hidden md:grid", "grid") : className}
+      aria-label={popOutToMainLabel ?? tWindows('open_in_window')}
+      title={popOutToMainLabel ?? tWindows('open_in_window')}
+      data-testid={popOutToMainLabel ? "composer-back-to-main" : "composer-open-in-window"}
+    >
+      {popOutToMainLabel ? <Minimize2 className={iconClassName} /> : <ExternalLink className={iconClassName} />}
+    </button>
+  );
+
   const handleDiscardAndClose = () => {
     cancelSaveAndClose();
     sendCancelledRef.current = true;
@@ -4083,6 +4574,7 @@ export function EmailComposer({
       attachment.abortController?.abort();
     }
     setShowCloseDialog(false);
+    composerEdits.finish();
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current);
     }
@@ -4100,6 +4592,29 @@ export function EmailComposer({
     emitClose();
   };
 
+  /** The question before closing or discarding: the OS's own in the desktop app. */
+  const openCloseDialog = (kind: 'discard' | 'close') => {
+    const dialogs = getDesktopBridge()?.dialogs;
+    if (!dialogs) {
+      setCloseDialogKind(kind);
+      setShowCloseDialog(true);
+      return;
+    }
+    const discarding = kind === 'discard';
+    const buttons = discarding ? [t('discard'), t('cancel')] : [tCommon('save'), t('discard'), t('cancel')];
+    void dialogs.confirm({
+      type: 'warning',
+      message: discarding ? t('discard_draft_title') : t('close_draft_title'),
+      detail: discarding ? t('discard_draft_message') : t('close_draft_message'),
+      buttons,
+      defaultId: discarding ? 1 : 0,
+    }).then((choice) => {
+      if (buttons[choice] === t('discard')) handleDiscardAndClose();
+      else if (!discarding && choice === 0) void handleSaveDraftAndClose();
+      else afterCloseRef.current = null;
+    });
+  };
+
   // Discard deletes the draft, also one that has no unsaved changes, such as
   // a scheduled message reopened with "Cancel and edit". It used to share the
   // X button's path, which closed such a composer and kept the draft.
@@ -4111,8 +4626,7 @@ export function EmailComposer({
       return;
     }
     afterCloseRef.current = null;
-    setCloseDialogKind('discard');
-    setShowCloseDialog(true);
+    openCloseDialog('discard');
   };
 
   const handleClose = (afterClose?: () => void) => {
@@ -4124,8 +4638,7 @@ export function EmailComposer({
       && !saveFailedRef.current
       && !attachmentsRef.current.some(att => att.uploading || att.error);
     if (isDirtyRef.current && !savedAlready) {
-      setCloseDialogKind('close');
-      setShowCloseDialog(true);
+      openCloseDialog('close');
     } else {
       cleanClose();
     }
@@ -4148,6 +4661,11 @@ export function EmailComposer({
     // through React's tree although the dialog portals to the body: they
     // belong to that dialog, and Escape must close only it.
     if (!(e.target instanceof Node) || !e.currentTarget.contains(e.target)) return;
+    // Same for what is drawn inside the composer: the directory picker and the
+    // formatting toolbar's menus, which close on Escape themselves. This
+    // handler runs in the capture phase, so they would never see it.
+    const targetDialog = e.target instanceof Element ? e.target.closest('[role="dialog"],[role="alertdialog"],[role="menu"]') : null;
+    if (targetDialog && e.currentTarget.contains(targetDialog)) return;
 
     const isPlainEscape = e.key === 'Escape' && !e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey;
     const hasPrimaryModifier = e.ctrlKey || e.metaKey;
@@ -4180,6 +4698,8 @@ export function EmailComposer({
       // Same for the "@" recipient list in the body: this handler runs in the
       // capture phase, before the editor could close the list itself.
       if (isRecipientMentionActive(editorRef.current)) return;
+      // And for proofreading's popup and panel: Escape closes only them.
+      if (proofreading.popup || proofreading.panel) return;
       e.preventDefault();
       handleClose();
       return;
@@ -4208,17 +4728,38 @@ export function EmailComposer({
     }
   };
 
+  // The desktop app's Message menu while this composer is open: the same handlers as
+  // its buttons and keys (lib/desktop/commands.ts). Nothing in a browser.
+  useDesktopCommands({
+    'compose.send': () => { if (!isSavingAndClosing) void handleSend(); },
+    'compose.saveDraft': () => { void saveDraft({ announce: true }); },
+    'compose.attach': () => fileInputRef.current?.click(),
+  }, {
+    'compose.send': !!canSend && !isSending && !isSavingAndClosing,
+    'compose.saveDraft': !isSavingAndClosing,
+    'compose.attach': !isSavingAndClosing,
+  });
+
   return (
     <div
       ref={setComposerRootEl}
       data-testid="email-composer"
+      // Edits made while the draft moves wouldn't move with it.
+      inert={isPoppingOut || undefined}
       className={cn("flex h-full bg-background relative", className)}
       onKeyDownCapture={handleComposerKeyDown}
+      // Bubble phase, in the same batch as the field's own onChange. A state
+      // change in the capture phase renders first and puts the old value back.
+      onInput={markEdited}
+      onChange={markEdited}
+      onPaste={markEdited}
+      onCut={markEdited}
+      onDrop={markEdited}
     >
       <div role="status" aria-live="polite" aria-atomic="true" className="sr-only" data-testid="composer-live-region">
         {liveMessage && <span key={liveMessage.n}>{liveMessage.text}</span>}
       </div>
-      <ComposerPluginSidebar side="left" mode={pluginSidebars.modes.left} onOpen={() => pluginSidebars.open('left')} onClose={() => pluginSidebars.close('left')} extraProps={pluginSidebarLeftProps} width={pluginSidebars.widths.left} onWidthChange={(w) => pluginSidebars.setSideWidth('left', w)} />
+      <ComposerPluginSidebar side="left" mode={pluginSidebars.modes.left} extraProps={pluginSidebarLeftProps} width={pluginSidebars.widths.left} onWidthChange={(w) => pluginSidebars.setSideWidth('left', w)} />
       {/* Right-side composer sidebar slot is rendered after the main content div below. */}
     <div
       className="flex flex-col h-full bg-background relative flex-1 min-w-0"
@@ -4250,6 +4791,8 @@ export function EmailComposer({
             {mode === 'reply' ? t('reply') : mode === 'replyAll' ? t('reply_all') : mode === 'forward' ? t('forward') : t('new_message')}
           </h3>
           {saveStatus === 'saving' && <Save className="w-3.5 h-3.5 animate-pulse text-muted-foreground flex-shrink-0" aria-label={t('saving')} />}
+          {leftPanelToggle}
+          {rightPanelToggle}
           {mvWindow.popOut && (
             <button
               type="button"
@@ -4261,6 +4804,7 @@ export function EmailComposer({
               <ExternalLink className="h-4 w-4" />
             </button>
           )}
+          {popOutButton("grid h-8 w-8 place-items-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground", "h-4 w-4")}
           <button
             type="button"
             onClick={() => handleClose()}
@@ -4286,6 +4830,9 @@ export function EmailComposer({
               : t('new_message')}
           </h3>
           {saveStatus === 'saving' && <Save className="w-3.5 h-3.5 animate-pulse text-muted-foreground flex-shrink-0" aria-label={t('saving')} />}
+          {mvWindow.state !== "minimized" && leftPanelToggle}
+          {mvWindow.state !== "minimized" && rightPanelToggle}
+          {mvWindow.state !== "minimized" && popOutButton("grid h-7 w-7 place-items-center rounded-full text-muted-foreground hover:bg-foreground/10 hover:text-foreground", "h-4 w-4")}
           <button
             type="button"
             onClick={(e) => { e.stopPropagation(); mvWindow.setState(mvWindow.state === "minimized" ? "normal" : "minimized"); }}
@@ -4315,7 +4862,10 @@ export function EmailComposer({
           </button>
         </div>
       ) : (
-      <div className="flex items-center gap-3 px-4 py-2 md:py-3 border-b bg-background">
+      <div ref={setComposerHeader} className="flex items-center gap-3 px-4 py-2 md:py-0 md:h-14 border-b bg-background shrink-0" data-composer-header="">
+        {closeBesideControls && composerCloseButton}
+        {/* The left panel's button at the start, the right one's at the end: where each panel is. */}
+        {leftPanelToggle && <div className="hidden md:flex -ms-2">{leftPanelToggle}</div>}
         <div className="flex-1 min-w-0 flex items-center gap-3">
           <div className="flex items-center gap-2" data-testid="composer-save-status" data-status={saveStatus}>
             <h3 className="font-semibold text-base">
@@ -4330,7 +4880,7 @@ export function EmailComposer({
             {saveStatus === 'saved' && (
               <div className="flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400">
                 <Check className="w-3 h-3" />
-                <span className="hidden md:inline">{t('draft_saved')}</span>
+                <span className="hidden md:inline">{savedOnDevice ? tOfflineDrafts('saved_on_device') : t('draft_saved')}</span>
               </div>
             )}
             {saveStatus === 'error' && (
@@ -4383,16 +4933,9 @@ export function EmailComposer({
             {t('send')}
           </Button>
         )}
-        {/* Close at the top end (R4). On a phone it moves to the start, as
-            the phone's mail apps have it, with Send at the end. */}
-        <IconButton
-          onClick={() => handleClose()}
-          className="-me-2 max-md:order-first max-md:me-0 max-md:-ms-2 max-md:h-11 max-md:w-11"
-          label={tCommon('close')}
-          data-testid="composer-close"
-        >
-          <X className="w-5 h-5 md:w-4 md:h-4" />
-        </IconButton>
+        {rightPanelToggle}
+        {popOutButton("hidden md:grid h-8 w-8 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground", "w-4 h-4")}
+        {!closeBesideControls && composerCloseButton}
       </div>
       )}
 
@@ -4408,15 +4951,17 @@ export function EmailComposer({
       <div ref={composerFieldsRef} className="shrink-0 space-y-0 border-b">
           {/* From field */}
           <div className="flex items-center gap-2 px-4 py-2.5 border-b border-border/50">
-            <span className="text-sm text-muted-foreground w-12 md:w-16 shrink-0">{t('from')}:</span>
-            <div className="flex-1 flex items-center gap-1 min-w-0">
+            <span className="text-sm text-muted-foreground min-w-12 md:min-w-16 shrink-0 whitespace-nowrap">{t('from')}:</span>
+            <div className={cn("flex-1 flex items-center gap-1 min-w-0", fromOverrideEnabled && "flex-wrap")}>
               {fromOverrideEnabled ? (
-                <div className="flex-1 flex items-center gap-1 min-w-0">
+                // Both fields need room to type in: on a narrow composer they take a
+                // line of their own, or a line each, rather than squeeze to nothing.
+                <div className="flex-1 flex flex-wrap items-center gap-1 min-w-52">
                   <Input
                     value={fromOverrideName}
                     onChange={(e) => setFromOverrideName(e.target.value)}
                     placeholder={t('from_override.name_placeholder')}
-                    className="h-7 text-sm w-32 md:w-40 shrink-0"
+                    className="h-7 text-sm flex-1 min-w-32 md:flex-none md:w-40"
                     aria-label={t('from_override.name_label')}
                   />
                   <Input
@@ -4424,7 +4969,7 @@ export function EmailComposer({
                     onChange={(e) => setFromOverrideEmail(e.target.value)}
                     placeholder={t('from_override.email_placeholder')}
                     type="email"
-                    className="h-7 text-sm flex-1 min-w-0 font-mono"
+                    className="h-7 text-sm flex-[2] min-w-32 font-mono"
                     aria-label={t('from_override.email_label')}
                   />
                 </div>
@@ -4537,7 +5082,7 @@ export function EmailComposer({
 
           {/* To field */}
           <div data-testid="composer-to" className={cn("flex items-center gap-2 px-4 py-2.5 border-b border-border/50 relative", shakeField === 'to' && "animate-shake")}>
-            <span id={fieldLabelId('to')} className="text-sm text-muted-foreground w-12 md:w-16 shrink-0">{t('to')}:</span>
+            <span id={fieldLabelId('to')} className="text-sm text-muted-foreground min-w-12 md:min-w-16 shrink-0 whitespace-nowrap">{t('to')}:</span>
             <RecipientChipInput
               labelId={fieldLabelId('to')}
               chips={to}
@@ -4596,6 +5141,7 @@ export function EmailComposer({
                 }}
                 onDragLeave={() => setIsDraggingChipOverCc(false)}
                 onDrop={(e) => {
+                  if (isShellDrag(e)) return;
                   e.preventDefault();
                   setIsDraggingChipOverCc(false);
                   const raw = e.dataTransfer.getData('application/x-recipient-chip');
@@ -4620,6 +5166,7 @@ export function EmailComposer({
                 }}
                 onDragLeave={() => setIsDraggingChipOverBcc(false)}
                 onDrop={(e) => {
+                  if (isShellDrag(e)) return;
                   e.preventDefault();
                   setIsDraggingChipOverBcc(false);
                   const raw = e.dataTransfer.getData('application/x-recipient-chip');
@@ -4637,7 +5184,7 @@ export function EmailComposer({
           {/* Cc field */}
           {showCc && (
             <div className="flex items-center gap-2 px-4 py-2.5 border-b border-border/50 relative">
-              <span id={fieldLabelId('cc')} className="text-sm text-muted-foreground w-12 md:w-16 shrink-0">{t('cc_label')}</span>
+              <span id={fieldLabelId('cc')} className="text-sm text-muted-foreground min-w-12 md:min-w-16 shrink-0 whitespace-nowrap">{t('cc_label')}</span>
               <RecipientChipInput
                 labelId={fieldLabelId('cc')}
                 chips={cc}
@@ -4668,7 +5215,7 @@ export function EmailComposer({
           {/* Bcc field */}
           {showBcc && (
             <div className="flex items-center gap-2 px-4 py-2.5 border-b border-border/50 relative">
-              <span id={fieldLabelId('bcc')} className="text-sm text-muted-foreground w-12 md:w-16 shrink-0">{t('bcc_label')}</span>
+              <span id={fieldLabelId('bcc')} className="text-sm text-muted-foreground min-w-12 md:min-w-16 shrink-0 whitespace-nowrap">{t('bcc_label')}</span>
               <RecipientChipInput
                 labelId={fieldLabelId('bcc')}
                 chips={bcc}
@@ -4698,7 +5245,7 @@ export function EmailComposer({
 
           {/* Subject field */}
           <div className="flex flex-wrap items-center gap-2 px-4 py-2.5">
-            <label htmlFor={`${fieldIdBase}-subject`} className="text-sm text-muted-foreground w-12 md:w-16 shrink-0">{t('subject_label')}</label>
+            <label htmlFor={`${fieldIdBase}-subject`} className="text-sm text-muted-foreground min-w-12 md:min-w-16 shrink-0 whitespace-nowrap">{t('subject_label')}</label>
             <Input
               id={`${fieldIdBase}-subject`}
               ref={subjectInputRef}
@@ -4735,6 +5282,23 @@ export function EmailComposer({
           <PluginSlot name="composer-above-body" className="w-full" extraProps={pluginDraftProps} />
         )}
         {/* Body */}
+        <ProofreadingNotice status={proofreading.status} />
+        {proofreading.popup && !plainTextMode && pluginEditor && (() => {
+          const issue = proofreading.issues.find((i) => i.key === proofreading.popup!.key);
+          return issue ? (
+            <IssuePopup
+              state={proofreading.popup}
+              issue={issue}
+              anchor={() => issueRect(pluginEditor, issue.key)}
+              onApply={proofreading.apply}
+              onDismiss={proofreading.dismiss}
+              onClose={proofreading.closePopup}
+              onNavigate={proofreading.navigate}
+              textRoot={() => (pluginEditor.isDestroyed ? null : pluginEditor.view.dom)}
+              container={(pluginEditor.isDestroyed ? null : pluginEditor.view.dom.closest<HTMLElement>('[aria-modal="true"]')) ?? document.body}
+            />
+          ) : null;
+        })()}
         {plainTextMode ? (
           <>
           <label htmlFor={`${fieldIdBase}-body`} className="sr-only">{t('body_label')}</label>
@@ -4755,10 +5319,13 @@ export function EmailComposer({
             aria-invalid={validationErrors.body || undefined}
             aria-describedby={validationErrors.body ? `${fieldIdBase}-body-error` : undefined}
             onContextMenu={onBodyContextMenu}
+            onMouseDown={selectionMenu.onMouseDown}
+            spellCheck={proofreading.browserSpellcheck}
+            lang={textLang}
           />
           </>
         ) : (
-          <div ref={editorContainerRef} onContextMenu={onBodyContextMenu}>
+          <div ref={editorContainerRef} onContextMenu={onBodyContextMenu} onMouseDownCapture={selectionMenu.onMouseDown}>
             <RichTextEditor
               content={body}
               onChange={(html) => {
@@ -4779,6 +5346,9 @@ export function EmailComposer({
               findMentionContacts={recipientMentionsEnabled && mentionAddsRecipientTo !== 'off' ? findMentionContacts : undefined}
               mentionAddsTo={mentionAddsRecipientTo === 'cc' ? 'cc' : 'to'}
               onMentionAdd={addMentionedRecipient}
+              spellcheck={proofreading.browserSpellcheck}
+              lang={textLang}
+              textCheck={proofreading.editorHandlers}
             />
           </div>
         )}
@@ -4916,6 +5486,28 @@ export function EmailComposer({
                     ) : (
                       <div className="flex items-center gap-2 min-w-0">{label}</div>
                     )}
+                    {composerEdits.hasUpdate(att) && !att.uploading && (
+                      <button
+                        type="button"
+                        onClick={() => void composerEdits.update(att)}
+                        className="-my-0.5 whitespace-nowrap text-xs font-medium text-primary hover:underline"
+                        data-testid="composer-edit-update"
+                      >
+                        {tEdit('update')}
+                      </button>
+                    )}
+                    {!att.uploading && !att.error && composerEdits.canEditChip(att) && (
+                      <button
+                        type="button"
+                        onClick={() => void composerEdits.startEdit(att)}
+                        className={cn("-my-0.5 hover:text-foreground text-muted-foreground min-w-6 min-h-6 flex items-center justify-center", TOUCH_HIT_AREA)}
+                        title={tEdit('edit')}
+                        aria-label={tEdit('edit_named', { name: att.name })}
+                        data-testid="composer-edit"
+                      >
+                        <FilePen className="w-3 h-3" />
+                      </button>
+                    )}
                     <button
                       onClick={() => removeAttachment(index)}
                       className={cn("ms-0.5 -my-0.5 hover:text-destructive min-w-6 min-h-6 flex items-center justify-center", TOUCH_HIT_AREA)}
@@ -4962,14 +5554,15 @@ export function EmailComposer({
             one row (see [data-mv-compose-footer] in globals.css): Send first,
             the tools after it, and Discard as a bin at the far end. */}
         <div
+          data-composer-footer=""
           data-mv-compose-footer={mvWindow ? "" : undefined}
           className={cn(
             "@container/composer-bar flex items-center justify-between px-4 py-2.5 max-md:py-1.5 bg-background shrink-0 pb-[calc(0.625rem+env(safe-area-inset-bottom)/2)]",
             mvWindow ? "gap-1" : "border-t",
           )}
         >
-          {/* Left side actions */}
-          <div className="flex min-w-0 flex-1 items-center gap-1">
+          {/* Left side actions. Plugins add to them: past the room they wrap, not under Discard. */}
+          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1">
             <input
               ref={fileInputRef}
               type="file"
@@ -5125,6 +5718,7 @@ export function EmailComposer({
               </>}
             </ComposerToolbarMenu>
             <ComposerPluginToolbarButtons surface="composer-toolbar-actions" context={composerActionContext} />
+            <ProofreadingStatus proofreading={proofreading} plainTextMode={plainTextMode} />
           </div>
 
           {/* Right side - Discard + Send (desktop) */}
@@ -5147,9 +5741,13 @@ export function EmailComposer({
                 variant="ghost"
                 onClick={handleDiscardClick}
                 data-testid="composer-discard"
-                className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                aria-label={t('discard')}
+                title={t('discard')}
+                className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 md:@max-[26rem]/composer-bar:px-2.5 max-md:@max-[23rem]/composer-bar:px-2.5"
               >
-                {t('discard')}
+                {/* Next to Send in a narrow composer the word runs over the tools on the left. */}
+                <Trash2 className="hidden w-4 h-4 max-md:@max-[23rem]/composer-bar:block md:block md:@[26rem]/composer-bar:hidden" aria-hidden="true" />
+                <span className="max-md:@max-[23rem]/composer-bar:hidden md:hidden md:@[26rem]/composer-bar:inline">{t('discard')}</span>
               </Button>
             )}
             {composerClient?.hasDelayedSend() || hasSendMenuActions ? (
@@ -5234,6 +5832,7 @@ export function EmailComposer({
               initialData={{
                 subject,
                 body,
+                isHTML: !plainTextMode,
                 to: withInput(to, toInput).map(r => formatRecipient(r.name, r.email)),
                 cc: withInput(cc, ccInput).map(r => formatRecipient(r.name, r.email)),
                 bcc: withInput(bcc, bccInput).map(r => formatRecipient(r.name, r.email)),
@@ -5253,7 +5852,7 @@ export function EmailComposer({
 
       <ContextMenu ref={sendMenu.menuRef} isOpen={showSendMenu} position={sendMenu.contextMenu.position} onClose={closeSendMenu}>
         {composerClient?.hasDelayedSend() && (
-          <ContextMenuItem icon={CalendarClock} label={t('schedule_send')} onClick={openScheduleDialog} testId="composer-schedule-send" />
+          <ContextMenuItem icon={CalendarClock} label={tMenu('schedule_send')} shortcut={formatShortcutCombo('Mod + Shift + Enter')} onClick={openScheduleDialog} testId="composer-schedule-send" />
         )}
         <ComposerPluginMenuItems
           surface="composer-send-menu"
@@ -5398,6 +5997,40 @@ export function EmailComposer({
       </Dialog>
 
       <Dialog
+        isOpen={proofreadingWarning !== null}
+        onClose={() => setProofreadingWarning(null)}
+        role="alertdialog"
+        showClose={false}
+        title={tProofreading('send_warning.title')}
+        description={tProofreading('send_warning.body', { count: proofreadingWarning?.count ?? 0 })}
+        footer={
+          <>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setProofreadingWarning(null);
+                // After the focus trap hands focus back, go to the first issue.
+                setTimeout(() => proofreading.navigate(1), 0);
+              }}
+            >
+              {tProofreading('send_warning.review')}
+            </Button>
+            <Button
+              data-testid="proofreading-send-anyway"
+              onClick={() => {
+                const delayed = proofreadingWarning?.delayedUntil;
+                proofreadingConfirmedRef.current = true;
+                setProofreadingWarning(null);
+                handleSend({ skipSubjectCheck: true, skipAttachmentCheck: true, delayedUntil: delayed });
+              }}
+            >
+              {tProofreading('send_warning.send')}
+            </Button>
+          </>
+        }
+      />
+
+      <Dialog
         isOpen={showCloseDialog}
         onClose={() => dismissCloseDialog()}
         role="alertdialog"
@@ -5431,7 +6064,7 @@ export function EmailComposer({
         />
       )}
     </div>
-      <ComposerPluginSidebar side="right" mode={pluginSidebars.modes.right} onOpen={() => pluginSidebars.open('right')} onClose={() => pluginSidebars.close('right')} extraProps={pluginSidebarRightProps} width={pluginSidebars.widths.right} onWidthChange={(w) => pluginSidebars.setSideWidth('right', w)} />
+      <ComposerPluginSidebar side="right" mode={pluginSidebars.modes.right} extraProps={pluginSidebarRightProps} width={pluginSidebars.widths.right} onWidthChange={(w) => pluginSidebars.setSideWidth('right', w)} />
       <ComposerSelectionMenu menu={selectionMenu} composerId={pluginComposerId} onClipboard={clipboardFromMenu} />
     </div>
   );
@@ -5792,6 +6425,8 @@ export function RecipientChipInput({
     // Backspace on an empty input pulls the last chip back into the input for
     // quick editing.
     if (e.key === 'Backspace' && !inputText && chips.length > 0) {
+      // Or the key goes on to delete the closing ">" of what was just put back.
+      e.preventDefault();
       const lastChip = chips[chips.length - 1];
       onChipsChange(chips.slice(0, -1));
       onInputChange(formatRecipient(lastChip.name, lastChip.email));
@@ -5880,9 +6515,11 @@ export function RecipientChipInput({
     setDropIndex(past ? index + 1 : index);
   };
 
+  const isShellDrag = useIsShellDrag();
   // Insert the dragged chip at `target`. Same-field is a local reorder;
   // cross-field routes through onMoveChip with the destination index (#593).
   const performDrop = (e: React.DragEvent, target: number) => {
+    if (isShellDrag(e)) return;
     e.preventDefault();
     setIsDragOver(false);
     setDropIndex(null);
@@ -5930,7 +6567,8 @@ export function RecipientChipInput({
     <div className="flex-1 min-w-0">
       <div
         className={cn(
-          "flex flex-wrap items-center gap-1 min-h-[32px] cursor-text",
+          // A long list scrolls by itself, or a reply-all to 80 people leaves no room for the text.
+          "flex flex-wrap items-center gap-1 min-h-[32px] max-h-[min(30dvh,10rem)] overflow-y-auto p-0.5 -m-0.5 cursor-text",
           validationError && "ring-2 ring-red-500 dark:ring-red-400 rounded",
           isDragOver && "ring-2 ring-primary/50 rounded bg-accent/20"
         )}
@@ -5980,7 +6618,7 @@ export function RecipientChipInput({
               onDragOver={(e) => handleChipDragOver(e, i)}
               onDrop={(e) => { e.stopPropagation(); performDrop(e, dropIndex ?? i); }}
               className={cn(
-                "inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-sm border border-border transition-colors",
+                "inline-flex items-center gap-1 max-w-full min-w-0 px-2 py-0.5 rounded-md text-sm border border-border transition-colors",
                 isEditing
                   ? "bg-background ring-1 ring-ring"
                   : ( customColor && colorStyles[customColor]
@@ -6045,7 +6683,7 @@ export function RecipientChipInput({
                 />
               ) : (
                 <span
-                  className="inline-flex items-center gap-1 max-w-[200px]"
+                  className="inline-flex items-center gap-1 min-w-0 max-w-[200px]"
                   title={chip.group ? chip.group.members.map(m => m.email).join(', ') : undefined}
                 >
                   {chip.group && <Users className="w-3 h-3 shrink-0" aria-hidden />}
@@ -6055,7 +6693,7 @@ export function RecipientChipInput({
               )}
               <button
                 type="button"
-                className={cn("flex items-center justify-center w-6 h-6 -m-1 rounded-full hover:bg-muted-foreground/20 transition-colors", TOUCH_HIT_AREA)}
+                className={cn("flex items-center justify-center shrink-0 w-6 h-6 -m-1 rounded-full hover:bg-muted-foreground/20 transition-colors", TOUCH_HIT_AREA)}
                 aria-label={isEditing ? t('recipient_remove') : t('recipient_remove_named', { name: recipientDisplayName(chip) })}
                 onClick={(e) => {
                   e.stopPropagation();

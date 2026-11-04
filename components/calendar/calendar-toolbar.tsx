@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { IconButton } from "@/components/ui/icon-button";
 import { ToolbarButton } from "@/components/ui/toolbar";
 import { ChevronLeft, ChevronRight, Plus, Upload, CalendarDays, Globe, ChevronDown, ArrowLeft, Menu, MoreVertical, RefreshCw, Search, Printer } from "@/components/icons";
-import { ContextMenu, ContextMenuItem, ContextMenuSeparator } from "@/components/ui/context-menu";
+import { ContextMenu, ContextMenuItem, ContextMenuSeparator, MenuShortcut } from "@/components/ui/context-menu";
 import { useContextMenu } from "@/hooks/use-context-menu";
 import { startOfWeek } from "date-fns";
 import { PhoneHeaderActions } from "@/components/layout/phone-header-actions";
@@ -61,6 +61,8 @@ interface CalendarToolbarProps {
   mobileSearchField?: ReactNode;
   /** Phones: closes the search row. */
   onCloseSearch?: () => void;
+  /** The plugin side panel's button, at the very end of the row (desktop and tablet). */
+  panelToggle?: ReactNode;
 }
 
 // Shortcut keys handled by the calendar app (see its keydown handler).
@@ -101,6 +103,7 @@ export function CalendarToolbar({
   onOpenSearch,
   mobileSearchField,
   onCloseSearch,
+  panelToggle,
 }: CalendarToolbarProps) {
   const t = useTranslations("calendar");
   const paint = useCvdColor();
@@ -222,7 +225,7 @@ export function CalendarToolbar({
       <div className="border-b border-border">
         {/* ── MOBILE TOOLBAR ── */}
         {isMobile && (
-          <div className="flex flex-col gap-1 px-2 py-2">
+          <div data-window-top-row="" className="flex flex-col gap-1 px-2 py-2">
             {/* Row 1 while searching: the search box with a way back. */}
             {mobileSearchField ? (
               <div className="flex items-center gap-1">
@@ -277,13 +280,14 @@ export function CalendarToolbar({
             {/* Each pill is as wide as its label plus an even share of the rest, so a
                 long label ("جدول الأعمال", "Aufgaben") neither wraps nor touches the edge. */}
             <div className="flex items-center gap-1.5">
-              <div className="flex flex-1 border border-border rounded-md overflow-hidden">
+              {/* Past the row's room (Finnish, a large text size) the pills scroll rather than slide under the buttons. */}
+              <div className="flex flex-1 min-w-0 border border-border rounded-md overflow-x-auto scroll-hidden">
                 {views.map((v) => (
                   <button
                     key={v}
                     onClick={() => onViewModeChange(v)}
                     className={cn(
-                      "flex-auto min-h-11 px-1.5 text-[0.6875rem] font-medium transition-colors touch-manipulation",
+                      "flex-auto shrink-0 whitespace-nowrap min-h-11 px-1.5 text-[0.6875rem] font-medium transition-colors touch-manipulation",
                       v === viewMode
                         ? "bg-primary text-primary-foreground"
                         : "text-muted-foreground active:bg-muted"
@@ -300,8 +304,9 @@ export function CalendarToolbar({
                   <Search />
                 </IconButton>
               )}
+              {/* On the smallest phones the view names need its room; the drawer lists the calendars too. */}
               {calendars && selectedCalendarIds && onToggleVisibility && (
-                <div className="relative" ref={dropdownRef}>
+                <div className="relative max-[22.5rem]:hidden" ref={dropdownRef}>
                   <IconButton
                     size="icon-lg"
                     variant="outline"
@@ -477,13 +482,16 @@ export function CalendarToolbar({
                 v === viewMode ? "bg-accent text-accent-foreground font-medium" : "hover:bg-muted text-foreground",
               )}
             >
-              <span>{t(`views.${v}`)}</span>
+              <span data-menu-label="">{t(`views.${v}`)}</span>
               {/* The key, on devices with a keyboard (R8). */}
-              <kbd className="font-sans text-xs text-muted-foreground pointer-coarse:hidden">{VIEW_SHORTCUTS[v]}</kbd>
+              <MenuShortcut keys={VIEW_SHORTCUTS[v]} />
             </button>
           ))}
         </ContextMenu>
       </div>
+
+      {/* The row is px-3; the margin puts the button where the reader has it (px-4, lg:px-6). */}
+      {panelToggle && <div className="flex items-center ms-1 me-1 lg:me-3" data-panel-toggle-slot="">{panelToggle}</div>}
     </div>
   );
 }

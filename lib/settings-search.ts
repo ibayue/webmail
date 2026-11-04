@@ -71,6 +71,8 @@ export const tabSearchEntries: Record<Tab, SettingsSearchEntry[]> = {
     { label: 'settings.language_region.time_format.label' },
     { label: 'settings.language_region.time_zone.label' },
     { label: 'settings.language_region.first_day.label' },
+    { label: 'appLock.section_title' },
+    { label: 'appLock.enable_label' },
     { label: 'protocol_handlers.title' },
     { label: 'protocol_handlers.mailto_label' },
     { label: 'protocol_handlers.webcal_label' },
@@ -243,6 +245,9 @@ export const tabSearchEntries: Record<Tab, SettingsSearchEntry[]> = {
     { label: 'settings.email_behavior.recipient_mentions.label' },
     { label: 'settings.email_behavior.mention_adds_recipient.label' },
     { label: 'settings.email_behavior.rtl_editing.label', advanced: true },
+    { label: 'proofreading.settings.title' },
+    { label: 'proofreading.settings.enable' },
+    { label: 'proofreading.settings.writing_language' },
     { label: 'settings.composing_page.sections.replying' },
     { label: 'settings.email_behavior.quick_reply.label' },
     { label: 'settings.email_behavior.auto_select_reply_identity.label' },
@@ -360,16 +365,17 @@ export const tabSearchEntries: Record<Tab, SettingsSearchEntry[]> = {
     { label: 'settings.advanced.refresh_cache.label' },
     { label: 'settings.advanced.reset_settings.label' },
     { label: 'settings.advanced.debug_mode.label', advanced: true },
-  ],};
+  ],
+};
 
 // Extra English keywords per tab so common search terms hit even when the
 // translation doesn't contain the literal word.
 /** Settings shown only while the admin has the Archive action on (#1257). */
-export const archiveActionSearchPaths: ReadonlySet<string> = new Set(['settings.email_behavior.archive_mode.label']);
+export const ARCHIVE_ACTION_SEARCH_PATHS: ReadonlySet<string> = new Set(['settings.email_behavior.archive_mode.label']);
 
 export const tabKeywords: Record<Tab, string> = {
   account: 'profile email user signin signout reorder rearrange drag dropdown switcher multi-account identities from address signature plus addressing unified mailbox shared group',
-  general: 'language locale region timezone date time format mailto webcal links default app protocol handler tour onboarding',
+  general: 'language locale region timezone date time format mailto webcal links default app protocol handler tour onboarding lock pin passkey windows hello touch id',
   notifications: 'sound alert push badge favicon tab icon unread count background relay device',
   appearance: 'theme dark light font size accent color animation density custom theme css skin toolbar sidebar account switcher icons rail layout reading pane',
   accessibility: 'a11y accessible vision blind low vision screen reader contrast motion animation reduce zoom text size font dyslexia spacing keyboard shortcuts focus outline cursor pointer targets colour blind color sound visual alert hearing deaf simple plain language read aloud',

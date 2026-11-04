@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useCallback, useLayoutEffect, useState, useRef } from "react";
+import { popoverFitHeight, popoverShift } from "@/lib/popover-shift";
 import { createPortal } from "react-dom";
 import { useEditor, useEditorState, EditorContent, type Editor } from "@tiptap/react";
 import type { SuggestionProps } from "@tiptap/suggestion";
@@ -23,7 +24,7 @@ import { TableRow } from "@tiptap/extension-table-row";
 import { TableHeader } from "@tiptap/extension-table-header";
 import { TableCell } from "@tiptap/extension-table-cell";
 import { ReplyQuoteCollapse } from "@/components/email/reply-quote-collapse";
-import { QuotedHtml, serializeEditorContent } from "@/components/email/quoted-html";
+import { QuotedHtml, restoreCaretAfterContentSync, serializeEditorContent } from "@/components/email/quoted-html";
 import { keepLoadedParagraphSpacing, paragraphStyleWithoutSpacing, trailingParagraphBreakRule } from "@/components/email/paragraph-breaks";
 import { SignatureBlock } from "@/components/email/signature-block";
 import { styledBlockAttributes } from "@/components/email/styled-block-attributes";
@@ -41,6 +42,7 @@ export function withLinkScheme(value: string): string {
     : `https://${value}`;
 }
 import { useSettingsStore } from "@/stores/settings-store";
+import { createTextCheckExtension, type TextCheckOptions } from "@/components/email/proofreading/text-check-extension";
 import { useTranslations } from "next-intl";
 import {
   Bold,
@@ -136,16 +138,27 @@ interface RichTextEditorProps {
   ariaDescribedBy?: string;
   /** The font and size the text starts in (the sent mail carries them too). */
   defaultTextStyle?: ComposeTextStyle;
+  /**
+   * The browser's own spell check. Off while a proofreading plugin checks
+   * spelling here, so there aren't two sets of underlines.
+   */
+  spellcheck?: boolean;
+  /** The language the text is written in (the writing-language setting). */
+  lang?: string;
+  /** Proofreading underlines: clicks on them, and keys in the text. */
+  textCheck?: TextCheckOptions;
 }
 
 /** What the editing area tells assistive technology, besides TipTap's role=textbox. */
-export function editorA11yAttributes({ ariaLabel, ariaInvalid, ariaDescribedBy, defaultTextStyle }: Pick<RichTextEditorProps, 'ariaLabel' | 'ariaInvalid' | 'ariaDescribedBy' | 'defaultTextStyle'>): Record<string, string> {
+export function editorA11yAttributes({ ariaLabel, ariaInvalid, ariaDescribedBy, defaultTextStyle, spellcheck = true, lang }: Pick<RichTextEditorProps, 'ariaLabel' | 'ariaInvalid' | 'ariaDescribedBy' | 'defaultTextStyle' | 'spellcheck' | 'lang'>): Record<string, string> {
   const style = defaultTextStyle ? composeTextStyleCss(defaultTextStyle) : "";
   return {
-    class: "tiptap min-h-[100px] px-4 py-3 text-sm text-foreground",
+    class: "tiptap focus-inset min-h-[100px] px-4 py-3 text-sm text-foreground",
     ...(style ? { style } : {}),
     role: "textbox",
     "aria-multiline": "true",
+    spellcheck: spellcheck ? "true" : "false",
+    ...(lang ? { lang } : {}),
     ...(ariaLabel ? { "aria-label": ariaLabel } : {}),
     ...(ariaInvalid ? { "aria-invalid": "true" } : {}),
     ...(ariaInvalid && ariaDescribedBy ? { "aria-describedby": ariaDescribedBy } : {}),
@@ -225,6 +238,36 @@ function ToolbarPopover({
     const list = items();
     const checked = list.find((el) => el.getAttribute("aria-checked") === "true");
     (checked ?? list[0])?.focus();
+  }, []);
+
+  // Anchored to its button, it would run off a narrow composer's edge.
+  useLayoutEffect(() => {
+    const el = ref.current;
+    const toolbar = el?.closest('[role="toolbar"]');
+    if (!el || !toolbar) return;
+    const box = toolbar.getBoundingClientRect();
+    const shift = popoverShift(el.getBoundingClientRect(), {
+      left: Math.max(box.left, 0),
+      right: Math.min(box.right, window.innerWidth),
+    });
+    if (shift !== 0) el.style.transform = `translateX(${shift}px)`;
+    // Too tall for the room under its button (a short window, 150 % zoom): above
+    // it when there's more room there, and scrolling inside either way.
+    const trigger = triggerRef.current?.getBoundingClientRect();
+    const rect = el.getBoundingClientRect();
+    const fit = trigger ? popoverFitHeight({ top: rect.top, height: rect.height }, trigger, window.innerHeight) : null;
+    if (fit) {
+      if (fit.above) {
+        el.style.top = "auto";
+        el.style.bottom = "100%";
+        el.style.marginTop = "0";
+        el.style.marginBottom = "0.25rem";
+      }
+      el.style.maxHeight = `${fit.maxHeight}px`;
+      el.style.overflowY = "auto";
+    }
+    // triggerRef is a ref: it doesn't change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const close = (returnFocus: boolean) => {
@@ -391,6 +434,9 @@ export function RichTextEditor({
   ariaInvalid,
   ariaDescribedBy,
   defaultTextStyle,
+  spellcheck = true,
+  lang,
+  textCheck: textCheckHandlers,
 }: RichTextEditorProps) {
   const rtlEditingSupport = useSettingsStore((st) => st.rtlEditingSupport);
   const tComposer = useTranslations("email_composer");
@@ -399,6 +445,13 @@ export function RichTextEditor({
   onImageUploadRef.current = onImageUpload;
   const onEditorReadyRef = React.useRef(onEditorReady);
   onEditorReadyRef.current = onEditorReady;
+  const textCheckRef = React.useRef(textCheckHandlers);
+  textCheckRef.current = textCheckHandlers;
+  // Built once with the editor; reads the latest handlers.
+  const [textCheck] = useState(() => createTextCheckExtension(() => ({
+    onOpen: (key, anchor, via) => textCheckRef.current?.onOpen(key, anchor, via),
+    onKey: (event) => textCheckRef.current?.onKey?.(event) ?? false,
+  })));
   const mentionCandidatesRef = React.useRef<MentionCandidate[]>([]);
   mentionCandidatesRef.current = mentionCandidates ?? [];
   // Read on every keystroke after an "@"; the editor is built only once.
@@ -496,6 +549,7 @@ export function RichTextEditor({
           onExit: () => setMention(null),
         }),
       }),
+      textCheck,
     ],
     // One newline per paragraph when copying out as plain text, the inverse
     // of PlainTextPaste: a blank line is an empty paragraph, so the default
@@ -505,7 +559,7 @@ export function RichTextEditor({
     },
     content,
     editorProps: {
-      attributes: editorA11yAttributes({ ariaLabel, ariaInvalid, ariaDescribedBy, defaultTextStyle }),
+      attributes: editorA11yAttributes({ ariaLabel, ariaInvalid, ariaDescribedBy, defaultTextStyle, spellcheck, lang }),
       handleKeyDown: (_view, event) => {
         if (event.altKey && event.key === "F10" && focusToolbarRef.current?.()) {
           event.preventDefault();
@@ -577,7 +631,9 @@ export function RichTextEditor({
     if (!editor) return;
     const loaded = keepLoadedParagraphSpacing(content);
     if (loaded !== serializeEditorContent(editor)) {
+      const caret = editor.state.selection.from;
       editor.commands.setContent(loaded, { emitUpdate: false });
+      restoreCaretAfterContentSync(editor, caret);
     }
   }, [content, editor]);
 
@@ -588,10 +644,10 @@ export function RichTextEditor({
     editor.setOptions({
       editorProps: {
         ...editor.options.editorProps,
-        attributes: editorA11yAttributes({ ariaLabel, ariaInvalid, ariaDescribedBy, defaultTextStyle }),
+        attributes: editorA11yAttributes({ ariaLabel, ariaInvalid, ariaDescribedBy, defaultTextStyle, spellcheck, lang }),
       },
     });
-  }, [editor, ariaLabel, ariaInvalid, ariaDescribedBy, defaultTextStyle]);
+  }, [editor, ariaLabel, ariaInvalid, ariaDescribedBy, defaultTextStyle, spellcheck, lang]);
 
   // Re-render the toolbar when what it shows changes, also on a caret move
   // or an image selection that changes no text (the parent re-renders only

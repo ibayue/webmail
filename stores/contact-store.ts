@@ -5,19 +5,31 @@ import type { IJMAPClient } from '@/lib/jmap/client-interface';
 import { loadPrincipalDirectory } from '@/lib/jmap/principal-directory';
 import { generateUUID } from '@/lib/utils';
 import { debug } from '@/lib/debug';
-import { settingsHooks } from '@/lib/plugin-hooks';
+import { calendarHooks, contactHooks, settingsHooks } from '@/lib/plugin-hooks';
+import { BIRTHDAY_CALENDAR_ID } from '@/lib/birthday-calendar';
+import { useSettingsStore } from './settings-store';
 import { getClientByLocalAccountId } from './client-registry';
 import { sanitizeDisplayName, splitMailbox } from '@/lib/rfc5322-mailbox';
 import { inlineContactMedia, writeContactWithNewPhoto, type ContactSaveOptions } from '@/lib/contact-media';
-import { contactHooks } from '@/lib/plugin-hooks';
 import { contactToView } from '@/lib/plugin-projection';
 import { PrincipalsRequestError } from '@/lib/jmap/principals-error';
+import { PartialAccountsError, partialAccounts, withFailedAccountsKept } from '@/lib/jmap/partial-accounts';
 import type { Principal } from '@/lib/jmap/types';
 import { currentStoreEpoch } from '@/lib/store-epoch';
 
 /** A contact that is about to be created, projected for plugins (no id yet). */
 function draftContactView(contact: Partial<ContactCard>) {
   return contactToView({ addressBookIds: {}, ...contact, id: contact.id ?? '' } as ContactCard);
+}
+
+function notifyBirthdayCalendarIfEnabled() {
+  try {
+    if (useSettingsStore.getState().showBirthdayCalendar) {
+      void calendarHooks.onCalendarChange.emit({ calendarId: BIRTHDAY_CALENDAR_ID, change: 'updated' });
+    }
+  } catch {
+    // Ignore when stores not initialized in unit tests
+  }
 }
 
 function sameIdSet(a: Set<string>, b: Set<string>): boolean {
@@ -603,7 +615,14 @@ export const useContactStore = create<ContactStore>()(
         } catch (error) {
           if (currentStoreEpoch() !== epoch) return;
           console.error('Failed to fetch contacts:', error);
-          set({ error: 'Failed to fetch contacts', isLoading: false, contactsLoaded: true });
+          // An account that couldn't answer keeps its cards; the others are fresh.
+          const partial = partialAccounts<ContactCard>(error);
+          set((state) => ({
+            error: 'Failed to fetch contacts',
+            isLoading: false,
+            contactsLoaded: true,
+            contacts: partial ? withFailedAccountsKept(partial, state.contacts) : state.contacts,
+          }));
         }
       },
 
@@ -645,7 +664,11 @@ export const useContactStore = create<ContactStore>()(
         } catch (error) {
           if (currentStoreEpoch() !== epoch) return;
           console.error('Failed to fetch address books:', error);
-          set({ error: 'Failed to fetch address books' });
+          const partial = partialAccounts<AddressBook>(error);
+          set((state) => ({
+            error: 'Failed to fetch address books',
+            addressBooks: partial ? withFailedAccountsKept(partial, state.addressBooks) : state.addressBooks,
+          }));
         }
       },
 
@@ -660,7 +683,12 @@ export const useContactStore = create<ContactStore>()(
                 return prefixContactsWithLocalAccount(list, localAccountId);
               } catch (error) {
                 debug.error(`Failed to fetch contacts for account ${localAccountId}:`, error);
-                return [] as ContactCard[];
+                // Keep what this login's cards were: it just couldn't answer.
+                const held = get().contacts.filter((contact) => contact.localAccountId === localAccountId);
+                const partial = partialAccounts<ContactCard>(error);
+                if (!partial) return held;
+                const fresh = prefixContactsWithLocalAccount(partial.items, localAccountId);
+                return withFailedAccountsKept(new PartialAccountsError(fresh, partial.failedAccountIds, partial.primaryAccountId, error), held);
               }
             }),
           );
@@ -683,7 +711,11 @@ export const useContactStore = create<ContactStore>()(
                 return prefixAddressBooksWithLocalAccount(list, localAccountId);
               } catch (error) {
                 debug.error(`Failed to fetch address books for account ${localAccountId}:`, error);
-                return [] as AddressBook[];
+                const held = get().addressBooks.filter((book) => book.localAccountId === localAccountId);
+                const partial = partialAccounts<AddressBook>(error);
+                if (!partial) return held;
+                const fresh = prefixAddressBooksWithLocalAccount(partial.items, localAccountId);
+                return withFailedAccountsKept(new PartialAccountsError(fresh, partial.failedAccountIds, partial.primaryAccountId, error), held);
               }
             }),
           );
@@ -749,6 +781,7 @@ export const useContactStore = create<ContactStore>()(
             isLoading: false,
           }));
           void contactHooks.onAfterContactCreate.emit(contactToView(stored));
+          notifyBirthdayCalendarIfEnabled();
           return true;
         } catch (error) {
           const msg = error instanceof Error ? error.message : 'Failed to create contact';
@@ -788,6 +821,7 @@ export const useContactStore = create<ContactStore>()(
           }));
           const updated = get().contacts.find(c => c.id === id);
           if (updated) void contactHooks.onAfterContactUpdate.emit(contactToView(updated));
+          notifyBirthdayCalendarIfEnabled();
           return true;
         } catch (error) {
           const msg = error instanceof Error ? error.message : 'Failed to update contact';
@@ -821,6 +855,7 @@ export const useContactStore = create<ContactStore>()(
             };
           });
           void contactHooks.onAfterContactDelete.emit({ contactIds: [id] });
+          notifyBirthdayCalendarIfEnabled();
           return true;
         } catch (error) {
           const msg = error instanceof Error ? error.message : 'Failed to delete contact';
@@ -833,6 +868,7 @@ export const useContactStore = create<ContactStore>()(
         if (!(await contactHooks.onBeforeContactCreate.intercept(draftContactView(contact)))) return false;
         set((state) => ({ contacts: [...state.contacts, contact] }));
         void contactHooks.onAfterContactCreate.emit(contactToView(contact));
+        notifyBirthdayCalendarIfEnabled();
         return true;
       },
 
@@ -845,6 +881,7 @@ export const useContactStore = create<ContactStore>()(
         }));
         const updated = get().contacts.find(c => c.id === id);
         if (updated) void contactHooks.onAfterContactUpdate.emit(contactToView(updated));
+        notifyBirthdayCalendarIfEnabled();
         return true;
       },
 
@@ -859,6 +896,7 @@ export const useContactStore = create<ContactStore>()(
           };
         });
         void contactHooks.onAfterContactDelete.emit({ contactIds: [id] });
+        notifyBirthdayCalendarIfEnabled();
         return true;
       },
 
@@ -1202,6 +1240,7 @@ export const useContactStore = create<ContactStore>()(
         });
         if (deletedIds.size > 0) {
           void contactHooks.onAfterContactDelete.emit({ contactIds: ids.filter(id => deletedIds.has(id)) });
+          notifyBirthdayCalendarIfEnabled();
         }
         return true;
       },
@@ -1616,7 +1655,10 @@ export const useContactStore = create<ContactStore>()(
           }
         }
 
-        if (imported > 0) void contactHooks.onContactsImport.emit({ addressBookId, imported });
+        if (imported > 0) {
+          void contactHooks.onContactsImport.emit({ addressBookId, imported });
+          notifyBirthdayCalendarIfEnabled();
+        }
         return imported;
       },
     });

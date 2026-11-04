@@ -12,6 +12,7 @@ import {
 } from "@/components/files/file-item-parts";
 import type { SortDir, SortKey } from "@/components/files/files-header";
 import { TOUCH_HIT_AREA } from "@/components/ui/button";
+import { FILE_LIST_COLUMNS } from "./file-list-layout";
 
 export interface FileItemHandlers {
   /** Selection click (plain, Ctrl/Cmd, Shift) on the item body. */
@@ -147,7 +148,7 @@ function SortHeader({ label, column, sortKey, sortDir, onSort, className }: {
   );
 }
 
-const LIST_COLUMNS = "grid grid-cols-[auto_minmax(0,1fr)_auto] sm:grid-cols-[auto_minmax(0,1fr)_5.5rem_auto] md:grid-cols-[auto_minmax(0,1fr)_9rem_5.5rem_auto] items-center gap-x-3";
+const LIST_COLUMNS = FILE_LIST_COLUMNS;
 
 export function FileListView({
   resources, selected, focusedName, tabStopName, dropTarget, cutNames, starredPaths, pathOf, touch, iconOptions, getImageUrl, handlers,
@@ -222,6 +223,7 @@ function FileListRow({ resource, isSelected, isFocused, isTabStop, isDropTarget,
   note?: string;
 }) {
   const t = useTranslations("files");
+  const tMenu = useTranslations("menuAudit");
   const touchProps = useTouchPress(touch, selecting, resource, handlers);
   const icon = <ResourceIcon resource={resource} size="sm" options={iconOptions} />;
   return (
@@ -298,7 +300,7 @@ function FileListRow({ resource, isSelected, isFocused, isTabStop, isDropTarget,
           <RowAction icon={Download} label={t("download")} onClick={() => handlers.onDownload?.(resource)} />
         )}
         {!touch && handlers.canShare(resource) && (
-          <RowAction icon={Share2} label={t("share")} onClick={() => handlers.onShare(resource)} />
+          <RowAction icon={Share2} label={tMenu("files_share_button")} onClick={() => handlers.onShare(resource)} />
         )}
         <IconButton
           data-item-action

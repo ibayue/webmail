@@ -1,5 +1,7 @@
 import type { CredentialSpec } from './plugin-secrets/credentials';
 import type { CatalogSlotName } from './plugin-slot-catalog';
+import { ASSISTANT_PERMISSIONS, type AssistantHostFeatures } from './plugin-sandbox/assistant/types';
+import type { AttachmentExtrasB, EmailReadViewExtrasB } from './plugin-sandbox/assistant/b.types';
 
 // Plugin & Theme system types
 
@@ -281,6 +283,8 @@ export interface InstalledPlugin {
    * skip the consent prompt (admin pre-approval).
    */
   grantedPermissions?: string[];
+  /** Asked for a plugin an admin installed (ALWAYS_ASK_USER), and the user said no: not asked again. */
+  declinedPermissions?: string[];
   /**
    * For plugins the user installed: the validated manifest, kept so the
    * package can be rebuilt for an approval request, and the hash an admin
@@ -395,7 +399,7 @@ export interface KeyboardShortcut {
 // ─── Read-Only View Types ────────────────────────────────────
 // Projected views exposed to plugins - no direct store references
 
-export interface EmailReadView {
+export interface EmailReadView extends EmailReadViewExtrasB {
   id: string;
   /**
    * The JMAP account the message is in. Message ids repeat across accounts
@@ -418,9 +422,10 @@ export interface EmailReadView {
   /**
    * The message's attachments. `blobId` is what `email.getAttachment`
    * takes. Inline images are included and marked. Empty until the host has
-   * loaded the message's body structure.
+   * loaded the message's body structure. An image the HTML shows inline
+   * also has its `cid` and, when the sender wrote one, its `alt` text.
    */
-  attachments: { blobId: string; name: string; type: string; size: number; inline: boolean }[];
+  attachments: ({ blobId: string; name: string; type: string; size: number; inline: boolean } & AttachmentExtrasB)[];
   preview: string;
   keywords: string[];
   /** Full plain-text body of the message (HTML-only bodies are stripped to
@@ -892,12 +897,20 @@ export interface QuotaView {
   percentUsed: number;
 }
 
-export interface CalendarAlertView {
-  id: string;
-  eventId: string;
-  eventTitle: string;
-  triggerTime: string;
-}
+/**
+ * A reminder that is due: an event's display alert or a task's. `id` is the
+ * alert's id within its event or task; `triggerTime` when it fired (UTC).
+ * A task's reaches only plugins with `tasks:read`, an event's only plugins
+ * with `calendar:read`.
+ */
+export type CalendarAlertView =
+  | { id: string; eventId: string; eventTitle: string; triggerTime: string }
+  | { id: string; taskId: string; taskTitle: string; triggerTime: string };
+
+/** A reminder's toast closed by the user (onCalendarAlertAcknowledge). */
+export type CalendarAlertAcknowledgeView =
+  | { alertId: string; eventId: string }
+  | { alertId: string; taskId: string };
 
 export interface SearchFilters {
   from?: string;
@@ -956,7 +969,7 @@ export interface AppInfoView {
  * that does the same job steps back while one is true. Missing on hosts
  * older than 1.19.0, so read it as `api.host?.features?.x === true`.
  */
-export interface HostFeaturesView {
+export interface HostFeaturesView extends AssistantHostFeatures {
   /** The admin turned on the "External" label on mail from outside the organisation (organisation.externalMail.senderLabel). */
   externalSenderLabel: boolean;
   /** The admin turned on the confirm before sending outside the organisation (organisation.externalMail.recipientWarning). */
@@ -969,6 +982,18 @@ export interface HostFeaturesView {
    * down.
    */
   noThirdPartyTraffic: boolean;
+  /**
+   * The desktop app's OS certificate store and smart cards are there for this
+   * plugin: privileged tier, the `keystore` permission, and a shell that has them.
+   * Absent otherwise. See `api.keystore`.
+   */
+  keystore?: boolean;
+  /**
+   * onRenderEmailBody may return `blockExternalContent: true` to keep external content
+   * off for that body, whatever the settings and trusted senders allow. Per plugin, for
+   * those with `email:render-takeover`. Absent on webmails that ignore the field.
+   */
+  blockExternalContent?: boolean;
 }
 
 /** One setting `api.app.searchSettings` found, in the user's language. */
@@ -1535,6 +1560,10 @@ export const ALL_PERMISSIONS = [
   // message bodies and private keys; only granted to a signed, admin-approved
   // privileged bundle after explicit high-risk consent.
   'crypto:full',
+  // Sign and decrypt with the OS certificate store and smart cards, in the desktop
+  // app. Declare it in optionalPermissions: as a plain permission it would be an
+  // install error on a webmail that doesn't know it. Privileged tier only.
+  'keystore',
   // Submit a fully-formed raw RFC822 message via JMAP (used after a plugin
   // signs/encrypts an outgoing message itself).
   'email:raw-send',
@@ -1554,6 +1583,13 @@ export const ALL_PERMISSIONS = [
   'compose:read',
   // Change the message being written (api.composer.replaceSelection/replaceBody).
   'compose:write',
+  // Check the text of every open composer while the user types
+  // (api.composer.registerChecker): the host sends the plugin what the user
+  // writes, without the user pointing it at a composer, and draws its
+  // results as underlines. Only where the user (or the admin) turned
+  // proofreading on, and never for a message that will be signed or encrypted.
+  // A checker that checks only when asked needs compose:read instead.
+  'compose:check',
   // Forward a message of the account with its attachments, without the
   // composer (api.email.forward). The host asks the user once per address.
   'email:forward',
@@ -1591,6 +1627,8 @@ export const ALL_PERMISSIONS = [
   'http:proxy',
   'admin:config',
   'app:lifecycle',
+  // The AI assistant's host APIs, one list per area (lib/plugin-sandbox/assistant).
+  ...ASSISTANT_PERMISSIONS,
 ] as const;
 
 export type Permission = (typeof ALL_PERMISSIONS)[number];

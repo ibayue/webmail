@@ -33,6 +33,11 @@ const STALWART_VACATION_LIMITS = { subject: 511, body: 2047 };
 const SAVE_AT_ONCE = 0;
 const SAVE_AFTER_TYPING = 800;
 
+/** The plain-text part a save derives from the sanitized HTML. */
+function textFromHtml(sanitizedHtml: string): string {
+  return htmlToPlainText(sanitizedHtml, { paragraphSpacing: true });
+}
+
 function byteLength(value: string): number {
   return new TextEncoder().encode(value).length;
 }
@@ -66,7 +71,7 @@ function utcToLocalDatetime(utcIso: string, timeZone: string): string {
 }
 
 const DATE_FIELD =
-  'px-3 py-1.5 text-sm rounded-md bg-muted border border-border text-foreground focus:outline-hidden transition-colors duration-150 hover:border-muted-foreground';
+  'max-w-full px-3 py-1.5 text-sm rounded-md bg-muted border border-border text-foreground focus:outline-hidden transition-colors duration-150 hover:border-muted-foreground';
 
 // The latest moment the date fields offer: a later year has no room in the
 // four digits a stored date has.
@@ -210,7 +215,11 @@ export function VacationSettings() {
       setInputZone(timeZone);
       setHalfFilled({ from: false, to: false });
       setLocalSubject(stored.subject);
-      setLocalTextBody(stored.textBody);
+      // Text a save derived from the HTML leaves the Body blank, so the next
+      // HTML edit derives it again instead of keeping the old wording.
+      setLocalTextBody(stored.htmlBody && stored.textBody.trim() === textFromHtml(sanitizeEmailHtml(stored.htmlBody)).trim()
+        ? ''
+        : stored.textBody);
       setHtmlEnabled(!!stored.htmlBody);
       setLocalHtmlBody(stored.htmlBody || '');
     }
@@ -296,10 +305,7 @@ export function VacationSettings() {
       htmlEnabled && htmlToPlainText(localHtmlBody).trim()
         ? sanitizeEmailHtml(localHtmlBody)
         : null;
-    const text =
-      localTextBody.trim() || !sanitizedHtml
-        ? localTextBody
-        : htmlToPlainText(sanitizedHtml, { paragraphSpacing: true });
+    const text = localTextBody.trim() || !sanitizedHtml ? localTextBody : textFromHtml(sanitizedHtml);
     return { sanitizedHtml, textBody: text };
   }, [htmlEnabled, localHtmlBody, localTextBody]);
 
@@ -332,13 +338,15 @@ export function VacationSettings() {
     ? t('warnings.body_too_long', { max: sizeLimits.body })
     : localEnabled && !localTextBody.trim() && !hasHtmlContent ? t('warnings.empty_body') : null;
 
+  // The bodies are compared as a save sends them: the server keeps the
+  // sanitized HTML and the text derived from it, never what was typed.
   const userChanges =
     localEnabled !== isEnabled ||
     (localFromDate || null) !== (fromDate || null) ||
     (localToDate || null) !== (toDate || null) ||
     localSubject !== subject ||
-    localTextBody !== textBody ||
-    (htmlEnabled ? localHtmlBody : '') !== (htmlBody || '') ||
+    payload.textBody !== textBody ||
+    (payload.sanitizedHtml ?? '') !== (htmlBody || '') ||
     forwardChanged ||
     audienceChanged;
 
@@ -561,7 +569,7 @@ export function VacationSettings() {
             onChange={(e) => changeTyped(setLocalSubject)(e.target.value)}
             placeholder={t('message.subject_placeholder')}
             aria-invalid={oversize.subject}
-            className="w-64 px-3 py-1.5 text-sm rounded-md bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-hidden transition-colors duration-150 hover:border-muted-foreground"
+            className="w-64 max-w-full px-3 py-1.5 text-sm rounded-md bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-hidden transition-colors duration-150 hover:border-muted-foreground"
           />
         </SettingItem>
         <FieldMessage text={oversize.subject && sizeLimits ? t('warnings.subject_too_long', { max: sizeLimits.subject }) : null} />
@@ -586,7 +594,14 @@ export function VacationSettings() {
           label={t('message.html_label')}
           description={t('message.html_description')}
         >
-          <ToggleSwitch checked={htmlEnabled} onChange={changeNow(setHtmlEnabled)} />
+          <ToggleSwitch
+            checked={htmlEnabled}
+            onChange={changeNow((on: boolean) => {
+              // Switched off, a blank Body keeps the text derived from the HTML.
+              if (!on && !localTextBody.trim()) setLocalTextBody(payload.textBody);
+              setHtmlEnabled(on);
+            })}
+          />
         </SettingItem>
         {htmlEnabled && (
           <div className="pb-3">

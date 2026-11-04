@@ -36,6 +36,8 @@ export interface Toast {
    * that has one lays its actions out on a row of their own.
    */
   tertiaryAction?: ToastAction;
+  /** More actions at the end of that row. Needs a tertiaryAction. */
+  extraActions?: ToastAction[];
   /**
    * Work in progress, e.g. an upload: 0..1, or null while the amount is
    * unknown. The bottom line then shows progress instead of a countdown,
@@ -291,6 +293,7 @@ export function ToastItem({ toast, onClose, held = false, onFocusLost }: ToastPr
             {actionButton(toast.tertiaryAction)}
             {toast.secondaryAction && actionButton(toast.secondaryAction)}
             {toast.action && actionButton(toast.action)}
+            {toast.extraActions?.map((action) => <span key={action.label} className="contents">{actionButton(action)}</span>)}
           </div>
         )}
       </div>
@@ -302,7 +305,8 @@ export function ToastItem({ toast, onClose, held = false, onFocusLost }: ToastPr
         </div>
       )}
 
-      {/* Close button. Phones swipe the toast away instead. */}
+      {/* Close button. Phones swipe the toast away instead. A toast that stays
+          until closed shows it all the time: that's the only way it goes. */}
       <button
         type="button"
         data-toast-close=""
@@ -316,7 +320,9 @@ export function ToastItem({ toast, onClose, held = false, onFocusLost }: ToastPr
           "flex-shrink-0 p-1 rounded-md transition-all max-sm:hidden",
           TOUCH_HIT_AREA,
           "text-muted-foreground hover:text-foreground hover:bg-foreground/5",
-          "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 pointer-coarse:opacity-100"
+          !toast.duration || toast.duration <= 0
+            ? "opacity-100"
+            : "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 pointer-coarse:opacity-100"
         )}
       >
         <X className="w-3.5 h-3.5" />
