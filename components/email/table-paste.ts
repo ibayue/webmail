@@ -128,8 +128,8 @@ function mapLegacyAttributes(el: Element) {
   const add: string[] = [];
   const bgcolor = el.getAttribute("bgcolor");
   if (bgcolor && !/background(-color)?:/i.test(style)) add.push(`background-color: ${bgcolor}`);
-  const width = el.getAttribute("width");
-  if (width && /^\d+$/.test(width) && !/(^|[^-])width\s*:/i.test(style)) add.push(`width: ${width}px`);
+  // No width mapping: a cell width is the spreadsheet's grid size, and in the
+  // auto layout it pins the column near that size so long content wraps.
   const height = el.getAttribute("height");
   if (height && /^\d+$/.test(height) && !/height\s*:/i.test(style)) add.push(`height: ${height}px`);
   // Legacy align/valign: the schema's align parser reads the style, not the attribute.
@@ -195,6 +195,11 @@ function stripSpillLayout(doc: Document) {
   }
   for (const cell of doc.querySelectorAll("td, th")) {
     stripStyleProperties(cell, /^white-space$/i);
+    // The spreadsheet's per-cell width is a preferred width: in the auto
+    // layout the browser keeps the column near it and wraps what exceeds
+    // it, instead of widening the column to fit the content.
+    stripStyleProperties(cell, /^(min-)?width$/i);
+    cell.removeAttribute("width");
   }
 }
 

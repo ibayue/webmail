@@ -50,9 +50,11 @@ describe('inlineClipboardStyles', () => {
 
     expect(cells[0].getAttribute('class')).toBeNull();
     expect(cells[0].style.fontWeight).toBe('700');
-    // The td rule and the own width style both survive; own style wins.
+    // The td rule survives; the spreadsheet's own width pin is dropped so the
+    // column can size to its content (height, a row property, stays).
     expect(cells[0].style.paddingTop).toBe('1px');
-    expect(cells[0].style.width).toBe('48pt');
+    expect(cells[0].style.width).toBe('');
+    expect(cells[0].style.height).toBe('15pt');
     expect(cells[1].style.backgroundColor).toMatch(/#ffc7ce|rgb/i);
     // bgcolor maps to background-color, class rule first, attribute second.
     expect(cells[1].style.backgroundColor).toBeTruthy();
@@ -107,13 +109,14 @@ describe('inlineClipboardStyles', () => {
 <tr><td style='width:48pt'>a long cell value</td><td>x</td></tr>
 </table></body></html>`);
     const doc = new DOMParser().parseFromString(html, 'text/html');
-    // The table width and the col widths both go; the cell width (explicit on
-    // the td) stays for the schema's own width handling to decide.
+    // The table width, the col widths, and the cell's own width pin all go:
+    // nothing keeps the column at the spreadsheet's grid size.
     expect(doc.querySelector('table')!.getAttribute('style')).not.toMatch(/width/i);
     for (const col of doc.querySelectorAll('col')) {
       expect(col.getAttribute('width')).toBeNull();
       expect(col.getAttribute('style')).toBeNull();
     }
+    expect(doc.querySelector('td')!.style.width).toBe('');
   });
 
   it('drops the fixed layout even without a style block or ProgId', () => {
@@ -170,9 +173,10 @@ describe('pasting an Office table into the composer', () => {
 
     // Table-level style survives the parse (jsdom normalizes hex to rgb).
     expect(table!.getAttribute('style')).toMatch(/border-collapse/i);
-    // Cell-level style from the class rule and the own inline style.
+    // Cell-level style from the class rule and the own inline style; the
+    // width pin is stripped so the column sizes to its content.
     expect(cells.length && table!.querySelectorAll('td')[0].style.fontWeight).toBe('700');
-    expect(table!.querySelectorAll('td')[0].getAttribute('style')).toMatch(/width/i);
+    expect(table!.querySelectorAll('td')[0].getAttribute('style')).not.toMatch(/width/i);
     expect(table!.querySelectorAll('td')[1].getAttribute('style')).toMatch(/background/i);
     // Column widths come through the colgroup.
     const cols = table!.querySelectorAll('col');
