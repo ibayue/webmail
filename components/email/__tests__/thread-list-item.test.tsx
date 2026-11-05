@@ -1073,3 +1073,49 @@ describe('ThreadListItem for screen readers and keyboards (SR-01, MO-18)', () =>
     expect(screen.getByRole('button', { name: /expand_named/ })).toBeTruthy();
   });
 });
+
+describe('ThreadListItem hidden list avatars (showListAvatars)', () => {
+  function setup(emails: Email[], selectedEmailKeys: Set<string> = new Set()) {
+    useSettingsStore.setState({ interfaceLayout: 'default', mailLayout: 'split', density: 'regular', showListAvatars: false } as never);
+    useEmailStore.setState({ selectedEmailKeys, selectedMailbox: 'inbox' });
+    const onToggleExpand = vi.fn();
+    const onEmailSelect = vi.fn();
+    const [thread] = groupEmailsByThread(emails);
+    const utils = render(
+      <ThreadListItem
+        thread={thread}
+        isExpanded={false}
+        onToggleExpand={onToggleExpand}
+        onEmailSelect={onEmailSelect}
+      />,
+    );
+    return { ...utils, onToggleExpand, onEmailSelect };
+  }
+  const selection = () => [...useEmailStore.getState().selectedEmailKeys].sort();
+
+  it('draws no avatar gutter, and an unread row keeps its dot', () => {
+    // keywords without $seen = unread, so the dot renders at the row's edge.
+    const { container } = setup([makeEmail({ keywords: {} })]);
+    expect(container.querySelector('[data-select-gutter]')).toBeNull();
+    expect(container.querySelector('.fill-unread')).not.toBeNull();
+  });
+
+  it('offers a checkbox instead while selecting, and it ticks the row', () => {
+    setup([makeEmail()], new Set(['other']));
+    const checkbox = screen.getAllByRole('checkbox')[0];
+    fireEvent.click(checkbox);
+    expect(selection()).toContain('email-1');
+  });
+
+  it('still unfolds a thread from the row itself without the avatar chevron', () => {
+    // Two messages: the collapsed header row click expands the thread.
+    const { container, onToggleExpand, onEmailSelect } = setup([
+      makeEmail({ id: 'older', receivedAt: '2024-01-14T10:00:00Z' }),
+      makeEmail({ id: 'newer', receivedAt: '2024-01-15T10:00:00Z' }),
+    ]);
+    expect(container.querySelector('[data-select-gutter]')).toBeNull();
+    fireEvent.click(container.querySelector('[data-row-text]')!);
+    expect(onToggleExpand).toHaveBeenCalledTimes(1);
+    expect(onEmailSelect).toHaveBeenCalled();
+  });
+});

@@ -478,8 +478,12 @@ const SingleEmailItem = React.forwardRef<HTMLDivElement, SingleEmailItemProps>(
     const density = useSettingsStore((state) => state.density);
     const timeFormat = useSettingsStore((state) => state.timeFormat);
     const showAvatarsInJunk = useSettingsStore((state) => state.showAvatarsInJunk);
+    const showListAvatars = useSettingsStore((state) => state.showListAvatars);
     const interfaceLayout = useSettingsStore((state) => state.interfaceLayout);
     const hideJunkAvatarImages = currentMailboxRole === 'junk' && !showAvatarsInJunk;
+    // A row without its avatar reuses the extra-compact one: a checkbox in
+    // selection mode and the unread dot at the row's leading edge.
+    const hideRowAvatar = density === 'extra-compact' || !showListAvatars;
     const senderWarning = useSenderWarning(showRecipient ? undefined : email);
     // Show the originating folder in the aggregate "All …" views.
     const showSourceFolder = useShowSourceFolder(email.sourceFolder);
@@ -732,8 +736,8 @@ const SingleEmailItem = React.forwardRef<HTMLDivElement, SingleEmailItemProps>(
           className={cn('px-3', showRowActionButton && onContextMenu && 'pe-12', oneLineRow ? 'flex items-center' : 'flex items-start', mvRow && 'min-h-[var(--list-item-height)]', swipeEnabled && 'relative z-10 bg-inherit')}
           style={{ gap: 'var(--density-item-gap)', paddingBlock: mvRow ? undefined : 'var(--density-item-py)', transform: swipeEnabled && offsetX ? `translateX(${offsetX}px)` : undefined, transition: swipeEnabled && offsetX === 0 ? 'transform 200ms ease-out' : undefined }}
         >
-          {/* Checkbox - only for extra-compact density (no avatar) while in selection mode */}
-          {!mvRow && density === 'extra-compact' && selectedEmailKeys.size > 0 && (
+          {/* Checkbox - only when the row has no avatar, while in selection mode */}
+          {!mvRow && hideRowAvatar && selectedEmailKeys.size > 0 && (
             <button
               onClick={handleCheckboxClick}
               role="checkbox"
@@ -767,7 +771,7 @@ const SingleEmailItem = React.forwardRef<HTMLDivElement, SingleEmailItemProps>(
             />
           )}
 
-          {!mvRow && density !== 'extra-compact' && (
+          {!mvRow && !hideRowAvatar && (
             <AvatarGutter onToggle={handleCheckboxClick}>
               <div className="relative flex flex-shrink-0">
                 <SelectableAvatar
@@ -787,7 +791,7 @@ const SingleEmailItem = React.forwardRef<HTMLDivElement, SingleEmailItemProps>(
             </AvatarGutter>
           )}
 
-          {isUnread && !mvRow && density === 'extra-compact' && (
+          {isUnread && !mvRow && hideRowAvatar && (
             <UnreadDot besideAvatar={false} />
           )}
 
@@ -1080,9 +1084,13 @@ export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemPro
     const density = useSettingsStore((state) => state.density);
     const timeFormat = useSettingsStore((state) => state.timeFormat);
     const showAvatarsInJunk = useSettingsStore((state) => state.showAvatarsInJunk);
+    const showListAvatars = useSettingsStore((state) => state.showListAvatars);
     const interfaceLayout = useSettingsStore((state) => state.interfaceLayout);
     const isMobile = useUIStore((state) => state.isMobile);
     const swipeRows = useSwipeRows();
+    // A row without its avatar reuses the extra-compact one: a checkbox in
+    // selection mode and the unread dot at the row's leading edge.
+    const hideRowAvatar = density === 'extra-compact' || !showListAvatars;
     const { latestEmail, participantNames, hasUnread, hasStarred, hasPinned, hasAnswered, hasForwarded, emailCount } = thread;
     // Only the latest email's parts are loaded; an older one with the flag keeps the paperclip.
     const latestHasAttachment = useListHasAttachment(latestEmail, loadAttachments);
@@ -1441,8 +1449,8 @@ export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemPro
             className={cn('px-3', showRowActionButton && onContextMenu && 'pe-12', oneLineRow ? 'flex items-center' : 'flex items-start', mvRow && 'min-h-[var(--list-item-height)]', threadSwipeEnabled && 'relative z-10 bg-inherit')}
             style={{ gap: 'var(--density-item-gap)', paddingBlock: mvRow ? undefined : 'var(--density-item-py)', transform: threadSwipeEnabled && threadOffsetX ? `translateX(${threadOffsetX}px)` : undefined, transition: threadSwipeEnabled && threadOffsetX === 0 ? 'transform 200ms ease-out' : undefined }}
           >
-            {/* Checkbox for thread selection - only for extra-compact density (no avatar) while in selection mode */}
-            {!mvRow && density === 'extra-compact' && selectedEmailKeys.size > 0 && (
+            {/* Checkbox for thread selection - only when the row has no avatar, while in selection mode */}
+            {!mvRow && hideRowAvatar && selectedEmailKeys.size > 0 && (
               <button
                 onClick={handleThreadCheckboxClick}
                 role="checkbox"
@@ -1476,7 +1484,7 @@ export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemPro
               />
             )}
 
-            {!mvRow && density !== 'extra-compact' && (
+            {!mvRow && !hideRowAvatar && (
               <AvatarGutter onToggle={handleThreadCheckboxClick}>
                 <div className="relative flex-shrink-0">
                   <SelectableAvatar
@@ -1523,7 +1531,7 @@ export const ThreadListItem = React.forwardRef<HTMLDivElement, ThreadListItemPro
               </AvatarGutter>
             )}
 
-            {hasUnread && !mvRow && density === 'extra-compact' && (
+            {hasUnread && !mvRow && hideRowAvatar && (
               <UnreadDot besideAvatar={false} />
             )}
 

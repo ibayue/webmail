@@ -781,6 +781,7 @@ interface SettingsState extends AccessibilitySettings {
 
   senderFavicons: boolean;
   showAvatarsInJunk: boolean; // Show profile images/favicons in the junk folder
+  showListAvatars: boolean; // Show the sender avatar at the start of each message-list row
   faviconUnreadBadge: boolean; // Badge the browser-tab icon with the inbox unread count
   unreadBadgeAllAccounts: boolean; // That badge (and the desktop tray) counts every signed-in account's inbox, not only the open one
 
@@ -1093,6 +1094,7 @@ const DEFAULT_SETTINGS = {
 
   senderFavicons: true,
   showAvatarsInJunk: false,
+  showListAvatars: true,
   faviconUnreadBadge: true,
   unreadBadgeAllAccounts: true,
 
@@ -1511,6 +1513,7 @@ export const useSettingsStore = create<SettingsState>()(
           enableCrossAllView: state.enableCrossAllView,
           senderFavicons: state.senderFavicons,
           showAvatarsInJunk: state.showAvatarsInJunk,
+          showListAvatars: state.showListAvatars,
           faviconUnreadBadge: state.faviconUnreadBadge,
           unreadBadgeAllAccounts: state.unreadBadgeAllAccounts,
           colorfulSidebarIcons: state.colorfulSidebarIcons,

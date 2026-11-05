@@ -57,6 +57,7 @@ export function MessageListSettings() {
     searchDefaultScope,
     showPreview,
     showVerificationCodes,
+    showListAvatars,
     disableThreading,
     emailsPerPage,
     archiveMode,
@@ -161,6 +162,12 @@ export function MessageListSettings() {
           locked={isSettingLocked('showPreview')}
         >
           <ToggleSwitch checked={showPreview} onChange={(checked) => updateSetting('showPreview', checked)} />
+        </SettingItem>
+        )}
+
+        {!isSettingHidden('showListAvatars') && (
+        <SettingItem label={t('show_list_avatars.label')} description={t('show_list_avatars.description')} locked={isSettingLocked('showListAvatars')}>
+          <ToggleSwitch checked={showListAvatars} onChange={(checked) => updateSetting('showListAvatars', checked)} />
         </SettingItem>
         )}
 

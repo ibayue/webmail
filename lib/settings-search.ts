@@ -230,6 +230,7 @@ export const tabSearchEntries: Record<Tab, SettingsSearchEntry[]> = {
   message_list: [
     { label: 'settings.email_behavior.group_conversations.label', synonyms: syn2('threads') },
     { label: 'settings.email_behavior.show_preview.label' },
+    { label: 'settings.email_behavior.show_list_avatars.label' },
     { label: 'settings.appearance.message_list_order.label' },
     { label: 'settings.appearance.message_list_order.scope.label' },
     { label: 'settings.appearance.tint_list_rows.label' },
