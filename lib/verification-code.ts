@@ -95,24 +95,27 @@ function findCodeWords(text: string): Span[] {
 }
 
 // Tried in this order at each position, so "557 260" and "6ZA-BRE" are taken
-// whole before their pieces are.
+// whole before their pieces are. The boundary character a lookbehind would
+// have checked is consumed instead and the token is captured — Safari before
+// 16.4 cannot parse lookbehind, and a regex it cannot parse keeps the whole
+// app script from loading. captured() below reads the token back out.
 const CANDIDATE = new RegExp(
   [
     // 6ZA-BRE, NJF63-SW7S7, and 2025-12-12 (dropped later)
-    String.raw`(?<![\p{L}\p{N}])[A-Za-z0-9]{2,8}(?:-[A-Za-z0-9]{2,8}){1,3}(?![\p{L}\p{N}])`,
+    String.raw`(?:^|[^\p{L}\p{N}])([A-Za-z0-9]{2,8}(?:-[A-Za-z0-9]{2,8}){1,3})(?![\p{L}\p{N}])`,
     // 557 260, 123-456
-    String.raw`(?<!\d)\d{3,4}[ -]\d{3,4}(?!\d)`,
+    String.raw`(?:^|[^\d])(\d{3,4}[ -]\d{3,4})(?!\d)`,
     // 3 0 4 6 2 7
-    String.raw`(?<![\p{L}\p{N}])\d(?: \d){3,9}(?![\p{L}\p{N}])`,
+    String.raw`(?:^|[^\p{L}\p{N}])(\d(?: \d){3,9})(?![\p{L}\p{N}])`,
     // 37CCHC, 5aem5f5z, 177945
-    String.raw`(?<![\p{L}\p{N}])[A-Za-z0-9]{4,10}(?![\p{L}\p{N}])`,
+    String.raw`(?:^|[^\p{L}\p{N}])([A-Za-z0-9]{4,10})(?![\p{L}\p{N}])`,
   ].join('|'),
   'gu',
 );
 
 // Digits run into the words around them, which the pass above takes as one
 // token: "ein:86771674Teile", "Claude.ai177945Copy", "732888Gib".
-const GLUED_DIGITS = /(?<=\p{L})\d{4,10}(?!\d)|(?<!\d)\d{4,10}(?=\p{L})/gu;
+const GLUED_DIGITS = /\p{L}(\d{4,10})(?!\d)|(?:^|[^\d])(\d{4,10})(?=\p{L})/gu;
 
 const ALNUM = /[\p{L}\p{N}]/u;
 
@@ -136,19 +139,20 @@ const YEAR = /^(?:19|20)\d\d$/;
 const NUMBER_WITH_UNIT = /^\d+[a-z]{1,3}$/i;
 // THANKS10, HERBST25, FALL2026
 const PROMO_CODE = /^[A-Z]{4,}\d{1,4}$/;
-const PROMO_WORDS = /%|(?<!\p{L})(?:off|rabatt|spar\p{L}*|save|discount|coupon|gutschein\p{L}*|voucher|sale|angebot\p{L}*)(?!\p{L})/iu;
+const PROMO_WORDS = /%|(?:^|[^\p{L}])(?:off|rabatt|spar\p{L}*|save|discount|coupon|gutschein\p{L}*|voucher|sale|angebot\p{L}*)(?!\p{L})/iu;
 // A number labelled as something else: "Kundennummer: 5512345", "Meeting-ID:
 // 845 1234 5678", "at line 1042", "card ending in 4821". Nouns that also
 // label codes ("Code für dein Konto: 123456") count only without a colon.
+// (?:^|[^\p{L}]) stands in for a lookbehind: only .test() is asked of this.
 const LABELLED_AS_OTHER = new RegExp(
-  String.raw`(?:(?:\p{L}*(?:nummer|number)|(?<!\p{L})(?:nr|no|id|line|zeile|version|tel|telefon|phone|fax|mobil|plz))\.?:?` +
-  String.raw`|(?<!\p{L})(?:order|bestellung|account|konto|invoice|rechnung|ticket|case|page|seite|room|zimmer|commit|issue|pr|build|run|job|step|port)` +
+  String.raw`(?:(?:\p{L}*(?:nummer|number)|(?:^|[^\p{L}])(?:nr|no|id|line|zeile|version|tel|telefon|phone|fax|mobil|plz))\.?:?` +
+  String.raw`|(?:^|[^\p{L}])(?:order|bestellung|account|konto|invoice|rechnung|ticket|case|page|seite|room|zimmer|commit|issue|pr|build|run|job|step|port)` +
   String.raw`|ending in|endet auf|endend auf|ends with)[ #]*$`,
   'iu',
 );
 const LOWERCASE_HEX = /^[0-9a-f-]+$/;
 // "The code is: 123456", "Ihr Code lautet 123456"
-const LINKED_BY = /(?::|=|(?<!\p{L})(?:is|lautet|ist|est|es|è|é|är|er|jest|je))\s*$/iu;
+const LINKED_BY = /(?::|=|(?:^|[^\p{L}])(?:is|lautet|ist|est|es|è|é|är|er|jest|je))\s*$/iu;
 
 const LETTER = /\p{L}/u;
 
@@ -163,6 +167,14 @@ function contextWindow(text: string, from: number, to: number): string {
 }
 
 interface Candidate extends Span { code: string; score: number }
+
+/** The token of a CANDIDATE/GLUED_DIGITS match and where it starts. Each
+ *  branch of those patterns captures the token after consuming at most one
+ *  boundary character, so the match may begin one character ahead of it. */
+function captured(match: RegExpMatchArray): { raw: string; start: number } {
+  const raw = match.slice(1).find((group): group is string => group !== undefined) ?? match[0];
+  return { raw, start: match.index! + match[0].length - raw.length };
+}
 
 function scoreCandidate(text: string, raw: string, start: number, keywords: Span[]): Candidate | null {
   const end = start + raw.length;
@@ -233,15 +245,16 @@ function normalize(text: string): string {
     .replace(/[\u00ad\u200b-\u200f\u2060\ufeff]|\u034f/g, '')
     // Links and addresses carry ids and tokens, never the code to type.
     // Anchored to the start of a token so a long run of letters is scanned
-    // once, not once per character.
+    // once, not once per character. (^|\s) stands in for a lookbehind; the
+    // whitespace it keeps is collapsed by the next replace.
     .replace(/https?:\/\/\S+|www\.\S+/gi, ' ')
-    .replace(/(?<!\S)\S*@\S+/g, ' ')
+    .replace(/(^|\s)\S*@\S+/g, '$1')
     // Keep line breaks (a code often stands on a line of its own) but not
     // the runs of blank lines and indentation between table cells.
     .replace(/[^\S\n]+/g, ' ')
     .replace(/ ?\n[\s]*/g, '\n')
     // A preview is cut off with "...", and the word it cut may be half a code.
-    .replace(/(?<![\p{L}\p{N}-])[\p{L}\p{N}-]*(?:\.\.\.|…)\s*$/u, '')
+    .replace(/(^|[^\p{L}\p{N}-])[\p{L}\p{N}-]*(?:\.\.\.|…)\s*$/u, '$1')
     .trim();
 }
 
@@ -258,8 +271,9 @@ function bestCandidate(rawText: string): Candidate | null {
   let best: Candidate | null = null;
   for (const re of [CANDIDATE, GLUED_DIGITS]) {
     for (const match of text.matchAll(re)) {
-      if (re === GLUED_DIGITS && !gluedToWords(text, match.index!, match.index! + match[0].length)) continue;
-      const candidate = scoreCandidate(text, match[0], match.index!, keywords);
+      const { raw, start } = captured(match);
+      if (re === GLUED_DIGITS && !gluedToWords(text, start, start + raw.length)) continue;
+      const candidate = scoreCandidate(text, raw, start, keywords);
       if (candidate && (!best || candidate.score < best.score)) best = candidate;
     }
   }

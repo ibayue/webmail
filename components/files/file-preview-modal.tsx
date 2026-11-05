@@ -148,14 +148,18 @@ function processInline(text: string): React.ReactNode {
     const boldMatch = remaining.match(/\*\*(.+?)\*\*/);
     // Inline code
     const codeMatch = remaining.match(/`([^`]+)`/);
-    // Italic
-    const italicMatch = remaining.match(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/);
+    // Italic, written without lookbehind (Safari before 16.4 cannot parse
+    // it): the character before the opening star is consumed instead, so the
+    // match can start one character ahead of the star. `start` tracks the
+    // star itself, keeping the ordering and the plain text before it as
+    // they were.
+    const italicMatch = remaining.match(/(?:^|[^*])\*(?!\*)([^*]|.+?[^*])\*(?!\*)/);
 
     const matches = [
-      boldMatch && { type: "bold", match: boldMatch },
-      codeMatch && { type: "code", match: codeMatch },
-      italicMatch && { type: "italic", match: italicMatch },
-    ].filter(Boolean).sort((a, b) => (a!.match.index ?? 0) - (b!.match.index ?? 0));
+      boldMatch && { type: "bold", match: boldMatch, start: boldMatch.index ?? 0 },
+      codeMatch && { type: "code", match: codeMatch, start: codeMatch.index ?? 0 },
+      italicMatch && { type: "italic", match: italicMatch, start: (italicMatch.index ?? 0) + (italicMatch[0].startsWith("*") ? 0 : 1) },
+    ].filter(Boolean).sort((a, b) => a!.start - b!.start);
 
     if (matches.length === 0) {
       parts.push(remaining);
@@ -163,10 +167,9 @@ function processInline(text: string): React.ReactNode {
     }
 
     const first = matches[0]!;
-    const idx = first.match.index ?? 0;
 
-    if (idx > 0) {
-      parts.push(remaining.slice(0, idx));
+    if (first.start > 0) {
+      parts.push(remaining.slice(0, first.start));
     }
 
     if (first.type === "bold") {
@@ -177,7 +180,7 @@ function processInline(text: string): React.ReactNode {
       parts.push(<em key={key++}>{first.match[1]}</em>);
     }
 
-    remaining = remaining.slice(idx + first.match[0].length);
+    remaining = remaining.slice((first.match.index ?? 0) + first.match[0].length);
   }
 
   return parts.length === 1 ? parts[0] : <>{parts}</>;

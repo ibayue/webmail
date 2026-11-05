@@ -74,7 +74,10 @@ function promptBracketPattern(lists: PlaceholderWords[]): RegExp | null {
 function unfinishedWordPattern(lists: PlaceholderWords[]): RegExp | null {
   const words = wordsOf(lists, 'unfinished');
   if (words.length === 0) return null;
-  return new RegExp(`(?<![\\p{L}\\d_])(?:${alternation(words)})(?![\\p{L}\\d_])`, 'gu');
+  // The boundary character a lookbehind would have checked is consumed
+  // instead — Safari before 16.4 cannot parse lookbehind — and the word is
+  // captured; collect() reads it back out of group 1.
+  return new RegExp(`(?:^|[^\\p{L}\\d_])(${alternation(words)})(?![\\p{L}\\d_])`, 'gu');
 }
 
 // Japanese and Korean stand-ins for a name or number: 〇〇様, ○○○ 님. Signs
@@ -94,8 +97,12 @@ function collect(text: string, patterns: RegExp[]): Match[] {
   const matches: Match[] = [];
   for (const pattern of patterns) {
     for (const m of text.matchAll(pattern)) {
-      if (pattern === CAPS_BRACKET && (m[0].match(/\p{Lu}/gu)?.length ?? 0) < 2) continue;
-      matches.push({ start: m.index, end: m.index + m[0].length, text: m[0] });
+      // Unfinished words capture the word after consuming one boundary
+      // character (see unfinishedWordPattern); every other pattern matches bare.
+      const found = m[1] ?? m[0];
+      const start = m.index + (m[0].length - found.length);
+      if (pattern === CAPS_BRACKET && (found.match(/\p{Lu}/gu)?.length ?? 0) < 2) continue;
+      matches.push({ start, end: start + found.length, text: found });
     }
   }
   // "[TODO]" is a bracket and a word; keep the outer match only.
