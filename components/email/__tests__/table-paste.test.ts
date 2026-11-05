@@ -50,17 +50,23 @@ describe('inlineClipboardStyles', () => {
 
     expect(cells[0].getAttribute('class')).toBeNull();
     expect(cells[0].style.fontWeight).toBe('700');
-    // The td rule survives; the spreadsheet's own width pin is dropped so the
-    // column can size to its content (height, a row property, stays).
+    // The td rule survives; the spreadsheet's own width pin stays so the
+    // column keeps its grid size (height, a row property, stays too).
     expect(cells[0].style.paddingTop).toBe('1px');
-    expect(cells[0].style.width).toBe('');
+    expect(cells[0].getAttribute('style')).toMatch(/width:\s*48pt/i);
     expect(cells[0].style.height).toBe('15pt');
-    // One line per cell, like the spreadsheet grid.
-    expect(cells[0].style.whiteSpace).toBe('nowrap');
-    // The pasted table carries its own auto layout: the editor stylesheet
-    // pins .tiptap table to table-layout:fixed/width:100%, and only an
-    // inline auto beats that.
-    expect(doc.querySelector('table')!.style.tableLayout).toBe('auto');
+    // No nowrap is injected: a cell that wrapped in the source wraps again.
+    expect(cells[0].style.whiteSpace).toBe('');
+    // The pasted table carries its own fixed layout: the editor stylesheet
+    // pins .tiptap table to fixed/100% too, but the inline style is what the
+    // sent mail renders, and fixed is what makes the colgroup widths bind.
+    expect(doc.querySelector('table')!.style.tableLayout).toBe('fixed');
+    // The spreadsheet's col widths stay: they become the schema's colwidth,
+    // which the column-resize handles edit. (span=2 is expanded to two cols.)
+    const cols = doc.querySelectorAll('col');
+    expect(cols.length).toBe(2);
+    expect(cols[0].getAttribute('width')).toBe('64');
+    expect(cols[1].getAttribute('width')).toBe('64');
     expect(cells[1].style.backgroundColor).toMatch(/#ffc7ce|rgb/i);
     // bgcolor maps to background-color, class rule first, attribute second.
     expect(cells[1].style.backgroundColor).toBeTruthy();
@@ -96,43 +102,45 @@ describe('inlineClipboardStyles', () => {
     expect(new DOMParser().parseFromString(result, 'text/html').querySelector('td')!.textContent).toBe('a');
   });
 
-  it('re-pins pasted tables to an auto layout with one-line cells', () => {
+  it('pins pasted tables to the source grid: fixed layout, no nowrap', () => {
     const html = inlineClipboardStyles(`<html><head><meta name=ProgId content=Excel.Sheet>
 <style><!--td{white-space:nowrap;}--></style></head><body>
 <table style='table-layout:fixed;width:300pt'>
 <tr><td class=xl65 style='white-space:nowrap'>a long cell value</td><td>x</td></tr>
 </table></body></html>`);
     const doc = new DOMParser().parseFromString(html, 'text/html');
-    // fixed layout + nowrap is the spill combination; the auto layout that
-    // replaces it stretches the column instead, so nowrap is safe again.
-    expect(doc.querySelector('table')!.style.tableLayout).toBe('auto');
+    // The spreadsheet's grid is the source's format: the table keeps a fixed
+    // layout (only the table-level width pin goes - the colgroup/cell widths
+    // carry the grid), and the cell's own nowrap is stripped so long text
+    // wraps at its column instead of spilling into the next cell.
+    expect(doc.querySelector('table')!.style.tableLayout).toBe('fixed');
     expect(doc.querySelector('table')!.getAttribute('style')).not.toMatch(/width/i);
-    expect(doc.querySelector('td')!.style.whiteSpace).toBe('nowrap');
+    expect(doc.querySelector('td')!.style.whiteSpace).toBe('');
   });
 
-  it('drops the spreadsheet column widths so columns size to their content', () => {
+  it('keeps the spreadsheet column widths so the grid binds in mail', () => {
     const html = inlineClipboardStyles(`<html><head><meta name=ProgId content=Excel.Sheet></head><body>
 <table style='border-collapse:collapse;width:300pt'>
 <col width=100><col width=300>
 <tr><td style='width:48pt'>a long cell value</td><td>x</td></tr>
 </table></body></html>`);
     const doc = new DOMParser().parseFromString(html, 'text/html');
-    // The table width, the col widths, and the cell's own width pin all go:
-    // nothing keeps the column at the spreadsheet's grid size.
+    // The table width pin goes, but the col widths and the cell's own width
+    // stay: they are the grid the fixed layout binds to (and the schema's
+    // colwidth, which the resize handles edit).
     expect(doc.querySelector('table')!.getAttribute('style')).not.toMatch(/width/i);
-    for (const col of doc.querySelectorAll('col')) {
-      expect(col.getAttribute('width')).toBeNull();
-      expect(col.getAttribute('style')).toBeNull();
-    }
-    expect(doc.querySelector('td')!.style.width).toBe('');
-    expect(doc.querySelector('td')!.style.whiteSpace).toBe('nowrap');
+    const cols = doc.querySelectorAll('col');
+    expect(cols[0].getAttribute('width')).toBe('100');
+    expect(cols[1].getAttribute('width')).toBe('300');
+    expect(doc.querySelector('td')!.getAttribute('style')).toMatch(/width:\s*48pt/i);
+    expect(doc.querySelector('td')!.style.whiteSpace).toBe('');
   });
 
-  it('applies the auto layout even without a style block or ProgId', () => {
+  it('normalizes a bare fixed-layout table even without a style block or ProgId', () => {
     const html = '<table style="table-layout:fixed"><tr><td style="white-space:nowrap">t</td></tr></table>';
     const doc = new DOMParser().parseFromString(inlineClipboardStyles(html), 'text/html');
-    expect(doc.querySelector('table')!.style.tableLayout).toBe('auto');
-    expect(doc.querySelector('td')!.style.whiteSpace).toBe('nowrap');
+    expect(doc.querySelector('table')!.style.tableLayout).toBe('fixed');
+    expect(doc.querySelector('td')!.style.whiteSpace).toBe('');
   });
 });
 
@@ -181,20 +189,69 @@ describe('pasting an Office table into the composer', () => {
     expect(cells).toEqual(['Name', 'Qty', 'Apples', '3']);
 
     // Table-level style survives the parse (jsdom normalizes hex to rgb),
-    // and the pasted table's inline auto layout beats the editor
-    // stylesheet's .tiptap table { table-layout: fixed }.
+    // and the pasted table's inline fixed layout is what the sent mail
+    // renders without the editor stylesheet.
     expect(table!.getAttribute('style')).toMatch(/border-collapse/i);
-    expect(table!.style.tableLayout).toBe('auto');
+    expect(table!.style.tableLayout).toBe('fixed');
     // Cell-level style from the class rule and the own inline style; the
-    // width pin is stripped so the column sizes to its content, and every
-    // cell keeps one line.
+    // spreadsheet's width pin stays so the column keeps its grid size, and
+    // no nowrap is injected, so wrapped source cells wrap again.
     expect(cells.length && table!.querySelectorAll('td')[0].style.fontWeight).toBe('700');
-    expect(table!.querySelectorAll('td')[0].getAttribute('style')).not.toMatch(/width/i);
-    expect(table!.querySelectorAll('td')[0].style.whiteSpace).toBe('nowrap');
+    expect(table!.querySelectorAll('td')[0].getAttribute('style')).toMatch(/width:\s*48pt/i);
+    expect(table!.querySelectorAll('td')[0].style.whiteSpace).toBe('');
     expect(table!.querySelectorAll('td')[1].getAttribute('style')).toMatch(/background/i);
-    // Column widths come through the colgroup.
+    // Column widths come through the colgroup: the <col> widths parsed into
+    // the schema's colwidth and are rendered back as col elements.
     const cols = table!.querySelectorAll('col');
     expect(cols.length).toBeGreaterThanOrEqual(2);
+    expect(cols[0].style.width).toBe('64px');
+    expect(cols[1].style.width).toBe('64px');
+    editor.destroy();
+  });
+
+  it('keeps a wrapped source cell wrapping at its column', () => {
+    const editor = makeEditor();
+    // A 64px column holding text that only fits when wrapped: the column
+    // keeps the source's width (the cell's colwidth) and carries no nowrap,
+    // so the text wraps at 64px exactly as it did in the spreadsheet.
+    editor.view.pasteHTML(
+      `<html><head><meta name=ProgId content=Excel.Sheet></head><body><table>
+      <col width=64><col width=64>
+      <tr><td>a cell with text far too long for one line</td><td>x</td></tr>
+      </table></body></html>`,
+      new Event('paste') as ClipboardEvent,
+    );
+    const row = editor.state.doc.firstChild!.firstChild!;
+    expect(row.child(0).attrs.colwidth).toEqual([64]);
+    expect(row.child(1).attrs.colwidth).toEqual([64]);
+    const td = editor.view.dom.querySelector('td')!;
+    expect(td.style.whiteSpace).toBe('');
+    editor.destroy();
+  });
+
+  it('honours column resizing on a pasted table', () => {
+    const editor = makeEditor();
+    editor.view.pasteHTML(EXCEL_HTML, new Event('paste') as ClipboardEvent);
+    expect(editor.view.dom.querySelector('table')!.querySelectorAll('col')[0].style.width).toBe('64px');
+
+    // The resize plugin drags by writing colwidth on every cell of the
+    // column, in every row (a column-wide change also keeps prosemirror's
+    // fixTables from "repairing" it back); under the fixed layout the
+    // colgroup follows and the drag visibly takes effect. (With
+    // table-layout: auto this was a no-op: the col width was only a
+    // suggestion the content could outvote.)
+    const tr = editor.state.tr;
+    editor.state.doc.descendants((node, pos, parent, index) => {
+      if (parent?.type.name === 'tableRow' && index === 0) {
+        tr.setNodeMarkup(pos, null, { ...node.attrs, colwidth: [120] });
+      }
+    });
+    editor.view.dispatch(tr);
+    // Re-query: the view may rebuild the table's node view around the edit.
+    const cols = editor.view.dom.querySelector('table')!.querySelectorAll('col');
+    expect(cols[0].style.width).toBe('120px');
+    // And the serialization (what a resize leaves in the sent mail) follows.
+    expect(editor.getHTML()).toMatch(/<col[^>]*style="[^"]*width:\s*120px/i);
     editor.destroy();
   });
 
@@ -204,9 +261,12 @@ describe('pasting an Office table into the composer', () => {
 
     const html = editor.getHTML();
     expect(html).toMatch(/<table[^>]*style="[^"]*border-collapse/i);
-    expect(html).toMatch(/<table[^>]*style="[^"]*table-layout:\s*auto/i);
+    expect(html).toMatch(/<table[^>]*style="[^"]*table-layout:\s*fixed/i);
     expect(html).toMatch(/<td[^>]*style="[^"]*font-weight/i);
-    expect(html).toMatch(/<td[^>]*style="[^"]*white-space:\s*nowrap/i);
+    // The sent mail keeps the grid: colgroup widths inline (no editor
+    // stylesheet to lean on), and no nowrap stretching cells to one line.
+    expect(html).toMatch(/<col[^>]*style="[^"]*width:\s*64px/i);
+    expect(html).not.toMatch(/white-space:\s*nowrap/i);
     editor.destroy();
   });
 

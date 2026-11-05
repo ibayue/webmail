@@ -128,8 +128,10 @@ function mapLegacyAttributes(el: Element) {
   const add: string[] = [];
   const bgcolor = el.getAttribute("bgcolor");
   if (bgcolor && !/background(-color)?:/i.test(style)) add.push(`background-color: ${bgcolor}`);
-  // No width mapping: a cell width is the spreadsheet's grid size, and in the
-  // auto layout it pins the column near that size so long content wraps.
+  // Legacy cell width: under the fixed layout it sizes the column when the
+  // table has no colgroup (Word-style tables).
+  const width = el.getAttribute("width");
+  if (width && /^\d+$/.test(width) && !/(^|[^-])width\s*:/i.test(style)) add.push(`width: ${width}px`);
   const height = el.getAttribute("height");
   if (height && /^\d+$/.test(height) && !/height\s*:/i.test(style)) add.push(`height: ${height}px`);
   // Legacy align/valign: the schema's align parser reads the style, not the attribute.
@@ -145,24 +147,10 @@ function mapLegacyAttributes(el: Element) {
 }
 
 /**
- * The spreadsheet's `<col>` widths (pt-sized for its own grid) become the
- * schema's colwidth - fixed column widths the table then obeys in mail.
- * A cell with more text than its column can hold wraps, which looks like a
- * lost row height rather than the spreadsheet's auto-fit. Drop them: the
- * auto layout sizes each column to its content, and the user can still fix
- * widths by dragging the column handles in the editor.
- */
-function dropColWidths(doc: Document) {
-  for (const col of doc.querySelectorAll("col")) {
-    col.removeAttribute("width");
-    stripStyleProperties(col, /^(min-)?width$/i);
-  }
-}
-
-/**
  * `<col span=2 width=64>` becomes two cols: the schema's colwidth fallback
- * matches <col> elements by cell index and does not expand spans. Widths are
- * dropped separately, so this only keeps the col-per-column mapping itself.
+ * reads `<col>` widths by cell index and does not expand spans. With the
+ * spans expanded, every cell maps to its own col, and the widths become the
+ * schema's colwidth - the fixed column widths the resize handles edit.
  */
 function expandColSpans(doc: Document) {
   for (const col of Array.from(doc.querySelectorAll("col"))) {
@@ -176,40 +164,55 @@ function expandColSpans(doc: Document) {
 }
 
 /**
- * Office tables come pinned to the spreadsheet's grid: table-layout:fixed,
- * nowrap cells, and pt-sized widths on the table, cols and cells. In the
- * composer that grid either spills (fixed layout ignores content, so nowrap
- * text runs into the neighbouring cell) or wraps (every width pin caps the
- * column). The pins come off and the table carries its own `table-layout:
- * auto`: each column then stretches to its longest cell, so text stays on
- * one line as the spreadsheet showed it. The inline auto is what beats the
- * editor stylesheet, which pins .tiptap table to fixed/100% and would
- * otherwise split the width evenly and wrap every long cell.
+ * Office tables are pinned to the spreadsheet's grid: table-layout: fixed and
+ * pt-sized widths on the table, cols and cells. That grid is the source's
+ * format, so it survives the paste: the layout is pinned to fixed (inline, so
+ * the sent mail renders it without the editor stylesheet), the `<col>` widths
+ * stay and become the schema's colwidth - which is what the column-resize
+ * handles edit, and what actually binds under the fixed layout - and `nowrap`
+ * is stripped, so a cell whose text wrapped in the source wraps again at the
+ * same column width instead of being stretched onto one line.
+ * (The previous normalization forced table-layout: auto + nowrap and dropped
+ * every width: columns stretched to their longest cell, wrapped source cells
+ * came out on one line, and dragging a resize handle did nothing - under the
+ * auto layout a colgroup width is only a suggestion the content can outvote.)
  */
 function applyContentLayout(doc: Document) {
   for (const table of doc.querySelectorAll("table")) {
     stripStyleProperties(table, /^table-layout$/i);
-    // The spreadsheet's column grid (and its width) does not survive mail:
-    // a width the table cannot exceed forces long content to wrap early.
+    // The colgroup/cell widths are the grid; a table-level width pin only
+    // fights them (and it disables the resize plugin's own width management,
+    // which defers to a user width it finds in the table's style).
     stripStyleProperties(table, /^(min-)?width$/i);
     table.removeAttribute("width");
-    appendStyle(table, "table-layout: auto");
+    appendStyle(table, "table-layout: fixed");
   }
   for (const cell of doc.querySelectorAll("td, th")) {
-    // The spreadsheet's per-cell width is a preferred width: in the auto
-    // layout the browser keeps the column near it and wraps what exceeds
-    // it, instead of widening the column to fit the content.
-    stripStyleProperties(cell, /^(min-)?width$/i);
-    cell.removeAttribute("width");
-    // One line per cell, as the spreadsheet grid displayed it: under the
-    // auto layout the column stretches to the text instead of the text
-    // wrapping onto a second (taller) line. A cell that explicitly carries
-    // its own white-space (e.g. wrap-text was enabled in the spreadsheet)
-    // keeps it.
-    if (!/white-space\s*:/i.test(cell.getAttribute("style") || "")) {
-      appendStyle(cell, "white-space: nowrap");
-    }
+    stripNoWrap(cell);
   }
+}
+
+/**
+ * A `nowrap` cell wider than its column would spill its text over the
+ * neighbouring cell under the fixed layout. Other white-space values (pre,
+ * pre-wrap - deliberate line breaks) stay.
+ */
+function stripNoWrap(el: Element) {
+  const style = el.getAttribute("style");
+  if (!style || !/white-space\s*:/i.test(style)) return;
+  const kept = style
+    .split(";")
+    .filter((declaration) => {
+      const colon = declaration.indexOf(":");
+      if (colon <= 0) return true; // stray fragment, not ours to drop
+      const property = declaration.slice(0, colon).trim().toLowerCase();
+      const value = declaration.slice(colon + 1).trim();
+      return !(property === "white-space" && /^nowrap/i.test(value));
+    })
+    .map((declaration) => declaration.trim())
+    .filter(Boolean);
+  if (kept.length > 0) el.setAttribute("style", kept.join("; "));
+  else el.removeAttribute("style");
 }
 
 /** Removes whole declarations for the matched properties from an inline style. */
@@ -258,7 +261,6 @@ export function inlineClipboardStyles(html: string): string {
 
   expandColSpans(doc);
   applyContentLayout(doc);
-  dropColWidths(doc);
   for (const el of doc.querySelectorAll("table, tr, td, th")) {
     mapLegacyAttributes(el);
     // The class did its job (its styles are inline now); the schema drops it anyway.
