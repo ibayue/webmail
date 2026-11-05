@@ -260,7 +260,10 @@ export function Avatar({ name, email, contactPhoto, size = "md", className, disa
       hash = str.charCodeAt(i) + ((hash << 5) - hash);
     }
     const hue = Math.abs(hash) % 360;
-    return `hsl(${hue}, 70%, 50%)`;
+    // 85% lightness keeps the circle a pale tint (as the deep 50% read heavy
+    // once the initials turned black on bright hues); initialsColor picks
+    // black initials on every colour at this lightness, still 4.5:1.
+    return `hsl(${hue}, 70%, 85%)`;
   };
 
   const sizeClasses = {
