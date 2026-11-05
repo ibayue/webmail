@@ -2063,6 +2063,10 @@
         "description": "Listede e-posta önizlemesini görüntüle",
         "focus_description": "Odaklı tek satırlı ileti listesinde satır içi önizleme metnini görüntüle"
       },
+      "show_list_avatars": {
+        "label": "İleti listesinde gönderen avatarlarını göster",
+        "description": "Her satırın başında gönderenin resmi. Yalnızca metin listesi için kapatın; okunmayanlar noktasını korur."
+      },
       "show_verification_codes": {
         "label": "Doğrulama kodlarını göster",
         "description": "Giriş ve onay e-postalarındaki kodu tek tıkla kopyalamak için sun; listede bir gün boyunca ve iletide"

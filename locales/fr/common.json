@@ -2106,6 +2106,10 @@
         "description": "Afficher l'aperçu de l'email dans la liste",
         "focus_description": "Afficher le texte d'aperçu en ligne dans la liste de messages focalisée sur une seule ligne"
       },
+      "show_list_avatars": {
+        "label": "Afficher les avatars de l'expéditeur dans la liste des messages",
+        "description": "La photo de l'expéditeur au début de chaque ligne. Désactivez-la pour une liste en texte seul ; les non lus gardent leur point."
+      },
       "show_verification_codes": {
         "label": "Afficher les codes de vérification",
         "description": "Proposer le code des e-mails de connexion et de confirmation pour le copier en un clic, dans la liste pendant un jour et dans le message"

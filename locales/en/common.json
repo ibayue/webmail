@@ -2066,6 +2066,10 @@
         "description": "Display email preview in the list",
         "focus_description": "Display inline preview text inside the focused one-line message list"
       },
+      "show_list_avatars": {
+        "label": "Show sender avatars in the message list",
+        "description": "The sender's picture at the start of each row. Turn off for a text-only list; unread messages keep their dot."
+      },
       "show_verification_codes": {
         "label": "Show verification codes",
         "description": "Offer the code from sign-in and confirmation emails for one-click copying, in the list for a day and in the message"

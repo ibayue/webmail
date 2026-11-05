@@ -2106,6 +2106,10 @@
         "description": "Mostrar vista previa del correo en la lista",
         "focus_description": "Mostrar texto de vista previa en línea dentro de la lista de mensajes enfocada de una línea"
       },
+      "show_list_avatars": {
+        "label": "Mostrar avatares del remitente en la lista de mensajes",
+        "description": "La imagen del remitente al inicio de cada fila. Desactívala para una lista de solo texto; los no leídos conservan su punto."
+      },
       "show_verification_codes": {
         "label": "Mostrar códigos de verificación",
         "description": "Ofrecer el código de los correos de inicio de sesión y confirmación para copiarlo con un clic, en la lista durante un día y en el mensaje"

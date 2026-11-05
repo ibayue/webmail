@@ -2066,6 +2066,10 @@
         "description": "Afișați previzualizarea e-mailurilor în listă",
         "focus_description": "Afișați textul de previzualizare în linie în lista de mesaje cu o singură linie selectată"
       },
+      "show_list_avatars": {
+        "label": "Arată avatarele expeditorului în lista de mesaje",
+        "description": "Poza expeditorului la începutul fiecărui rând. Oprește pentru o listă doar cu text; necitite își păstrează punctul."
+      },
       "show_verification_codes": {
         "label": "Afișează codurile de verificare",
         "description": "Oferă codul din e-mailurile de autentificare și confirmare pentru copiere cu un clic, în listă timp de o zi și în mesaj"

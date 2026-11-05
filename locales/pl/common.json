@@ -2063,6 +2063,10 @@
         "description": "Wyświetlaj podgląd wiadomości e-mail na liście",
         "focus_description": "Wyświetlaj wbudowany tekst podglądu w jednoliniowej skupionej liście wiadomości"
       },
+      "show_list_avatars": {
+        "label": "Pokazuj avatary nadawców na liście wiadomości",
+        "description": "Zdjęcie nadawcy na początku każdego wiersza. Wyłącz, aby zostawić sam tekst; nieprzeczytane zachowują kropkę."
+      },
       "show_verification_codes": {
         "label": "Pokazuj kody weryfikacyjne",
         "description": "Oferuj kod z e-maili logowania i potwierdzenia do skopiowania jednym kliknięciem, na liście przez jeden dzień i w wiadomości"

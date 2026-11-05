@@ -2063,6 +2063,10 @@
         "description": "Zobrazovat náhledy e-mailů v seznamu",
         "focus_description": "Zobrazovat vložený náhledový text v jednořádkovém soustředěném seznamu"
       },
+      "show_list_avatars": {
+        "label": "Zobrazovat avatary odesílatelů v seznamu zpráv",
+        "description": "Obrázek odesílatele na začátku každého řádku. Vypněte pro seznam jen s textem; nepřečtené si ponechají tečku."
+      },
       "show_verification_codes": {
         "label": "Zobrazovat ověřovací kódy",
         "description": "Nabízet kód z přihlašovacích a potvrzovacích e-mailů ke zkopírování jedním kliknutím, v seznamu po dobu jednoho dne a ve zprávě"

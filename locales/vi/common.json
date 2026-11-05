@@ -2078,6 +2078,10 @@
         "description": "Hiển thị bản xem trước thư trong danh sách",
         "focus_description": "Hiển thị nội dung xem trước ngay trong danh sách thư tập trung, mỗi thư một dòng"
       },
+      "show_list_avatars": {
+        "label": "Hiển thị ảnh đại diện người gửi trong danh sách tin nhắn",
+        "description": "Ảnh của người gửi ở đầu mỗi dòng. Tắt để chỉ hiển thị văn bản; thư chưa đọc vẫn giữ chấm chưa đọc."
+      },
       "show_verification_codes": {
         "label": "Hiển thị mã xác minh",
         "description": "Cho phép sao chép mã trong thư đăng nhập và xác nhận chỉ bằng một lần nhấn; mã hiển thị trong danh sách một ngày và cả trong thư"

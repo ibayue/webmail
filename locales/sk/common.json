@@ -2066,6 +2066,10 @@
         "description": "Zobrazovať náhľady e-mailov v zozname",
         "focus_description": "Zobrazovať vložený náhľadový text v jednoriadkovom sústredenom zozname"
       },
+      "show_list_avatars": {
+        "label": "Zobrazovať avatary odosielateľov v zozname správ",
+        "description": "Obrázok odosielateľa na začiatku každého riadka. Vypnite pre zoznam iba s textom; neprečítané si ponechajú bodku."
+      },
       "show_verification_codes": {
         "label": "Zobrazovať overovacie kódy",
         "description": "Ponúkať kód z prihlasovacích a potvrdzovacích e-mailov na skopírovanie jedným kliknutím, v zozname počas jedného dňa a v správe"

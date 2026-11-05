@@ -2063,6 +2063,10 @@
         "description": "在列表中显示邮件预览",
         "focus_description": "在沉浸模式的单行邮件列表中显示预览文本"
       },
+      "show_list_avatars": {
+        "label": "在邮件列表中显示发件人头像",
+        "description": "在每行开头显示发件人头像。关闭后列表仅显示文本，未读邮件仍保留圆点标记。"
+      },
       "show_verification_codes": {
         "label": "显示验证码",
         "description": "提供登录和确认邮件中的验证码，一键复制（在列表中显示一天，在邮件中始终显示）"

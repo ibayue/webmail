@@ -2066,6 +2066,10 @@
         "description": "Vis forhåndsvisning av e-post i listen",
         "focus_description": "Vis innebygd forhåndsvisningstekst i den fokuserte meldingslisten på én linje"
       },
+      "show_list_avatars": {
+        "label": "Vis avsenderavatarer i meldingslisten",
+        "description": "Avsenderens bilde i starten av hver rad. Slå av for en liste med bare tekst; uleste beholder prikken sin."
+      },
       "show_verification_codes": {
         "label": "Vis bekreftelseskoder",
         "description": "Tilby koden fra innloggings- og bekreftelses-e-poster for kopiering med ett klikk, i listen i ett døgn og i meldingen"

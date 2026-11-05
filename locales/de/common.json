@@ -2063,6 +2063,10 @@
         "description": "E-Mail-Vorschau in der Liste anzeigen",
         "focus_description": "Inline-Vorschautext in der fokussierten einzeiligen Nachrichtenliste anzeigen"
       },
+      "show_list_avatars": {
+        "label": "Absenderbilder in der Nachrichtenliste anzeigen",
+        "description": "Das Bild des Absenders am Anfang jeder Zeile. Ausschalten für eine reine Textliste; ungelesene behalten ihren Punkt."
+      },
       "show_verification_codes": {
         "label": "Bestätigungscodes anzeigen",
         "description": "Code aus Anmelde- und Bestätigungs-E-Mails zum Kopieren mit einem Klick anbieten, in der Liste einen Tag lang und in der Nachricht"

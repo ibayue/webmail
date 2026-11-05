@@ -2066,6 +2066,10 @@
         "description": "在清單中顯示郵件預覽",
         "focus_description": "在專注模式的單列郵件清單中顯示行內預覽文字"
       },
+      "show_list_avatars": {
+        "label": "在郵件列表中顯示寄件者頭像",
+        "description": "在每行開頭顯示寄件者頭像。關閉後列表僅顯示文字，未讀郵件仍保留圓點標記。"
+      },
       "show_verification_codes": {
         "label": "顯示驗證碼",
         "description": "提供登入與確認郵件中的驗證碼，一鍵複製（在清單中顯示一天，在郵件中始終顯示）"

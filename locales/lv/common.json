@@ -2106,6 +2106,10 @@
         "description": "Rādīt vēstules fragmentu sarakstā",
         "focus_description": "Rādīt priekšskatījuma tekstu sarakstā"
       },
+      "show_list_avatars": {
+        "label": "Rādīt sūtītāju avatus ziņojumu sarakstā",
+        "description": "Sūtītāja attēls katra rindas sākumā. Izslēdziet, lai rādītu tikai tekstu; nelasītie patur savu punktu."
+      },
       "show_verification_codes": {
         "label": "Rādīt verifikācijas kodus",
         "description": "Piedāvāt kodu no pieteikšanās un apstiprinājuma e-pastiem kopēšanai ar vienu klikšķi, sarakstā vienu dienu un ziņojumā"

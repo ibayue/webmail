@@ -2066,6 +2066,10 @@
         "description": "E-mail előnézet megjelenítése a listában",
         "focus_description": "Beágyazott előnézeti szöveg megjelenítése a fókuszált egysoros üzenetlistában"
       },
+      "show_list_avatars": {
+        "label": "Feladói avatárok megjelenítése az üzenetlistában",
+        "description": "A feladó képe minden sor elején. Kapcsold ki a csak szöveges listához; az olvasatlanok megtartják pöttyüket."
+      },
       "show_verification_codes": {
         "label": "Ellenőrző kódok megjelenítése",
         "description": "A bejelentkezési és megerősítő e-mailek kódjának felajánlása egy kattintásos másolásra, a listában egy napig és az üzenetben"

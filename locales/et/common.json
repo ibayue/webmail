@@ -2066,6 +2066,10 @@
         "description": "Kuva e-kirja eelvaade loendis",
         "focus_description": "Kuva eelvaate tekst fokuseeritud ühe rea kirjaloendi sees"
       },
+      "show_list_avatars": {
+        "label": "Näita saatjate avatare sõnumiloendis",
+        "description": "Saatja pilt iga rea alguses. Lülita välja ainult tekstiloendi jaoks; lugemata säilitavad oma täpi."
+      },
       "show_verification_codes": {
         "label": "Näita kinnituskoode",
         "description": "Paku sisselogimis- ja kinnituskirjade koodi ühe klõpsuga kopeerimiseks, nimekirjas ühe päeva jooksul ja kirjas endas"
