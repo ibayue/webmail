@@ -12,6 +12,7 @@ import {
   addColumnBefore as stockAddColumnBefore,
   isInTable,
   selectedRect,
+  tableNodeTypes,
   TableMap,
 } from "prosemirror-tables";
 
@@ -80,6 +81,38 @@ export const StyledTable = Table.extend({
                 cell.attrs.style,
                 color === null && cell.type.name === "tableHeader" ? "transparent" : color,
               ),
+            });
+          }
+          return true;
+        },
+      /**
+       * Toggles the header row like the stock command, but when cells turn
+       * INTO header cells it first drops the background and text colour
+       * they carry on their own style attribute. Pasted tables inline
+       * their colours there, and an inline colour wins the cascade over
+       * the th default grey the StyledTableHeader HTMLAttributes add, so
+       * without this the toggle changes the markup but nothing the eye
+       * can see. Turning the header row off keeps the styles.
+       */
+      toggleHeaderRowStyled: () =>
+        ({ state, tr, dispatch }: CommandProps) => {
+          if (!isInTable(state)) return false;
+          if (!dispatch) return true;
+          const rect = selectedRect(state);
+          const types = tableNodeTypes(state.schema);
+          const headerEverywhere = (left: number, right: number, top: number, bottom: number) =>
+            rect.map
+              .cellsInRect({ left, right, top, bottom })
+              .every((pos) => rect.table.nodeAt(pos)?.type === types.header_cell);
+          const isHeaderRow = headerEverywhere(0, rect.map.width, 0, 1);
+          // Leave the corner cell to the header column, as the stock command does.
+          const left = headerEverywhere(0, 1, 0, rect.map.height) ? 1 : 0;
+          for (const pos of rect.map.cellsInRect({ left, right: rect.map.width, top: 0, bottom: 1 })) {
+            const cell = tr.doc.nodeAt(rect.tableStart + pos);
+            if (!cell) continue;
+            tr.setNodeMarkup(rect.tableStart + pos, isHeaderRow ? types.cell : types.header_cell, {
+              ...cell.attrs,
+              style: isHeaderRow ? cell.attrs.style : stripCellColours(cell.attrs.style),
             });
           }
           return true;
@@ -331,6 +364,22 @@ function cellBackgroundStyle(style: string | null, color: string | null): string
       return property !== "background-color" && property !== "background";
     });
   if (color) declarations.push(`background-color: ${color}`);
+  return declarations.length > 0 ? declarations.join("; ") : null;
+}
+
+/** A style string without the background and text colour declarations,
+ *  which would otherwise sit later in the cascade than the th default
+ *  look and hide it; null when nothing remains. */
+function stripCellColours(style: string | null): string | null {
+  const declarations = (style || "")
+    .split(";")
+    .map((d) => d.trim())
+    .filter(Boolean)
+    .filter((d) => {
+      const colon = d.indexOf(":");
+      if (colon <= 0) return true;
+      return !/^(?:background-color|background|color)$/.test(d.slice(0, colon).trim().toLowerCase());
+    });
   return declarations.length > 0 ? declarations.join("; ") : null;
 }
 // Font properties WPS puts on the div wrapping a cell's text instead of the
@@ -598,6 +647,8 @@ declare module "@tiptap/core" {
     tablePaste: {
       /** Sets/clears the background colour of the selected cells. */
       setCellBackground: (color: string | null) => ReturnType;
+      /** Toggles the header row, clearing pasted cell colours when it turns on. */
+      toggleHeaderRowStyled: () => ReturnType;
     };
   }
 }
