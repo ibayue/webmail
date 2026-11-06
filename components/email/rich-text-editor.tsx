@@ -75,6 +75,8 @@ import {
   Trash2,
   Rows3,
   Columns3,
+  Palette,
+  ChevronRight,
   ImageIcon,
   Ellipsis,
 } from "@/components/icons";
@@ -816,6 +818,10 @@ export function RichTextEditor({
   const tWindows = useTranslations("compose_windows");
   const [tableMenuOpen, setTableMenuOpen] = useState(false);
   const tableWrapperRef = useRef<HTMLDivElement>(null);
+  // Nested inside the table menu: the cell-background palette lives in its
+  // own submenu rather than flat in the menu.
+  const [cellBgMenuOpen, setCellBgMenuOpen] = useState(false);
+  const cellBgButtonRef = useRef<HTMLButtonElement>(null);
   const [colorMenuOpen, setColorMenuOpen] = useState(false);
   const colorWrapperRef = useRef<HTMLDivElement>(null);
   const [bgColorMenuOpen, setBgColorMenuOpen] = useState(false);
@@ -928,6 +934,11 @@ export function RichTextEditor({
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
+  }, [tableMenuOpen]);
+
+  // The submenu's open state only makes sense while its parent menu is.
+  useEffect(() => {
+    if (!tableMenuOpen) setCellBgMenuOpen(false);
   }, [tableMenuOpen]);
 
   if (!editor) {
@@ -1425,19 +1436,49 @@ export function RichTextEditor({
                   {tableMenuItem(<Rows3 className="w-4 h-4" aria-hidden />, tToolbar("add_row_below"), () => editor.chain().focus().addRowAfter().run())}
                   {tableMenuItem(<Columns3 className="w-4 h-4" aria-hidden />, tToolbar("add_column_before"), () => editor.chain().focus().addColumnBefore().run())}
                   {tableMenuItem(<Columns3 className="w-4 h-4" aria-hidden />, tToolbar("add_column_after"), () => editor.chain().focus().addColumnAfter().run())}
-                  <div className="h-px bg-border my-1" role="separator" />
-                  {renderPalette(
-                    currentCellBackground(),
-                    (color) => {
-                      editor.chain().focus().setCellBackground(color).run();
-                      setTableMenuOpen(false);
-                    },
-                    tToolbar("remove_background_color"),
-                    () => {
-                      editor.chain().focus().setCellBackground(null).run();
-                      setTableMenuOpen(false);
-                    }
-                  )}
+                  {/* Cell background colour - its own submenu so the
+                      palette does not crowd the insert/delete items. The
+                      nested popover renders inside this menu's DOM, so
+                      clicking a swatch never reads as an outside click. */}
+                  <div className="relative">
+                    <button
+                      type="button"
+                      role="menuitem"
+                      aria-haspopup="menu"
+                      aria-expanded={cellBgMenuOpen}
+                      ref={cellBgButtonRef}
+                      className="flex items-center gap-2 px-2 py-1.5 text-sm rounded hover:bg-accent focus-visible:bg-accent text-start w-full"
+                      onClick={() => setCellBgMenuOpen((v) => !v)}
+                    >
+                      <Palette className="w-4 h-4" aria-hidden /> {tToolbar("cell_background")}
+                      <ChevronRight className="w-3 h-3 ms-auto opacity-60" aria-hidden />
+                    </button>
+                    {cellBgMenuOpen && (
+                      <ToolbarPopover
+                        label={tToolbar("cell_background")}
+                        role="menu"
+                        columns={8}
+                        triggerRef={cellBgButtonRef}
+                        onClose={() => setCellBgMenuOpen(false)}
+                        className="p-2"
+                      >
+                        {renderPalette(
+                          currentCellBackground(),
+                          (color) => {
+                            editor.chain().focus().setCellBackground(color).run();
+                            setCellBgMenuOpen(false);
+                            setTableMenuOpen(false);
+                          },
+                          tToolbar("remove_background_color"),
+                          () => {
+                            editor.chain().focus().setCellBackground(null).run();
+                            setCellBgMenuOpen(false);
+                            setTableMenuOpen(false);
+                          }
+                        )}
+                      </ToolbarPopover>
+                    )}
+                  </div>
                   <div className="h-px bg-border my-1" role="separator" />
                   {tableMenuItem(<Trash2 className="w-4 h-4" aria-hidden />, tToolbar("delete_row"), () => editor.chain().focus().deleteRow().run())}
                   {tableMenuItem(<Trash2 className="w-4 h-4" aria-hidden />, tToolbar("delete_column"), () => editor.chain().focus().deleteColumn().run())}
