@@ -20,6 +20,13 @@ const COLOURED = `<html><body><table border=1 style='border-collapse:collapse;'>
  <tr><td style='color:#000000;background-color:#ffffff;'>Cell 1</td></tr>
 </table></body></html>`;
 
+// A bold pasted header: WPS inlines font-weight:700, which the Bold
+// extension also parses into a bold mark on the text.
+const BOLD = `<html><body><table border=1 style='border-collapse:collapse;'>
+ <tr><td style='color:#000000;font-weight:700;'>Title</td></tr>
+ <tr><td style='color:#000000;'>Cell 1</td></tr>
+</table></body></html>`;
+
 async function setup() {
   let editor: Editor | null = null;
   render(<RichTextEditor content="<p></p>" onChange={() => {}} onEditorReady={(e) => { editor = e; }} />);
@@ -92,6 +99,30 @@ describe('toggleHeaderRowStyled', () => {
     editor.chain().focus().toggleHeaderRowStyled().run();
     const row = firstRow(editor);
     expect(row.map((c) => c.tag)).toEqual(['tableCell', 'tableCell']);
+    editor.destroy();
+  });
+
+  it('drops a pasted bold so turning the header off restores normal weight', async () => {
+    const editor = await setup();
+    paste(editor, BOLD);
+    // The Bold extension parsed font-weight:700 into a bold mark.
+    expect(editor.getHTML()).toContain('<strong>');
+
+    editor.chain().focus().toggleHeaderRowStyled().run();
+    const row = firstRow(editor);
+    expect(row[0].tag).toBe('tableHeader');
+    // Neither the inline weight nor the bold mark survives into the header.
+    expect(row[0].style).not.toMatch(/font-weight/i);
+    expect(editor.getHTML()).not.toContain('<strong>');
+
+    editor.chain().focus().toggleHeaderRowStyled().run();
+    const html = editor.getHTML();
+    expect(firstRow(editor)[0].tag).toBe('tableCell');
+    // Normal weight, and the bold button would now work on it.
+    expect(html).not.toContain('<strong>');
+    expect(firstRow(editor)[0].style).not.toMatch(/font-weight/i);
+    // The body row keeps its own look.
+    expect(html).toContain('Cell 1');
     editor.destroy();
   });
 });
