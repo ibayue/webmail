@@ -57,9 +57,13 @@ describe('the table menu cell-background submenu', () => {
     editor.commands.setCellBackground('#f9ab00');
     const submenu = await openSubmenu();
     fireEvent.click(within(submenu).getByRole('menuitem', { name: /remove_background_color/ }));
-    // The header cells keep tiptap's default pale-grey tint; only the
-    // yellow we set is gone.
+    // The yellow is gone, and the header cells no longer show the
+    // extension's default grey tint either: clearing a th overrides it
+    // with transparent (white on the sent mail's page) rather than
+    // dropping the property back to #f5f5f5.
     expect(editor.getHTML()).not.toMatch(/249,\s*171,\s*0/);
+    const header = editor.view.dom.querySelector('th');
+    expect(header?.style.backgroundColor).toBe('transparent');
     editor.destroy();
   });
 });

@@ -57,6 +57,14 @@ export const StyledTable = Table.extend({
        * cell when the selection is a caret) by merging it into the cell's
        * style attribute, which round-trips to the sent mail. null clears
        * it. Same palette as the text background colour.
+       *
+       * Clearing a header cell writes background-color: transparent rather
+       * than removing the property: the extension's HTMLAttributes give
+       * every th a default grey tint (#f5f5f5), and that merged style
+       * would otherwise come back the moment ours is gone. Transparent
+       * beats it in the cascade (inline, later), renders white on the
+       * sent mail's white page, and keeps the composer's dark theme
+       * readable instead of white-on-light-text.
        */
       setCellBackground: (color: string | null) =>
         ({ state, tr, dispatch }: CommandProps) => {
@@ -68,7 +76,10 @@ export const StyledTable = Table.extend({
             if (!cell) continue;
             tr.setNodeMarkup(rect.tableStart + pos, null, {
               ...cell.attrs,
-              style: cellBackgroundStyle(cell.attrs.style, color),
+              style: cellBackgroundStyle(
+                cell.attrs.style,
+                color === null && cell.type.name === "tableHeader" ? "transparent" : color,
+              ),
             });
           }
           return true;
