@@ -52,6 +52,27 @@ export const StyledTable = Table.extend({
       addRowAfter: () => insertStyled(stockAddRowAfter, "row", "after"),
       addColumnBefore: () => insertStyled(stockAddColumnBefore, "column", "before"),
       addColumnAfter: () => insertStyled(stockAddColumnAfter, "column", "after"),
+      /**
+       * Sets the background colour of every selected cell (the cursor's
+       * cell when the selection is a caret) by merging it into the cell's
+       * style attribute, which round-trips to the sent mail. null clears
+       * it. Same palette as the text background colour.
+       */
+      setCellBackground: (color: string | null) =>
+        ({ state, tr, dispatch }: CommandProps) => {
+          if (!isInTable(state)) return false;
+          if (!dispatch) return true;
+          const rect = selectedRect(state);
+          for (const pos of rect.map.cellsInRect(rect)) {
+            const cell = tr.doc.nodeAt(rect.tableStart + pos);
+            if (!cell) continue;
+            tr.setNodeMarkup(rect.tableStart + pos, null, {
+              ...cell.attrs,
+              style: cellBackgroundStyle(cell.attrs.style, color),
+            });
+          }
+          return true;
+        },
     };
   },
 });
@@ -282,6 +303,25 @@ function setStyleDeclarations(el: Element, declarations: string[]) {
   el.setAttribute("style", [...kept, ...declarations].join("; "));
 }
 
+/**
+ * Merges a background colour into a cell's inline style, replacing any
+ * existing background(-color). null clears it; a style left with nothing
+ * returns null so the attribute round-trips clean.
+ */
+function cellBackgroundStyle(style: string | null, color: string | null): string | null {
+  const declarations = (style || "")
+    .split(";")
+    .map((d) => d.trim())
+    .filter(Boolean)
+    .filter((d) => {
+      const colon = d.indexOf(":");
+      if (colon <= 0) return true;
+      const property = d.slice(0, colon).trim().toLowerCase();
+      return property !== "background-color" && property !== "background";
+    });
+  if (color) declarations.push(`background-color: ${color}`);
+  return declarations.length > 0 ? declarations.join("; ") : null;
+}
 // Font properties WPS puts on the div wrapping a cell's text instead of the
 // cell itself.
 const FONT_PROPERTIES = /^(color|font-weight|font-style|font-size|font-family)$/i;
@@ -371,27 +411,42 @@ export function inlineClipboardStyles(html: string): string {
   return doc.body.innerHTML;
 }
 
+/** Command props as tiptap hands them to raw commands (subset we use). */
+interface CommandProps {
+  state: EditorState;
+  tr: Transaction;
+  dispatch?: (tr: Transaction) => void;
+}
+
 /**
  * Runs a stock insert command, then copies the reference cells' style onto
  * the freshly created cells. The reference is the row/column the cursor is
  * in (the user's "insert above/below/left/right of THIS cell"), so a new
  * cell inside a coloured region of a pasted table keeps the colour.
+ *
+ * The stock command mutates the chain's shared transaction (tiptap's
+ * dispatch is a no-op there; the framework commits the tr); the patch rides
+ * along on the same tr. Without a dispatch (can()/dry-run) the stock command
+ * gets no dispatch either and mutates nothing.
  */
 function insertStyled(
   stock: (state: EditorState, dispatch?: (tr: Transaction) => void) => boolean,
   kind: "row" | "column",
   side: "before" | "after",
 ) {
-  return ({ state, dispatch }: { state: EditorState; dispatch?: (tr: Transaction) => void }) => {
+  return ({ state, dispatch }: CommandProps) => {
     if (!isInTable(state)) return false;
     const rect = selectedRect(state);
-    return stock(state, (tr) => {
-      // The transaction has the new row/column; positions inside the table
-      // are read off the updated doc before it goes out.
-      const table = tr.doc.nodeAt(rect.tableStart - 1);
-      if (table) copyStyleToFreshCells(tr, rect, table, kind, side);
-      dispatch?.(tr);
-    });
+    const wrapped = dispatch
+      ? (tr: Transaction) => {
+          // The transaction has the new row/column; positions inside the
+          // table are read off the updated doc before it goes out.
+          const table = tr.doc.nodeAt(rect.tableStart - 1);
+          if (table) copyStyleToFreshCells(tr, rect, table, kind, side);
+          dispatch(tr);
+        }
+      : undefined;
+    return stock(state, wrapped);
   };
 }
 
@@ -463,3 +518,12 @@ export const TablePaste = Extension.create({
     ];
   },
 });
+
+declare module "@tiptap/core" {
+  interface Commands<ReturnType> {
+    tablePaste: {
+      /** Sets/clears the background colour of the selected cells. */
+      setCellBackground: (color: string | null) => ReturnType;
+    };
+  }
+}

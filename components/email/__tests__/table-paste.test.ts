@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { Editor } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
+import { CellSelection } from 'prosemirror-tables';
 
 import {
   inlineClipboardStyles,
@@ -407,6 +408,82 @@ describe('pasting an Office table into the composer', () => {
     editor.commands.addRowAfter();
     const rows = editor.state.doc.firstChild!;
     expect(rows.child(1).child(0).attrs.style).toBeNull();
+    editor.destroy();
+  });
+
+  it('inserts through a command chain, as the table menu does', () => {
+    const editor = makeEditor();
+    editor.commands.setContent(
+      '<table><tr><td style="background-color: #ffecb3">a</td><td>b</td></tr></table>',
+    );
+    editor.commands.setTextSelection(3);
+    // The menu runs editor.chain().focus().addRowAfter().run() - the chain
+    // shares one transaction and the framework dispatches it, so the patch
+    // must ride the same tr rather than dispatch its own.
+    editor.chain().focus().addRowAfter().run();
+    const rows = editor.state.doc.firstChild!;
+    expect(rows.childCount).toBe(2);
+    expect(rows.child(1).child(0).attrs.style).toMatch(/background-color:\s*#ffecb3/i);
+    editor.destroy();
+  });
+
+  it('sets and clears the background colour of the selected cells', () => {
+    const editor = makeEditor();
+    editor.commands.setContent('<table><tr><td>a</td><td>b</td></tr></table>');
+    editor.commands.setTextSelection(3);
+
+    editor.commands.setCellBackground('#ffecb3');
+    let cell = editor.state.doc.firstChild!.firstChild!.firstChild!;
+    expect(cell.attrs.style).toBe('background-color: #ffecb3');
+
+    // Setting another colour replaces, not stacks.
+    editor.commands.setCellBackground('#dbeafe');
+    cell = editor.state.doc.firstChild!.firstChild!.firstChild!;
+    expect(cell.attrs.style).toBe('background-color: #dbeafe');
+
+    // An existing unrelated declaration survives the merge.
+    editor.commands.setContent('<table><tr><td style="font-weight: 700">a</td><td>b</td></tr></table>');
+    editor.commands.setTextSelection(3);
+    editor.commands.setCellBackground('#ffecb3');
+    cell = editor.state.doc.firstChild!.firstChild!.firstChild!;
+    expect(cell.attrs.style).toMatch(/font-weight:\s*700/i);
+    expect(cell.attrs.style).toMatch(/background-color:\s*#ffecb3/i);
+
+    // null clears only the background, and a style left empty round-trips null.
+    editor.commands.setCellBackground(null);
+    cell = editor.state.doc.firstChild!.firstChild!.firstChild!;
+    expect(cell.attrs.style).toBe('font-weight: 700');
+    editor.commands.setContent('<table><tr><td>a</td><td>b</td></tr></table>');
+    editor.commands.setTextSelection(3);
+    editor.commands.setCellBackground('#ffecb3');
+    editor.commands.setCellBackground(null);
+    cell = editor.state.doc.firstChild!.firstChild!.firstChild!;
+    expect(cell.attrs.style).toBeNull();
+    // The neighbouring cell was never touched.
+    expect(editor.state.doc.firstChild!.firstChild!.child(1).attrs.style).toBeNull();
+    editor.destroy();
+  });
+
+  it('sets the background over a cell selection, not just the caret cell', () => {
+    const editor = makeEditor();
+    editor.commands.setContent(
+      '<table><tr><td>a</td><td>b</td></tr><tr><td>c</td><td>d</td></tr></table>',
+    );
+    // Cell selection covering the whole table: anchor and head point at the
+    // cell nodes (their position, not a position inside them).
+    const cellPositions: number[] = [];
+    editor.state.doc.descendants((node, pos) => {
+      if (node.type.name === 'tableCell') cellPositions.push(pos);
+    });
+    editor.view.dispatch(
+      editor.state.tr.setSelection(CellSelection.create(editor.state.doc, cellPositions[0], cellPositions[3])),
+    );
+    editor.commands.setCellBackground('#ffecb3');
+    editor.state.doc.descendants((node) => {
+      if (node.type.name === 'tableCell') {
+        expect(node.attrs.style).toMatch(/background-color:\s*#ffecb3/i);
+      }
+    });
     editor.destroy();
   });
 });

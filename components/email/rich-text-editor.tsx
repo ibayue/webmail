@@ -26,6 +26,7 @@ import {
   StyledTableCell,
   TablePaste,
 } from "@/components/email/table-paste";
+import { selectedRect } from "prosemirror-tables";
 import { ReplyQuoteCollapse } from "@/components/email/reply-quote-collapse";
 import { QuotedHtml, restoreCaretAfterContentSync, serializeEditorContent } from "@/components/email/quoted-html";
 import { keepLoadedParagraphSpacing, paragraphStyleWithoutSpacing, trailingParagraphBreakRule } from "@/components/email/paragraph-breaks";
@@ -978,6 +979,21 @@ export function RichTextEditor({
     if (target instanceof HTMLButtonElement && target.hasAttribute("data-toolbar-item") && inRow(target)) syncToolbarTabStops(target);
   };
 
+  // The background colour of the first selected cell (the caret's cell
+  // for a text selection), for the table menu's cell-background palette.
+  const currentCellBackground = () => {
+    if (!editor.isActive("table")) return null;
+    try {
+      const rect = selectedRect(editor.state);
+      const pos = rect.map.cellsInRect(rect)[0];
+      const cell = editor.state.doc.nodeAt(rect.tableStart + pos);
+      const match = /background-color\s*:\s*([^;]+)/i.exec(cell?.attrs?.style || "");
+      return match ? match[1].trim() : null;
+    } catch {
+      return null;
+    }
+  };
+
   const renderPalette = (current: string | null, apply: (color: string) => void, removeLabel: string, remove: () => void) => (
     <>
       <div className="grid gap-0.5" style={{ gridTemplateColumns: "repeat(8, 1fr)" }}>
@@ -1409,6 +1425,19 @@ export function RichTextEditor({
                   {tableMenuItem(<Rows3 className="w-4 h-4" aria-hidden />, tToolbar("add_row_below"), () => editor.chain().focus().addRowAfter().run())}
                   {tableMenuItem(<Columns3 className="w-4 h-4" aria-hidden />, tToolbar("add_column_before"), () => editor.chain().focus().addColumnBefore().run())}
                   {tableMenuItem(<Columns3 className="w-4 h-4" aria-hidden />, tToolbar("add_column_after"), () => editor.chain().focus().addColumnAfter().run())}
+                  <div className="h-px bg-border my-1" role="separator" />
+                  {renderPalette(
+                    currentCellBackground(),
+                    (color) => {
+                      editor.chain().focus().setCellBackground(color).run();
+                      setTableMenuOpen(false);
+                    },
+                    tToolbar("remove_background_color"),
+                    () => {
+                      editor.chain().focus().setCellBackground(null).run();
+                      setTableMenuOpen(false);
+                    }
+                  )}
                   <div className="h-px bg-border my-1" role="separator" />
                   {tableMenuItem(<Trash2 className="w-4 h-4" aria-hidden />, tToolbar("delete_row"), () => editor.chain().focus().deleteRow().run())}
                   {tableMenuItem(<Trash2 className="w-4 h-4" aria-hidden />, tToolbar("delete_column"), () => editor.chain().focus().deleteColumn().run())}
