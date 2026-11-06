@@ -111,15 +111,15 @@ td
  </tr>
  <tr height=17 style='height:17.00pt;'>
   <td class=et4 height=17 width=386 x:str style='height:17.00pt;width:386.65pt;'>付款申请流程-张三-2026-07-24</td>
-  <td class=et4 width=204 x:str style='width:204.15pt;'>FK-202607240001</td>
+  <td class=et4 width=204 x:str style='width:204.15pt;'>PG-202601010001</td>
  </tr>
  <tr height=17 style='height:17.00pt;'>
   <td class=et6 height=17 width=386 x:str style='height:17.00pt;width:386.65pt;'>黄底行</td>
-  <td class=et4 width=204 x:str style='width:204.15pt;'>FK-202604220002</td>
+  <td class=et4 width=204 x:str style='width:204.15pt;'>PG-202601010002</td>
  </tr>
  <tr height=34 style='height:34.00pt;'>
   <td class=et7 height=34 width=386 x:str style='height:34.00pt;width:386.65pt;'>红字行</td>
-  <td class=et4 width=204 x:str style='width:204.15pt;'>FK-202609080003</td>
+  <td class=et4 width=204 x:str style='width:204.15pt;'>PG-202601010003</td>
  </tr>
 </table>
 <!--EndFragment-->
@@ -138,7 +138,6 @@ describe('real WPS clipboard', () => {
     const editor = await setup();
     editor.view.pasteHTML(REAL, new Event('paste') as ClipboardEvent);
     const html = editor.getHTML();
-    console.log('FIRST CELLS:', html.slice(0, 900));
     // white header text, yellow background, red text
     expect(html).toMatch(/255,\s*255,\s*255|#fff/i);
     expect(html).toMatch(/255,\s*0,\s*0|#ff0000/i);
