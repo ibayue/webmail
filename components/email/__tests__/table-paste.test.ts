@@ -344,4 +344,69 @@ describe('pasting an Office table into the composer', () => {
     expect(merged.attrs.style).toMatch(/background-color/i);
     editor.destroy();
   });
+
+  it('inserts a row that inherits the current row\'s cell styles', () => {
+    const editor = makeEditor();
+    editor.commands.setContent(
+      '<table><tr><td style="background-color: #ffecb3">a</td><td>b</td></tr>'
+      + '<tr><td style="background-color: #ffecb3">c</td><td>d</td></tr></table>',
+    );
+    // Cursor in the second row; insert below and above.
+    editor.commands.setTextSelection(17);
+    editor.commands.addRowAfter();
+    let rows = editor.state.doc.firstChild!;
+    expect(rows.childCount).toBe(3);
+    expect(rows.child(2).child(0).attrs.style).toMatch(/background-color:\s*#ffecb3/i);
+    expect(rows.child(2).child(1).attrs.style).toBeNull();
+
+    editor.commands.addRowBefore();
+    rows = editor.state.doc.firstChild!;
+    expect(rows.childCount).toBe(4);
+    // The new row sits at the cursor row's old index (1); "before"
+    // references the cursor's row, so its coloured cell is inherited.
+    expect(rows.child(1).child(0).attrs.style).toMatch(/background-color:\s*#ffecb3/i);
+    expect(rows.child(1).child(1).attrs.style).toBeNull();
+    // The row the cursor stayed in shifted down, untouched by the insert.
+    expect(rows.child(2).child(0).attrs.style).toMatch(/background-color:\s*#ffecb3/i);
+    expect(rows.child(0).child(1).attrs.style).toBeNull();
+    editor.destroy();
+  });
+
+  it('inserts a column that inherits the current column\'s cell styles', () => {
+    const editor = makeEditor();
+    editor.commands.setContent(
+      '<table><tr><td style="background-color: #ffecb3">a</td><td>b</td></tr>'
+      + '<tr><td style="background-color: #ffecb3">c</td><td>d</td></tr></table>',
+    );
+    editor.commands.setTextSelection(3);
+    editor.commands.addColumnAfter();
+    let rows = editor.state.doc.firstChild!;
+    expect(rows.child(0).childCount).toBe(3);
+    // New middle column copies the left (current) column in every row.
+    expect(rows.child(0).child(1).attrs.style).toMatch(/background-color:\s*#ffecb3/i);
+    expect(rows.child(1).child(1).attrs.style).toMatch(/background-color:\s*#ffecb3/i);
+    // The untouched columns keep what they had.
+    expect(rows.child(0).child(2).attrs.style).toBeNull();
+
+    editor.commands.addColumnBefore();
+    rows = editor.state.doc.firstChild!;
+    expect(rows.child(0).childCount).toBe(4);
+    // The new column sits at the cursor column's old index (0); "before"
+    // references the cursor's column, so the colour is inherited per row.
+    expect(rows.child(0).child(0).attrs.style).toMatch(/background-color:\s*#ffecb3/i);
+    expect(rows.child(1).child(0).attrs.style).toMatch(/background-color:\s*#ffecb3/i);
+    // The cursor's column (now index 1) is untouched by the insert.
+    expect(rows.child(0).child(1).attrs.style).toMatch(/background-color:\s*#ffecb3/i);
+    editor.destroy();
+  });
+
+  it('leaves inserts alone when the reference cells carry no style', () => {
+    const editor = makeEditor();
+    editor.commands.setContent('<table><tr><td>a</td><td>b</td></tr></table>');
+    editor.commands.setTextSelection(3);
+    editor.commands.addRowAfter();
+    const rows = editor.state.doc.firstChild!;
+    expect(rows.child(1).child(0).attrs.style).toBeNull();
+    editor.destroy();
+  });
 });

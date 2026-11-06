@@ -1,9 +1,19 @@
 import { Extension } from "@tiptap/core";
-import { Plugin, PluginKey } from "@tiptap/pm/state";
+import { Plugin, PluginKey, type EditorState, type Transaction } from "@tiptap/pm/state";
+import type { Node as PMNode } from "@tiptap/pm/model";
 import { Table } from "@tiptap/extension-table";
 import { TableRow } from "@tiptap/extension-table-row";
 import { TableHeader } from "@tiptap/extension-table-header";
 import { TableCell } from "@tiptap/extension-table-cell";
+import {
+  addRowAfter as stockAddRowAfter,
+  addRowBefore as stockAddRowBefore,
+  addColumnAfter as stockAddColumnAfter,
+  addColumnBefore as stockAddColumnBefore,
+  isInTable,
+  selectedRect,
+  TableMap,
+} from "prosemirror-tables";
 
 // Excel/WPS/Word put the clipboard table's styling where ProseMirror's
 // clipboard parser cannot reach it: class rules in a <head> <style> block
@@ -25,10 +35,24 @@ const styleAttr = {
  * Table nodes that keep the inline style of pasted cells on edit and send.
  * addAttributes replaces the parent's set, so each spread keeps the table
  * schema's own attributes (colspan, rowspan, colwidth, align) next to style.
+ *
+ * The insert commands are overridden so a new row/column inherits the style
+ * of the row/column the cursor is in: the stock commands create cells with
+ * default attributes, and a cell inserted into a coloured region of a
+ * pasted table would come out white.
  */
 export const StyledTable = Table.extend({
   addAttributes() {
     return { ...this.parent?.(), style: styleAttr };
+  },
+  addCommands() {
+    return {
+      ...this.parent?.(),
+      addRowBefore: () => insertStyled(stockAddRowBefore, "row", "before"),
+      addRowAfter: () => insertStyled(stockAddRowAfter, "row", "after"),
+      addColumnBefore: () => insertStyled(stockAddColumnBefore, "column", "before"),
+      addColumnAfter: () => insertStyled(stockAddColumnAfter, "column", "after"),
+    };
   },
 });
 export const StyledTableRow = TableRow.extend({
@@ -345,6 +369,79 @@ export function inlineClipboardStyles(html: string): string {
   doc.querySelectorAll("style").forEach((style) => style.remove());
 
   return doc.body.innerHTML;
+}
+
+/**
+ * Runs a stock insert command, then copies the reference cells' style onto
+ * the freshly created cells. The reference is the row/column the cursor is
+ * in (the user's "insert above/below/left/right of THIS cell"), so a new
+ * cell inside a coloured region of a pasted table keeps the colour.
+ */
+function insertStyled(
+  stock: (state: EditorState, dispatch?: (tr: Transaction) => void) => boolean,
+  kind: "row" | "column",
+  side: "before" | "after",
+) {
+  return ({ state, dispatch }: { state: EditorState; dispatch?: (tr: Transaction) => void }) => {
+    if (!isInTable(state)) return false;
+    const rect = selectedRect(state);
+    return stock(state, (tr) => {
+      // The transaction has the new row/column; positions inside the table
+      // are read off the updated doc before it goes out.
+      const table = tr.doc.nodeAt(rect.tableStart - 1);
+      if (table) copyStyleToFreshCells(tr, rect, table, kind, side);
+      dispatch?.(tr);
+    });
+  };
+}
+
+/**
+ * The stock commands create the new cells empty (createAndFill, no attrs).
+ * This walks them in the post-insert table and gives each the style of the
+ * reference cell in the same column (new row) or row (new column).
+ */
+function copyStyleToFreshCells(
+  tr: Transaction,
+  rect: ReturnType<typeof selectedRect>,
+  newTable: PMNode,
+  kind: "row" | "column",
+  side: "before" | "after",
+) {
+  const map = TableMap.get(newTable);
+  if (kind === "row") {
+    const insertRow = side === "after" ? rect.bottom : rect.top;
+    // "before" shifts the reference row one further down in the new doc.
+    const refRow = side === "after" ? rect.bottom - 1 : rect.top + 1;
+    if (refRow < 0 || refRow >= map.height) return;
+    let rowPos = rect.tableStart;
+    for (let i = 0; i < insertRow; i++) rowPos += newTable.child(i).nodeSize;
+    const row = newTable.child(insertRow);
+    let col = 0;
+    row.forEach((cell, offset) => {
+      const ref = newTable.nodeAt(map.map[refRow * map.width + col]);
+      if (ref?.attrs.style != null) {
+        tr.setNodeMarkup(rowPos + 1 + offset, null, { ...cell.attrs, style: ref.attrs.style });
+      }
+      col += cell.attrs.colspan;
+    });
+  } else {
+    const insertCol = side === "after" ? rect.right : rect.left;
+    const refCol = side === "after" ? rect.right - 1 : rect.left + 1;
+    if (refCol < 0 || refCol >= map.width) return;
+    for (let row = 0; row < map.height; row++) {
+      const index = row * map.width + insertCol;
+      const pos = map.map[index];
+      // A cell that starts here - not a rowspan/colspan continuation from
+      // before the insert, which the stock command already extended.
+      if (row > 0 && map.map[index - map.width] === pos) continue;
+      if (insertCol > 0 && map.map[index - 1] === pos) continue;
+      const cell = newTable.nodeAt(pos);
+      const ref = newTable.nodeAt(map.map[row * map.width + refCol]);
+      if (cell && ref?.attrs.style != null) {
+        tr.setNodeMarkup(rect.tableStart + pos, null, { ...cell.attrs, style: ref.attrs.style });
+      }
+    }
+  }
 }
 
 /**
