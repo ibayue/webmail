@@ -176,6 +176,12 @@ function expandColSpans(doc: Document) {
  * every width: columns stretched to their longest cell, wrapped source cells
  * came out on one line, and dragging a resize handle did nothing - under the
  * auto layout a colgroup width is only a suggestion the content can outvote.)
+ *
+ * Cell borders come off instead: the spreadsheet's grid lines are its own
+ * look (thick, dashed, missing), and a pasted table whose cells carry them
+ * next to a row inserted later with the composer's default border shows two
+ * different grids in one table. The composer's default `border: 1px solid
+ * #ccc` (TableCell's HTMLAttributes) then styles every cell uniformly.
  */
 function applyContentLayout(doc: Document) {
   for (const table of doc.querySelectorAll("table")) {
@@ -188,6 +194,8 @@ function applyContentLayout(doc: Document) {
     appendStyle(table, "table-layout: fixed");
   }
   for (const cell of doc.querySelectorAll("td, th")) {
+    // The spreadsheet's own grid lines are replaced by the composer's.
+    stripStyleProperties(cell, /^border/i);
     stripNoWrap(cell);
   }
 }
@@ -232,6 +240,69 @@ function stripStyleProperties(el: Element, property: RegExp) {
   else el.removeAttribute("style");
 }
 
+/** Sets declarations on el, replacing existing ones for the same property. */
+function setStyleDeclarations(el: Element, declarations: string[]) {
+  if (declarations.length === 0) return;
+  const own = (el.getAttribute("style") || "")
+    .split(";")
+    .map((d) => d.trim())
+    .filter(Boolean);
+  const names = new Set(
+    declarations.map((d) => d.slice(0, d.indexOf(":")).trim().toLowerCase()),
+  );
+  const kept = own.filter((d) => {
+    const colon = d.indexOf(":");
+    if (colon <= 0) return true;
+    return !names.has(d.slice(0, colon).trim().toLowerCase());
+  });
+  el.setAttribute("style", [...kept, ...declarations].join("; "));
+}
+
+// Font properties WPS puts on the div wrapping a cell's text instead of the
+// cell itself.
+const FONT_PROPERTIES = /^(color|font-weight|font-style|font-size|font-family)$/i;
+
+/**
+ * WPS wraps a cell's text in a `<div>` and puts the font colour there (a
+ * `.cr1 { color: #ff0000 }` class rule on the div, or a `<font color>`
+ * around the text) while the cell itself only carries the background. The
+ * div's style is dropped when the schema parses the cell's blocks, so the
+ * colour never reached the editor - only the background did. The font
+ * declarations move onto the cell's style (the cell carries them to the
+ * sent mail too), and a `<font color>` becomes a styled `<span>`, which
+ * the textStyle mark parses as an inline colour.
+ */
+function carryFontStyles(doc: Document) {
+  for (const font of Array.from(doc.querySelectorAll("font"))) {
+    const span = doc.createElement("span");
+    for (const attr of Array.from(font.attributes)) {
+      if (attr.name.toLowerCase() === "color") appendStyle(span, `color: ${attr.value}`);
+      else span.setAttribute(attr.name, attr.value);
+    }
+    while (font.firstChild) span.appendChild(font.firstChild);
+    font.parentElement?.replaceChild(span, font);
+  }
+  for (const cell of doc.querySelectorAll("td, th")) {
+    // WPS emits one div per cell; when there are several, the first one's
+    // font declarations stand (they styled the whole cell).
+    for (const div of cell.querySelectorAll("div")) {
+      const style = div.getAttribute("style") || "";
+      const carried = style
+        .split(";")
+        .map((d) => d.trim())
+        .filter(Boolean)
+        .filter((d) => {
+          const colon = d.indexOf(":");
+          return colon > 0 && FONT_PROPERTIES.test(d.slice(0, colon).trim());
+        });
+      if (carried.length === 0) continue;
+      stripStyleProperties(div, FONT_PROPERTIES);
+      setStyleDeclarations(cell, carried);
+      break;
+    }
+  }
+}
+
 /**
  * Moves clipboard class rules onto the elements they style, maps legacy
  * bgcolor/width/height attributes, and returns HTML the table schema can
@@ -249,7 +320,10 @@ export function inlineClipboardStyles(html: string): string {
   const rules = parseStyleRules(styleText);
 
   if (rules.length > 0) {
-    for (const el of doc.querySelectorAll("table, tr, td, th, col, colgroup")) {
+    // Span/div/font too: WPS puts the font colour of a cell's text on the
+    // div or a class on a span, and only inlining it there (before the
+    // div's declarations are carried to the cell, below) preserves it.
+    for (const el of doc.querySelectorAll("table, tr, td, th, col, colgroup, div, span, font")) {
       const elClass = el.getAttribute("class") || "";
       const classes = elClass.split(/\s+/).filter(Boolean);
       const matched = rules.filter(
@@ -261,6 +335,7 @@ export function inlineClipboardStyles(html: string): string {
 
   expandColSpans(doc);
   applyContentLayout(doc);
+  carryFontStyles(doc);
   for (const el of doc.querySelectorAll("table, tr, td, th")) {
     mapLegacyAttributes(el);
     // The class did its job (its styles are inline now); the schema drops it anyway.

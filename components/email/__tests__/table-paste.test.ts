@@ -142,6 +142,59 @@ describe('inlineClipboardStyles', () => {
     expect(doc.querySelector('table')!.style.tableLayout).toBe('fixed');
     expect(doc.querySelector('td')!.style.whiteSpace).toBe('');
   });
+
+  it('replaces the spreadsheet grid lines with the composer border', () => {
+    // WPS draws its own grid: .br1 has only a bottom line, the td rule sets
+    // no border at all. Every border declaration comes off the cells so the
+    // composer's default (TableCell's HTMLAttributes) draws one uniform
+    // grid - including on rows inserted after the paste.
+    const html = inlineClipboardStyles(`<html><head><meta name=ProgId content=Excel.Sheet>
+<style><!--
+.br0 {border:none;}
+.br1 {border-top:none;border-right:none;border-bottom:1.0pt solid windowtext;border-left:none;}
+td {border:none;border-color:#000000;}
+--></style></head><body>
+<table style='border-collapse:collapse;table-layout:fixed'>
+<tr><td class=br0>a</td><td class=br1>b</td></tr>
+</table></body></html>`);
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    for (const td of doc.querySelectorAll('td')) {
+      expect(td.getAttribute('style') ?? '').not.toMatch(/border/i);
+    }
+  });
+
+  it('carries the font colour from the cell div to the cell', () => {
+    // WPS wraps the text in a div and puts the colour there (class rule or
+    // inline), while the cell carries only the background; the div's style
+    // is dropped at parse, so without the carry only the background arrives.
+    const html = inlineClipboardStyles(`<html><head><meta name=ProgId content=Excel.Sheet>
+<style><!--
+.cr1 {color:#FF0000;}
+--></style></head><body>
+<table style='border-collapse:collapse;table-layout:fixed'>
+<tr><td bgcolor="#DDDDDD"><div class=cr1>red text</div></td>
+<td><div style='color: rgb(0, 112, 192)'>blue text</div></td></tr>
+</table></body></html>`);
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    const tds = doc.querySelectorAll('td');
+    expect(tds[0].getAttribute('style')).toMatch(/color:\s*#ff0000/i);
+    expect(tds[0].style.backgroundColor).toBeTruthy();
+    expect(tds[1].getAttribute('style')).toMatch(/color:\s*rgb\(0, ?112, ?192\)/i);
+    // The div keeps the rest of its own style, but not the carried parts.
+    expect(doc.querySelector('div')!.getAttribute('style') ?? '').not.toMatch(/color/i);
+  });
+
+  it('turns a font colour element into a span the text-style mark parses', () => {
+    const html = inlineClipboardStyles(`<html><head><meta name=ProgId content=Excel.Sheet></head><body>
+<table style='border-collapse:collapse;table-layout:fixed'>
+<tr><td><font color="#FF0000">part</font> and rest</td></tr>
+</table></body></html>`);
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    const span = doc.querySelector('span')!;
+    expect(span.textContent).toBe('part');
+    expect(span.getAttribute('style')).toMatch(/color:\s*#ff0000/i);
+    expect(doc.querySelector('font')).toBeNull();
+  });
 });
 
 describe('pasting an Office table into the composer', () => {
