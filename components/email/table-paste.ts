@@ -337,6 +337,18 @@ function cellBackgroundStyle(style: string | null, color: string | null): string
 // cell itself.
 const FONT_PROPERTIES = /^(color|font-weight|font-style|font-size|font-family)$/i;
 
+/** The font declarations inside a style string, in order. */
+function fontDeclarations(style: string): string[] {
+  return style
+    .split(";")
+    .map((d) => d.trim())
+    .filter(Boolean)
+    .filter((d) => {
+      const colon = d.indexOf(":");
+      return colon > 0 && FONT_PROPERTIES.test(d.slice(0, colon).trim());
+    });
+}
+
 /**
  * WPS wraps a cell's text in a `<div>` and puts the font colour there (a
  * `.cr1 { color: #ff0000 }` class rule on the div, or a `<font color>`
@@ -346,6 +358,16 @@ const FONT_PROPERTIES = /^(color|font-weight|font-style|font-size|font-family)$/
  * declarations move onto the cell's style (the cell carries them to the
  * sent mail too), and a `<font color>` becomes a styled `<span>`, which
  * the textStyle mark parses as an inline colour.
+ *
+ * Three more places the colour hides, all fixed here:
+ * - A wrapper around the whole table (a `<div class=cr>`, or the `<body>`
+ *   styled by a tag rule) carries the colour of every cell's text; the
+ *   schema drops the wrapper, so its font declarations move onto the
+ *   table, where CSS inheritance restores them.
+ * - A run-level `<b class=cr>` / `<i>` / `<u>` / `<a>`: the class rule is
+ *   inlined onto it, but the textStyle mark only parses `<span>` styles.
+ *   The font declarations move onto a span wrapping its children, so both
+ *   the formatting mark and the colour survive.
  */
 function carryFontStyles(doc: Document) {
   for (const font of Array.from(doc.querySelectorAll("font"))) {
@@ -357,24 +379,44 @@ function carryFontStyles(doc: Document) {
     while (font.firstChild) span.appendChild(font.firstChild);
     font.parentElement?.replaceChild(span, font);
   }
+  // Run-level formatting elements: the colour rides on a span so the
+  // textStyle mark can parse it, the formatting stays on the element.
+  for (const el of Array.from(doc.querySelectorAll("b, strong, i, em, u, s, strike, del, a"))) {
+    const carried = fontDeclarations(el.getAttribute("style") || "");
+    if (carried.length === 0 || !el.firstChild) continue;
+    stripStyleProperties(el, FONT_PROPERTIES);
+    const span = doc.createElement("span");
+    span.setAttribute("style", carried.join("; "));
+    while (el.firstChild) span.appendChild(el.firstChild);
+    el.appendChild(span);
+  }
   for (const cell of doc.querySelectorAll("td, th")) {
     // WPS emits one div per cell; when there are several, the first one's
     // font declarations stand (they styled the whole cell).
     for (const div of cell.querySelectorAll("div")) {
-      const style = div.getAttribute("style") || "";
-      const carried = style
-        .split(";")
-        .map((d) => d.trim())
-        .filter(Boolean)
-        .filter((d) => {
-          const colon = d.indexOf(":");
-          return colon > 0 && FONT_PROPERTIES.test(d.slice(0, colon).trim());
-        });
+      const carried = fontDeclarations(div.getAttribute("style") || "");
       if (carried.length === 0) continue;
       stripStyleProperties(div, FONT_PROPERTIES);
       setStyleDeclarations(cell, carried);
       break;
     }
+  }
+  // A wrapper around the whole table: its font declarations inherit into
+  // every cell, but only if they reach an element the schema keeps. Walk
+  // the ancestors (nearest first - its value wins per property) and merge
+  // them onto the table's style.
+  for (const table of Array.from(doc.querySelectorAll("table"))) {
+    const carried: string[] = [];
+    const seen = new Set<string>();
+    for (let el = table.parentElement; el && el !== doc.documentElement; el = el.parentElement) {
+      for (const declaration of fontDeclarations(el.getAttribute("style") || "")) {
+        const name = declaration.slice(0, declaration.indexOf(":")).trim().toLowerCase();
+        if (seen.has(name)) continue;
+        seen.add(name);
+        carried.push(declaration);
+      }
+    }
+    if (carried.length > 0) setStyleDeclarations(table, carried);
   }
 }
 
@@ -395,10 +437,14 @@ export function inlineClipboardStyles(html: string): string {
   const rules = parseStyleRules(styleText);
 
   if (rules.length > 0) {
-    // Span/div/font too: WPS puts the font colour of a cell's text on the
-    // div or a class on a span, and only inlining it there (before the
-    // div's declarations are carried to the cell, below) preserves it.
-    for (const el of doc.querySelectorAll("table, tr, td, th, col, colgroup, div, span, font")) {
+    // Every element, not just the table ones: WPS/Excel put the font
+    // colour of a cell's text on the wrapping div, a span, a <b class=cr>
+    // run, or a div (or the body, via a tag rule) around the whole table.
+    // Rules match by class or tag name, so broadening the list only makes
+    // the inlining more faithful to CSS. The div's declarations are then
+    // carried to the cell (below); runs and wrappers carry in
+    // carryFontStyles too.
+    for (const el of doc.querySelectorAll("*")) {
       const elClass = el.getAttribute("class") || "";
       const classes = elClass.split(/\s+/).filter(Boolean);
       const matched = rules.filter(
