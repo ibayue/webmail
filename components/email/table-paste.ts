@@ -444,13 +444,30 @@ export function inlineClipboardStyles(html: string): string {
     // the inlining more faithful to CSS. The div's declarations are then
     // carried to the cell (below); runs and wrappers carry in
     // carryFontStyles too.
+    //
+    // A cell regularly matches two rules at once: the td tag rule every
+    // WPS sheet carries (colour, font) AND its own .etN class rule with
+    // the real colour. In CSS the class wins (specificity); flattened
+    // into one inline style, the LAST declaration of a property wins
+    // instead. So the merge order is by priority: tag rules first
+    // (weakest), class rules after (later-in-sheet beats earlier within
+    // the tier, as in CSS), the element's own inline style last of all -
+    // appendStyle prepends, so the tiers are processed weakest-last.
     for (const el of doc.querySelectorAll("*")) {
       const elClass = el.getAttribute("class") || "";
       const classes = elClass.split(/\s+/).filter(Boolean);
       const matched = rules.filter(
         (rule) => rule.tags.includes(el.tagName.toLowerCase()) || classes.some((c) => rule.classes.includes(c)),
       );
-      for (const rule of matched) appendStyle(el, filterDeclarations(rule.declarations));
+      // A rule matched by class outranks a tag-only match; equal
+      // specificity keeps sheet order. appendStyle prepends, so each
+      // tier is applied in reverse sheet order, and the class tier
+      // BEFORE the tag tier: the last-applied rule lands first in the
+      // style string, where it is weakest.
+      const byClass = matched.filter((rule) => classes.some((c) => rule.classes.includes(c)));
+      const byTag = matched.filter((rule) => !byClass.includes(rule));
+      for (const rule of [...byClass].reverse()) appendStyle(el, filterDeclarations(rule.declarations));
+      for (const rule of [...byTag].reverse()) appendStyle(el, filterDeclarations(rule.declarations));
     }
   }
 
