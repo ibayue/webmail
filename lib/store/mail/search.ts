@@ -61,6 +61,7 @@ const PREVIEW_BYTES = 255;
 const PREVIEW_CONTEXT_CHARS = 40;
 
 const WORD_CHAR = '[\\p{L}\\p{N}\\p{M}]';
+const WORD_CHAR_SINGLE = /[\p{L}\p{N}\p{M}]/u;
 const NOT_WORD_CHAR = '[^\\p{L}\\p{N}\\p{M}]';
 const EDGE_PUNCTUATION = new RegExp(`^${NOT_WORD_CHAR}+|${NOT_WORD_CHAR}+$`, 'gu');
 
@@ -255,20 +256,46 @@ function probePattern(probe: Probe): string | null {
   if (probe.index === 'tri') return escapeRegExp(text);
   const words = text.split(new RegExp(`${NOT_WORD_CHAR}+`, 'u')).filter(Boolean).map(escapeRegExp);
   if (words.length === 0) return null;
-  return `(?<!${WORD_CHAR})${words.join(`${NOT_WORD_CHAR}+`)}${probe.prefix ? '' : `(?!${WORD_CHAR})`}`;
+  // No lookbehind for the leading word boundary: Safari before 16.4
+  // cannot even parse one, and this pattern is built into a RegExp at
+  // runtime, which throws there just the same. The pattern matches the
+  // words alone; collectMatches() checks the leading boundary of word and
+  // prefix probes in plain JS, while tri probes match substrings and keep
+  // their mid-word hits.
+  return `${words.join(`${NOT_WORD_CHAR}+`)}${probe.prefix ? '' : `(?!${WORD_CHAR})`}`;
 }
 
-function highlighter(terms: readonly Term[]): RegExp | null {
-  const patterns = new Set<string>();
+/** Whether a match of a probe pattern starts at a word boundary: the
+ *  character before it (in the folded text) is not a word character, or
+ *  the match starts the text. This is what the removed lookbehind
+ *  asserted, done in JS so Safari before 16.4 can run it. */
+function atWordBoundary(folded: string, index: number): boolean {
+  return index === 0 || WORD_CHAR_SINGLE.test(folded[index - 1]) === false;
+}
+
+/** One probe pattern to mark with, and whether its matches must start at a
+ *  word boundary. Word and prefix probes require it; tri probes match
+ *  substrings and do not. */
+interface HighlightRule {
+  pattern: RegExp;
+  boundary: boolean;
+}
+
+function highlighter(terms: readonly Term[]): HighlightRule[] | null {
+  const rules: HighlightRule[] = [];
+  const seen = new Set<string>();
   for (const term of terms) {
     for (const probe of probesFor(term)) {
-      const pattern = probePattern(probe);
-      if (pattern) patterns.add(pattern);
+      const source = probePattern(probe);
+      if (source && !seen.has(source)) {
+        seen.add(source);
+        rules.push({ pattern: new RegExp(source, 'gu'), boundary: probe.index !== 'tri' });
+      }
     }
   }
-  if (patterns.size === 0) return null;
+  if (rules.length === 0) return null;
   // Longest first, so a match isn't cut short by a shorter spelling of it.
-  return new RegExp([...patterns].sort((a, b) => b.length - a.length).slice(0, MAX_HIGHLIGHT_PATTERNS).join('|'), 'gu');
+  return rules.sort((a, b) => b.pattern.source.length - a.pattern.source.length).slice(0, MAX_HIGHLIGHT_PATTERNS);
 }
 
 /** The terms a snippet marks. Anything under NOT was searched to be absent, so it isn't marked. */
@@ -309,14 +336,39 @@ function utf8Bytes(text: string): number {
   return bytes;
 }
 
+/** Where the rules match the folded text, merged the way the single joined
+ *  alternation used to decide: the leftmost match wins, and at the same
+ *  start the longer match wins. A word-boundary rule's mid-word match is
+ *  dropped first, so a substring rule can still match at that position —
+ *  the fall-through a lookbehind used to give the regex engine. */
+function collectMatches(folded: string, rules: readonly HighlightRule[]): Array<{ start: number; end: number }> {
+  const hits: Array<{ start: number; end: number }> = [];
+  for (const rule of rules) {
+    for (const match of folded.matchAll(rule.pattern)) {
+      if (rule.boundary && !atWordBoundary(folded, match.index)) continue;
+      hits.push({ start: match.index, end: match.index + match[0].length });
+    }
+  }
+  hits.sort((a, b) => a.start - b.start || b.end - a.end);
+  const accepted: typeof hits = [];
+  let lastEnd = -1;
+  for (const hit of hits) {
+    if (hit.start >= lastEnd) {
+      accepted.push(hit);
+      lastEnd = hit.end;
+    }
+  }
+  return accepted;
+}
+
 /** The whole text, escaped, with its matches marked; null when nothing matches. */
-function markAll(text: string, pattern: RegExp): string | null {
+function markAll(text: string, rules: readonly HighlightRule[]): string | null {
   const { folded, map } = foldWithMap(text);
   let out = '';
   let at = 0;
-  for (const match of folded.matchAll(pattern)) {
-    const start = map[match.index];
-    const end = map[match.index + match[0].length];
+  for (const hit of collectMatches(folded, rules)) {
+    const start = map[hit.start];
+    const end = map[hit.end];
     out += `${escapeHtml(text.slice(at, start))}<mark>${escapeHtml(text.slice(start, end))}</mark>`;
     at = end;
   }
@@ -324,7 +376,7 @@ function markAll(text: string, pattern: RegExp): string | null {
 }
 
 /** A section around the first match, escaped and marked, never past PREVIEW_BYTES; null when nothing matches. */
-function excerpt(raw: string, pattern: RegExp): string | null {
+function excerpt(raw: string, rules: readonly HighlightRule[]): string | null {
   const text = raw.replace(/\s+/g, ' ').trim();
   const { folded, map } = foldWithMap(text);
   let out = '';
@@ -341,9 +393,9 @@ function excerpt(raw: string, pattern: RegExp): string | null {
     return true;
   };
   let at = -1;
-  for (const match of folded.matchAll(pattern)) {
-    const start = map[match.index];
-    const end = map[match.index + match[0].length];
+  for (const hit of collectMatches(folded, rules)) {
+    const start = map[hit.start];
+    const end = map[hit.end];
     if (at < 0) {
       const earliest = Math.max(0, start - PREVIEW_CONTEXT_CHARS);
       const space = earliest === 0 ? -1 : text.indexOf(' ', earliest);
@@ -379,8 +431,8 @@ export const searchSnippetGet: MethodHandler = (ctx, args) => {
   if (!Array.isArray(ids)) throw new MethodError('invalidArguments', 'emailIds is required');
   if (ids.length > MAX_SNIPPET_IDS) throw new MethodError('requestTooLarge', `At most ${MAX_SNIPPET_IDS} messages at a time`);
   const terms = snippetTerms(args.filter as Filter | null | undefined);
-  const subjectPattern = highlighter(terms.subject);
-  const bodyPattern = highlighter(terms.body);
+  const subjectRules = highlighter(terms.subject);
+  const bodyRules = highlighter(terms.body);
   const list: Array<{ emailId: string; subject: string | null; preview: string | null }> = [];
   const notFound: string[] = [];
   for (const id of ids as string[]) {
@@ -390,16 +442,16 @@ export const searchSnippetGet: MethodHandler = (ctx, args) => {
       continue;
     }
     const email = JSON.parse(row.json) as { subject?: unknown; preview?: unknown };
-    const subject = subjectPattern && typeof email.subject === 'string'
-      ? markAll(email.subject.slice(0, MAX_SNIPPET_SUBJECT_CHARS), subjectPattern)
+    const subject = subjectRules && typeof email.subject === 'string'
+      ? markAll(email.subject.slice(0, MAX_SNIPPET_SUBJECT_CHARS), subjectRules)
       : null;
     let preview: string | null = null;
-    if (bodyPattern) {
+    if (bodyRules) {
       const body = ctx.db.get<{ json: string }>('SELECT json FROM email_body WHERE email_rowid = ?', [row.rowid]);
       // Before its body has arrived, a message only has its preview to show.
       const text = body ? bodyText(JSON.parse(body.json) as Record<string, unknown>) : '';
       const source = text.trim() ? text.slice(0, INDEX_BODY_CHARS) : typeof email.preview === 'string' ? email.preview : '';
-      preview = excerpt(source, bodyPattern);
+      preview = excerpt(source, bodyRules);
     }
     list.push({ emailId: id, subject, preview });
   }
