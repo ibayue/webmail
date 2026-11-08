@@ -117,6 +117,16 @@ const nextConfig: NextConfig = {
   experimental: {
     webpackBuildWorker: true,
   },
+  // The browserslist in package.json drives SWC's targets, but in a webpack
+  // build SWC only applies them to app code: prebuilt ESM from node_modules
+  // passes through as-is. intl-messageformat (bundled by next-intl into the
+  // chunk every page parses) ships class static initialization blocks - Safari
+  // before 16.4 dies with a SyntaxError at parse time and the page stays on
+  // its skeleton. pdfjs-dist is the same story on its (lazy) preview path.
+  // transpilePackages routes both through SWC in webpack builds, so the
+  // static blocks are downleveled like app code; Turbopack already transpiles
+  // every module, so this changes nothing for its builds.
+  transpilePackages: ["intl-messageformat", "pdfjs-dist"],
   // No proxyClientMaxBodySize: Next copies every body proxy.ts runs for up to
   // that size before routing, so it stays at the 10 MB default. The routes
   // that take bigger uploads (WOPI saves, WebDAV, /api/plugin-proxy) are left
