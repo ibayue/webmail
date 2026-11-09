@@ -448,3 +448,61 @@
     background-color: color-mix(in oklab, var(--color-foreground) 10%, transparent);
   }
 }
+
+/* Safari before 16.2 has no color-mix(): Tailwind's automatic fallback for
+   `color-mix(... var(--color-foreground) N%, transparent)` is the variable at
+   full opacity, so the whole skeleton booted as solid black (light themes) or
+   white (dark) boxes, pulsing. Paint the tint ourselves instead: the colour at
+   the mix's share as a pseudo-element's opacity composites to the same colour
+   (color-mix keeps the other colour's hue when one side is transparent), and
+   the pulse on the element still dims it. The element's own background is
+   cleared per variant with the same selectors as above, and this block sits at
+   the end of the file so each override wins against the Tailwind fallback
+   generated at the original rule's position. Modern browsers never read it. */
+@supports not (color: color-mix(in lab, red, red)) {
+  .sk-shape {
+    position: relative;
+    background-color: transparent;
+  }
+  .sk-shape::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background-color: var(--color-foreground);
+    opacity: 0.09;
+  }
+  @media (prefers-contrast: more) {
+    :root:not([data-contrast="normal"]) .sk-shape {
+      background-color: transparent;
+    }
+    :root:not([data-contrast="normal"]) .sk-shape::before {
+      opacity: 0.28;
+    }
+  }
+  :root[data-contrast="more"] .sk-shape {
+    background-color: transparent;
+  }
+  :root[data-contrast="more"] .sk-shape::before {
+    opacity: 0.28;
+  }
+  @media not (forced-colors: active) {
+    :where(.dark) .sk-lift-dark .sk-shape,
+    :where([data-interface-layout="mountain-view"]) .sk-lift-mv .sk-shape,
+    .sk-lift .sk-shape {
+      background-color: transparent;
+    }
+    :where(.dark) .sk-lift-dark .sk-shape::before,
+    :where([data-interface-layout="mountain-view"]) .sk-lift-mv .sk-shape::before,
+    .sk-lift .sk-shape::before {
+      opacity: 0.1;
+    }
+  }
+  @media (forced-colors: active) {
+    .sk-shape::before {
+      forced-color-adjust: none;
+      background-color: GrayText;
+      opacity: 1;
+    }
+  }
+}
