@@ -3990,12 +3990,6 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
         return;
       }
 
-      // Publish the existing mailbox-refresh extension hook after a successful
-      // fetch. This is also emitted for Mailbox-only state changes (for example
-      // an empty provider label), where no Email fetch follows.
-      if (emailHooks.onMailboxesRefresh.size > 0) await emailHooks.onMailboxesRefresh.emit(mailboxes.map(mailboxToView));
-      if (stale()) return;
-
       // Auto-select inbox if no mailbox is selected or the current selection
       // doesn't exist in the fetched list (e.g. after an account switch)
       const currentSelectedMailbox = get().selectedMailbox;
@@ -4034,6 +4028,13 @@ export const useEmailStore = create<EmailStore>((set, get) => ({
         set({ mailboxes, selectedMailbox: nextSelected, ...scopePatch, ...loadingPatch });
       } else {
         set({ mailboxes, ...scopePatch, ...loadingPatch });
+      }
+
+      // This is an observer hook: plugins are told after the folder list is
+      // ready, but they must not hold the mail list and its first Email/query
+      // behind a slow iframe bridge.
+      if (emailHooks.onMailboxesRefresh.size > 0) {
+        void emailHooks.onMailboxesRefresh.emit(mailboxes.map(mailboxToView));
       }
     } catch (error) {
       if (stale()) return;

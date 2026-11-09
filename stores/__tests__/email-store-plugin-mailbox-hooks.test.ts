@@ -178,6 +178,21 @@ describe('folder hooks', () => {
       id: 'projects', name: 'Projects', role: null, totalEmails: 0, unreadEmails: 0, parentId: 'inbox',
     });
   });
+
+  it('does not hold the folder list behind a slow observer', async () => {
+    let finished = false;
+    emailHooks.onMailboxesRefresh.register('slow', async () => {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      finished = true;
+    });
+
+    await useEmailStore.getState().fetchMailboxes(client);
+
+    expect(useEmailStore.getState().mailboxes).toHaveLength(mailboxes.length);
+    expect(finished).toBe(false);
+    await new Promise((resolve) => setTimeout(resolve, 120));
+    expect(finished).toBe(true);
+  });
 });
 
 describe('quota hook', () => {
