@@ -123,5 +123,12 @@
   "overrides": {
     "flatted": "^3.4.2",
     "picomatch": "^4.0.4"
-  }
+  },
+  "browserslist": [
+    "chrome >= 111",
+    "edge >= 111",
+    "firefox >= 111",
+    "safari >= 16.1",
+    "ios_saf >= 16.1"
+  ]
 }

@@ -1171,6 +1171,7 @@ html[data-window-controls-left] [data-window-rail] {
   display: inline-block;
   padding: 0 0.3em;
   border-radius: 0.375rem;
+  background-color: var(--color-secondary);
   background-color: color-mix(in srgb, var(--color-primary) 14%, transparent);
   color: var(--color-primary);
   font-weight: 500;
@@ -1183,11 +1184,14 @@ html[data-window-controls-left] [data-window-rail] {
 
 /* Hover says it opens something on click; the card itself waits for the click. */
 .tiptap a.mention:hover {
+  background-color: var(--color-accent);
   background-color: color-mix(in srgb, var(--color-primary) 24%, transparent);
+  box-shadow: inset 0 0 0 1px var(--color-primary);
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-primary) 45%, transparent);
 }
 
 .tiptap a.mention.mention-outside:hover {
+  background-color: var(--color-muted);
   background-color: color-mix(in srgb, currentColor 10%, transparent);
   box-shadow: inset 0 0 0 1px currentColor;
 }
@@ -1333,15 +1337,21 @@ html[data-window-controls-left] [data-window-rail] {
    the primary theme color so it adapts to light/dark. */
 @keyframes settings-search-pulse {
   0% {
+    background-color: transparent;
     background-color: color-mix(in srgb, var(--color-primary) 0%, transparent);
+    border-color: transparent;
     border-color: color-mix(in srgb, var(--color-primary) 0%, transparent);
   }
   30% {
+    background-color: var(--color-secondary);
     background-color: color-mix(in srgb, var(--color-primary) 12%, transparent);
+    border-color: var(--color-primary);
     border-color: color-mix(in srgb, var(--color-primary) 40%, transparent);
   }
   100% {
+    background-color: transparent;
     background-color: color-mix(in srgb, var(--color-primary) 0%, transparent);
+    border-color: transparent;
     border-color: color-mix(in srgb, var(--color-primary) 0%, transparent);
   }
 }
@@ -1411,13 +1421,25 @@ html[data-window-controls-left] [data-window-rail] {
      relationships: a faintly tinted canvas behind the chrome, a plain card
      for the content, a slightly deeper search field, a selected-row pill and
      a soft Compose button. */
-  --mv-canvas: color-mix(in oklab, var(--color-primary) 4%, var(--color-background));
-  --mv-search-bg: color-mix(in oklab, var(--color-primary) 9%, var(--color-background));
-  --mv-nav-hover: color-mix(in oklab, var(--color-foreground) 7%, var(--mv-canvas));
-  --mv-nav-selected: color-mix(in oklab, var(--color-primary) 18%, var(--color-background));
-  --mv-compose-bg: color-mix(in oklab, var(--color-primary) 24%, var(--color-background));
-  --mv-compose-fg: color-mix(in oklab, var(--color-primary) 30%, var(--color-foreground));
-  --mv-row-read: color-mix(in oklab, var(--color-primary) 3%, var(--color-background));
+  --mv-canvas: var(--color-background);
+  --mv-search-bg: var(--color-muted);
+  --mv-nav-hover: var(--color-secondary);
+  --mv-nav-selected: var(--color-accent);
+  --mv-compose-bg: var(--color-accent);
+  --mv-compose-fg: var(--color-accent-foreground);
+  --mv-row-read: var(--color-secondary);
+}
+
+@supports (color: color-mix(in lab, red, red)) {
+  [data-interface-layout="mountain-view"] {
+    --mv-canvas: color-mix(in oklab, var(--color-primary) 4%, var(--color-background));
+    --mv-search-bg: color-mix(in oklab, var(--color-primary) 9%, var(--color-background));
+    --mv-nav-hover: color-mix(in oklab, var(--color-foreground) 7%, var(--mv-canvas));
+    --mv-nav-selected: color-mix(in oklab, var(--color-primary) 18%, var(--color-background));
+    --mv-compose-bg: color-mix(in oklab, var(--color-primary) 24%, var(--color-background));
+    --mv-compose-fg: color-mix(in oklab, var(--color-primary) 30%, var(--color-foreground));
+    --mv-row-read: color-mix(in oklab, var(--color-primary) 3%, var(--color-background));
+  }
 }
 
 /* The content card: everything that is not chrome sits on one rounded sheet

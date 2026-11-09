@@ -302,7 +302,9 @@ function probePattern(probe: Probe): string | null {
   if (probe.index === 'tri') return escapeRegExp(text);
   const words = text.split(new RegExp(`${NOT_WORD_CHAR}+`, 'u')).filter(Boolean).map(escapeRegExp);
   if (words.length === 0) return null;
-  return `(?<!${WORD_CHAR})${words.join(`${NOT_WORD_CHAR}+`)}${probe.prefix ? '' : `(?!${WORD_CHAR})`}`;
+  // Safari 16.1 cannot parse lookbehind. Match the boundary and capture the
+  // actual probe so callers can still mark exactly what the index matched.
+  return `(?:^|${NOT_WORD_CHAR})(${words.join(`${NOT_WORD_CHAR}+`)})${probe.prefix ? '' : `(?!${WORD_CHAR})`}`;
 }
 
 function highlighter(terms: readonly Term[]): RegExp | null {
@@ -356,14 +358,20 @@ function utf8Bytes(text: string): number {
   return bytes;
 }
 
+/** The captured probe and its positions: boundary matching consumes the character before it. */
+function capturedRange(match: RegExpMatchArray, map: number[]): { start: number; end: number } {
+  const captured = match.slice(1).find((part): part is string => part !== undefined) ?? match[0];
+  const from = match.index! + match[0].length - captured.length;
+  return { start: map[from], end: map[from + captured.length] };
+}
+
 /** The whole text, escaped, with its matches marked; null when nothing matches. */
 function markAll(text: string, pattern: RegExp): string | null {
   const { folded, map } = foldWithMap(text);
   let out = '';
   let at = 0;
   for (const match of folded.matchAll(pattern)) {
-    const start = map[match.index];
-    const end = map[match.index + match[0].length];
+    const { start, end } = capturedRange(match, map);
     out += `${escapeHtml(text.slice(at, start))}<mark>${escapeHtml(text.slice(start, end))}</mark>`;
     at = end;
   }
@@ -389,8 +397,7 @@ function excerpt(raw: string, pattern: RegExp): string | null {
   };
   let at = -1;
   for (const match of folded.matchAll(pattern)) {
-    const start = map[match.index];
-    const end = map[match.index + match[0].length];
+    const { start, end } = capturedRange(match, map);
     if (at < 0) {
       const earliest = Math.max(0, start - PREVIEW_CONTEXT_CHARS);
       const space = earliest === 0 ? -1 : text.indexOf(' ', earliest);

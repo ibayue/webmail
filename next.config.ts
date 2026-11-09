@@ -117,6 +117,10 @@ const nextConfig: NextConfig = {
   experimental: {
     webpackBuildWorker: true,
   },
+  // Prebuilt ESM from node_modules skips SWC in webpack builds. This package
+  // reaches the first client chunk through next-intl and ships class static
+  // initialization blocks, which Safari before 16.4 cannot parse.
+  transpilePackages: ["intl-messageformat"],
   // No proxyClientMaxBodySize: Next copies every body proxy.ts runs for up to
   // that size before routing, so it stays at the 10 MB default. The routes
   // that take bigger uploads (WOPI saves, WebDAV, /api/plugin-proxy) are left

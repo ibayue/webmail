@@ -74,7 +74,9 @@ function promptBracketPattern(lists: PlaceholderWords[]): RegExp | null {
 function unfinishedWordPattern(lists: PlaceholderWords[]): RegExp | null {
   const words = wordsOf(lists, 'unfinished');
   if (words.length === 0) return null;
-  return new RegExp(`(?<![\\p{L}\\d_])(?:${alternation(words)})(?![\\p{L}\\d_])`, 'gu');
+  // Match the boundary instead of asserting it with lookbehind: Safari 16.1
+  // cannot parse lookbehind even inside a dynamically built RegExp.
+  return new RegExp(`(?:^|[^\\p{L}\\d_])((?:${alternation(words)}))(?![\\p{L}\\d_])`, 'gu');
 }
 
 // Japanese and Korean stand-ins for a name or number: 〇〇様, ○○○ 님. Signs
@@ -94,8 +96,10 @@ function collect(text: string, patterns: RegExp[]): Match[] {
   const matches: Match[] = [];
   for (const pattern of patterns) {
     for (const m of text.matchAll(pattern)) {
-      if (pattern === CAPS_BRACKET && (m[0].match(/\p{Lu}/gu)?.length ?? 0) < 2) continue;
-      matches.push({ start: m.index, end: m.index + m[0].length, text: m[0] });
+      const matched = m[1] ?? m[0];
+      if (pattern === CAPS_BRACKET && (matched.match(/\p{Lu}/gu)?.length ?? 0) < 2) continue;
+      const start = m.index! + m[0].length - matched.length;
+      matches.push({ start, end: start + matched.length, text: matched });
     }
   }
   // "[TODO]" is a bracket and a word; keep the outer match only.

@@ -137,6 +137,26 @@ function SimpleMarkdown({ content }: { content: string }) {
   return <div className="prose prose-sm dark:prose-invert max-w-none">{elements}</div>;
 }
 
+interface InlineMatch {
+  type: "bold" | "code" | "italic";
+  start: number;
+  end: number;
+  content: string;
+}
+
+function findItalic(text: string): InlineMatch | null {
+  let start = -1;
+  for (let i = 0; i < text.length; i++) {
+    if (text[i] !== "*" || text[i - 1] === "*" || text[i + 1] === "*") continue;
+    if (start < 0) {
+      start = i;
+      continue;
+    }
+    return { type: "italic", start, end: i + 1, content: text.slice(start + 1, i) };
+  }
+  return null;
+}
+
 function processInline(text: string): React.ReactNode {
   // Process bold, italic, code inline
   const parts: React.ReactNode[] = [];
@@ -148,36 +168,46 @@ function processInline(text: string): React.ReactNode {
     const boldMatch = remaining.match(/\*\*(.+?)\*\*/);
     // Inline code
     const codeMatch = remaining.match(/`([^`]+)`/);
-    // Italic
-    const italicMatch = remaining.match(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/);
-
-    const matches = [
-      boldMatch && { type: "bold", match: boldMatch },
-      codeMatch && { type: "code", match: codeMatch },
-      italicMatch && { type: "italic", match: italicMatch },
-    ].filter(Boolean).sort((a, b) => (a!.match.index ?? 0) - (b!.match.index ?? 0));
+    // Italic: found with a small scanner rather than lookbehind, which Safari
+    // 16.1 cannot parse.
+    const matches = ([
+      boldMatch && {
+        type: "bold" as const,
+        start: boldMatch.index!,
+        end: boldMatch.index! + boldMatch[0].length,
+        content: boldMatch[1],
+      },
+      codeMatch && {
+        type: "code" as const,
+        start: codeMatch.index!,
+        end: codeMatch.index! + codeMatch[0].length,
+        content: codeMatch[1],
+      },
+      findItalic(remaining),
+    ] satisfies Array<InlineMatch | null>).filter((match): match is InlineMatch => match !== null)
+      .sort((a, b) => a.start - b.start);
 
     if (matches.length === 0) {
       parts.push(remaining);
       break;
     }
 
-    const first = matches[0]!;
-    const idx = first.match.index ?? 0;
+    const first = matches[0];
+    const idx = first.start;
 
     if (idx > 0) {
       parts.push(remaining.slice(0, idx));
     }
 
     if (first.type === "bold") {
-      parts.push(<strong key={key++}>{first.match[1]}</strong>);
+      parts.push(<strong key={key++}>{first.content}</strong>);
     } else if (first.type === "code") {
-      parts.push(<code key={key++} className="bg-muted px-1 py-0.5 rounded text-sm font-mono">{first.match[1]}</code>);
+      parts.push(<code key={key++} className="bg-muted px-1 py-0.5 rounded text-sm font-mono">{first.content}</code>);
     } else {
-      parts.push(<em key={key++}>{first.match[1]}</em>);
+      parts.push(<em key={key++}>{first.content}</em>);
     }
 
-    remaining = remaining.slice(idx + first.match[0].length);
+    remaining = remaining.slice(first.end);
   }
 
   return parts.length === 1 ? parts[0] : <>{parts}</>;

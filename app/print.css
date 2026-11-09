@@ -162,6 +162,7 @@
   color: var(--pr-ink);
   border-inline-start: 0.9mm solid transparent;
   border-radius: 0.6mm;
+  background-color: #f3f6fb;
   background-color: color-mix(in srgb, var(--chip) 15%, #fff);
   background-image: linear-gradient(var(--chip), var(--chip));
   background-origin: border-box;

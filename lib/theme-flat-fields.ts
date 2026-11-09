@@ -39,7 +39,7 @@ export const flatFieldsCSS = `
   --color-primary: #db2d54;
   --color-primary-foreground: #ffffff;
   --color-unread: #db2d54;
-  --color-unread-wash: color-mix(in srgb, #db2d54 6%, #ffffff);
+  --color-unread-wash: #fdf2f5;
   --color-destructive: #b42318;
   --color-destructive-foreground: #ffffff;
   --color-success: #17784a;
@@ -102,7 +102,7 @@ export const flatFieldsCSS = `
   --color-primary: #db2d54;
   --color-primary-foreground: #ffffff;
   --color-unread: #f0486f;
-  --color-unread-wash: color-mix(in srgb, #f0486f 11%, #131315);
+  --color-unread-wash: #29181d;
   --color-destructive: #ff9b8f;
   --color-destructive-foreground: #131315;
   --color-success: #4cc38a;
@@ -342,6 +342,7 @@ body[data-theme-skin="builtin-flat-fields"] [data-tour="email-list"] [data-unrea
 /* Near-white 400 on the dark ground still reads as heavy, so read subjects
    also step down from the text colour. */
 body[data-theme-skin="builtin-flat-fields"] [data-tour="email-list"] [data-unread="false"] :is([class~="text-foreground/80"], [class~="text-foreground/90"]) {
+  color: var(--color-foreground);
   color: color-mix(in srgb, var(--color-foreground) 75%, var(--color-background));
 }
 
@@ -389,6 +390,7 @@ body[data-theme-skin="builtin-flat-fields"] .email-content-text a {
 /* ── Primary hover goes darker, never lighter or pinker. ── */
 body[data-theme-skin="builtin-flat-fields"] .bg-primary:is(button, a):hover,
 body[data-theme-skin="builtin-flat-fields"] [data-tour="compose-button"]:hover {
+  background-color: var(--color-ring);
   background-color: color-mix(in srgb, var(--color-primary) 84%, #000);
 }
 

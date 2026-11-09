@@ -72,6 +72,7 @@
    colour in dark mode (and nearly so in light mode), so shapes show on every
    panel and follow a theme's palette. */
 .sk-shape {
+  background-color: var(--color-muted);
   background-color: color-mix(in oklab, var(--color-foreground) 9%, transparent);
   animation: sk-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
@@ -95,10 +96,12 @@
 /* More contrast: shapes that stand out from the panels they sit on. */
 @media (prefers-contrast: more) {
   :root:not([data-contrast="normal"]) .sk-shape {
+    background-color: var(--color-muted-foreground);
     background-color: color-mix(in oklab, var(--color-foreground) 28%, transparent);
   }
 }
 :root[data-contrast="more"] .sk-shape {
+  background-color: var(--color-muted-foreground);
   background-color: color-mix(in oklab, var(--color-foreground) 28%, transparent);
 }
 
@@ -445,6 +448,7 @@
   :where(.dark) .sk-lift-dark .sk-shape,
   :where([data-interface-layout="mountain-view"]) .sk-lift-mv .sk-shape,
   .sk-lift .sk-shape {
+    background-color: var(--color-muted);
     background-color: color-mix(in oklab, var(--color-foreground) 10%, transparent);
   }
 }
