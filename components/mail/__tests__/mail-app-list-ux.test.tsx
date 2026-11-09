@@ -1,5 +1,5 @@
 import React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Email, Mailbox } from '@/lib/jmap/types';
 import { useAuthStore } from '@/stores/auth-store';
@@ -126,6 +126,17 @@ describe('the first-run tips', () => {
     render(<MailApp />);
     expect(screen.getByTestId('welcome-list')).toBeTruthy();
     expect(screen.queryByTestId('welcome-pane')).toBeNull();
+  });
+});
+
+describe('the phone list', () => {
+  it('comes back when an empty mobile viewer is left behind', async () => {
+    device.current = { isMobile: true, isCompact: false, isDesktop: false };
+    render(<MailApp />);
+
+    act(() => { useUIStore.setState({ activeView: 'viewer' }); });
+
+    await waitFor(() => expect(useUIStore.getState().activeView).toBe('list'));
   });
 });
 

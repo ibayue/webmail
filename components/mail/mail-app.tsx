@@ -778,6 +778,17 @@ export function MailApp({ linkSegments: routeSegments }: MailAppProps = {}) {
     refreshCurrentMailbox: state.refreshCurrentMailbox,
   })));
 
+  // The device-class effect above only runs as the phone layout starts. An
+  // empty viewer can also be left behind later (a failed message open, a
+  // deep link with nothing selected, or a restored draft state). Never leave
+  // a phone on the empty reader with no way back to the list.
+  useEffect(() => {
+    if (!isMobile || activeView !== "viewer") return;
+    const hasContent = showComposer || Boolean(conversationThread) || deepLinkPane !== null
+      || (!!selectedEmail && !cursorOnly);
+    if (!hasContent) setActiveView("list");
+  }, [activeView, conversationThread, cursorOnly, deepLinkPane, isMobile, selectedEmail, setActiveView, showComposer]);
+
   // Mailboxes of the account currently being browsed. Mirrors the store's
   // action-mailbox resolution so a lookup by `selectedMailbox` hits the same
   // list the email fetch used.
