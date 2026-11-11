@@ -40,6 +40,8 @@ export type SettingsSearchCondition =
   | 'touch'
   /** The Mountain View interface layout. */
   | 'mountainView'
+  /** Any interface layout but Mountain View. */
+  | 'notMountainView'
   /** More than one account signed in. */
   | 'multiAccount'
   /** In the desktop app (its bridge is there). */
@@ -118,8 +120,10 @@ export const tabSearchEntries: Record<Tab, SettingsSearchEntry[]> = {
     { label: 'settings_reorg.sections.start', when: 'desktop' },
     { label: 'desktopOs.close_to_tray_label', when: 'desktop', synonyms: syn2('tray') },
     { label: 'desktopOs.start_at_login_label', when: 'desktop', synonyms: syn2('autostart') },
+    { label: 'desktopOs.reopen_after_restart_label', when: 'desktop' },
     { label: 'desktopUi.settings.title', when: 'desktop' },
     { label: 'desktopUi.settings.double_click_label', when: 'desktop' },
+    { label: 'desktopUi.settings.compose_window_label', when: 'desktop' },
     { label: 'desktopUi.settings.restore_label', when: 'desktop' },
     { label: 'desktopMenuBar.always_show_label', when: 'desktopMenuBar', synonyms: syn2('menu_bar') },
     { label: 'settings_reorg.sections.shortcuts', when: 'desktop' },
@@ -158,9 +162,9 @@ export const tabSearchEntries: Record<Tab, SettingsSearchEntry[]> = {
     { label: 'settings.appearance.list_density.label' },
     { label: 'settings.appearance.sections.layout' },
     { label: 'settings.appearance.interface_layout.label' },
-    { label: 'settings.email_behavior.mail_layout.label', synonyms: syn2('reading_pane') },
+    { label: 'settings.email_behavior.mail_layout.label', synonyms: syn2('reading_pane'), when: 'notMountainView' },
     { label: 'settings.appearance.toolbar_position.label' },
-    { label: 'settings.appearance.toolbar_labels.label' },
+    { label: 'settings.appearance.toolbar_labels.label', when: 'notMountainView' },
     { label: 'settings.appearance.sections.sidebar' },
     { label: 'settings.appearance.colorful_sidebar_icons.label' },
     { label: 'settings.appearance.show_folder_total_count.label' },
@@ -238,6 +242,7 @@ export const tabSearchEntries: Record<Tab, SettingsSearchEntry[]> = {
     { label: 'settings.appearance.message_list_order.scope.label' },
     { label: 'settings.appearance.tint_list_rows.label' },
     { label: 'settings.email_behavior.show_verification_codes.label' },
+    { label: 'settings.email_behavior.show_attachment_chips.label' },
     { label: 'settings.message_list.sections.actions' },
     { label: 'settings.email_behavior.hover_actions.label' },
     { label: 'settings.message_list.sections.delete', synonyms: syn2('empty_trash') },
@@ -283,6 +288,7 @@ export const tabSearchEntries: Record<Tab, SettingsSearchEntry[]> = {
     { label: 'proofreading.settings.enable' },
     { label: 'proofreading.settings.writing_language' },
     { label: 'settings.composing_page.sections.replying' },
+    { label: 'settings.email_behavior.reply_under_message.label', when: 'notMountainView' },
     { label: 'settings.email_behavior.quick_reply.label' },
     { label: 'compose_words.reply_from_received.label' },
     { label: 'settings.email_behavior.signature_position.label' },

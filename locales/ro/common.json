@@ -1084,6 +1084,7 @@
     "templates_menu": "Șabloane",
     "insert_template": "Inserează șablon…",
     "options": "Opțiuni",
+    "tags": "Etichete",
     "option_plain_text": "Text simplu",
     "option_plain_text_hint": "Trimite fără formatare",
     "option_read_receipt": "Cere confirmare de citire",
@@ -1805,7 +1806,7 @@
       "id_field": "EtichetăID",
       "id_placeholder": "de exemplu: profesional, personal",
       "color_field": "Culoare",
-      "id_exists": "Această etichetă ID există deja",
+      "name_exists": "Există deja o etichetă cu acest nume",
       "edit": "Editați eticheta",
       "delete": "Șterge eticheta",
       "edit_tag": "Editați {name}",
@@ -2082,9 +2083,17 @@
         "label": "Afișează codurile de verificare",
         "description": "Oferă codul din e-mailurile de autentificare și confirmare pentru copiere cu un clic, în listă timp de o zi și în mesaj"
       },
+      "show_attachment_chips": {
+        "label": "Afișează atașamentele în listă",
+        "description": "Afișează fișierele atașate sub fiecare mesaj, ca să le puteți deschide direct din listă. Agrafa apare oricum."
+      },
       "plain_text_mode": {
         "label": "Numai text simplu",
         "description": "Dezactivați editorul de text formatat și trimiteți toate e-mailurile doar ca text simplu, inclusiv răspunsurile și redirecționările"
+      },
+      "reply_under_message": {
+        "label": "Răspunsuri sub mesaj",
+        "description": "Un răspuns sau o redirecționare se deschide sub mesajul său, care rămâne lizibil deasupra. Când este dezactivat, ocupă tot panoul de citire, ca un mesaj nou."
       },
       "quick_reply": {
         "label": "Răspuns rapid",
@@ -3394,7 +3403,8 @@
         "description": "Conturul din jurul butonului, linkului sau câmpului pe care se află tastatura.",
         "normal": "Normal",
         "thick": "Gros",
-        "extra": "Foarte gros"
+        "extra": "Foarte gros",
+        "off": "Oprit"
       },
       "focus_always": {
         "label": "Afișează mereu focalizarea",
@@ -7358,6 +7368,8 @@
       "title": "Ferestrele aplicației",
       "double_click_label": "Deschide mesajele într-o fereastră nouă la dublu clic",
       "double_click_description": "Un singur clic deschide în continuare mesajul lângă listă.",
+      "compose_window_label": "Scrie mereu mesajele într-o fereastră nouă",
+      "compose_window_description": "Mesajele noi, răspunsurile, redirecționările și ciornele se deschid într-o fereastră proprie în loc de fereastra principală.",
       "restore_label": "Redeschide ferestrele la pornire",
       "restore_description": "Ferestrele de mesaje și ciorne deschise la ieșire revin."
     },
@@ -7765,6 +7777,8 @@
     "start_at_login_description": "Aplicația pornește singură când te conectezi.",
     "start_minimized_label": "Pornește în zona de notificări",
     "start_minimized_description": "La conectare nu se deschide nicio fereastră. Deschide-o din pictograma din zona de notificări.",
+    "reopen_after_restart_label": "Redeschide după o repornire",
+    "reopen_after_restart_description": "Dacă aplicația este deschisă când computerul repornește sau vă deconectați, se redeschide la următoarea conectare, pe același dosar, mesaj sau pagină.",
     "attention_label": "Clipește în bara de activități la e-mail nou",
     "attention_mac_label": "Sare pictograma din Dock la e-mail nou",
     "attention_description": "Doar când aplicația nu este în față.",

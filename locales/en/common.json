@@ -1085,6 +1085,7 @@
     "templates_menu": "Templates",
     "insert_template": "Insert template…",
     "options": "Options",
+    "tags": "Tags",
     "option_plain_text": "Plain text",
     "option_plain_text_hint": "Send without formatting",
     "option_read_receipt": "Request read receipt",
@@ -1805,7 +1806,7 @@
       "id_field": "Tag ID",
       "id_placeholder": "e.g. work, personal",
       "color_field": "Color",
-      "id_exists": "This tag ID already exists",
+      "name_exists": "A tag with this name already exists",
       "edit": "Edit tag",
       "delete": "Delete tag",
       "edit_tag": "Edit {name}",
@@ -2082,9 +2083,17 @@
         "label": "Show verification codes",
         "description": "Offer the code from sign-in and confirmation emails for one-click copying, in the list for a day and in the message"
       },
+      "show_attachment_chips": {
+        "label": "Show attachments in the list",
+        "description": "Show attached files under each message, to open them from the list. The paperclip shows either way."
+      },
       "plain_text_mode": {
         "label": "Plain text only",
         "description": "Disable the rich text editor and send all emails as plain text only, including replies and forwards"
+      },
+      "reply_under_message": {
+        "label": "Replies under the message",
+        "description": "A reply or forward opens under its message, which stays readable above it. When off, it takes the whole reading pane, like a new message."
       },
       "quick_reply": {
         "label": "Quick reply",
@@ -3394,7 +3403,8 @@
         "description": "The outline around the button, link or field the keyboard is on.",
         "normal": "Normal",
         "thick": "Thick",
-        "extra": "Extra thick"
+        "extra": "Extra thick",
+        "off": "Off"
       },
       "focus_always": {
         "label": "Always show focus",
@@ -7358,6 +7368,8 @@
       "title": "App windows",
       "double_click_label": "Open messages in a new window on double-click",
       "double_click_description": "A single click still opens the message next to the list.",
+      "compose_window_label": "Always write messages in a new window",
+      "compose_window_description": "New messages, replies, forwards and drafts open in a window of their own instead of in the main window.",
       "restore_label": "Reopen windows at start",
       "restore_description": "Message and draft windows that were open when you quit come back."
     },
@@ -7765,6 +7777,8 @@
     "start_at_login_description": "The app starts by itself when you sign in.",
     "start_minimized_label": "Start in the tray",
     "start_minimized_description": "No window opens at sign-in. Use the tray icon to open it.",
+    "reopen_after_restart_label": "Open again after a restart",
+    "reopen_after_restart_description": "If the app is open when the computer restarts or you sign out, it opens again when you sign back in, on the same folder, message or page.",
     "attention_label": "Flash the taskbar on new mail",
     "attention_mac_label": "Bounce the Dock icon on new mail",
     "attention_description": "Only when the app is not in front.",

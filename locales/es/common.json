@@ -1081,6 +1081,7 @@
     "templates_menu": "Plantillas",
     "insert_template": "Insertar plantilla…",
     "options": "Opciones",
+    "tags": "Etiquetas",
     "option_plain_text": "Texto sin formato",
     "option_plain_text_hint": "Enviar sin formato",
     "option_read_receipt": "Solicitar confirmación de lectura",
@@ -1802,7 +1803,7 @@
       "id_field": "ID de etiqueta",
       "id_placeholder": "ej. trabajo, personal",
       "color_field": "Color",
-      "id_exists": "Este ID de etiqueta ya existe",
+      "name_exists": "Ya hay una etiqueta con este nombre",
       "edit": "Editar etiqueta",
       "delete": "Eliminar etiqueta",
       "edit_tag": "Editar {name}",
@@ -2074,6 +2075,10 @@
         "label": "Solo texto sin formato",
         "description": "Desactivar el editor de texto enriquecido y enviar todos los correos solo como texto sin formato, incluyendo respuestas y reenvíos"
       },
+      "reply_under_message": {
+        "label": "Respuestas debajo del mensaje",
+        "description": "Una respuesta o un reenvío se abre debajo de su mensaje, que sigue siendo legible encima. Si está desactivado, ocupa todo el panel de lectura, como un mensaje nuevo."
+      },
       "quick_reply": {
         "label": "Respuesta rápida",
         "description": "Mostrar el cuadro de respuesta rápida debajo de los mensajes."
@@ -2121,6 +2126,10 @@
       "show_verification_codes": {
         "label": "Mostrar códigos de verificación",
         "description": "Ofrecer el código de los correos de inicio de sesión y confirmación para copiarlo con un clic, en la lista durante un día y en el mensaje"
+      },
+      "show_attachment_chips": {
+        "label": "Mostrar adjuntos en la lista",
+        "description": "Mostrar los archivos adjuntos debajo de cada mensaje para abrirlos desde la lista. El clip se muestra de todos modos."
       },
       "attachment_click_action": {
         "label": "Acción al hacer clic en adjuntos",
@@ -3394,7 +3403,8 @@
         "description": "El contorno alrededor del botón, enlace o campo en el que está el teclado.",
         "normal": "Normal",
         "thick": "Grueso",
-        "extra": "Muy grueso"
+        "extra": "Muy grueso",
+        "off": "Desactivado"
       },
       "focus_always": {
         "label": "Mostrar siempre el foco",
@@ -7358,6 +7368,8 @@
       "title": "Ventanas de la aplicación",
       "double_click_label": "Abrir mensajes en una ventana nueva con doble clic",
       "double_click_description": "Un solo clic sigue abriendo el mensaje junto a la lista.",
+      "compose_window_label": "Escribir siempre los mensajes en una ventana nueva",
+      "compose_window_description": "Los mensajes nuevos, las respuestas, los reenvíos y los borradores se abren en su propia ventana en lugar de en la ventana principal.",
       "restore_label": "Volver a abrir las ventanas al iniciar",
       "restore_description": "Las ventanas de mensajes y borradores abiertas al salir vuelven a aparecer."
     },
@@ -7765,6 +7777,8 @@
     "start_at_login_description": "La aplicación se inicia sola cuando entras.",
     "start_minimized_label": "Iniciar en la bandeja",
     "start_minimized_description": "No se abre ninguna ventana al entrar. Ábrela con el icono de la bandeja.",
+    "reopen_after_restart_label": "Volver a abrir tras reiniciar",
+    "reopen_after_restart_description": "Si la aplicación está abierta cuando el equipo se reinicia o cierras sesión, se vuelve a abrir al iniciar sesión, en la misma carpeta, mensaje o página.",
     "attention_label": "Hacer parpadear la barra de tareas con correo nuevo",
     "attention_mac_label": "Hacer rebotar el icono del Dock con correo nuevo",
     "attention_description": "Solo cuando la aplicación no está delante.",

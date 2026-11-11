@@ -1084,6 +1084,7 @@
     "templates_menu": "Šablóny",
     "insert_template": "Vložiť šablónu…",
     "options": "Možnosti",
+    "tags": "Štítky",
     "option_plain_text": "Obyčajný text",
     "option_plain_text_hint": "Odoslať bez formátovania",
     "option_read_receipt": "Vyžiadať potvrdenie o prečítaní",
@@ -1805,7 +1806,7 @@
       "id_field": "ID štítku",
       "id_placeholder": "napr. praca, osobne",
       "color_field": "Farba",
-      "id_exists": "Toto ID štítku už existuje",
+      "name_exists": "Štítok s týmto názvom už existuje",
       "edit": "Upraviť štítok",
       "delete": "Odstrániť štítok",
       "edit_tag": "Upraviť {name}",
@@ -2082,9 +2083,17 @@
         "label": "Zobrazovať overovacie kódy",
         "description": "Ponúkať kód z prihlasovacích a potvrdzovacích e-mailov na skopírovanie jedným kliknutím, v zozname počas jedného dňa a v správe"
       },
+      "show_attachment_chips": {
+        "label": "Zobraziť prílohy v zozname",
+        "description": "Zobrazovať priložené súbory pod každou správou, aby sa dali otvoriť priamo zo zoznamu. Ikona spinky sa zobrazuje vždy."
+      },
       "plain_text_mode": {
         "label": "Iba prostý text",
         "description": "Zakázať editor formátovaného textu a odosielať všetky e-maily iba ako prostý text"
+      },
+      "reply_under_message": {
+        "label": "Odpovede pod správou",
+        "description": "Odpoveď alebo preposlanie sa otvorí pod svojou správou, ktorá nad ňou zostane čitateľná. Keď je vypnuté, zaberie celý panel čítania ako nová správa."
       },
       "quick_reply": {
         "label": "Rýchla odpoveď",
@@ -3394,7 +3403,8 @@
         "description": "Rámik okolo tlačidla, odkazu alebo poľa, na ktorom je klávesnica.",
         "normal": "Normálny",
         "thick": "Hrubý",
-        "extra": "Veľmi hrubý"
+        "extra": "Veľmi hrubý",
+        "off": "Vypnuté"
       },
       "focus_always": {
         "label": "Vždy zobrazovať zameranie",
@@ -7358,6 +7368,8 @@
       "title": "Okná aplikácie",
       "double_click_label": "Otvárať správy v novom okne dvojitým kliknutím",
       "double_click_description": "Jedným kliknutím sa správa stále otvorí vedľa zoznamu.",
+      "compose_window_label": "Vždy písať správy v novom okne",
+      "compose_window_description": "Nové správy, odpovede, preposlania a koncepty sa otvárajú vo vlastnom okne namiesto hlavného okna.",
       "restore_label": "Pri spustení znova otvoriť okná",
       "restore_description": "Okná správ a konceptov otvorené pri ukončení sa vrátia."
     },
@@ -7765,6 +7777,8 @@
     "start_at_login_description": "Aplikácia sa po prihlásení spustí sama.",
     "start_minimized_label": "Spustiť v oblasti oznámení",
     "start_minimized_description": "Po prihlásení sa neotvorí žiadne okno. Otvorte ju ikonou v oblasti oznámení.",
+    "reopen_after_restart_label": "Znova otvoriť po reštarte",
+    "reopen_after_restart_description": "Ak je aplikácia otvorená, keď sa počítač reštartuje alebo sa odhlásite, po prihlásení sa znova otvorí na rovnakom priečinku, správe alebo stránke.",
     "attention_label": "Pri novej pošte blikať na paneli úloh",
     "attention_mac_label": "Pri novej pošte poskakovať ikonou v Docku",
     "attention_description": "Len keď aplikácia nie je v popredí.",

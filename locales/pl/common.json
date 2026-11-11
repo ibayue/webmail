@@ -1081,6 +1081,7 @@
     "templates_menu": "Szablony",
     "insert_template": "Wstaw szablon…",
     "options": "Opcje",
+    "tags": "Etykiety",
     "option_plain_text": "Zwykły tekst",
     "option_plain_text_hint": "Wyślij bez formatowania",
     "option_read_receipt": "Poproś o potwierdzenie przeczytania",
@@ -1802,7 +1803,7 @@
       "id_field": "ID etykiety",
       "id_placeholder": "np. praca, osobiste",
       "color_field": "Kolor",
-      "id_exists": "Ten ID etykiety już istnieje",
+      "name_exists": "Tag o tej nazwie już istnieje",
       "edit": "Edytuj etykietę",
       "delete": "Usuń etykietę",
       "edit_tag": "Edytuj {name}",
@@ -2079,9 +2080,17 @@
         "label": "Pokazuj kody weryfikacyjne",
         "description": "Oferuj kod z e-maili logowania i potwierdzenia do skopiowania jednym kliknięciem, na liście przez jeden dzień i w wiadomości"
       },
+      "show_attachment_chips": {
+        "label": "Pokazuj załączniki na liście",
+        "description": "Pokazuj załączone pliki pod każdą wiadomością, aby można je było otworzyć prosto z listy. Spinacz jest widoczny w każdym przypadku."
+      },
       "plain_text_mode": {
         "label": "Tylko zwykły tekst",
         "description": "Wyłącz edytor tekstu sformatowanego i wysyłaj wszystkie wiadomości e-mail tylko jako zwykły tekst, w tym odpowiedzi i przekazywanie dalej"
+      },
+      "reply_under_message": {
+        "label": "Odpowiedzi pod wiadomością",
+        "description": "Odpowiedź lub przekazanie otwiera się pod swoją wiadomością, która pozostaje czytelna powyżej. Po wyłączeniu zajmuje cały panel czytania, jak nowa wiadomość."
       },
       "quick_reply": {
         "label": "Szybka odpowiedź",
@@ -3394,7 +3403,8 @@
         "description": "Ramka wokół przycisku, linku lub pola, na którym jest klawiatura.",
         "normal": "Normalna",
         "thick": "Gruba",
-        "extra": "Bardzo gruba"
+        "extra": "Bardzo gruba",
+        "off": "Wyłączone"
       },
       "focus_always": {
         "label": "Zawsze pokazuj fokus",
@@ -7358,6 +7368,8 @@
       "title": "Okna aplikacji",
       "double_click_label": "Otwieraj wiadomości w nowym oknie po dwukrotnym kliknięciu",
       "double_click_description": "Pojedyncze kliknięcie nadal otwiera wiadomość obok listy.",
+      "compose_window_label": "Zawsze pisz wiadomości w nowym oknie",
+      "compose_window_description": "Nowe wiadomości, odpowiedzi, przekazania i wersje robocze otwierają się we własnym oknie zamiast w oknie głównym.",
       "restore_label": "Otwieraj okna ponownie przy starcie",
       "restore_description": "Okna wiadomości i wersji roboczych otwarte przy zamykaniu wrócą."
     },
@@ -7765,6 +7777,8 @@
     "start_at_login_description": "Aplikacja uruchamia się sama po zalogowaniu.",
     "start_minimized_label": "Uruchamiaj w zasobniku",
     "start_minimized_description": "Po zalogowaniu nie otwiera się okno. Otwórz je ikoną w zasobniku.",
+    "reopen_after_restart_label": "Otwórz ponownie po ponownym uruchomieniu",
+    "reopen_after_restart_description": "Jeśli aplikacja jest otwarta, gdy komputer uruchamia się ponownie lub się wylogowujesz, otworzy się znowu po zalogowaniu, w tym samym folderze, przy tej samej wiadomości lub stronie.",
     "attention_label": "Migaj na pasku zadań przy nowej poczcie",
     "attention_mac_label": "Podskakuj ikoną w Docku przy nowej poczcie",
     "attention_description": "Tylko gdy aplikacja nie jest na wierzchu.",

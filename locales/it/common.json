@@ -1081,6 +1081,7 @@
     "templates_menu": "Modelli",
     "insert_template": "Inserisci modello…",
     "options": "Opzioni",
+    "tags": "Etichette",
     "option_plain_text": "Testo semplice",
     "option_plain_text_hint": "Invia senza formattazione",
     "option_read_receipt": "Richiedi conferma di lettura",
@@ -1802,7 +1803,7 @@
       "id_field": "ID etichetta",
       "id_placeholder": "es. lavoro, personale",
       "color_field": "Colore",
-      "id_exists": "Questo ID etichetta esiste già",
+      "name_exists": "Esiste già un'etichetta con questo nome",
       "edit": "Modifica etichetta",
       "delete": "Elimina etichetta",
       "edit_tag": "Modifica {name}",
@@ -2074,6 +2075,10 @@
         "label": "Solo testo normale",
         "description": "Disabilita l'editor di testo formattato e invia tutte le email solo come testo normale, incluse risposte e inoltri"
       },
+      "reply_under_message": {
+        "label": "Risposte sotto il messaggio",
+        "description": "Una risposta o un inoltro si apre sotto il suo messaggio, che resta leggibile sopra. Se disattivato, occupa l'intero pannello di lettura, come un nuovo messaggio."
+      },
       "quick_reply": {
         "label": "Risposta rapida",
         "description": "Mostra la casella di risposta rapida sotto i messaggi."
@@ -2121,6 +2126,10 @@
       "show_verification_codes": {
         "label": "Mostra codici di verifica",
         "description": "Offri il codice delle email di accesso e conferma da copiare con un clic, nell'elenco per un giorno e nel messaggio"
+      },
+      "show_attachment_chips": {
+        "label": "Mostra gli allegati nell'elenco",
+        "description": "Mostra i file allegati sotto ogni messaggio per aprirli direttamente dall'elenco. La graffetta resta visibile in ogni caso."
       },
       "attachment_click_action": {
         "label": "Azione al clic sugli allegati",
@@ -3394,7 +3403,8 @@
         "description": "Il contorno intorno al pulsante, link o campo su cui si trova la tastiera.",
         "normal": "Normale",
         "thick": "Spesso",
-        "extra": "Molto spesso"
+        "extra": "Molto spesso",
+        "off": "Disattivo"
       },
       "focus_always": {
         "label": "Mostra sempre il focus",
@@ -7358,6 +7368,8 @@
       "title": "Finestre dell'app",
       "double_click_label": "Apri i messaggi in una nuova finestra con il doppio clic",
       "double_click_description": "Un solo clic apre comunque il messaggio accanto all’elenco.",
+      "compose_window_label": "Scrivi sempre i messaggi in una nuova finestra",
+      "compose_window_description": "Nuovi messaggi, risposte, inoltri e bozze si aprono in una finestra propria invece che nella finestra principale.",
       "restore_label": "Riapri le finestre all’avvio",
       "restore_description": "Le finestre di messaggi e bozze aperte all’uscita tornano."
     },
@@ -7765,6 +7777,8 @@
     "start_at_login_description": "L'app si avvia da sola quando accedi.",
     "start_minimized_label": "Avvia nell'area di notifica",
     "start_minimized_description": "All'accesso non si apre alcuna finestra. Aprila con l'icona nell'area di notifica.",
+    "reopen_after_restart_label": "Riapri dopo un riavvio",
+    "reopen_after_restart_description": "Se l’app è aperta quando il computer si riavvia o esci dalla sessione, si riapre al prossimo accesso, sulla stessa cartella, messaggio o pagina.",
     "attention_label": "Fai lampeggiare la barra delle applicazioni con nuova posta",
     "attention_mac_label": "Fai rimbalzare l'icona del Dock con nuova posta",
     "attention_description": "Solo quando l'app non è in primo piano.",

@@ -1081,6 +1081,7 @@
     "templates_menu": "Sjablonen",
     "insert_template": "Sjabloon invoegen…",
     "options": "Opties",
+    "tags": "Labels",
     "option_plain_text": "Platte tekst",
     "option_plain_text_hint": "Verzenden zonder opmaak",
     "option_read_receipt": "Leesbevestiging vragen",
@@ -1802,7 +1803,7 @@
       "id_field": "Label-ID",
       "id_placeholder": "bijv. werk, persoonlijk",
       "color_field": "Kleur",
-      "id_exists": "Deze label-ID bestaat al",
+      "name_exists": "Er bestaat al een label met deze naam",
       "edit": "Label bewerken",
       "delete": "Label verwijderen",
       "edit_tag": "{name} bewerken",
@@ -2074,6 +2075,10 @@
         "label": "Alleen platte tekst",
         "description": "Schakel de rich text-editor uit en verzend alle e-mails alleen als platte tekst, inclusief antwoorden en doorgestuurde berichten"
       },
+      "reply_under_message": {
+        "label": "Antwoorden onder het bericht",
+        "description": "Een antwoord of doorgestuurd bericht opent onder het bijbehorende bericht, dat erboven leesbaar blijft. Als dit uit staat, neemt het het hele leesvenster in, zoals een nieuw bericht."
+      },
       "quick_reply": {
         "label": "Snel antwoorden",
         "description": "Het vak voor snel antwoorden onder berichten tonen."
@@ -2121,6 +2126,10 @@
       "show_verification_codes": {
         "label": "Verificatiecodes tonen",
         "description": "De code uit aanmeld- en bevestigingsmails aanbieden om met één klik te kopiëren, een dag lang in de lijst en in het bericht"
+      },
+      "show_attachment_chips": {
+        "label": "Bijlagen in de lijst tonen",
+        "description": "Bijgevoegde bestanden onder elk bericht tonen, zodat je ze direct vanuit de lijst kunt openen. De paperclip blijft hoe dan ook zichtbaar."
       },
       "attachment_click_action": {
         "label": "Actie bij klikken op bijlagen",
@@ -3394,7 +3403,8 @@
         "description": "De rand rond de knop, link of het veld waar het toetsenbord op staat.",
         "normal": "Normaal",
         "thick": "Dik",
-        "extra": "Extra dik"
+        "extra": "Extra dik",
+        "off": "Uit"
       },
       "focus_always": {
         "label": "Focus altijd tonen",
@@ -7358,6 +7368,8 @@
       "title": "Vensters van de app",
       "double_click_label": "Berichten openen in een nieuw venster met dubbelklikken",
       "double_click_description": "Eén klik opent het bericht nog steeds naast de lijst.",
+      "compose_window_label": "Berichten altijd in een nieuw venster schrijven",
+      "compose_window_description": "Nieuwe berichten, antwoorden, doorgestuurde berichten en concepten openen in een eigen venster in plaats van in het hoofdvenster.",
       "restore_label": "Vensters opnieuw openen bij het starten",
       "restore_description": "Bericht- en conceptvensters die open waren bij het afsluiten, komen terug."
     },
@@ -7765,6 +7777,8 @@
     "start_at_login_description": "De app start vanzelf als je je aanmeldt.",
     "start_minimized_label": "Starten in het systeemvak",
     "start_minimized_description": "Bij het aanmelden opent geen venster. Open de app met het pictogram in het systeemvak.",
+    "reopen_after_restart_label": "Opnieuw openen na een herstart",
+    "reopen_after_restart_description": "Als de app open is wanneer de computer opnieuw opstart of je je afmeldt, opent hij weer wanneer je je aanmeldt, in dezelfde map, hetzelfde bericht of dezelfde pagina.",
     "attention_label": "Taakbalk laten knipperen bij nieuwe mail",
     "attention_mac_label": "Dock-pictogram laten stuiteren bij nieuwe mail",
     "attention_description": "Alleen als de app niet vooraan staat.",

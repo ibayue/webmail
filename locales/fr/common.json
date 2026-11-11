@@ -1081,6 +1081,7 @@
     "templates_menu": "Modèles",
     "insert_template": "Insérer un modèle…",
     "options": "Options",
+    "tags": "Étiquettes",
     "option_plain_text": "Texte brut",
     "option_plain_text_hint": "Envoyer sans mise en forme",
     "option_read_receipt": "Demander un accusé de lecture",
@@ -1802,7 +1803,7 @@
       "id_field": "ID d'étiquette",
       "id_placeholder": "ex. travail, personnel",
       "color_field": "Couleur",
-      "id_exists": "Cet ID d'étiquette existe déjà",
+      "name_exists": "Une étiquette porte déjà ce nom",
       "edit": "Éditer l'étiquette",
       "delete": "Supprimer l'étiquette",
       "edit_tag": "Modifier {name}",
@@ -2074,6 +2075,10 @@
         "label": "Texte brut uniquement",
         "description": "Désactiver l'éditeur de texte enrichi et envoyer tous les e-mails en texte brut uniquement, y compris les réponses et les transferts"
       },
+      "reply_under_message": {
+        "label": "Réponses sous le message",
+        "description": "Une réponse ou un transfert s'ouvre sous son message, qui reste lisible au-dessus. Si cette option est désactivée, il occupe tout le panneau de lecture, comme un nouveau message."
+      },
       "quick_reply": {
         "label": "Réponse rapide",
         "description": "Afficher la zone de réponse rapide sous les messages."
@@ -2121,6 +2126,10 @@
       "show_verification_codes": {
         "label": "Afficher les codes de vérification",
         "description": "Proposer le code des e-mails de connexion et de confirmation pour le copier en un clic, dans la liste pendant un jour et dans le message"
+      },
+      "show_attachment_chips": {
+        "label": "Afficher les pièces jointes dans la liste",
+        "description": "Afficher les fichiers joints sous chaque message pour les ouvrir directement depuis la liste. Le trombone reste affiché dans tous les cas."
       },
       "attachment_click_action": {
         "label": "Action au clic sur les pièces jointes",
@@ -3394,7 +3403,8 @@
         "description": "Le contour autour du bouton, du lien ou du champ où se trouve le clavier.",
         "normal": "Normal",
         "thick": "Épais",
-        "extra": "Très épais"
+        "extra": "Très épais",
+        "off": "Désactivé"
       },
       "focus_always": {
         "label": "Toujours afficher le focus",
@@ -7358,6 +7368,8 @@
       "title": "Fenêtres de l'application",
       "double_click_label": "Ouvrir les messages dans une nouvelle fenêtre par double-clic",
       "double_click_description": "Un simple clic ouvre toujours le message à côté de la liste.",
+      "compose_window_label": "Toujours rédiger les messages dans une nouvelle fenêtre",
+      "compose_window_description": "Les nouveaux messages, réponses, transferts et brouillons s'ouvrent dans leur propre fenêtre plutôt que dans la fenêtre principale.",
       "restore_label": "Rouvrir les fenêtres au démarrage",
       "restore_description": "Les fenêtres de messages et de brouillons ouvertes à la fermeture reviennent."
     },
@@ -7765,6 +7777,8 @@
     "start_at_login_description": "L'application démarre seule quand vous ouvrez votre session.",
     "start_minimized_label": "Démarrer dans la zone de notification",
     "start_minimized_description": "Aucune fenêtre ne s'ouvre à l'ouverture de session. Ouvrez-la avec l'icône de la zone de notification.",
+    "reopen_after_restart_label": "Rouvrir après un redémarrage",
+    "reopen_after_restart_description": "Si l'application est ouverte quand l'ordinateur redémarre ou que vous vous déconnectez, elle se rouvre à votre prochaine connexion, sur le même dossier, message ou page.",
     "attention_label": "Faire clignoter la barre des tâches à l'arrivée de courrier",
     "attention_mac_label": "Faire rebondir l'icône du Dock à l'arrivée de courrier",
     "attention_description": "Seulement quand l'application n'est pas au premier plan.",

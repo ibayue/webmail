@@ -1218,8 +1218,8 @@ function buildCoreApi(manifest: PluginManifest) {
       /** Resolves to the new task, or null when another plugin stopped it. */
       create: (task: TaskInput) => callApi('tasks.create', [task]) as Promise<TaskView | null>,
       /**
-       * Change the given fields. `alerts`, `links` and `relatedTo` merge
-       * by id: an entry given is set, one given null is removed, the rest
+       * Change the given fields. `alerts`, `links`, `relatedTo` and
+       * `keywords` merge by id: an entry given is set, one given null is removed, the rest
        * stay as they are (each written by its own JMAP patch path); null
        * for the whole map clears it.
        */
@@ -1519,6 +1519,14 @@ async function bootSlot(payload: SlotInit): Promise<void> {
     document.body.style.height = '100%';
     document.body.style.overflow = 'hidden';
     rootEl.style.height = '100%';
+  }
+  // An inline slot's frame is sized to its content. With fractional display
+  // scaling (Windows at 125 %) that size can fall a fraction of a pixel
+  // short; the frame then shows classic scrollbars, which take room of
+  // their own and cut the row off. Nothing in it needs to scroll.
+  if (inline) {
+    document.documentElement.style.overflow = 'hidden';
+    document.body.style.overflow = 'hidden';
   }
 
   // A trivial pub/sub so host-pushed `props-update` messages re-render the

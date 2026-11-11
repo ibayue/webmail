@@ -1085,6 +1085,7 @@
     "templates_menu": "Malar",
     "insert_template": "Set inn mal …",
     "options": "Val",
+    "tags": "Etikettar",
     "option_plain_text": "Ren tekst",
     "option_plain_text_hint": "Send utan formatering",
     "option_read_receipt": "Be om lesekvittering",
@@ -1813,7 +1814,7 @@
       "id_field": "Etikett-ID",
       "id_placeholder": "t.d. arbeid, privat",
       "color_field": "Farge",
-      "id_exists": "Denne etikett-ID-en finst allereie",
+      "name_exists": "Det finst allereie ein etikett med dette namnet",
       "edit": "Rediger etikett",
       "delete": "Slett etikett",
       "edit_tag": "Rediger {name}",
@@ -2090,9 +2091,17 @@
         "label": "Vis stadfestingskodar",
         "description": "Tilby koden frå innloggings- og stadfestingsmeldingar for kopiering med eitt klikk, i lista i eit døgn og i meldinga"
       },
+      "show_attachment_chips": {
+        "label": "Vis vedlegg i lista",
+        "description": "Vis vedlagde filer under kvar melding, så du kan opne dei rett frå lista. Bindersen blir vist uansett."
+      },
       "plain_text_mode": {
         "label": "Berre ren tekst",
         "description": "Slå av rikteksteditoren og send all e-post som ren tekst, òg svar og vidaresendingar"
+      },
+      "reply_under_message": {
+        "label": "Svar under meldinga",
+        "description": "Eit svar eller ei vidaresending opnar seg under meldinga si, som held seg leseleg over. Når dette er slått av, fyller det heile leseflata, som ei ny melding."
       },
       "quick_reply": {
         "label": "Raskt svar",
@@ -3402,7 +3411,8 @@
         "description": "Ramma rundt knappen, lenkja eller feltet tastaturet står på.",
         "normal": "Normal",
         "thick": "Tjukk",
-        "extra": "Ekstra tjukk"
+        "extra": "Ekstra tjukk",
+        "off": "Av"
       },
       "focus_always": {
         "label": "Vis alltid fokus",
@@ -7366,6 +7376,8 @@
       "title": "App-vindauge",
       "double_click_label": "Opne meldingar i eit nytt vindauge med dobbeltklikk",
       "double_click_description": "Einkvar klikk opnar framleis meldinga ved sida av lista.",
+      "compose_window_label": "Skriv alltid meldingar i eit nytt vindauge",
+      "compose_window_description": "Nye meldingar, svar, vidaresendingar og utkast opnar seg i eit eige vindauge i staden for i hovudvindauget.",
       "restore_label": "Opne att vindauge ved oppstart",
       "restore_description": "Meldingar og utkast som var opne då du avslutta, kjem tilbake."
     },
@@ -7773,6 +7785,8 @@
     "start_at_login_description": "Appen startar av seg sjølv når du loggar inn.",
     "start_minimized_label": "Start i systemfeltet",
     "start_minimized_description": "Ingen vindauge opnar seg ved innlogging. Bruk systemikonet for å opne det.",
+    "reopen_after_restart_label": "Opne igjen etter ein omstart",
+    "reopen_after_restart_description": "Viss appen er open når datamaskina startar på nytt eller du loggar av, opnar han seg igjen når du loggar på, i same mappe, melding eller side.",
     "attention_label": "Lyser opp oppgåvelinja ved ny e-post",
     "attention_mac_label": "Hopp med Dock-ikonet når ny e-post kjem",
     "attention_description": "Berre når appen ikkje er i framgrunnen.",

@@ -1085,6 +1085,7 @@
     "templates_menu": "Mẫu",
     "insert_template": "Chèn mẫu…",
     "options": "Tùy chọn",
+    "tags": "Thẻ",
     "option_plain_text": "Văn bản thuần",
     "option_plain_text_hint": "Gửi không kèm định dạng",
     "option_read_receipt": "Yêu cầu xác nhận đã đọc",
@@ -1817,7 +1818,7 @@
       "id_field": "Mã nhãn",
       "id_placeholder": "Ví dụ: cong-viec, ca-nhan",
       "color_field": "Màu",
-      "id_exists": "Mã nhãn này đã tồn tại",
+      "name_exists": "Thẻ có tên này đã tồn tại",
       "edit": "Sửa nhãn",
       "delete": "Xóa nhãn",
       "edit_tag": "Sửa {name}",
@@ -2094,9 +2095,17 @@
         "label": "Hiển thị mã xác minh",
         "description": "Cho phép sao chép mã trong thư đăng nhập và xác nhận chỉ bằng một lần nhấn; mã hiển thị trong danh sách một ngày và cả trong thư"
       },
+      "show_attachment_chips": {
+        "label": "Hiện tệp đính kèm trong danh sách",
+        "description": "Hiện các tệp đính kèm bên dưới mỗi thư để mở ngay từ danh sách. Biểu tượng kẹp giấy vẫn hiển thị trong mọi trường hợp."
+      },
       "plain_text_mode": {
         "label": "Chỉ dùng văn bản thuần",
         "description": "Tắt trình soạn thảo văn bản đa dạng thức và chỉ gửi thư dưới dạng văn bản thuần, kể cả thư trả lời và chuyển tiếp"
+      },
+      "reply_under_message": {
+        "label": "Mở thư trả lời bên dưới thư",
+        "description": "Thư trả lời hoặc chuyển tiếp mở bên dưới thư gốc, thư gốc vẫn đọc được ở phía trên. Khi tắt, nó chiếm toàn bộ ngăn đọc, giống như thư mới."
       },
       "quick_reply": {
         "label": "Trả lời nhanh",
@@ -3406,7 +3415,8 @@
         "description": "Đường viền quanh nút, liên kết hoặc trường đang nhận thao tác bàn phím.",
         "normal": "Bình thường",
         "thick": "Dày",
-        "extra": "Cực dày"
+        "extra": "Cực dày",
+        "off": "Tắt"
       },
       "focus_always": {
         "label": "Luôn hiển thị tiêu điểm",
@@ -7370,6 +7380,8 @@
       "title": "Cửa sổ ứng dụng",
       "double_click_label": "Mở thư trong cửa sổ mới khi nhấp đúp",
       "double_click_description": "Nhấp một lần vẫn mở thư bên cạnh danh sách.",
+      "compose_window_label": "Luôn soạn thư trong cửa sổ mới",
+      "compose_window_description": "Thư mới, thư trả lời, thư chuyển tiếp và bản nháp mở trong cửa sổ riêng thay vì trong cửa sổ chính.",
       "restore_label": "Mở lại cửa sổ khi khởi động",
       "restore_description": "Các cửa sổ thư và bản nháp đang mở khi thoát sẽ trở lại."
     },
@@ -7777,6 +7789,8 @@
     "start_at_login_description": "Ứng dụng tự khởi động khi bạn đăng nhập.",
     "start_minimized_label": "Khởi động ở khay hệ thống",
     "start_minimized_description": "Không có cửa sổ nào mở khi đăng nhập. Mở bằng biểu tượng ở khay hệ thống.",
+    "reopen_after_restart_label": "Mở lại sau khi khởi động lại",
+    "reopen_after_restart_description": "Nếu ứng dụng đang mở khi máy tính khởi động lại hoặc bạn đăng xuất, ứng dụng sẽ mở lại khi bạn đăng nhập, tại cùng thư mục, thư hoặc trang.",
     "attention_label": "Nhấp nháy thanh tác vụ khi có thư mới",
     "attention_mac_label": "Làm biểu tượng Dock nảy khi có thư mới",
     "attention_description": "Chỉ khi ứng dụng không ở phía trước.",

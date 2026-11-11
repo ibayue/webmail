@@ -363,6 +363,12 @@ export interface DesktopBrowserSignInControls {
   nextPassword: (flowId: string) => Promise<DesktopPasswordSignInAttempt>;
   answerPassword: (flowId: string, answer: DesktopPasswordSignInAnswer) => void;
   outcome: (flowId: string) => Promise<DesktopBrowserSignInResult>;
+  /**
+   * Instance mode: a plugin's OAuth request whose redirect_uri is this instance's plugin
+   * callback, in an app window on the app's session. Only from a click. False: open it as a
+   * link. Absent on older shells.
+   */
+  pluginSignIn?: (url: string) => Promise<boolean>;
 }
 
 export interface DesktopAuthBridge {
@@ -691,6 +697,11 @@ export interface DesktopOsSettings {
   startAtLogin: boolean;
   /** At login: no window, only the tray. */
   startMinimized: boolean;
+  /**
+   * Running when the computer restarts or the user signs out: the app starts again at the
+   * next sign-in, on the page the main window showed. Unset: a shell without it.
+   */
+  reopenAfterRestart?: boolean;
   /** Taskbar flash or dock bounce on new mail. */
   attentionOnNewMail: boolean;
   quietHoursEnabled: boolean;
